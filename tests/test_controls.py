@@ -6,5 +6,8 @@ def app(**kw):
 def test_cv_only(): assert app().requested_status()=='CV' and app().validate()==[]
 def test_cv_cl(): assert app(make_cl=True).requested_status()=='CV+CL'
 def test_cv_cl_ws(): assert app(make_cl=True,web_search=True).requested_status()=='CV+CL+WS'
-def test_ws_without_cl_rejected(): assert app(web_search=True).validate()
+def test_ws_without_cl_is_allowed_and_status_stays_cv():
+    a=app(web_search=True)
+    assert a.validate()==[]
+    assert a.requested_status()=='CV'
 def test_completed(): assert app(status='CV',cv_link='drive').complete()
