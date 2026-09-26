@@ -5,10 +5,14 @@ on:
     - cron: '17 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   worker:
     # Safe by default. Set repository variable AUTOMATION_ENABLED=true only
-    # after API + Google credentials are configured and a dry run is complete.
+    # after Google + OpenAI connectivity and controlled CV tests pass.
     if: ${{ vars.AUTOMATION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -17,6 +21,15 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -29,11 +42,6 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-sol' }}
           OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'medium' }}
-
-          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
-          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
-          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
-          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
 
           FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID || '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc' }}
           FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME || 'Sheet1' }}
