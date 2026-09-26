@@ -1,0 +1,45 @@
+name: connectivity-test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  connectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Authenticate to Google Cloud (WIF)
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - run: pip install -r requirements.txt
+
+      - name: Verify Google + OpenAI connectivity (read-only)
+        env:
+          PYTHONPATH: src
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-sol' }}
+          FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID || '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc' }}
+          FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME || 'Sheet1' }}
+          PROMPT1_FILE_ID: ${{ vars.PROMPT1_FILE_ID || '1MgNyy2qT__pcpWKNMkyMro81dHq0Wjr7' }}
+          PROMPT2_FILE_ID: ${{ vars.PROMPT2_FILE_ID || '1artaIzFwznf3e6gi9gBrenP3EDhaqgrl' }}
+          PROMPT3_FILE_ID: ${{ vars.PROMPT3_FILE_ID || '1RcISGnDHMqN0-7pSZlNUf5bxEgrCmsf0' }}
+          SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID || '1B6e8GKtUcZKjHtB6lzHRjZxcZQPW6d67' }}
+          CV_FORMATTING_MASTER_FILE_ID: ${{ vars.CV_FORMATTING_MASTER_FILE_ID || '1GScLrTOXRcf6_dfdgVnFaAdzpOUVmySH' }}
+          BASE_CV_FILE_ID: ${{ vars.BASE_CV_FILE_ID || '1jSEPPMgTLeU3LwrJVHCYCSVJ6KX_Tngr' }}
+          DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID || '1cGr5kUXgy_43NY9IINdpdT0OXY9NoBXF' }}
+        run: python -m automate_cv.connectivity
