@@ -4,7 +4,13 @@ class Settings(BaseSettings):
     openai_api_key: str = ''
     openai_model: str = 'gpt-5.6-sol'
     openai_reasoning_effort: str = 'medium'
-    stage1_reasoning_effort: str = 'medium'
+    # Quality-first model split: Stage 1 is JD-only analysis and can use the
+    # cheaper Terra tier; evidence selection and final artifact creation stay
+    # on Sol unless explicitly overridden.
+    stage1_model: str = 'gpt-5.6-terra'
+    stage2_model: str = 'gpt-5.6-sol'
+    stage3_model: str = 'gpt-5.6-sol'
+    stage1_reasoning_effort: str = 'low'
     stage2_reasoning_effort: str = 'medium'
     stage3_reasoning_effort: str = 'medium'
     stage1_max_output_tokens: int = 12000
