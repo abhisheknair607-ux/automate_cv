@@ -79,8 +79,8 @@ def test_usage_reports_cache_write_cached_reasoning_and_terra_cost():
     assert result['cost'] == 0.00733
 
 
-def test_extract_handoff_keeps_only_machine_handoff_block():
-    output = '''Human-readable audit summary.\n\nSTAGE1_HANDOFF\n```yaml\nrole_family: transfer_pricing\nrequirements:\n  - R1\n```'''
+def test_extract_handoff_accepts_numbered_heading_and_keeps_only_yaml():
+    output = '''Human-readable audit summary.\n\n## 9. STAGE1_HANDOFF\n\n```yaml\nrole_family: transfer_pricing\nrequirements:\n  - R1\n```\n\n## Later audit section\nignored'''
     assert _extract_handoff(output, 'STAGE1_HANDOFF') == (
         'STAGE1_HANDOFF\nrole_family: transfer_pricing\nrequirements:\n  - R1'
     )
