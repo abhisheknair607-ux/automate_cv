@@ -11,6 +11,11 @@ class ApplicationRow:
     make_cl: bool
     web_search: bool
     status: str
+    candidate_key: str = 'abhishek'
+    candidate_name: str = 'Abhishek Nair'
+    filename_name: str = 'Abhishek_Nair'
+    folder_name: str = 'Abhishek'
+    location: str = ''
     application_id: str = ''
     jd_hash: str = ''
     workflow: str = ''
@@ -32,9 +37,6 @@ class ApplicationRow:
         if not self.make_cv: return 'NA'
         if self.make_cl and self.web_search: return 'CV+CL+WS'
         if self.make_cl: return 'CV+CL'
-        # Freshmal intentionally has no CV+WS dropdown value. If Web Search is
-        # enabled without a cover letter, the final artifact status remains CV;
-        # the workflow/audit context records that web research was performed.
         return 'CV'
 
     def complete(self):
