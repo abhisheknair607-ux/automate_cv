@@ -5,33 +5,73 @@ import re
 import time
 from datetime import datetime, timezone
 from pathlib import Path
+
 import httpx
+
 from .context import write_context
-from .qa import normalize, one_page, QAError, factual_report
-from .sources import Sources
 from .profiles import profiles
+from .qa import QAError, factual_report, normalize, one_page
+from .sources import Sources
 
 
 class CostLimitError(RuntimeError):
     pass
 
 
-def _usage(response):
+_MODEL_PRICES_PER_M = {
+    'gpt-5.6-sol': {'input': 4.0, 'cached': 0.4, 'cache_write': 5.0, 'output': 20.0},
+    'gpt-5.6': {'input': 4.0, 'cached': 0.4, 'cache_write': 5.0, 'output': 20.0},
+    'gpt-5.6-terra': {'input': 2.0, 'cached': 0.2, 'cache_write': 2.5, 'output': 12.0},
+}
+
+
+def _usage(response, model=None):
     usage = getattr(response, 'usage', None)
+    response_model = model or getattr(response, 'model', '') or ''
+    prices = _MODEL_PRICES_PER_M.get(response_model)
+
     if not usage:
-        return {'input': 0, 'cached': 0, 'uncached': 0, 'output': 0, 'reasoning': 0, 'cost': 0.0}
+        return {
+            'model': response_model,
+            'input': 0,
+            'cached': 0,
+            'cache_write': 0,
+            'uncached': 0,
+            'standard_input': 0,
+            'output': 0,
+            'reasoning': 0,
+            'cost': 0.0,
+        }
+
     inp = getattr(usage, 'input_tokens', 0) or 0
     out = getattr(usage, 'output_tokens', 0) or 0
     input_details = getattr(usage, 'input_tokens_details', None)
     output_details = getattr(usage, 'output_tokens_details', None)
     cached = (getattr(input_details, 'cached_tokens', 0) or 0) if input_details else 0
+    cache_write = (getattr(input_details, 'cache_write_tokens', 0) or 0) if input_details else 0
     reasoning = (getattr(output_details, 'reasoning_tokens', 0) or 0) if output_details else 0
-    # Retain the repository's existing planning prices so historical cost figures remain comparable.
-    cost = (max(inp - cached, 0) * 4.0 + cached * 0.4 + out * 20.0) / 1_000_000
+
+    # input_tokens includes cached and cache-write tokens. Charge each category
+    # once and leave the remaining input at the ordinary uncached rate.
+    standard_input = max(inp - cached - cache_write, 0)
+    uncached = max(inp - cached, 0)
+
+    cost = 0.0
+    if prices:
+        cost = (
+            standard_input * prices['input']
+            + cached * prices['cached']
+            + cache_write * prices['cache_write']
+            + out * prices['output']
+        ) / 1_000_000
+
     return {
+        'model': response_model,
         'input': inp,
         'cached': cached,
-        'uncached': max(inp - cached, 0),
+        'cache_write': cache_write,
+        'uncached': uncached,
+        'standard_input': standard_input,
         'output': out,
         'reasoning': reasoning,
         'cost': round(cost, 6),
@@ -55,6 +95,37 @@ def _transient(error):
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def _extract_handoff(text, marker):
+    """Return a compact YAML/JSON handoff block when present.
+
+    Drive prompts require STAGE1_HANDOFF / STAGE2_HANDOFF markers. If a model
+    returns an unexpected wrapper, fail closed rather than forwarding a long
+    analysis downstream and recreating the previous token-cost problem.
+    """
+    text = str(text or '')
+    pattern = re.compile(
+        rf'(?is)(?:^|\n)\s*(?:#+\s*)?{re.escape(marker)}\s*:?\s*\n'
+        r'(?:```(?:ya?ml|json)?\s*\n)?'
+        r'(?P<body>.*?)'
+        r'(?:\n```|\Z)'
+    )
+    match = pattern.search(text)
+    if match:
+        body = match.group('body').strip()
+        if body:
+            return f'{marker}\n{body}'
+
+    # Also accept a fenced block that begins with the marker on its first line.
+    fenced = re.search(
+        rf'(?is)```(?:ya?ml|json)?\s*\n\s*{re.escape(marker)}\s*:?\s*\n(?P<body>.*?)\n```',
+        text,
+    )
+    if fenced and fenced.group('body').strip():
+        return f'{marker}\n{fenced.group("body").strip()}'
+
+    raise RuntimeError(f'{marker} was not found in the model output.')
 
 
 class Workflow:
@@ -112,7 +183,10 @@ class Workflow:
         }
         manifest.setdefault('usage_history', []).append(event)
         manifest.setdefault('latest_stage_usage', {})[stage] = stage_usage
-        manifest['cumulative_cost_usd'] = round(float(manifest.get('cumulative_cost_usd', 0) or 0) + stage_usage['cost'], 6)
+        manifest['cumulative_cost_usd'] = round(
+            float(manifest.get('cumulative_cost_usd', 0) or 0) + stage_usage['cost'],
+            6,
+        )
         return manifest['cumulative_cost_usd']
 
     def _guard(self, manifest):
@@ -129,14 +203,18 @@ class Workflow:
             'candidate': app.candidate_key,
             'jd_hash': app.jd_hash,
             'prompt1_hash': _hash(prompt1),
+            'stage1_model': self.s.stage1_model,
+            'stage1_reasoning_effort': self.s.stage1_reasoning_effort,
         }
 
-    def _checkpoint_key_stage2(self, stage1_key, prompt2, summary, stage1_output):
+    def _checkpoint_key_stage2(self, stage1_key, prompt2, summary, stage1_handoff):
         return {
             **stage1_key,
             'prompt2_hash': _hash(prompt2),
             'summary_hash': _hash(summary),
-            'stage1_output_hash': _hash(stage1_output),
+            'stage1_handoff_hash': _hash(stage1_handoff),
+            'stage2_model': self.s.stage2_model,
+            'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
         }
 
     @staticmethod
@@ -144,7 +222,11 @@ class Workflow:
         return all(manifest.get(k) == v for k, v in key.items())
 
     def run(self, app):
-        print(f'[workflow] Starting {app.candidate_key} application: {app.company} - {app.designation}', flush=True)
+        print(
+            f'[workflow] Starting {app.candidate_key} application: '
+            f'{app.company} - {app.designation}',
+            flush=True,
+        )
         if not self.sheet.prepare(app):
             return
 
@@ -152,7 +234,10 @@ class Workflow:
         profile = self.profiles[app.candidate_key]
         missing = profile.missing_required()
         if missing:
-            errors.append(f'{app.candidate_name} profile is missing required configuration: {", ".join(missing)}.')
+            errors.append(
+                f'{app.candidate_name} profile is missing required configuration: '
+                f'{", ".join(missing)}.'
+            )
         if errors:
             message = ' '.join(errors)
             self.sheet.fail(app, message, 'ERROR_CONFIG')
@@ -170,7 +255,7 @@ class Workflow:
             prompt2 = self.prompts.read(app.candidate_key, '#Prompt2.md', work)
             prompt3 = self.prompts.read(app.candidate_key, '#Prompt3.md', work)
             manifest, manifest_path = self._manifest(folder, work)
-            manifest.setdefault('schema_version', 2)
+            manifest.setdefault('schema_version', 3)
             manifest.setdefault('candidate', app.candidate_key)
             manifest.setdefault('application_id', app.application_id)
             manifest.setdefault('cumulative_cost_usd', 0.0)
@@ -187,14 +272,18 @@ class Workflow:
             )
             if stage1_valid:
                 stage1 = stage1_path.read_text(encoding='utf-8')
+                stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
                 print('[workflow] Reusing verified Stage 1 checkpoint', flush=True)
             else:
-                # A changed JD/Prompt 1 invalidates downstream checkpoints, but historical usage remains auditable.
+                # A changed JD/Prompt 1/model invalidates downstream checkpoints,
+                # while historical usage remains auditable.
                 for key in ('stage1_complete', 'stage2_complete', 'stage3_complete', 'stage2_key'):
                     manifest.pop(key, None)
                 manifest.update(stage1_key)
                 input1 = (
-                    f'Company: {app.company}\nDesignation: {app.designation}\nLink: {app.application_link}'
+                    f'Company: {app.company}\n'
+                    f'Designation: {app.designation}\n'
+                    f'Link: {app.application_link}'
                     f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
                 )
                 stage1, response1 = self.retry(
@@ -203,13 +292,24 @@ class Workflow:
                         input1,
                         self.s.stage1_reasoning_effort,
                         self.s.stage1_max_output_tokens,
+                        model=self.s.stage1_model,
+                        # Prompt 1 is stable across applications and long enough to
+                        # benefit from reuse; the changing JD remains after the
+                        # explicit breakpoint.
+                        cache_prefix='',
+                        cache_key=f'{app.candidate_key}:stage1',
                     ),
                     'Stage 1 AI call',
                 )
+                stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
                 stage1_path.write_text(stage1, encoding='utf-8')
                 self.drive.upload(stage1_path, folder)
                 manifest['stage1_complete'] = True
-                self._record_usage(manifest, 'stage1', _usage(response1))
+                self._record_usage(
+                    manifest,
+                    'stage1',
+                    _usage(response1, self.s.stage1_model),
+                )
                 self._save_manifest(manifest, manifest_path, folder)
                 self._guard(manifest)
 
@@ -217,7 +317,12 @@ class Workflow:
             current_stage = 'STAGE_2'
             self.sheet.update(app, {'workflow': current_stage})
             summary, summary_path = self.sources.stage2(app.candidate_key, work)
-            stage2_key = self._checkpoint_key_stage2(stage1_key, prompt2, summary, stage1)
+            stage2_key = self._checkpoint_key_stage2(
+                stage1_key,
+                prompt2,
+                summary,
+                stage1_handoff,
+            )
             stage2_path = work / 'stage2.md'
             stage2_valid = (
                 manifest.get('stage2_key') == stage2_key
@@ -226,15 +331,21 @@ class Workflow:
             )
             if stage2_valid:
                 stage2 = stage2_path.read_text(encoding='utf-8')
+                stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
                 print('[workflow] Reusing verified Stage 2 checkpoint', flush=True)
             else:
                 manifest.pop('stage2_complete', None)
                 manifest.pop('stage3_complete', None)
-                # Stable candidate evidence deliberately comes before job-specific material to improve cache eligibility.
+
+                # Prompt 2 + compact Summary Router is the stable reusable prefix.
+                # The JD and Stage 1 handoff are application-specific and stay after
+                # the breakpoint so they are not unnecessarily cache-written.
                 input2 = (
-                    f'COMPLETE SUMMARY DOC\n{summary}'
+                    f'Company: {app.company}\n'
+                    f'Designation: {app.designation}\n'
+                    f'Link: {app.application_link}'
                     f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
-                    f'\n\nCOMPLETE STAGE 1 OUTPUT\n{stage1}'
+                    f'\n\n{stage1_handoff}'
                 )
                 stage2, response2 = self.retry(
                     lambda: self.ai.text(
@@ -242,31 +353,62 @@ class Workflow:
                         input2,
                         self.s.stage2_reasoning_effort,
                         self.s.stage2_max_output_tokens,
+                        model=self.s.stage2_model,
+                        cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
+                        cache_key=f'{app.candidate_key}:stage2',
                     ),
                     'Stage 2 AI call',
                 )
+                stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
                 stage2_path.write_text(stage2, encoding='utf-8')
                 self.drive.upload(stage2_path, folder)
                 manifest['stage2_key'] = stage2_key
                 manifest['stage2_complete'] = True
-                self._record_usage(manifest, 'stage2', _usage(response2))
+                self._record_usage(
+                    manifest,
+                    'stage2',
+                    _usage(response2, self.s.stage2_model),
+                )
                 self._save_manifest(manifest, manifest_path, folder)
                 self._guard(manifest)
 
             # ---------------- Stage 3 ----------------
             current_stage = 'STAGE_3'
             self.sheet.update(app, {'workflow': current_stage})
-            source_paths = self.sources.stage3(app.candidate_key, work, summary_path, stage2)
+
+            # Detailed facts remain outside the textual prompt. They are mounted
+            # for selective verification in Code Interpreter and for deterministic
+            # factual QA after the CV is generated.
+            master_evidence, master_path = self.sources.master_evidence(
+                app.candidate_key,
+                work,
+            )
+            source_paths = self.sources.stage3(
+                app.candidate_key,
+                work,
+                summary_path,
+                master_path,
+                stage2,
+            )
             controls = (
-                f'MAKE_CV = TRUE\nMAKE_COVER_LETTER = {str(app.make_cl).upper()}'
-                f'\nWEB_SEARCH = {str(app.web_search).upper()}'
+                f'MAKE_CV = TRUE\n'
+                f'MAKE_COVER_LETTER = {str(app.make_cl).upper()}\n'
+                f'WEB_SEARCH = {str(app.web_search).upper()}'
             )
             input3 = (
-                f'{controls}\n\nCompany: {app.company}\nRole: {app.designation}\nLocation: {app.location}'
-                f'\nLink: {app.application_link}\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
-                f'\n\nCOMPLETE STAGE 1 OUTPUT\n{stage1}'
-                f'\n\nCOMPLETE STAGE 2 OUTPUT\n{stage2}'
-                '\n\nUse supplied source files with the Python tool and create the required Word artifact(s).'
+                f'{controls}\n\n'
+                f'Company: {app.company}\n'
+                f'Role: {app.designation}\n'
+                f'Location: {app.location}\n'
+                f'Link: {app.application_link}'
+                f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
+                f'\n\n{stage2_handoff}'
+                '\n\nUse the supplied source files with the Python tool. '
+                'Treat SUMMARY DOC.docx as the compact evidence router and '
+                'MASTER EVIDENCE BANK.docx as the detailed factual source. '
+                'Retrieve and verify only the evidence selected in STAGE2_HANDOFF '
+                'plus any item explicitly marked for verification, then create '
+                'the required Word artifact(s).'
             )
             stage3, response3, artifacts = self.retry(
                 lambda: self.ai.stage3(
@@ -277,6 +419,7 @@ class Workflow:
                     app.web_search,
                     self.s.stage3_reasoning_effort,
                     self.s.stage3_max_output_tokens,
+                    model=self.s.stage3_model,
                 ),
                 'Stage 3 AI/artifact call',
             )
@@ -284,8 +427,15 @@ class Workflow:
             stage3_path.write_text(stage3, encoding='utf-8')
             self.drive.upload(stage3_path, folder)
             manifest['prompt3_hash'] = _hash(prompt3)
+            manifest['master_evidence_hash'] = _hash(master_evidence)
+            manifest['stage3_model'] = self.s.stage3_model
+            manifest['stage3_reasoning_effort'] = self.s.stage3_reasoning_effort
             manifest['stage3_started'] = True
-            self._record_usage(manifest, 'stage3', _usage(response3))
+            self._record_usage(
+                manifest,
+                'stage3',
+                _usage(response3, self.s.stage3_model),
+            )
             self._save_manifest(manifest, manifest_path, folder)
             self._guard(manifest)
 
@@ -297,7 +447,11 @@ class Workflow:
             cv, cover_letter = normalize(
                 artifacts,
                 f'{app.filename_name}_{company}_{role}_CV.docx',
-                f'{app.filename_name}_{company}_{role}_Cover_Letter.docx' if app.make_cl else None,
+                (
+                    f'{app.filename_name}_{company}_{role}_Cover_Letter.docx'
+                    if app.make_cl
+                    else None
+                ),
                 final,
             )
 
@@ -307,8 +461,12 @@ class Workflow:
             if cover_letter:
                 one_page(cover_letter, work / 'rendered')
 
-            # Summary Doc is the strict factual source of truth for high-risk CV claims.
-            qa_report = factual_report(cv, summary, work / 'Factual_QA.md')
+            # The compact router is not a factual substitute for the detailed bank.
+            qa_report = factual_report(
+                cv,
+                master_evidence,
+                work / 'Factual_QA.md',
+            )
             self.drive.upload(work / 'Factual_QA.md', folder)
             if qa_report['critical']:
                 raise QAError(
@@ -325,37 +483,61 @@ class Workflow:
 
             current_cost = float(manifest.get('cumulative_cost_usd', 0) or 0)
             usage_path = work / 'Token_Usage.json'
-            usage_path.write_text(json.dumps({
-                'candidate': app.candidate_key,
-                'application_id': app.application_id,
-                'cumulative_cost_usd': current_cost,
-                'latest_stage_usage': manifest.get('latest_stage_usage', {}),
-                'usage_history': manifest.get('usage_history', []),
-            }, indent=2), encoding='utf-8')
+            usage_path.write_text(
+                json.dumps(
+                    {
+                        'candidate': app.candidate_key,
+                        'application_id': app.application_id,
+                        'cumulative_cost_usd': current_cost,
+                        'latest_stage_usage': manifest.get('latest_stage_usage', {}),
+                        'usage_history': manifest.get('usage_history', []),
+                    },
+                    indent=2,
+                ),
+                encoding='utf-8',
+            )
             self.drive.upload(usage_path, folder)
 
-            context = write_context(work / 'Application_Context.md', app, stage1, stage2, stage3, cv, cv_link)
+            context = write_context(
+                work / 'Application_Context.md',
+                app,
+                stage1,
+                stage2,
+                stage3,
+                cv,
+                cv_link,
+            )
             _, context_link = self.drive.upload(context, folder)
 
-            manifest.update({
-                'candidate': app.candidate_key,
-                'application_id': app.application_id,
-                'jd_hash': app.jd_hash,
-                'prompt1_hash': _hash(prompt1),
-                'prompt2_hash': _hash(prompt2),
-                'prompt3_hash': _hash(prompt3),
-                'summary_hash': _hash(summary),
-                'stage1_complete': True,
-                'stage2_complete': True,
-                'stage3_complete': True,
-                'complete': True,
-                'completed_at_utc': _now(),
-                'cv_link': cv_link,
-                'cl_link': cl_link,
-            })
+            manifest.update(
+                {
+                    'candidate': app.candidate_key,
+                    'application_id': app.application_id,
+                    'jd_hash': app.jd_hash,
+                    'prompt1_hash': _hash(prompt1),
+                    'prompt2_hash': _hash(prompt2),
+                    'prompt3_hash': _hash(prompt3),
+                    'summary_hash': _hash(summary),
+                    'master_evidence_hash': _hash(master_evidence),
+                    'stage1_model': self.s.stage1_model,
+                    'stage2_model': self.s.stage2_model,
+                    'stage3_model': self.s.stage3_model,
+                    'stage1_complete': True,
+                    'stage2_complete': True,
+                    'stage3_complete': True,
+                    'complete': True,
+                    'completed_at_utc': _now(),
+                    'cv_link': cv_link,
+                    'cl_link': cl_link,
+                }
+            )
             self._save_manifest(manifest, manifest_path, folder)
             self.sheet.done(app, cv_link, cl_link, context_link, current_cost)
-            print(f'[workflow] COMPLETE: {app.application_id}; cumulative cost=${current_cost:.4f}', flush=True)
+            print(
+                f'[workflow] COMPLETE: {app.application_id}; '
+                f'cumulative cost=${current_cost:.4f}',
+                flush=True,
+            )
 
         except CostLimitError as error:
             self.sheet.fail(app, f'{current_stage}: {error}', 'ERROR_MANUAL')
