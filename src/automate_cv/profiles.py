@@ -17,6 +17,7 @@ class CandidateProfile:
     prompt2_file_id: str
     prompt3_file_id: str
     summary_doc_file_id: str
+    master_evidence_bank_file_id: str
     base_cv_file_id: str
     formatting_master_file_id: str
     high_experience_reference_file_id: str
@@ -31,7 +32,8 @@ class CandidateProfile:
             'Prompt 1': self.prompt1_file_id,
             'Prompt 2': self.prompt2_file_id,
             'Prompt 3': self.prompt3_file_id,
-            'Summary Doc': self.summary_doc_file_id,
+            'Summary Doc / Evidence Router': self.summary_doc_file_id,
+            'Master Evidence Bank': self.master_evidence_bank_file_id,
             'Base CV': self.base_cv_file_id,
             'CV Formatting Master': self.formatting_master_file_id,
             'CV/Cover Letter Rules': self.cv_cover_letter_rules_file_id,
@@ -59,6 +61,7 @@ def profiles():
             prompt2_file_id=_env('POOJA_PROMPT2_FILE_ID'),
             prompt3_file_id=_env('POOJA_PROMPT3_FILE_ID'),
             summary_doc_file_id=_env('POOJA_SUMMARY_DOC_FILE_ID'),
+            master_evidence_bank_file_id=_env('POOJA_MASTER_EVIDENCE_BANK_FILE_ID'),
             base_cv_file_id=_env('POOJA_BASE_CV_FILE_ID'),
             formatting_master_file_id=_env('POOJA_CV_FORMATTING_MASTER_FILE_ID'),
             high_experience_reference_file_id=_env('POOJA_HIGH_EXPERIENCE_REFERENCE_FILE_ID'),
@@ -82,6 +85,12 @@ def profiles():
             prompt2_file_id=_env('PROMPT2_FILE_ID'),
             prompt3_file_id=_env('PROMPT3_FILE_ID'),
             summary_doc_file_id=_env('SUMMARY_DOC_FILE_ID'),
+            # Non-secret Drive file ID for the detailed factual source. The default
+            # points at the bank created on 2026-09-27 and can be overridden normally.
+            master_evidence_bank_file_id=_env(
+                'MASTER_EVIDENCE_BANK_FILE_ID',
+                '1FD2OSAnMpvScnPSawwF7YsyyPoaY84On',
+            ),
             base_cv_file_id=_env('BASE_CV_FILE_ID'),
             formatting_master_file_id=_env('CV_FORMATTING_MASTER_FILE_ID'),
             high_experience_reference_file_id=_env('HIGH_EXPERIENCE_REFERENCE_FILE_ID'),
