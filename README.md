@@ -34,11 +34,24 @@ The workflow is intentionally fail-closed: missing candidate configuration, chan
 - A:D = company, designation, application link, raw job description
 - AG = optional Location used only for Drive folder naming
 
-Status dropdowns remain `NA`, `CV`, `CV+CL`, `CV+CL+WS`.
+Status dropdowns are `NA`, `CV`, `CV+CL`, `CV+CL+WS`, and `ERROR`.
 
 Cover Letter and Web Search are independent optional controls. Web Search is invoked only when that candidate's Web Search checkbox is selected. When Web Search is selected without a Cover Letter, artifact status remains `CV`; the research setting is retained in audit/context information.
 
 If both candidates select Make CV on the same row, the row creates two independent candidate workflows with separate prompts, evidence, state, output files and failure handling.
+
+## Failed-row recovery
+
+A failed row no longer requires hidden workflow/error columns to be cleared or the vacancy to be copied into a new row.
+
+- Every workflow failure writes `ERROR` in that candidate's visible Status column.
+- Retryable failures keep the existing bounded automatic retry behavior until the configured row-attempt ceiling is reached.
+- Terminal failures (`ERROR_MANUAL`, `ERROR_CONFIG`, `JD_CHANGED_REVIEW_REQUIRED`, `ERROR_MAX_RETRIES`) automatically untick that candidate's **Make CV** checkbox so they cannot loop unattended every hour.
+- After the underlying cause is fixed or reviewed, re-check **Make CV** on the same row. `ERROR` + a newly checked Make CV is treated as an explicit retry request.
+- Existing application/checkpoint metadata is retained, so a retry can reuse valid Stage 1/Stage 2 checkpoints rather than paying to recompute them when their inputs are unchanged.
+- A changed JD is surfaced as `ERROR`, clears stale output links/status, and also requires review followed by re-checking Make CV.
+
+This keeps terminal failures fail-closed while making same-row recovery a deliberate one-checkbox action.
 
 ## Candidate isolation
 
@@ -125,6 +138,8 @@ The production worker is scheduled at minute 17 of every hour.
 
 Safety controls include:
 - terminal errors do not automatically rerun;
+- terminal failures visibly become `ERROR` and automatically untick Make CV;
+- a deliberate re-check of Make CV on the same `ERROR` row enables a same-row retry without clearing hidden columns;
 - retryable row failures are capped;
 - stale locks can be reclaimed after the configured threshold;
 - individual AI calls retry only temporary/network/API failures;
@@ -180,8 +195,9 @@ Keep the optimisation pull request in draft and keep `AUTOMATION_ENABLED=false` 
 2. Run `connectivity-test` successfully on the optimisation branch.
 3. Run exactly one known Freshmal row through `controlled-cv-test`.
 4. Inspect the final CV, `Factual_QA.md`, `Token_Usage.json`, Stage 1/2 compact handoffs, cache telemetry and any built-in-tool telemetry.
-5. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
-6. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
+5. As part of the controlled test, verify a failed terminal row shows `ERROR`, Make CV is unticked, and re-checking Make CV makes that same row eligible without clearing hidden columns.
+6. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
+7. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
 
 ## Pooja setup
 
@@ -191,7 +207,7 @@ See `docs/POOJA_SETUP.md` for the rest of the isolation setup and test plan.
 
 ## Tests
 
-GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, built-in tool-cost accounting, checkpoint validity, DOCX selection and factual QA.
+GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, visible `ERROR` handling, deliberate same-row retries, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, built-in tool-cost accounting, checkpoint validity, DOCX selection and factual QA.
 
 ## Secrets
 
