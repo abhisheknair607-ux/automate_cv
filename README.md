@@ -67,6 +67,8 @@ For Abhishek, the Drive IDs are currently:
 - Summary Router: `1D9Q7feYCDEhhBVW3DIsJy36Al1yjNIia`
 - Master Evidence Bank: `1FD2OSAnMpvScnPSawwF7YsyyPoaY84On`
 
+`SUMMARY_DOC_FILE_ID` and `MASTER_EVIDENCE_BANK_FILE_ID` must both be configured explicitly in GitHub Actions. There is no hardcoded production fallback for the Master Evidence Bank; a missing ID fails closed before the CV workflow can proceed.
+
 The raw Job Description remains the employer-side source of truth in every stage that needs role facts.
 
 ## Prompt policy and compact handoffs
@@ -98,9 +100,14 @@ Each paid stage records:
 - ordinary uncached input tokens
 - output tokens
 - reasoning tokens
-- estimated stage cost
+- estimated model-token cost
+- built-in tool activity when present
+- estimated built-in tool cost
+- estimated combined stage cost
 
-Cost calculation is model-aware for the configured GPT-5.6 Terra and Sol prices and separately accounts for cached reads and cache writes. The configured cost hard stop is checked after each paid stage.
+Cost calculation is model-aware for the configured GPT-5.6 Terra and Sol prices and separately accounts for cached reads and cache writes. Stage 3 also records visible Code Interpreter sessions and billable web-search search actions so `Token_Usage.json` does not intentionally omit those known tool charges. Provider billing remains authoritative; the local figures are operational estimates derived from the response telemetry and the pricing constants in the worker.
+
+The configured cost hard stop is checked after each paid stage. The current initial safety default is `$1.75` per application; this is a guardrail, not a target and should be reduced only after controlled-run telemetry establishes a safe production threshold.
 
 ## Reliable resume
 
@@ -165,6 +172,17 @@ Before completion:
 - other numeric claims are surfaced as review warnings;
 - project/professional ownership boundaries remain governed by the authoritative Drive prompts and evidence bank.
 
+## Controlled deployment sequence
+
+Keep the optimisation pull request in draft and keep `AUTOMATION_ENABLED=false` until all of the following are complete:
+
+1. Configure the required GitHub Actions variables/secrets, including both Evidence Router and Master Evidence Bank IDs.
+2. Run `connectivity-test` successfully on the optimisation branch.
+3. Run exactly one known Freshmal row through `controlled-cv-test`.
+4. Inspect the final CV, `Factual_QA.md`, `Token_Usage.json`, Stage 1/2 compact handoffs, cache telemetry and any built-in-tool telemetry.
+5. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
+6. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
+
 ## Pooja setup
 
 A Drive folder named `Pooja Sources` has been prepared under the existing `Automate CV` folder. Add Pooja's verified files there and configure the corresponding `POOJA_*_FILE_ID` repository variables, including `POOJA_MASTER_EVIDENCE_BANK_FILE_ID`.
@@ -173,7 +191,7 @@ See `docs/POOJA_SETUP.md` for the rest of the isolation setup and test plan.
 
 ## Tests
 
-GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, checkpoint validity, DOCX selection and factual QA.
+GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, built-in tool-cost accounting, checkpoint validity, DOCX selection and factual QA.
 
 ## Secrets
 
