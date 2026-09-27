@@ -28,7 +28,8 @@ def check_google():
         'Prompt1': settings.prompt1_file_id,
         'Prompt2': settings.prompt2_file_id,
         'Prompt3': settings.prompt3_file_id,
-        'SummaryDoc': settings.summary_doc_file_id,
+        'SummaryRouter': settings.summary_doc_file_id,
+        'MasterEvidenceBank': settings.master_evidence_bank_file_id,
         'CVFormattingMaster': settings.cv_formatting_master_file_id,
         'BaseCV': settings.base_cv_file_id,
         'OutputsFolder': settings.drive_output_folder_id,
@@ -40,7 +41,10 @@ def check_google():
         m = drive.files().get(fileId=file_id, fields='id,name,mimeType').execute()
         checked[label] = m['name']
 
-    print(f"GOOGLE_OK spreadsheet={meta['properties']['title']!r} sheet={settings.freshmal_sheet_name!r} preview_rows={len(values)}")
+    print(
+        f"GOOGLE_OK spreadsheet={meta['properties']['title']!r} "
+        f"sheet={settings.freshmal_sheet_name!r} preview_rows={len(values)}"
+    )
     for label, name in checked.items():
         print(f'DRIVE_OK {label}={name!r}')
 
@@ -49,16 +53,23 @@ def check_openai():
     if not settings.openai_api_key:
         raise RuntimeError('OPENAI_API_KEY is not configured.')
     client = OpenAI(api_key=settings.openai_api_key)
-    # Deliberately tiny request: verifies key, billing, model access and Responses API.
-    r = client.responses.create(
-        model=settings.openai_model,
-        input='Reply with exactly: OPENAI_OK',
-        max_output_tokens=16,
-    )
-    text = (r.output_text or '').strip()
-    if 'OPENAI_OK' not in text:
-        raise RuntimeError(f'Unexpected OpenAI connectivity response: {text!r}')
-    print(f'OPENAI_OK model={settings.openai_model}')
+    # Deliberately tiny requests: verify key, billing, Responses API and access
+    # to every model used by the production routing plan.
+    models = list(dict.fromkeys([
+        settings.stage1_model,
+        settings.stage2_model,
+        settings.stage3_model,
+    ]))
+    for model in models:
+        r = client.responses.create(
+            model=model,
+            input='Reply with exactly: OPENAI_OK',
+            max_output_tokens=16,
+        )
+        text = (r.output_text or '').strip()
+        if 'OPENAI_OK' not in text:
+            raise RuntimeError(f'Unexpected OpenAI connectivity response from {model}: {text!r}')
+        print(f'OPENAI_OK model={model}')
 
 
 def main():
