@@ -98,34 +98,46 @@ def _now():
 
 
 def _extract_handoff(text, marker):
-    """Return a compact YAML/JSON handoff block when present.
+    """Return only the machine handoff that follows the requested marker.
 
-    Drive prompts require STAGE1_HANDOFF / STAGE2_HANDOFF markers. If a model
-    returns an unexpected wrapper, fail closed rather than forwarding a long
-    analysis downstream and recreating the previous token-cost problem.
+    The Drive prompts label these sections as headings such as
+    ``## 9. STAGE1_HANDOFF`` / ``## 7. STAGE2_HANDOFF``. Model output may keep
+    or omit the numbering and may wrap the handoff in YAML/JSON fences.
     """
     text = str(text or '')
-    pattern = re.compile(
-        rf'(?is)(?:^|\n)\s*(?:#+\s*)?{re.escape(marker)}\s*:?\s*\n'
-        r'(?:```(?:ya?ml|json)?\s*\n)?'
-        r'(?P<body>.*?)'
-        r'(?:\n```|\Z)'
-    )
-    match = pattern.search(text)
-    if match:
-        body = match.group('body').strip()
-        if body:
-            return f'{marker}\n{body}'
 
-    # Also accept a fenced block that begins with the marker on its first line.
-    fenced = re.search(
-        rf'(?is)```(?:ya?ml|json)?\s*\n\s*{re.escape(marker)}\s*:?\s*\n(?P<body>.*?)\n```',
+    # Accept a fenced block whose first line is itself the marker.
+    fenced_marker = re.search(
+        rf'(?is)```(?:ya?ml|json)?\s*\n\s*{re.escape(marker)}\s*:?\s*\n'
+        r'(?P<body>.*?)\n```',
         text,
+    )
+    if fenced_marker and fenced_marker.group('body').strip():
+        return f'{marker}\n{fenced_marker.group("body").strip()}'
+
+    heading = re.search(
+        rf'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?{re.escape(marker)}\s*:?\s*$',
+        text,
+    )
+    if not heading:
+        raise RuntimeError(f'{marker} was not found in the model output.')
+
+    tail = text[heading.end():]
+
+    # Preferred shape: the first YAML/JSON fenced block after the handoff heading.
+    fenced = re.search(
+        r'(?is)```(?:ya?ml|json)?\s*\n(?P<body>.*?)\n```',
+        tail,
     )
     if fenced and fenced.group('body').strip():
         return f'{marker}\n{fenced.group("body").strip()}'
 
-    raise RuntimeError(f'{marker} was not found in the model output.')
+    # Fallback for unfenced machine output: stop at the next markdown heading.
+    body = re.split(r'(?m)^\s*#{1,6}\s+', tail, maxsplit=1)[0].strip()
+    if body:
+        return f'{marker}\n{body}'
+
+    raise RuntimeError(f'{marker} was found but its handoff body was empty.')
 
 
 class Workflow:
