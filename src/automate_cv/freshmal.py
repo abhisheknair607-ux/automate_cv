@@ -6,6 +6,7 @@ from .models import ApplicationRow
 from .profiles import profiles
 
 STOP_STATES = {'ERROR_MANUAL', 'ERROR_CONFIG', 'JD_CHANGED_REVIEW_REQUIRED', 'ERROR_MAX_RETRIES'}
+CONTROLLED_RESET_STATES = {'ERROR_MANUAL', 'ERROR_MAX_RETRIES'}
 STATE_KEYS = ('id', 'hash', 'workflow', 'lock', 'last', 'cvlink', 'cllink', 'context', 'cost', 'error')
 LOCATION_COL = 32  # AG; optional user-entered location used for Drive folder naming.
 
@@ -110,7 +111,7 @@ class Freshmal:
             return False
 
     def eligible(self, a):
-        if not a.make_cv or a.complete() or a.workflow in STOP_STATES:
+        if not a.has_pending_work() or a.workflow in STOP_STATES:
             return False
         if retry_count(a.workflow) >= self.settings.max_row_attempts:
             return False
@@ -141,6 +142,20 @@ class Freshmal:
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
             body={'valueInputOption': 'RAW', 'data': data},
         ).execute()
+
+    def reset_for_controlled(self, a):
+        """Allow an explicit human-triggered controlled run to retry manual/max-retry failures.
+
+        Hourly eligibility remains fail-closed. Configuration errors and changed-JD
+        review states are not reset automatically.
+        """
+        if a.workflow not in CONTROLLED_RESET_STATES:
+            return False
+        self.update(a, {'workflow': '', 'error': '', 'lock': ''})
+        a.workflow = ''
+        a.error = ''
+        a.lock_id = ''
+        return True
 
     def prepare(self, a):
         d = digest(a.raw_jd)
@@ -179,12 +194,19 @@ class Freshmal:
             state = 'ERROR_MAX_RETRIES' if count >= self.settings.max_row_attempts else f'ERROR_RETRYABLE_{count}'
         self.update(a, {'workflow': state, 'error': msg[:5000], 'lock': ''})
 
-    def done(self, a, cv, cl, context, cost):
+    def done(self, a, cv, cl, context, cost, web_search_used=False):
+        final_cv = cv or a.cv_link
+        final_cl = cl or a.cl_link
+        status = a.merged_status(
+            new_cv=bool(cv),
+            new_cl=bool(cl),
+            web_search_used=bool(web_search_used),
+        )
         self.update(a, {
-            'status': a.requested_status(),
+            'status': status,
             'workflow': 'COMPLETE',
-            'cvlink': cv,
-            'cllink': cl,
+            'cvlink': final_cv,
+            'cllink': final_cl,
             'context': context,
             'cost': round(cost, 4),
             'error': '',
