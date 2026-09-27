@@ -1,5 +1,6 @@
 from pathlib import Path
 from docx import Document
+from .profiles import profiles
 
 def docx_text(path):
     doc=Document(path); parts=[p.text for p in doc.paragraphs if p.text]
@@ -19,13 +20,14 @@ def mentioned_files(text):
     return found
 
 class Sources:
-    def __init__(self,drive,settings): self.drive=drive; self.settings=settings
-    def stage2(self,workdir):
-        if not self.settings.summary_doc_file_id: raise RuntimeError('SUMMARY_DOC_FILE_ID missing.')
-        path=self.drive.download_named(self.settings.summary_doc_file_id,workdir); return docx_text(path),path
-    def stage3(self,workdir,summary_path,stage2_output):
-        paths=[summary_path]
-        ids=[self.settings.cv_formatting_master_file_id,self.settings.base_cv_file_id,self.settings.high_experience_reference_file_id,self.settings.lower_experience_reference_file_id,self.settings.cv_cover_letter_rules_file_id,self.settings.cover_letter_template_file_id]
+    def __init__(self,drive,settings): self.drive=drive; self.settings=settings; self.profiles=profiles()
+    def stage2(self,candidate_key,workdir):
+        p=self.profiles[candidate_key]
+        if not p.summary_doc_file_id: raise RuntimeError(f'{candidate_key}: SUMMARY_DOC_FILE_ID missing.')
+        path=self.drive.download_named(p.summary_doc_file_id,workdir); return docx_text(path),path
+    def stage3(self,candidate_key,workdir,summary_path,stage2_output):
+        p=self.profiles[candidate_key]; paths=[summary_path]
+        ids=[p.formatting_master_file_id,p.base_cv_file_id,p.high_experience_reference_file_id,p.lower_experience_reference_file_id,p.cv_cover_letter_rules_file_id,p.cover_letter_template_file_id]
         for file_id in ids:
             if file_id:
                 path=self.drive.download_named(file_id,workdir)
