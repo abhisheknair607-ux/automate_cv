@@ -33,30 +33,34 @@ def test_factual_report_accepts_supported_high_risk_claims(tmp_path):
     )
     result = factual_report(cv, source, tmp_path / 'qa.md')
     assert result['critical'] == []
+    assert result['concerns'] == []
 
 
-def test_factual_report_blocks_unsupported_percentage_tool_and_qualification(tmp_path):
+def test_factual_report_flags_unsupported_percentage_tool_and_qualification(tmp_path):
     cv = make_doc(tmp_path / 'cv.docx', 'CFA candidate. Tableau. Increased revenue by 37%.')
     source = 'Verified evidence contains Excel and ACCA only.'
     result = factual_report(cv, source, tmp_path / 'qa.md')
-    joined = ' '.join(result['critical'])
+    joined = ' '.join(result['concerns'])
+    assert result['critical'] == []
     assert '37%' in joined
     assert 'Tableau' in joined
     assert 'CFA' in joined
 
 
-def test_factual_report_blocks_unsupported_date_and_count(tmp_path):
+def test_factual_report_flags_unsupported_date_and_count(tmp_path):
     cv = make_doc(tmp_path / 'cv.docx', 'Senior Analyst, July 2025 - June 2026. Managed 18 clients.')
     source = 'Senior Analyst, July 2025 - May 2026. Managed 12 clients.'
     result = factual_report(cv, source, tmp_path / 'qa.md')
-    joined = ' '.join(result['critical'])
+    joined = ' '.join(result['concerns'])
+    assert result['critical'] == []
     assert '2026-06' in joined
     assert '18 client' in joined
 
 
-def test_factual_report_blocks_unsupported_exam_progress(tmp_path):
+def test_factual_report_flags_unsupported_exam_progress(tmp_path):
     cv = make_doc(tmp_path / 'cv.docx', 'ACCA: 9 of 13 exams passed.')
     source = 'ACCA student: 8 of 13 exams passed.'
     result = factual_report(cv, source, tmp_path / 'qa.md')
-    joined = ' '.join(result['critical'])
+    joined = ' '.join(result['concerns'])
+    assert result['critical'] == []
     assert '9 of 13' in joined
