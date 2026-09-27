@@ -7,6 +7,14 @@ on:
         description: Freshmal row number to process
         required: true
         default: '3'
+      candidate:
+        description: Candidate profile
+        required: true
+        default: 'abhishek'
+        type: choice
+        options:
+          - abhishek
+          - pooja
 
 permissions:
   contents: read
@@ -33,21 +41,30 @@ jobs:
           python-version: '3.12'
       - run: sudo apt-get update && sudo apt-get install -y libreoffice-writer fonts-crosextra-carlito
       - run: pip install -r requirements.txt
-      - name: Run one controlled Freshmal row
+      - name: Run one controlled Freshmal candidate row
         env:
           PYTHONPATH: src
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          OPENAI_MODEL: ${{ vars.OPENAI_MODEL }}
-          OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-sol' }}
+          OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'medium' }}
+          STAGE1_REASONING_EFFORT: ${{ vars.STAGE1_REASONING_EFFORT || 'medium' }}
+          STAGE2_REASONING_EFFORT: ${{ vars.STAGE2_REASONING_EFFORT || 'medium' }}
+          STAGE3_REASONING_EFFORT: ${{ vars.STAGE3_REASONING_EFFORT || 'medium' }}
+          STAGE1_MAX_OUTPUT_TOKENS: ${{ vars.STAGE1_MAX_OUTPUT_TOKENS || '12000' }}
+          STAGE2_MAX_OUTPUT_TOKENS: ${{ vars.STAGE2_MAX_OUTPUT_TOKENS || '16000' }}
+          STAGE3_MAX_OUTPUT_TOKENS: ${{ vars.STAGE3_MAX_OUTPUT_TOKENS || '24000' }}
+
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+
           FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID }}
-          FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME }}
+          FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME || 'Sheet1' }}
+          DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID }}
+
           PROMPT1_FILE_ID: ${{ vars.PROMPT1_FILE_ID }}
           PROMPT2_FILE_ID: ${{ vars.PROMPT2_FILE_ID }}
           PROMPT3_FILE_ID: ${{ vars.PROMPT3_FILE_ID }}
-          DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID }}
           SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID }}
           CV_FORMATTING_MASTER_FILE_ID: ${{ vars.CV_FORMATTING_MASTER_FILE_ID }}
           BASE_CV_FILE_ID: ${{ vars.BASE_CV_FILE_ID }}
@@ -57,6 +74,22 @@ jobs:
           COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.COVER_LETTER_TEMPLATE_FILE_ID }}
           FINAL_PROJECTS_FOLDER_ID: ${{ vars.FINAL_PROJECTS_FOLDER_ID }}
           PROJECTS_FOLDER_ID: ${{ vars.PROJECTS_FOLDER_ID }}
-          MAX_RETRIES: ${{ vars.MAX_RETRIES }}
-          COST_HARD_STOP_USD: ${{ vars.COST_HARD_STOP_USD }}
-        run: python -m automate_cv.controlled --row "${{ inputs.row_number }}"
+
+          POOJA_PROMPT1_FILE_ID: ${{ vars.POOJA_PROMPT1_FILE_ID }}
+          POOJA_PROMPT2_FILE_ID: ${{ vars.POOJA_PROMPT2_FILE_ID }}
+          POOJA_PROMPT3_FILE_ID: ${{ vars.POOJA_PROMPT3_FILE_ID }}
+          POOJA_SUMMARY_DOC_FILE_ID: ${{ vars.POOJA_SUMMARY_DOC_FILE_ID }}
+          POOJA_BASE_CV_FILE_ID: ${{ vars.POOJA_BASE_CV_FILE_ID }}
+          POOJA_CV_FORMATTING_MASTER_FILE_ID: ${{ vars.POOJA_CV_FORMATTING_MASTER_FILE_ID }}
+          POOJA_HIGH_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.POOJA_HIGH_EXPERIENCE_REFERENCE_FILE_ID }}
+          POOJA_LOWER_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.POOJA_LOWER_EXPERIENCE_REFERENCE_FILE_ID }}
+          POOJA_CV_COVER_LETTER_RULES_FILE_ID: ${{ vars.POOJA_CV_COVER_LETTER_RULES_FILE_ID }}
+          POOJA_COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.POOJA_COVER_LETTER_TEMPLATE_FILE_ID }}
+          POOJA_FINAL_PROJECTS_FOLDER_ID: ${{ vars.POOJA_FINAL_PROJECTS_FOLDER_ID }}
+          POOJA_PROJECTS_FOLDER_ID: ${{ vars.POOJA_PROJECTS_FOLDER_ID }}
+
+          MAX_RETRIES: ${{ vars.MAX_RETRIES || '2' }}
+          MAX_ROW_ATTEMPTS: ${{ vars.MAX_ROW_ATTEMPTS || '3' }}
+          STALE_LOCK_MINUTES: ${{ vars.STALE_LOCK_MINUTES || '180' }}
+          COST_HARD_STOP_USD: ${{ vars.COST_HARD_STOP_USD || '1.75' }}
+        run: python -m automate_cv.controlled --row "${{ inputs.row_number }}" --candidate "${{ inputs.candidate }}"
