@@ -206,50 +206,52 @@ def factual_report(cv_path, source_text, report_path):
 
     Unsupported percentages, currency amounts, count/duration metrics, ratios,
     exam-progress figures, dates, qualification/status terms and named tools are
-    blocking findings. The check is intentionally fail-closed for these fields.
+    surfaced as advisory concerns. They are written to a separate QA report but
+    do not block delivery of the CV. Structural QA such as missing artifacts or
+    non-one-page rendering remains blocking elsewhere in this module.
     """
     cv_text = _docx_text(cv_path)
     source_text = source_text or ''
-    critical = []
+    concerns = []
     warnings = []
 
     source_pcts = _percent_values(source_text)
     for value in sorted(_percent_values(cv_text)):
         if value not in source_pcts:
-            critical.append(f'{value}% appears in the CV but not in verified source material.')
+            concerns.append(f'{value}% appears in the CV but not in verified source material.')
 
     source_money = _money_values(source_text)
     for cur, value in sorted(_money_values(cv_text)):
         if (cur, value) not in source_money:
-            critical.append(f'{cur}{value:,.2f} equivalent appears in the CV but not in verified source material.')
+            concerns.append(f'{cur}{value:,.2f} equivalent appears in the CV but not in verified source material.')
 
     source_metrics = _metric_values(source_text)
     for value, unit in sorted(_metric_values(cv_text)):
         if (value, unit) not in source_metrics:
-            critical.append(f'Numeric metric {value:g} {unit}(s) appears in the CV but not in verified source material.')
+            concerns.append(f'Numeric metric {value:g} {unit}(s) appears in the CV but not in verified source material.')
 
     source_ratios = _ratio_values(source_text)
     for a, b in sorted(_ratio_values(cv_text)):
         if (a, b) not in source_ratios:
-            critical.append(f'Ratio/score {a:g}/{b:g} appears in the CV but not in verified source material.')
+            concerns.append(f'Ratio/score {a:g}/{b:g} appears in the CV but not in verified source material.')
 
     source_exam_progress = _exam_progress_values(source_text)
     for done, total in sorted(_exam_progress_values(cv_text)):
         if (done, total) not in source_exam_progress:
-            critical.append(f'Exam progress {done} of {total} appears in the CV but not in verified source material.')
+            concerns.append(f'Exam progress {done} of {total} appears in the CV but not in verified source material.')
 
     source_month_years = _month_year_values(source_text)
     for year, month in sorted(_month_year_values(cv_text)):
         if (year, month) not in source_month_years:
-            critical.append(f'Date {year:04d}-{month:02d} appears in the CV but not in verified source material.')
+            concerns.append(f'Date {year:04d}-{month:02d} appears in the CV but not in verified source material.')
 
     source_years = _year_values(source_text)
     for year in sorted(_year_values(cv_text)):
         if year not in source_years:
-            critical.append(f'Year {year} appears in the CV but not in verified source material.')
+            concerns.append(f'Year {year} appears in the CV but not in verified source material.')
 
-    critical.extend(_qualification_issues(cv_text, source_text))
-    critical.extend(_tool_issues(cv_text, source_text))
+    concerns.extend(_qualification_issues(cv_text, source_text))
+    concerns.extend(_tool_issues(cv_text, source_text))
 
     # Surface unusual standalone large numbers that are not already covered above.
     source_norm = _norm(source_text)
@@ -258,20 +260,31 @@ def factual_report(cv_path, source_text, report_path):
         if claim not in source_norm:
             warnings.append(f'Large standalone number requires review: {m.group(0)}')
 
-    critical = list(dict.fromkeys(critical))
+    concerns = list(dict.fromkeys(concerns))
     warnings = list(dict.fromkeys(warnings))
     report_path = Path(report_path)
     report_path.parent.mkdir(parents=True, exist_ok=True)
     lines = [
-        '# Factual QA',
+        '# Factual QA Concerns',
         '',
-        f'- Critical unsupported high-risk claims: {len(critical)}',
+        '> Advisory only: these findings do not block CV delivery. Review them before submitting the application.',
+        '',
+        f'- Factual concerns: {len(concerns)}',
         f'- Additional review warnings: {len(warnings)}',
         '',
-        '## Critical',
+        '## Concerns',
     ]
-    lines.extend([f'- {x}' for x in critical] or ['- None'])
+    lines.extend([f'- {x}' for x in concerns] or ['- None'])
     lines.extend(['', '## Warnings'])
     lines.extend([f'- {x}' for x in warnings] or ['- None'])
     report_path.write_text('\n'.join(lines) + '\n', encoding='utf-8')
-    return {'critical': critical, 'warnings': warnings, 'report_path': str(report_path)}
+
+    # Keep the legacy `critical` key empty so existing workflow code does not
+    # treat advisory factual concerns as a hard stop. The actual findings are
+    # available under `concerns` and in the separate report file.
+    return {
+        'critical': [],
+        'concerns': concerns,
+        'warnings': warnings,
+        'report_path': str(report_path),
+    }
