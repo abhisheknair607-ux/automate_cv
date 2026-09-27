@@ -33,6 +33,22 @@ class FakeUsage:
 class FakeResponse:
     model = 'gpt-5.6-terra'
     usage = FakeUsage()
+    output = []
+
+
+class FakeStage3Response(FakeResponse):
+    output = [
+        SimpleNamespace(type='code_interpreter_call', container_id='container-1'),
+        SimpleNamespace(type='code_interpreter_call', container_id='container-1'),
+        SimpleNamespace(
+            type='web_search_call',
+            action=SimpleNamespace(type='search'),
+        ),
+        SimpleNamespace(
+            type='web_search_call',
+            action=SimpleNamespace(type='open_page'),
+        ),
+    ]
 
 
 def workflow_for_helpers():
@@ -76,7 +92,19 @@ def test_usage_reports_cache_write_cached_reasoning_and_terra_cost():
     assert result['standard_input'] == 500
     assert result['output'] == 500
     assert result['reasoning'] == 250
+    assert result['model_api_cost'] == 0.00733
+    assert result['tool_cost_estimate'] == 0.0
     assert result['cost'] == 0.00733
+
+
+def test_usage_adds_one_container_session_and_only_billable_web_search_actions():
+    result = _usage(FakeStage3Response())
+    assert result['code_interpreter_calls'] == 2
+    assert result['code_interpreter_sessions'] == 1
+    assert result['web_search_calls'] == 1
+    assert result['tool_cost_estimate'] == 0.04
+    assert result['model_api_cost'] == 0.00733
+    assert result['cost'] == 0.04733
 
 
 def test_extract_handoff_accepts_numbered_heading_and_keeps_only_yaml():
