@@ -11,8 +11,6 @@ permissions:
 
 jobs:
   worker:
-    # Safe by default. Set repository variable AUTOMATION_ENABLED=true only
-    # after Google + OpenAI connectivity and controlled CV tests pass.
     if: ${{ vars.AUTOMATION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -21,7 +19,6 @@ jobs:
       cancel-in-progress: false
     steps:
       - uses: actions/checkout@v4
-
       - name: Authenticate to Google Cloud (WIF)
         uses: google-github-actions/auth@v3
         with:
@@ -29,7 +26,6 @@ jobs:
           service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
           create_credentials_file: true
           export_environment_variables: true
-
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
@@ -42,23 +38,35 @@ jobs:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-sol' }}
           OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'medium' }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
 
-          FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID || '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc' }}
+          FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID }}
           FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME || 'Sheet1' }}
-          PROMPT1_FILE_ID: ${{ vars.PROMPT1_FILE_ID || '1MgNyy2qT__pcpWKNMkyMro81dHq0Wjr7' }}
-          PROMPT2_FILE_ID: ${{ vars.PROMPT2_FILE_ID || '1artaIzFwznf3e6gi9gBrenP3EDhaqgrl' }}
-          PROMPT3_FILE_ID: ${{ vars.PROMPT3_FILE_ID || '1RcISGnDHMqN0-7pSZlNUf5bxEgrCmsf0' }}
-          DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID || '1cGr5kUXgy_43NY9IINdpdT0OXY9NoBXF' }}
+          DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID }}
 
-          SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID || '1B6e8GKtUcZKjHtB6lzHRjZxcZQPW6d67' }}
-          CV_FORMATTING_MASTER_FILE_ID: ${{ vars.CV_FORMATTING_MASTER_FILE_ID || '1GScLrTOXRcf6_dfdgVnFaAdzpOUVmySH' }}
-          BASE_CV_FILE_ID: ${{ vars.BASE_CV_FILE_ID || '1jSEPPMgTLeU3LwrJVHCYCSVJ6KX_Tngr' }}
-          HIGH_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.HIGH_EXPERIENCE_REFERENCE_FILE_ID || '1RXD7DBjYGnGO54SCkUJAEBY5zazMlvK5' }}
-          LOWER_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.LOWER_EXPERIENCE_REFERENCE_FILE_ID || '1WNTfLU8SYKYOLVEl6xJn8zzo_RsNCup5' }}
-          CV_COVER_LETTER_RULES_FILE_ID: ${{ vars.CV_COVER_LETTER_RULES_FILE_ID || '1lWexhNPCXdShRKKimBqSddnfGs23xz8t' }}
+          PROMPT1_FILE_ID: ${{ vars.PROMPT1_FILE_ID }}
+          PROMPT2_FILE_ID: ${{ vars.PROMPT2_FILE_ID }}
+          PROMPT3_FILE_ID: ${{ vars.PROMPT3_FILE_ID }}
+          SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID }}
+          CV_FORMATTING_MASTER_FILE_ID: ${{ vars.CV_FORMATTING_MASTER_FILE_ID }}
+          BASE_CV_FILE_ID: ${{ vars.BASE_CV_FILE_ID }}
+          HIGH_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.HIGH_EXPERIENCE_REFERENCE_FILE_ID }}
+          LOWER_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.LOWER_EXPERIENCE_REFERENCE_FILE_ID }}
+          CV_COVER_LETTER_RULES_FILE_ID: ${{ vars.CV_COVER_LETTER_RULES_FILE_ID }}
           COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.COVER_LETTER_TEMPLATE_FILE_ID }}
-          FINAL_PROJECTS_FOLDER_ID: ${{ vars.FINAL_PROJECTS_FOLDER_ID || '1iL6KcU9sS8dP07rVYMld_Ennv9fA0zgS' }}
-          PROJECTS_FOLDER_ID: ${{ vars.PROJECTS_FOLDER_ID || '1Bkaus-YAmSlzKWY8P57medj1Fh0D3ZwI' }}
+
+          POOJA_PROMPT1_FILE_ID: ${{ vars.POOJA_PROMPT1_FILE_ID }}
+          POOJA_PROMPT2_FILE_ID: ${{ vars.POOJA_PROMPT2_FILE_ID }}
+          POOJA_PROMPT3_FILE_ID: ${{ vars.POOJA_PROMPT3_FILE_ID }}
+          POOJA_SUMMARY_DOC_FILE_ID: ${{ vars.POOJA_SUMMARY_DOC_FILE_ID }}
+          POOJA_BASE_CV_FILE_ID: ${{ vars.POOJA_BASE_CV_FILE_ID }}
+          POOJA_CV_FORMATTING_MASTER_FILE_ID: ${{ vars.POOJA_CV_FORMATTING_MASTER_FILE_ID }}
+          POOJA_HIGH_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.POOJA_HIGH_EXPERIENCE_REFERENCE_FILE_ID }}
+          POOJA_LOWER_EXPERIENCE_REFERENCE_FILE_ID: ${{ vars.POOJA_LOWER_EXPERIENCE_REFERENCE_FILE_ID }}
+          POOJA_CV_COVER_LETTER_RULES_FILE_ID: ${{ vars.POOJA_CV_COVER_LETTER_RULES_FILE_ID }}
+          POOJA_COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.POOJA_COVER_LETTER_TEMPLATE_FILE_ID }}
 
           MAX_APPLICATIONS_PER_RUN: ${{ vars.MAX_APPLICATIONS_PER_RUN || '5' }}
           MAX_RETRIES: ${{ vars.MAX_RETRIES || '2' }}
