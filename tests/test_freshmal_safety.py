@@ -36,17 +36,73 @@ def lock_at(dt):
     return f'abc|{dt.isoformat()}'
 
 
-def test_terminal_states_never_run_hourly():
+def test_terminal_state_requires_explicit_error_retry_signal():
     s = sheet()
-    for state in ('ERROR_MANUAL', 'ERROR_CONFIG', 'JD_CHANGED_REVIEW_REQUIRED', 'ERROR_MAX_RETRIES'):
-        assert not s.eligible(app(workflow=state))
+    states = ('ERROR_MANUAL', 'ERROR_CONFIG', 'JD_CHANGED_REVIEW_REQUIRED', 'ERROR_MAX_RETRIES')
+    for state in states:
+        # Historical/ambiguous terminal state does not silently restart.
+        assert not s.eligible(app(workflow=state, status='NA'))
+        # fail() unticks Make CV; while unticked the row remains stopped.
+        assert not s.eligible(app(workflow=state, status='ERROR', make_cv=False))
+        # Re-checking Make CV after a visible ERROR is an explicit manual retry.
+        assert s.eligible(app(workflow=state, status='ERROR', make_cv=True))
 
 
 def test_retryable_row_can_run_but_ceiling_stops_it():
     s = sheet()
     assert retry_count('ERROR_RETRYABLE_2') == 2
-    assert s.eligible(app(workflow='ERROR_RETRYABLE_2'))
-    assert not s.eligible(app(workflow='ERROR_RETRYABLE_3'))
+    assert s.eligible(app(workflow='ERROR_RETRYABLE_2', status='ERROR'))
+    assert not s.eligible(app(workflow='ERROR_RETRYABLE_3', status='ERROR'))
+
+
+def test_terminal_failure_marks_error_and_unticks_make_cv():
+    s = sheet()
+    captured = {}
+    s.update = lambda _app, changes: captured.update(changes)
+
+    s.fail(app(), 'QA failed', 'ERROR_MANUAL')
+
+    assert captured['status'] == 'ERROR'
+    assert captured['workflow'] == 'ERROR_MANUAL'
+    assert captured['make_cv'] is False
+    assert captured['error'] == 'QA failed'
+    assert captured['lock'] == ''
+
+
+def test_retryable_failure_marks_error_without_disabling_automatic_retry():
+    s = sheet()
+    captured = {}
+    s.update = lambda _app, changes: captured.update(changes)
+
+    s.fail(app(workflow='ERROR_RETRYABLE_1'), 'temporary outage')
+
+    assert captured['status'] == 'ERROR'
+    assert captured['workflow'] == 'ERROR_RETRYABLE_2'
+    assert 'make_cv' not in captured
+
+
+def test_retry_ceiling_becomes_terminal_and_requires_recheck():
+    s = sheet()
+    captured = {}
+    s.update = lambda _app, changes: captured.update(changes)
+
+    s.fail(app(workflow='ERROR_RETRYABLE_2'), 'temporary outage')
+
+    assert captured['status'] == 'ERROR'
+    assert captured['workflow'] == 'ERROR_MAX_RETRIES'
+    assert captured['make_cv'] is False
+
+
+def test_changed_jd_is_visible_error_and_requires_recheck():
+    s = sheet()
+    captured = {}
+    s.update = lambda _app, changes: captured.update(changes)
+    a = app(jd_hash='old-hash')
+
+    assert s.prepare(a) is False
+    assert captured['status'] == 'ERROR'
+    assert captured['workflow'] == 'JD_CHANGED_REVIEW_REQUIRED'
+    assert captured['make_cv'] is False
 
 
 def test_fresh_lock_blocks_and_stale_lock_recovers():
