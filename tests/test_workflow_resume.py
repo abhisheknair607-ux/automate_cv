@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from automate_cv.workflow import Workflow, _usage, _transient
+from automate_cv.workflow import Workflow, _extract_handoff, _transient, _usage
 
 
 class FakeDrive:
@@ -16,6 +16,7 @@ class FakeDrive:
 
 class FakeTokenDetails:
     cached_tokens = 400
+    cache_write_tokens = 100
 
 
 class FakeOutputDetails:
@@ -30,12 +31,19 @@ class FakeUsage:
 
 
 class FakeResponse:
+    model = 'gpt-5.6-terra'
     usage = FakeUsage()
 
 
 def workflow_for_helpers():
     w = Workflow.__new__(Workflow)
-    w.s = SimpleNamespace(drive_output_folder_id='outputs')
+    w.s = SimpleNamespace(
+        drive_output_folder_id='outputs',
+        stage1_model='gpt-5.6-terra',
+        stage1_reasoning_effort='low',
+        stage2_model='gpt-5.6-terra',
+        stage2_reasoning_effort='medium',
+    )
     w.drive = FakeDrive()
     return w
 
@@ -51,21 +59,31 @@ def test_stage_checkpoint_keys_fail_closed_when_inputs_change():
     assert not w._matches(manifest, w._checkpoint_key_stage1(changed, 'prompt one'))
     assert not w._matches(manifest, w._checkpoint_key_stage1(app, 'changed prompt'))
 
-    k2 = w._checkpoint_key_stage2(k1, 'prompt two', 'summary', 'stage one output')
+    k2 = w._checkpoint_key_stage2(k1, 'prompt two', 'summary', 'stage one handoff')
     assert k2['summary_hash']
-    assert k2['stage1_output_hash']
-    changed_summary = w._checkpoint_key_stage2(k1, 'prompt two', 'new summary', 'stage one output')
+    assert k2['stage1_handoff_hash']
+    changed_summary = w._checkpoint_key_stage2(k1, 'prompt two', 'new summary', 'stage one handoff')
     assert changed_summary != k2
 
 
-def test_usage_reports_cached_reasoning_and_cost():
+def test_usage_reports_cache_write_cached_reasoning_and_terra_cost():
     result = _usage(FakeResponse())
+    assert result['model'] == 'gpt-5.6-terra'
     assert result['input'] == 1000
     assert result['cached'] == 400
+    assert result['cache_write'] == 100
     assert result['uncached'] == 600
+    assert result['standard_input'] == 500
     assert result['output'] == 500
     assert result['reasoning'] == 250
-    assert result['cost'] > 0
+    assert result['cost'] == 0.00733
+
+
+def test_extract_handoff_keeps_only_machine_handoff_block():
+    output = '''Human-readable audit summary.\n\nSTAGE1_HANDOFF\n```yaml\nrole_family: transfer_pricing\nrequirements:\n  - R1\n```'''
+    assert _extract_handoff(output, 'STAGE1_HANDOFF') == (
+        'STAGE1_HANDOFF\nrole_family: transfer_pricing\nrequirements:\n  - R1'
+    )
 
 
 def test_folder_hierarchy_puts_candidate_immediately_under_outputs():
