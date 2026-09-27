@@ -52,7 +52,7 @@ class Settings(BaseSettings):
     max_retries: int = 2
     max_row_attempts: int = 3
     stale_lock_minutes: int = 180
-    cost_hard_stop_usd: float = 2.0
+    cost_hard_stop_usd: float = 1.75
     workdir: str = '/tmp/automate_cv'
     model_config = SettingsConfigDict(env_file='.env', case_sensitive=False, extra='ignore')
 
