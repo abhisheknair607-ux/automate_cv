@@ -4,6 +4,12 @@ class Settings(BaseSettings):
     openai_api_key: str = ''
     openai_model: str = 'gpt-5.6-sol'
     openai_reasoning_effort: str = 'medium'
+    stage1_reasoning_effort: str = 'medium'
+    stage2_reasoning_effort: str = 'medium'
+    stage3_reasoning_effort: str = 'medium'
+    stage1_max_output_tokens: int = 12000
+    stage2_max_output_tokens: int = 16000
+    stage3_max_output_tokens: int = 24000
     automation_enabled: bool = False
     google_oauth_client_id: str = ''
     google_oauth_client_secret: str = ''
@@ -26,6 +32,7 @@ class Settings(BaseSettings):
     projects_folder_id: str = ''
     max_applications_per_run: int = 5
     max_retries: int = 2
+    max_row_attempts: int = 3
     stale_lock_minutes: int = 180
     cost_hard_stop_usd: float = 2.0
     workdir: str = '/tmp/automate_cv'

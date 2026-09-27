@@ -1,35 +1,192 @@
-import hashlib, uuid
+import hashlib
+import uuid
 from datetime import datetime, timezone
 from googleapiclient.discovery import build
 from .models import ApplicationRow
+from .profiles import profiles
 
-COL={'company':0,'designation':1,'link':2,'jd':3,'cv':7,'cl':8,'ws':9,'status':11,'id':12,'hash':13,'workflow':14,'lock':15,'cvlink':17,'cllink':18,'context':19,'cost':20,'error':21}
-LET={'cv':'H','status':'L','id':'M','hash':'N','workflow':'O','lock':'P','last':'Q','cvlink':'R','cllink':'S','context':'T','cost':'U','error':'V'}
-def digest(text): return hashlib.sha256(text.replace('\r\n','\n').strip().encode()).hexdigest()
-def _v(row,i,d=''): return row[i] if i<len(row) else d
-def _b(row,i):
-    value=_v(row,i,False); return value is True or str(value).upper() in {'TRUE','YES','1'}
+STOP_STATES = {'ERROR_MANUAL', 'ERROR_CONFIG', 'JD_CHANGED_REVIEW_REQUIRED', 'ERROR_MAX_RETRIES'}
+STATE_KEYS = ('id', 'hash', 'workflow', 'lock', 'last', 'cvlink', 'cllink', 'context', 'cost', 'error')
+LOCATION_COL = 32  # AG; optional user-entered location used for Drive folder naming.
+
+
+def digest(text):
+    return hashlib.sha256(text.replace('\r\n', '\n').strip().encode()).hexdigest()
+
+
+def _v(row, i, d=''):
+    return row[i] if i < len(row) else d
+
+
+def _b(row, i):
+    value = _v(row, i, False)
+    return value is True or str(value).upper() in {'TRUE', 'YES', '1'}
+
+
+def col_letter(index):
+    n = index + 1
+    s = ''
+    while n:
+        n, r = divmod(n - 1, 26)
+        s = chr(65 + r) + s
+    return s
+
+
+def retry_count(workflow):
+    if not str(workflow).startswith('ERROR_RETRYABLE_'):
+        return 0
+    try:
+        return int(str(workflow).rsplit('_', 1)[1])
+    except ValueError:
+        return 0
+
 
 class Freshmal:
-    def __init__(self,credentials,settings):
-        self.settings=settings; self.values=build('sheets','v4',credentials=credentials,cache_discovery=False).spreadsheets().values()
+    def __init__(self, credentials, settings):
+        self.settings = settings
+        self.values = build('sheets', 'v4', credentials=credentials, cache_discovery=False).spreadsheets().values()
+        self.profiles = profiles()
+
     def rows(self):
-        result=self.values.get(spreadsheetId=self.settings.freshmal_spreadsheet_id,range=f'{self.settings.freshmal_sheet_name}!A3:V1000',valueRenderOption='UNFORMATTED_VALUE').execute(); apps=[]
-        for n,row in enumerate(result.get('values',[]),3):
-            apps.append(ApplicationRow(n,str(_v(row,0)),str(_v(row,1)),str(_v(row,2)),str(_v(row,3)),_b(row,7),_b(row,8),_b(row,9),str(_v(row,11)),str(_v(row,12)),str(_v(row,13)),str(_v(row,14)),str(_v(row,15)),str(_v(row,17)),str(_v(row,18)),str(_v(row,19)),float(_v(row,20,0) or 0),str(_v(row,21))))
+        result = self.values.get(
+            spreadsheetId=self.settings.freshmal_spreadsheet_id,
+            range=f'{self.settings.freshmal_sheet_name}!A3:AG1000',
+            valueRenderOption='UNFORMATTED_VALUE',
+        ).execute()
+        apps = []
+        for n, row in enumerate(result.get('values', []), 3):
+            company = str(_v(row, 0))
+            designation = str(_v(row, 1))
+            link = str(_v(row, 2))
+            jd = str(_v(row, 3))
+            location = str(_v(row, LOCATION_COL)).strip()
+            for p in self.profiles.values():
+                make_cv = _b(row, p.make_cv_col)
+                make_cl = _b(row, p.make_cl_col)
+                ws = _b(row, p.web_search_col)
+                if not (make_cv or make_cl or ws):
+                    continue
+                state = [_v(row, p.state_start_col + i) for i in range(10)]
+                apps.append(ApplicationRow(
+                    row_number=n,
+                    company=company,
+                    designation=designation,
+                    application_link=link,
+                    raw_jd=jd,
+                    make_cv=make_cv,
+                    make_cl=make_cl,
+                    web_search=ws,
+                    status=str(_v(row, p.status_col)),
+                    candidate_key=p.key,
+                    candidate_name=p.display_name,
+                    filename_name=p.filename_name,
+                    folder_name=p.folder_name,
+                    location=location,
+                    application_id=str(state[0]),
+                    jd_hash=str(state[1]),
+                    workflow=str(state[2]),
+                    lock_id=str(state[3]),
+                    cv_link=str(state[5]),
+                    cl_link=str(state[6]),
+                    context_link=str(state[7]),
+                    cost_usd=float(state[8] or 0),
+                    error=str(state[9]),
+                ))
         return apps
-    def eligible(self,a): return a.make_cv and not a.complete() and not a.lock_id
-    def update(self,row,changes):
-        data=[{'range':f'{self.settings.freshmal_sheet_name}!{LET[k]}{row}','values':[[v]]} for k,v in changes.items()]
-        self.values.batchUpdate(spreadsheetId=self.settings.freshmal_spreadsheet_id,body={'valueInputOption':'RAW','data':data}).execute()
-    def prepare(self,a):
-        d=digest(a.raw_jd)
-        if a.jd_hash and a.jd_hash!=d:
-            self.update(a.row_number,{'cv':False,'hash':d,'status':'NA','workflow':'JD_CHANGED_REVIEW_REQUIRED','error':'JD changed; review A:D and re-check Make CV.'}); return False
-        if not a.application_id: a.application_id=f'ABH-R{a.row_number}-{d[:8]}'
-        a.jd_hash=d; self.update(a.row_number,{'id':a.application_id,'hash':d}); return True
-    def claim(self,a):
-        lock=f'{uuid.uuid4()}|{datetime.now(timezone.utc).isoformat()}'
-        self.update(a.row_number,{'lock':lock,'workflow':'CLAIMED','last':datetime.now(timezone.utc).isoformat(),'error':''}); a.lock_id=lock
-    def fail(self,a,msg,state='ERROR_RETRYABLE'): self.update(a.row_number,{'workflow':state,'error':msg[:5000],'lock':''})
-    def done(self,a,cv,cl,context,cost): self.update(a.row_number,{'status':a.requested_status(),'workflow':'COMPLETE','cvlink':cv,'cllink':cl,'context':context,'cost':round(cost,4),'error':'','lock':''})
+
+    def _profile(self, a):
+        return self.profiles[a.candidate_key]
+
+    def _lock_stale(self, lock):
+        if not lock or '|' not in lock:
+            return False
+        try:
+            stamp = datetime.fromisoformat(lock.split('|', 1)[1])
+            if stamp.tzinfo is None:
+                stamp = stamp.replace(tzinfo=timezone.utc)
+            age = (datetime.now(timezone.utc) - stamp).total_seconds() / 60
+            return age >= self.settings.stale_lock_minutes
+        except Exception:
+            return False
+
+    def eligible(self, a):
+        if not a.make_cv or a.complete() or a.workflow in STOP_STATES:
+            return False
+        if retry_count(a.workflow) >= self.settings.max_row_attempts:
+            return False
+        if a.lock_id and not self._lock_stale(a.lock_id):
+            return False
+        return True
+
+    def update(self, a, changes):
+        p = self._profile(a)
+        mapping = {
+            'make_cv': p.make_cv_col,
+            'make_cl': p.make_cl_col,
+            'web_search': p.web_search_col,
+            'status': p.status_col,
+        }
+        mapping.update({k: p.state_start_col + i for i, k in enumerate(STATE_KEYS)})
+        unknown = [k for k in changes if k not in mapping]
+        if unknown:
+            raise KeyError(f'Unsupported Freshmal update fields: {unknown}')
+        data = [
+            {
+                'range': f'{self.settings.freshmal_sheet_name}!{col_letter(mapping[k])}{a.row_number}',
+                'values': [[v]],
+            }
+            for k, v in changes.items()
+        ]
+        self.values.batchUpdate(
+            spreadsheetId=self.settings.freshmal_spreadsheet_id,
+            body={'valueInputOption': 'RAW', 'data': data},
+        ).execute()
+
+    def prepare(self, a):
+        d = digest(a.raw_jd)
+        if a.jd_hash and a.jd_hash != d:
+            # A changed JD invalidates prior status/checkpoints. Require a deliberate re-check by the user.
+            self.update(a, {
+                'make_cv': False,
+                'id': '',
+                'hash': d,
+                'status': 'NA',
+                'workflow': 'JD_CHANGED_REVIEW_REQUIRED',
+                'lock': '',
+                'last': '',
+                'cvlink': '',
+                'cllink': '',
+                'context': '',
+                'cost': 0,
+                'error': 'JD changed; review the row and re-check Make CV.',
+            })
+            return False
+        if not a.application_id:
+            a.application_id = f'{a.candidate_key.upper()}-R{a.row_number}-{d[:8]}'
+        a.jd_hash = d
+        self.update(a, {'id': a.application_id, 'hash': d})
+        return True
+
+    def claim(self, a):
+        now = datetime.now(timezone.utc).isoformat()
+        lock = f'{uuid.uuid4()}|{now}'
+        self.update(a, {'lock': lock, 'workflow': 'CLAIMED', 'last': now, 'error': ''})
+        a.lock_id = lock
+
+    def fail(self, a, msg, state='ERROR_RETRYABLE'):
+        if state == 'ERROR_RETRYABLE':
+            count = retry_count(a.workflow) + 1
+            state = 'ERROR_MAX_RETRIES' if count >= self.settings.max_row_attempts else f'ERROR_RETRYABLE_{count}'
+        self.update(a, {'workflow': state, 'error': msg[:5000], 'lock': ''})
+
+    def done(self, a, cv, cl, context, cost):
+        self.update(a, {
+            'status': a.requested_status(),
+            'workflow': 'COMPLETE',
+            'cvlink': cv,
+            'cllink': cl,
+            'context': context,
+            'cost': round(cost, 4),
+            'error': '',
+            'lock': '',
+        })

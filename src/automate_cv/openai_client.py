@@ -8,8 +8,10 @@ class AI:
         if not settings.openai_api_key: raise RuntimeError('OPENAI_API_KEY is not configured.')
         self.client=OpenAI(api_key=settings.openai_api_key); self.settings=settings
         self.http=httpx.Client(base_url='https://api.openai.com/v1',headers={'Authorization':f'Bearer {settings.openai_api_key}'},timeout=180)
-    def text(self,prompt,user_input):
-        r=self.client.responses.create(model=self.settings.openai_model,instructions=prompt,input=user_input,reasoning={'effort':self.settings.openai_reasoning_effort})
+    def text(self,prompt,user_input,reasoning_effort=None,max_output_tokens=None):
+        kwargs={'model':self.settings.openai_model,'instructions':prompt,'input':user_input,'reasoning':{'effort':reasoning_effort or self.settings.openai_reasoning_effort}}
+        if max_output_tokens: kwargs['max_output_tokens']=max_output_tokens
+        r=self.client.responses.create(**kwargs)
         return r.output_text,r
     def upload(self,path):
         with Path(path).open('rb') as fh: return self.client.files.create(file=fh,purpose='user_data').id
@@ -25,12 +27,14 @@ class AI:
             elif isinstance(x,list):
                 for v in x: walk(v)
         walk(self._dict(response)); return list(dict.fromkeys(found))
-    def stage3(self,prompt,user_input,paths,output_dir,web_search=False):
+    def stage3(self,prompt,user_input,paths,output_dir,web_search=False,reasoning_effort=None,max_output_tokens=None):
         ids=[self.upload(p) for p in paths]
         tools=[{'type':'code_interpreter','container':{'type':'auto','file_ids':ids}}]
         if web_search: tools.append({'type':'web_search'})
         try:
-            r=self.client.responses.create(model=self.settings.openai_model,instructions=prompt,input=user_input,reasoning={'effort':self.settings.openai_reasoning_effort},tools=tools)
+            kwargs={'model':self.settings.openai_model,'instructions':prompt,'input':user_input,'reasoning':{'effort':reasoning_effort or self.settings.openai_reasoning_effort},'tools':tools}
+            if max_output_tokens: kwargs['max_output_tokens']=max_output_tokens
+            r=self.client.responses.create(**kwargs)
             output_dir=Path(output_dir); output_dir.mkdir(parents=True,exist_ok=True); artifacts=[]
             for container_id,file_id,filename in self._generated_files(r):
                 res=self.http.get(f'/containers/{container_id}/files/{file_id}/content'); res.raise_for_status()
