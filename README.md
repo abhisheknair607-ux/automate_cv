@@ -48,7 +48,7 @@ A failed row no longer requires hidden workflow/error columns to be cleared or t
 - Retryable failures keep the existing bounded automatic retry behavior until the configured row-attempt ceiling is reached.
 - Terminal failures (`ERROR_MANUAL`, `ERROR_CONFIG`, `JD_CHANGED_REVIEW_REQUIRED`, `ERROR_MAX_RETRIES`) automatically untick that candidate's **Make CV** checkbox so they cannot loop unattended every hour.
 - After the underlying cause is fixed or reviewed, re-check **Make CV** on the same row. `ERROR` + a newly checked Make CV is treated as an explicit retry request.
-- Existing application/checkpoint metadata is retained, so a retry can reuse valid Stage 1/Stage 2 checkpoints rather than paying to recompute them when their inputs are unchanged.
+- Existing application/checkpoint metadata is retained, so a retry resumes from the latest valid checkpoint rather than starting the whole application again.
 - A changed JD is surfaced as `ERROR`, clears stale output links/status, and also requires review followed by re-checking Make CV.
 
 This keeps terminal failures fail-closed while making same-row recovery a deliberate one-checkbox action.
@@ -120,17 +120,41 @@ Each paid stage records:
 
 Cost calculation is model-aware for the configured GPT-5.6 Terra and Sol prices and separately accounts for cached reads and cache writes. Stage 3 also records visible Code Interpreter sessions and billable web-search search actions so `Token_Usage.json` does not intentionally omit those known tool charges. Provider billing remains authoritative; the local figures are operational estimates derived from the response telemetry and the pricing constants in the worker.
 
-The configured cost hard stop is checked after each paid stage. The current initial safety default is `$1.75` per application; this is a guardrail, not a target and should be reduced only after controlled-run telemetry establishes a safe production threshold.
+The configured cost hard stop is checked after each paid stage, including when a paid checkpoint is restored. The current initial safety default is `$1.75` per application; this is a guardrail, not a target and should be reduced only after controlled-run telemetry establishes a safe production threshold.
 
 ## Reliable resume
 
-Stage 1 and Stage 2 are uploaded to Drive as soon as they finish. `run_manifest.json` stores hashes, model settings and usage history.
+The workflow now has durable checkpoints at every material boundary:
+
+1. Stage 1 complete
+2. Stage 2 complete
+3. Stage 3 generation complete, including the generated artifact files
+4. Normalization complete
+5. QA passed
+6. Final CV/cover-letter Drive upload complete
+7. Final audit files + Freshmal status update
+
+`run_manifest.json` stores the checkpoint keys, hashes, model settings, output links and usage history. Stage 3 raw artifacts and normalized artifacts are also preserved in the role folder under `_Resume_Checkpoints` so a fresh GitHub runner can continue from them.
 
 Checkpoint reuse is permitted only when the relevant inputs still match:
+
 - Stage 1: candidate + JD hash + Prompt 1 hash + Stage 1 model/reasoning
 - Stage 2: Stage 1 key + Prompt 2 hash + Summary Router hash + Stage 1 handoff hash + Stage 2 model/reasoning
+- Stage 3 generation: Stage 2 key + Prompt 3 hash + detailed evidence hash + selected handoff + hashes of all mounted Stage 3 source files + requested controls + Stage 3 model/reasoning
+- Normalize: valid Stage 3 generation key + expected output filenames
+- QA: valid normalized artifact hashes + detailed evidence hash
+- Drive upload: valid QA key + final artifact hashes
 
-This lets a later Stage 3 retry reuse valid earlier reasoning without paying for Stages 1–2 again. Changed inputs invalidate the relevant checkpoint rather than silently reusing stale analysis.
+A retry therefore resumes from the latest valid checkpoint. For example, a Stage 3 API failure reuses Stages 1–2; a renderer/tooling failure after normalization retries QA; a Drive upload failure reuses Stage 3, normalization and QA; a final Freshmal update failure reuses the already-uploaded documents.
+
+There are deliberate regeneration rules:
+
+- If Stage 3 itself fails, only Stage 3 is rerun after valid Stage 1/2 checkpoints are reused.
+- If normalization proves the requested DOCX artifact is missing/unidentifiable, Stage 3 is invalidated and regenerated.
+- If QA proves a generated document has the wrong page count, Stage 3 is invalidated and regenerated because rerunning QA on the same document cannot fix it.
+- Operational QA failures such as a renderer/tooling failure preserve the normalized checkpoint and retry from QA.
+- If factual QA is ever configured to return a blocking critical result, the Stage 3 artifact is invalidated and regenerated.
+- Changed source inputs invalidate the appropriate checkpoint rather than silently reusing stale output.
 
 ## Hourly safety
 
@@ -169,7 +193,10 @@ Outputs/
 │           ├── run_manifest.json
 │           ├── Token_Usage.json
 │           ├── Factual_QA.md
-│           └── Application_Context.md
+│           ├── Application_Context.md
+│           └── _Resume_Checkpoints/
+│               ├── Stage3_Generated/
+│               └── Normalized/
 └── Pooja/
     └── Company/
         └── Designation, Location/
@@ -196,8 +223,9 @@ Keep the optimisation pull request in draft and keep `AUTOMATION_ENABLED=false` 
 3. Run exactly one known Freshmal row through `controlled-cv-test`.
 4. Inspect the final CV, `Factual_QA.md`, `Token_Usage.json`, Stage 1/2 compact handoffs, cache telemetry and any built-in-tool telemetry.
 5. As part of the controlled test, verify a failed terminal row shows `ERROR`, Make CV is unticked, and re-checking Make CV makes that same row eligible without clearing hidden columns.
-6. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
-7. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
+6. Also verify resume behavior: a retry starts from the latest valid checkpoint and does not repeat already-valid paid stages.
+7. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
+8. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
 
 ## Pooja setup
 
@@ -207,7 +235,7 @@ See `docs/POOJA_SETUP.md` for the rest of the isolation setup and test plan.
 
 ## Tests
 
-GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, visible `ERROR` handling, deliberate same-row retries, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, built-in tool-cost accounting, checkpoint validity, DOCX selection and factual QA.
+GitHub Actions runs `pytest` on pushes and pull requests. Tests cover controls/status behavior, visible `ERROR` handling, deliberate same-row retries, hourly eligibility, retry ceilings, stale locks, prompt insertion, compact handoff extraction, cache-aware cost accounting, built-in tool-cost accounting, Stage 1/2/3 checkpoint validity, downstream invalidation boundaries, QA regeneration rules, DOCX selection and factual QA.
 
 ## Secrets
 
