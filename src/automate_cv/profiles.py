@@ -85,12 +85,7 @@ def profiles():
             prompt2_file_id=_env('PROMPT2_FILE_ID'),
             prompt3_file_id=_env('PROMPT3_FILE_ID'),
             summary_doc_file_id=_env('SUMMARY_DOC_FILE_ID'),
-            # Non-secret Drive file ID for the detailed factual source. The default
-            # points at the bank created on 2026-09-27 and can be overridden normally.
-            master_evidence_bank_file_id=_env(
-                'MASTER_EVIDENCE_BANK_FILE_ID',
-                '1FD2OSAnMpvScnPSawwF7YsyyPoaY84On',
-            ),
+            master_evidence_bank_file_id=_env('MASTER_EVIDENCE_BANK_FILE_ID'),
             base_cv_file_id=_env('BASE_CV_FILE_ID'),
             formatting_master_file_id=_env('CV_FORMATTING_MASTER_FILE_ID'),
             high_experience_reference_file_id=_env('HIGH_EXPERIENCE_REFERENCE_FILE_ID'),
