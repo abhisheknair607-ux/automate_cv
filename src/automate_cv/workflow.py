@@ -31,6 +31,9 @@ _TOOL_PRICES_USD = {
     'code_interpreter_1gb_session': 0.03,
 }
 
+_CHECKPOINT_SCHEMA_VERSION = 4
+_CHECKPOINT_ROOT = '_Resume_Checkpoints'
+
 
 def _as_dict(value):
     if isinstance(value, dict):
@@ -150,6 +153,21 @@ def _hash(text):
     return hashlib.sha256(str(text).encode('utf-8')).hexdigest()
 
 
+def _file_hash(path):
+    digest = hashlib.sha256()
+    with Path(path).open('rb') as fh:
+        for chunk in iter(lambda: fh.read(1024 * 1024), b''):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _source_hashes(paths):
+    return {
+        f'{index}:{Path(path).name}': _file_hash(path)
+        for index, path in enumerate(paths)
+    }
+
+
 def _safe(text):
     return re.sub(r'[\\/:*?"<>|]+', '-', str(text)).strip().strip('.')[:120] or 'Unknown'
 
@@ -159,6 +177,17 @@ def _transient(error):
     if status in {408, 409, 429} or (isinstance(status, int) and status >= 500):
         return True
     return isinstance(error, (TimeoutError, ConnectionError, httpx.TimeoutException, httpx.NetworkError))
+
+
+def _qa_requires_regeneration(error):
+    """Return True only when QA proves the generated document itself is invalid.
+
+    Operational rendering failures should retry QA from the normalized checkpoint;
+    a document that genuinely renders to the wrong page count must go back to
+    Stage 3 so Sol can regenerate the artifact.
+    """
+    message = str(error)
+    return 'rendered to ' in message and 'pages; expected 1.' in message
 
 
 def _now():
@@ -240,6 +269,11 @@ class Workflow:
         role, link = self.drive.folder(role_name, company)
         return role, link
 
+    def _checkpoint_folder(self, role_folder, name):
+        root, _ = self.drive.folder(_CHECKPOINT_ROOT, role_folder)
+        child, _ = self.drive.folder(name, root)
+        return child
+
     def _manifest(self, folder, work):
         path = work / 'run_manifest.json'
         self.drive.download_if_exists('run_manifest.json', folder, path)
@@ -253,6 +287,55 @@ class Workflow:
     def _save_manifest(self, manifest, path, folder):
         path.write_text(json.dumps(manifest, indent=2, sort_keys=True), encoding='utf-8')
         self.drive.upload(path, folder)
+
+    @staticmethod
+    def _invalidate_from(manifest, phase):
+        """Drop only the requested phase and all checkpoints downstream of it."""
+        phase_keys = {
+            'stage1': (
+                'stage1_complete',
+                'stage2_key', 'stage2_complete',
+                'stage3_key', 'stage3_complete', 'stage3_artifacts', 'stage3_started',
+                'normalize_key', 'normalize_complete', 'normalized_cv_name', 'normalized_cl_name',
+                'qa_key', 'qa_complete',
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+            'stage2': (
+                'stage2_key', 'stage2_complete',
+                'stage3_key', 'stage3_complete', 'stage3_artifacts', 'stage3_started',
+                'normalize_key', 'normalize_complete', 'normalized_cv_name', 'normalized_cl_name',
+                'qa_key', 'qa_complete',
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+            'stage3': (
+                'stage3_key', 'stage3_complete', 'stage3_artifacts', 'stage3_started',
+                'normalize_key', 'normalize_complete', 'normalized_cv_name', 'normalized_cl_name',
+                'qa_key', 'qa_complete',
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+            'normalize': (
+                'normalize_key', 'normalize_complete', 'normalized_cv_name', 'normalized_cl_name',
+                'qa_key', 'qa_complete',
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+            'qa': (
+                'qa_key', 'qa_complete',
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+            'drive_upload': (
+                'drive_upload_key', 'drive_upload_complete', 'cv_link', 'cl_link',
+                'complete', 'completed_at_utc', 'context_link',
+            ),
+        }
+        if phase not in phase_keys:
+            raise ValueError(f'Unknown checkpoint phase: {phase}')
+        for key in phase_keys[phase]:
+            manifest.pop(key, None)
 
     def _record_usage(self, manifest, stage, stage_usage):
         event = {
@@ -297,9 +380,71 @@ class Workflow:
             'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
         }
 
+    def _checkpoint_key_stage3(
+        self,
+        stage2_key,
+        prompt3,
+        master_evidence,
+        source_paths,
+        app,
+        stage2_handoff,
+    ):
+        return {
+            'checkpoint_schema_version': _CHECKPOINT_SCHEMA_VERSION,
+            'stage2_key_hash': _hash(json.dumps(stage2_key, sort_keys=True)),
+            'prompt3_hash': _hash(prompt3),
+            'master_evidence_hash': _hash(master_evidence),
+            'stage2_handoff_hash_for_stage3': _hash(stage2_handoff),
+            'stage3_source_hashes': _source_hashes(source_paths),
+            'stage3_model': self.s.stage3_model,
+            'stage3_reasoning_effort': self.s.stage3_reasoning_effort,
+            'make_cl': bool(app.make_cl),
+            'web_search': bool(app.web_search),
+            'company': app.company,
+            'designation': app.designation,
+            'location': app.location,
+            'application_link': app.application_link,
+        }
+
     @staticmethod
     def _matches(manifest, key):
         return all(manifest.get(k) == v for k, v in key.items())
+
+    def _restore_stage3(self, manifest, stage3_key, folder, work):
+        if manifest.get('stage3_key') != stage3_key or manifest.get('stage3_complete') is not True:
+            return None
+        artifact_names = manifest.get('stage3_artifacts') or []
+        if not artifact_names:
+            return None
+
+        stage3_path = work / 'stage3.md'
+        if not self.drive.download_if_exists('stage3.md', folder, stage3_path):
+            return None
+
+        checkpoint_folder = self._checkpoint_folder(folder, 'Stage3_Generated')
+        restored_dir = work / 'generated_checkpoint'
+        restored_dir.mkdir(parents=True, exist_ok=True)
+        artifacts = []
+        for raw_name in artifact_names:
+            name = Path(str(raw_name)).name
+            if name != raw_name:
+                return None
+            path = restored_dir / name
+            if not self.drive.download_if_exists(name, checkpoint_folder, path):
+                return None
+            artifacts.append(path)
+        return stage3_path.read_text(encoding='utf-8'), artifacts
+
+    def _checkpoint_stage3_artifacts(self, artifacts, folder):
+        paths = [Path(path) for path in artifacts if Path(path).is_file()]
+        if not any(path.suffix.lower() == '.docx' for path in paths):
+            raise QAError('Stage 3 produced no DOCX artifacts.')
+        checkpoint_folder = self._checkpoint_folder(folder, 'Stage3_Generated')
+        names = []
+        for path in paths:
+            self.drive.upload(path, checkpoint_folder)
+            names.append(path.name)
+        return names
 
     def run(self, app):
         print(
@@ -328,6 +473,8 @@ class Workflow:
         work.mkdir(parents=True, exist_ok=True)
         current_stage = 'INITIALISING'
         folder = None
+        manifest = None
+        manifest_path = None
 
         try:
             folder, _ = self._folders(app)
@@ -335,7 +482,7 @@ class Workflow:
             prompt2 = self.prompts.read(app.candidate_key, '#Prompt2.md', work)
             prompt3 = self.prompts.read(app.candidate_key, '#Prompt3.md', work)
             manifest, manifest_path = self._manifest(folder, work)
-            manifest.setdefault('schema_version', 3)
+            manifest['schema_version'] = _CHECKPOINT_SCHEMA_VERSION
             manifest.setdefault('candidate', app.candidate_key)
             manifest.setdefault('application_id', app.application_id)
             manifest.setdefault('cumulative_cost_usd', 0.0)
@@ -355,10 +502,7 @@ class Workflow:
                 stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
                 print('[workflow] Reusing verified Stage 1 checkpoint', flush=True)
             else:
-                # A changed JD/Prompt 1/model invalidates downstream checkpoints,
-                # while historical usage remains auditable.
-                for key in ('stage1_complete', 'stage2_complete', 'stage3_complete', 'stage2_key'):
-                    manifest.pop(key, None)
+                self._invalidate_from(manifest, 'stage1')
                 manifest.update(stage1_key)
                 input1 = (
                     f'Company: {app.company}\n'
@@ -391,7 +535,7 @@ class Workflow:
                     _usage(response1, self.s.stage1_model),
                 )
                 self._save_manifest(manifest, manifest_path, folder)
-                self._guard(manifest)
+            self._guard(manifest)
 
             # ---------------- Stage 2 ----------------
             current_stage = 'STAGE_2'
@@ -414,8 +558,7 @@ class Workflow:
                 stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
                 print('[workflow] Reusing verified Stage 2 checkpoint', flush=True)
             else:
-                manifest.pop('stage2_complete', None)
-                manifest.pop('stage3_complete', None)
+                self._invalidate_from(manifest, 'stage2')
 
                 # Prompt 2 + compact Summary Router is the stable reusable prefix.
                 # The JD and Stage 1 handoff are application-specific and stay after
@@ -450,9 +593,9 @@ class Workflow:
                     _usage(response2, self.s.stage2_model),
                 )
                 self._save_manifest(manifest, manifest_path, folder)
-                self._guard(manifest)
+            self._guard(manifest)
 
-            # ---------------- Stage 3 ----------------
+            # ---------------- Stage 3 generation ----------------
             current_stage = 'STAGE_3'
             self.sheet.update(app, {'workflow': current_stage})
 
@@ -470,97 +613,229 @@ class Workflow:
                 master_path,
                 stage2,
             )
-            controls = (
-                f'MAKE_CV = TRUE\n'
-                f'MAKE_COVER_LETTER = {str(app.make_cl).upper()}\n'
-                f'WEB_SEARCH = {str(app.web_search).upper()}'
+            stage3_key = self._checkpoint_key_stage3(
+                stage2_key,
+                prompt3,
+                master_evidence,
+                source_paths,
+                app,
+                stage2_handoff,
             )
-            input3 = (
-                f'{controls}\n\n'
-                f'Company: {app.company}\n'
-                f'Role: {app.designation}\n'
-                f'Location: {app.location}\n'
-                f'Link: {app.application_link}'
-                f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
-                f'\n\n{stage2_handoff}'
-                '\n\nUse the supplied source files with the Python tool. '
-                'Treat SUMMARY DOC.docx as the compact evidence router and '
-                'MASTER EVIDENCE BANK.docx as the detailed factual source. '
-                'Retrieve and verify only the evidence selected in STAGE2_HANDOFF '
-                'plus any item explicitly marked for verification, then create '
-                'the required Word artifact(s).'
-            )
-            stage3, response3, artifacts = self.retry(
-                lambda: self.ai.stage3(
-                    prompt3,
-                    input3,
-                    source_paths,
-                    work / 'generated',
-                    app.web_search,
-                    self.s.stage3_reasoning_effort,
-                    self.s.stage3_max_output_tokens,
-                    model=self.s.stage3_model,
-                ),
-                'Stage 3 AI/artifact call',
-            )
-            stage3_path = work / 'stage3.md'
-            stage3_path.write_text(stage3, encoding='utf-8')
-            self.drive.upload(stage3_path, folder)
-            manifest['prompt3_hash'] = _hash(prompt3)
-            manifest['master_evidence_hash'] = _hash(master_evidence)
-            manifest['stage3_model'] = self.s.stage3_model
-            manifest['stage3_reasoning_effort'] = self.s.stage3_reasoning_effort
-            manifest['stage3_started'] = True
-            self._record_usage(
+            restored_stage3 = self._restore_stage3(
                 manifest,
-                'stage3',
-                _usage(response3, self.s.stage3_model),
+                stage3_key,
+                folder,
+                work,
             )
-            self._save_manifest(manifest, manifest_path, folder)
+            if restored_stage3:
+                stage3, artifacts = restored_stage3
+                print('[workflow] Reusing verified Stage 3 generation checkpoint', flush=True)
+            else:
+                self._invalidate_from(manifest, 'stage3')
+                controls = (
+                    f'MAKE_CV = TRUE\n'
+                    f'MAKE_COVER_LETTER = {str(app.make_cl).upper()}\n'
+                    f'WEB_SEARCH = {str(app.web_search).upper()}'
+                )
+                input3 = (
+                    f'{controls}\n\n'
+                    f'Company: {app.company}\n'
+                    f'Role: {app.designation}\n'
+                    f'Location: {app.location}\n'
+                    f'Link: {app.application_link}'
+                    f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
+                    f'\n\n{stage2_handoff}'
+                    '\n\nUse the supplied source files with the Python tool. '
+                    'Treat SUMMARY DOC.docx as the compact evidence router and '
+                    'MASTER EVIDENCE BANK.docx as the detailed factual source. '
+                    'Retrieve and verify only the evidence selected in STAGE2_HANDOFF '
+                    'plus any item explicitly marked for verification, then create '
+                    'the required Word artifact(s).'
+                )
+                stage3, response3, artifacts = self.retry(
+                    lambda: self.ai.stage3(
+                        prompt3,
+                        input3,
+                        source_paths,
+                        work / 'generated',
+                        app.web_search,
+                        self.s.stage3_reasoning_effort,
+                        self.s.stage3_max_output_tokens,
+                        model=self.s.stage3_model,
+                    ),
+                    'Stage 3 AI/artifact call',
+                )
+                stage3_path = work / 'stage3.md'
+                stage3_path.write_text(stage3, encoding='utf-8')
+                self.drive.upload(stage3_path, folder)
+                artifact_names = self._checkpoint_stage3_artifacts(artifacts, folder)
+                manifest['stage3_key'] = stage3_key
+                manifest['stage3_complete'] = True
+                manifest['stage3_artifacts'] = artifact_names
+                manifest['stage3_started'] = True
+                manifest['prompt3_hash'] = _hash(prompt3)
+                manifest['master_evidence_hash'] = _hash(master_evidence)
+                manifest['stage3_model'] = self.s.stage3_model
+                manifest['stage3_reasoning_effort'] = self.s.stage3_reasoning_effort
+                self._record_usage(
+                    manifest,
+                    'stage3',
+                    _usage(response3, self.s.stage3_model),
+                )
+                self._save_manifest(manifest, manifest_path, folder)
             self._guard(manifest)
 
-            # ---------------- Normalize / QA ----------------
+            # ---------------- Normalize ----------------
             current_stage = 'NORMALIZE'
+            self.sheet.update(app, {'workflow': current_stage})
             final = work / 'final'
+            final.mkdir(parents=True, exist_ok=True)
             company = _safe(app.company)
             role = _safe(app.designation)
-            cv, cover_letter = normalize(
-                artifacts,
-                f'{app.filename_name}_{company}_{role}_CV.docx',
-                (
-                    f'{app.filename_name}_{company}_{role}_Cover_Letter.docx'
-                    if app.make_cl
-                    else None
-                ),
-                final,
+            cv_name = f'{app.filename_name}_{company}_{role}_CV.docx'
+            cl_name = (
+                f'{app.filename_name}_{company}_{role}_Cover_Letter.docx'
+                if app.make_cl
+                else None
             )
+            normalize_key = {
+                'checkpoint_schema_version': _CHECKPOINT_SCHEMA_VERSION,
+                'stage3_key_hash': _hash(json.dumps(stage3_key, sort_keys=True)),
+                'cv_name': cv_name,
+                'cl_name': cl_name or '',
+            }
+            normalized_folder = self._checkpoint_folder(folder, 'Normalized')
+            cv = final / cv_name
+            cover_letter = final / cl_name if cl_name else None
+            normalize_valid = (
+                manifest.get('normalize_key') == normalize_key
+                and manifest.get('normalize_complete') is True
+                and self.drive.download_if_exists(cv_name, normalized_folder, cv)
+            )
+            if normalize_valid and cover_letter:
+                normalize_valid = bool(
+                    self.drive.download_if_exists(cl_name, normalized_folder, cover_letter)
+                )
+            if normalize_valid:
+                print('[workflow] Reusing verified normalization checkpoint', flush=True)
+            else:
+                self._invalidate_from(manifest, 'normalize')
+                try:
+                    cv, cover_letter = normalize(
+                        artifacts,
+                        cv_name,
+                        cl_name,
+                        final,
+                    )
+                except QAError:
+                    # Missing/unidentifiable requested DOCX means Stage 3 itself
+                    # must regenerate rather than repeatedly retry normalization.
+                    self._invalidate_from(manifest, 'stage3')
+                    self._save_manifest(manifest, manifest_path, folder)
+                    raise
+                self.drive.upload(cv, normalized_folder)
+                if cover_letter:
+                    self.drive.upload(cover_letter, normalized_folder)
+                manifest['normalize_key'] = normalize_key
+                manifest['normalize_complete'] = True
+                manifest['normalized_cv_name'] = cv.name
+                manifest['normalized_cl_name'] = cover_letter.name if cover_letter else ''
+                self._save_manifest(manifest, manifest_path, folder)
 
+            # ---------------- QA ----------------
             current_stage = 'QA'
             self.sheet.update(app, {'workflow': current_stage})
-            one_page(cv, work / 'rendered')
-            if cover_letter:
-                one_page(cover_letter, work / 'rendered')
-
-            # The compact router is not a factual substitute for the detailed bank.
-            qa_report = factual_report(
-                cv,
-                master_evidence,
-                work / 'Factual_QA.md',
+            qa_key = {
+                'checkpoint_schema_version': _CHECKPOINT_SCHEMA_VERSION,
+                'normalize_key_hash': _hash(json.dumps(normalize_key, sort_keys=True)),
+                'cv_hash': _file_hash(cv),
+                'cl_hash': _file_hash(cover_letter) if cover_letter else '',
+                'master_evidence_hash': _hash(master_evidence),
+            }
+            qa_report_path = work / 'Factual_QA.md'
+            qa_valid = (
+                manifest.get('qa_key') == qa_key
+                and manifest.get('qa_complete') is True
+                and self.drive.download_if_exists('Factual_QA.md', folder, qa_report_path)
             )
-            self.drive.upload(work / 'Factual_QA.md', folder)
-            if qa_report['critical']:
-                raise QAError(
-                    'Factual QA found unsupported high-risk claims: '
-                    + '; '.join(qa_report['critical'][:8])
-                )
+            if qa_valid:
+                print('[workflow] Reusing verified QA checkpoint', flush=True)
+            else:
+                self._invalidate_from(manifest, 'qa')
+                try:
+                    one_page(cv, work / 'rendered')
+                    if cover_letter:
+                        one_page(cover_letter, work / 'rendered')
 
-            # ---------------- Final uploads ----------------
+                    # The compact router is not a factual substitute for the detailed bank.
+                    qa_report = factual_report(
+                        cv,
+                        master_evidence,
+                        qa_report_path,
+                    )
+                    if qa_report['critical']:
+                        raise QAError(
+                            'Factual QA found unsupported high-risk claims: '
+                            + '; '.join(qa_report['critical'][:8])
+                        )
+                except QAError as error:
+                    # Content/layout failures need a fresh Stage 3 artifact. A
+                    # renderer/tooling failure can safely retry from QA instead.
+                    if _qa_requires_regeneration(error) or str(error).startswith('Factual QA found'):
+                        self._invalidate_from(manifest, 'stage3')
+                    else:
+                        self._invalidate_from(manifest, 'qa')
+                    self._save_manifest(manifest, manifest_path, folder)
+                    raise
+                self.drive.upload(qa_report_path, folder)
+                manifest['qa_key'] = qa_key
+                manifest['qa_complete'] = True
+                self._save_manifest(manifest, manifest_path, folder)
+
+            # ---------------- Final CV/CL uploads ----------------
             current_stage = 'DRIVE_UPLOAD'
-            _, cv_link = self.drive.upload(cv, folder)
-            cl_link = ''
-            if cover_letter:
-                _, cl_link = self.drive.upload(cover_letter, folder)
+            self.sheet.update(app, {'workflow': current_stage})
+            drive_upload_key = {
+                'checkpoint_schema_version': _CHECKPOINT_SCHEMA_VERSION,
+                'qa_key_hash': _hash(json.dumps(qa_key, sort_keys=True)),
+                'cv_hash': _file_hash(cv),
+                'cl_hash': _file_hash(cover_letter) if cover_letter else '',
+            }
+            cv_item = self.drive.find(cv.name, [folder])
+            cl_item = self.drive.find(cover_letter.name, [folder]) if cover_letter else None
+            drive_upload_valid = (
+                manifest.get('drive_upload_key') == drive_upload_key
+                and manifest.get('drive_upload_complete') is True
+                and cv_item is not None
+                and (cover_letter is None or cl_item is not None)
+            )
+            if drive_upload_valid:
+                cv_link = cv_item.get('webViewLink', '') or manifest.get('cv_link', '')
+                cl_link = (
+                    (cl_item.get('webViewLink', '') or manifest.get('cl_link', ''))
+                    if cover_letter
+                    else ''
+                )
+                if not cv_link or (cover_letter and not cl_link):
+                    drive_upload_valid = False
 
+            if drive_upload_valid:
+                print('[workflow] Reusing verified Drive-upload checkpoint', flush=True)
+            else:
+                self._invalidate_from(manifest, 'drive_upload')
+                _, cv_link = self.drive.upload(cv, folder)
+                cl_link = ''
+                if cover_letter:
+                    _, cl_link = self.drive.upload(cover_letter, folder)
+                manifest['drive_upload_key'] = drive_upload_key
+                manifest['drive_upload_complete'] = True
+                manifest['cv_link'] = cv_link
+                manifest['cl_link'] = cl_link
+                self._save_manifest(manifest, manifest_path, folder)
+
+            # ---------------- Final audit files + Sheet update ----------------
+            current_stage = 'FINALIZE'
+            self.sheet.update(app, {'workflow': current_stage})
             current_cost = float(manifest.get('cumulative_cost_usd', 0) or 0)
             usage_path = work / 'Token_Usage.json'
             usage_path.write_text(
@@ -614,10 +889,14 @@ class Workflow:
                     'stage1_complete': True,
                     'stage2_complete': True,
                     'stage3_complete': True,
+                    'normalize_complete': True,
+                    'qa_complete': True,
+                    'drive_upload_complete': True,
                     'complete': True,
                     'completed_at_utc': _now(),
                     'cv_link': cv_link,
                     'cl_link': cl_link,
+                    'context_link': context_link,
                 }
             )
             self._save_manifest(manifest, manifest_path, folder)
