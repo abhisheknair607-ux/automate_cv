@@ -223,7 +223,7 @@ Keep the optimisation pull request in draft and keep `AUTOMATION_ENABLED=false` 
 3. Run exactly one known Freshmal row through `controlled-cv-test`.
 4. Inspect the final CV, `Factual_QA.md`, `Token_Usage.json`, Stage 1/2 compact handoffs, cache telemetry and any built-in-tool telemetry.
 5. As part of the controlled test, verify a failed terminal row shows `ERROR`, Make CV is unticked, and re-checking Make CV makes that same row eligible without clearing hidden columns.
-6. Also verify resume behavior: a retry starts from the latest valid checkpoint and does not repeat already-valid paid stages.
+6. Also verify resume behavior: a retry starts from the latest valid checkpoint and does not repeat already-valid paid stages. The most useful test is a Stage 3 failure/retry because `usage_history` should show no duplicate Stage 1 or Stage 2 paid event when their hashes still match.
 7. Merge only after the controlled run is factually correct, one-page, and operationally acceptable.
 8. Set `AUTOMATION_ENABLED=true` only after the merged production branch is ready for unattended runs.
 
