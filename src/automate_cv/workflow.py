@@ -16,19 +16,43 @@ class CostLimitError(RuntimeError):
     pass
 
 
-def _usage(response):
+_MODEL_PRICES = {
+    'gpt-5.6': (4.0, 0.4, 20.0),
+    'gpt-5.6-sol': (4.0, 0.4, 20.0),
+    'gpt-5.6-terra': (2.0, 0.2, 12.0),
+    'gpt-5.6-luna': (0.2, 0.02, 1.2),
+}
+
+
+def _usage(response, model='gpt-5.6-sol'):
     usage = getattr(response, 'usage', None)
     if not usage:
-        return {'input': 0, 'cached': 0, 'uncached': 0, 'output': 0, 'reasoning': 0, 'cost': 0.0}
+        return {
+            'model': model,
+            'input': 0,
+            'cached': 0,
+            'uncached': 0,
+            'output': 0,
+            'reasoning': 0,
+            'cost': 0.0,
+        }
     inp = getattr(usage, 'input_tokens', 0) or 0
     out = getattr(usage, 'output_tokens', 0) or 0
     input_details = getattr(usage, 'input_tokens_details', None)
     output_details = getattr(usage, 'output_tokens_details', None)
     cached = (getattr(input_details, 'cached_tokens', 0) or 0) if input_details else 0
     reasoning = (getattr(output_details, 'reasoning_tokens', 0) or 0) if output_details else 0
-    # Retain the repository's existing planning prices so historical cost figures remain comparable.
-    cost = (max(inp - cached, 0) * 4.0 + cached * 0.4 + out * 20.0) / 1_000_000
+    input_price, cached_price, output_price = _MODEL_PRICES.get(
+        model,
+        _MODEL_PRICES['gpt-5.6-sol'],
+    )
+    cost = (
+        max(inp - cached, 0) * input_price
+        + cached * cached_price
+        + out * output_price
+    ) / 1_000_000
     return {
+        'model': model,
         'input': inp,
         'cached': cached,
         'uncached': max(inp - cached, 0),
@@ -112,7 +136,10 @@ class Workflow:
         }
         manifest.setdefault('usage_history', []).append(event)
         manifest.setdefault('latest_stage_usage', {})[stage] = stage_usage
-        manifest['cumulative_cost_usd'] = round(float(manifest.get('cumulative_cost_usd', 0) or 0) + stage_usage['cost'], 6)
+        manifest['cumulative_cost_usd'] = round(
+            float(manifest.get('cumulative_cost_usd', 0) or 0) + stage_usage['cost'],
+            6,
+        )
         return manifest['cumulative_cost_usd']
 
     def _guard(self, manifest):
@@ -129,6 +156,8 @@ class Workflow:
             'candidate': app.candidate_key,
             'jd_hash': app.jd_hash,
             'prompt1_hash': _hash(prompt1),
+            'stage1_model': self.s.stage1_model,
+            'stage1_reasoning_effort': self.s.stage1_reasoning_effort,
         }
 
     def _checkpoint_key_stage2(self, stage1_key, prompt2, summary, stage1_output):
@@ -137,6 +166,8 @@ class Workflow:
             'prompt2_hash': _hash(prompt2),
             'summary_hash': _hash(summary),
             'stage1_output_hash': _hash(stage1_output),
+            'stage2_model': self.s.stage2_model,
+            'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
         }
 
     @staticmethod
@@ -144,7 +175,11 @@ class Workflow:
         return all(manifest.get(k) == v for k, v in key.items())
 
     def run(self, app):
-        print(f'[workflow] Starting {app.candidate_key} application: {app.company} - {app.designation}', flush=True)
+        print(
+            f'[workflow] Starting {app.candidate_key} application: '
+            f'{app.company} - {app.designation}',
+            flush=True,
+        )
         if not self.sheet.prepare(app):
             return
 
@@ -152,7 +187,10 @@ class Workflow:
         profile = self.profiles[app.candidate_key]
         missing = profile.missing_required()
         if missing:
-            errors.append(f'{app.candidate_name} profile is missing required configuration: {", ".join(missing)}.')
+            errors.append(
+                f'{app.candidate_name} profile is missing required configuration: '
+                f'{", ".join(missing)}.'
+            )
         if errors:
             message = ' '.join(errors)
             self.sheet.fail(app, message, 'ERROR_CONFIG')
@@ -189,7 +227,7 @@ class Workflow:
                 stage1 = stage1_path.read_text(encoding='utf-8')
                 print('[workflow] Reusing verified Stage 1 checkpoint', flush=True)
             else:
-                # A changed JD/Prompt 1 invalidates downstream checkpoints, but historical usage remains auditable.
+                # A changed JD, Prompt 1, model or reasoning setting invalidates downstream checkpoints.
                 for key in ('stage1_complete', 'stage2_complete', 'stage3_complete', 'stage2_key'):
                     manifest.pop(key, None)
                 manifest.update(stage1_key)
@@ -203,13 +241,18 @@ class Workflow:
                         input1,
                         self.s.stage1_reasoning_effort,
                         self.s.stage1_max_output_tokens,
+                        self.s.stage1_model,
                     ),
                     'Stage 1 AI call',
                 )
                 stage1_path.write_text(stage1, encoding='utf-8')
                 self.drive.upload(stage1_path, folder)
                 manifest['stage1_complete'] = True
-                self._record_usage(manifest, 'stage1', _usage(response1))
+                self._record_usage(
+                    manifest,
+                    'stage1',
+                    _usage(response1, self.s.stage1_model),
+                )
                 self._save_manifest(manifest, manifest_path, folder)
                 self._guard(manifest)
 
@@ -242,6 +285,7 @@ class Workflow:
                         input2,
                         self.s.stage2_reasoning_effort,
                         self.s.stage2_max_output_tokens,
+                        self.s.stage2_model,
                     ),
                     'Stage 2 AI call',
                 )
@@ -249,7 +293,11 @@ class Workflow:
                 self.drive.upload(stage2_path, folder)
                 manifest['stage2_key'] = stage2_key
                 manifest['stage2_complete'] = True
-                self._record_usage(manifest, 'stage2', _usage(response2))
+                self._record_usage(
+                    manifest,
+                    'stage2',
+                    _usage(response2, self.s.stage2_model),
+                )
                 self._save_manifest(manifest, manifest_path, folder)
                 self._guard(manifest)
 
@@ -277,6 +325,7 @@ class Workflow:
                     app.web_search,
                     self.s.stage3_reasoning_effort,
                     self.s.stage3_max_output_tokens,
+                    self.s.stage3_model,
                 ),
                 'Stage 3 AI/artifact call',
             )
@@ -284,8 +333,14 @@ class Workflow:
             stage3_path.write_text(stage3, encoding='utf-8')
             self.drive.upload(stage3_path, folder)
             manifest['prompt3_hash'] = _hash(prompt3)
+            manifest['stage3_model'] = self.s.stage3_model
+            manifest['stage3_reasoning_effort'] = self.s.stage3_reasoning_effort
             manifest['stage3_started'] = True
-            self._record_usage(manifest, 'stage3', _usage(response3))
+            self._record_usage(
+                manifest,
+                'stage3',
+                _usage(response3, self.s.stage3_model),
+            )
             self._save_manifest(manifest, manifest_path, folder)
             self._guard(manifest)
 
@@ -334,7 +389,15 @@ class Workflow:
             }, indent=2), encoding='utf-8')
             self.drive.upload(usage_path, folder)
 
-            context = write_context(work / 'Application_Context.md', app, stage1, stage2, stage3, cv, cv_link)
+            context = write_context(
+                work / 'Application_Context.md',
+                app,
+                stage1,
+                stage2,
+                stage3,
+                cv,
+                cv_link,
+            )
             _, context_link = self.drive.upload(context, folder)
 
             manifest.update({
@@ -345,6 +408,12 @@ class Workflow:
                 'prompt2_hash': _hash(prompt2),
                 'prompt3_hash': _hash(prompt3),
                 'summary_hash': _hash(summary),
+                'stage1_model': self.s.stage1_model,
+                'stage1_reasoning_effort': self.s.stage1_reasoning_effort,
+                'stage2_model': self.s.stage2_model,
+                'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
+                'stage3_model': self.s.stage3_model,
+                'stage3_reasoning_effort': self.s.stage3_reasoning_effort,
                 'stage1_complete': True,
                 'stage2_complete': True,
                 'stage3_complete': True,
@@ -355,7 +424,10 @@ class Workflow:
             })
             self._save_manifest(manifest, manifest_path, folder)
             self.sheet.done(app, cv_link, cl_link, context_link, current_cost)
-            print(f'[workflow] COMPLETE: {app.application_id}; cumulative cost=${current_cost:.4f}', flush=True)
+            print(
+                f'[workflow] COMPLETE: {app.application_id}; cumulative cost=${current_cost:.4f}',
+                flush=True,
+            )
 
         except CostLimitError as error:
             self.sheet.fail(app, f'{current_stage}: {error}', 'ERROR_MANUAL')
