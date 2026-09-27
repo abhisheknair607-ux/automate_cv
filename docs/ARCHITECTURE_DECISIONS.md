@@ -115,10 +115,11 @@ Existing candidate/company/role folders are reused rather than duplicated on ret
 ## Phase E — quality protection
 - CV and Cover Letter artifacts are selected deterministically rather than taking the first DOCX returned.
 - CV and requested Cover Letter must each render to exactly one page.
-- High-risk factual QA checks the finished CV against the candidate Summary Doc for unsupported percentages, currency amounts, qualifications/status terms and named tools/software.
-- Other numeric claims are surfaced as review warnings in Factual_QA.md.
+- High-risk factual QA checks the finished CV against the candidate Summary Doc for unsupported percentages, currency amounts, count/duration figures, ratios/scores, exam-progress figures, month/year dates, years, qualifications/status terms and named tools/software.
+- Unusual standalone large numbers that are not confidently classifiable are surfaced as manual-review warnings in Factual_QA.md rather than silently accepted.
+- Critical unsupported high-risk claims stop completion with ERROR_MANUAL, preventing automatic hourly regeneration.
 - Prompt hashes and Summary Doc hash are preserved in run_manifest.json.
-- Automated tests cover controls/status behavior, terminal eligibility, stale locks, retry ceilings, candidate column isolation, Prompt 3 insertion-marker behavior, DOCX selection and factual QA.
+- Automated tests cover controls/status behavior, terminal eligibility, stale locks, retry ceilings, candidate column isolation, Prompt 3 insertion-marker behavior, checkpoint validity, candidate-first folder hierarchy, DOCX selection and factual QA.
 
 ## Production activation
 The scheduled worker runs at minute 17 of every hour. Production activation remains controlled by AUTOMATION_ENABLED=true. Keep it false until CI passes and a controlled Abhishek end-to-end run succeeds on the merged code.
