@@ -24,11 +24,74 @@ _MODEL_PRICES_PER_M = {
     'gpt-5.6-terra': {'input': 2.0, 'cached': 0.2, 'cache_write': 2.5, 'output': 12.0},
 }
 
+# OpenAI public API pricing checked 2026-09-27. Tool prices are kept
+# separate from token pricing so Token_Usage.json does not understate Stage 3.
+_TOOL_PRICES_USD = {
+    'web_search_call': 0.01,
+    'code_interpreter_1gb_session': 0.03,
+}
+
+
+def _as_dict(value):
+    if isinstance(value, dict):
+        return value
+    if hasattr(value, 'model_dump'):
+        return value.model_dump()
+    return {}
+
+
+def _tool_usage(response):
+    """Estimate billable built-in tool charges exposed by the response output.
+
+    Web search is charged only for actual search actions. Stage 3 configures one
+    auto 1 GB Code Interpreter container; multiple interpreter calls in the same
+    response are treated as one session unless distinct container IDs appear.
+    """
+    web_search_calls = 0
+    code_interpreter_calls = 0
+    container_ids = set()
+
+    for item in getattr(response, 'output', None) or []:
+        data = _as_dict(item)
+        kind = data.get('type') or getattr(item, 'type', None)
+
+        if kind == 'web_search_call':
+            action = data.get('action') or getattr(item, 'action', None)
+            action_data = _as_dict(action)
+            action_type = action_data.get('type') or getattr(action, 'type', None)
+            # OpenAI pricing charges the search action; open/find actions are not
+            # separately counted as search tool calls.
+            if action_type in (None, 'search'):
+                web_search_calls += 1
+
+        elif kind == 'code_interpreter_call':
+            code_interpreter_calls += 1
+            container_id = data.get('container_id') or getattr(item, 'container_id', None)
+            if container_id:
+                container_ids.add(container_id)
+
+    container_sessions = (
+        len(container_ids)
+        if container_ids
+        else (1 if code_interpreter_calls else 0)
+    )
+    tool_cost = (
+        web_search_calls * _TOOL_PRICES_USD['web_search_call']
+        + container_sessions * _TOOL_PRICES_USD['code_interpreter_1gb_session']
+    )
+    return {
+        'web_search_calls': web_search_calls,
+        'code_interpreter_calls': code_interpreter_calls,
+        'code_interpreter_sessions': container_sessions,
+        'tool_cost_estimate': round(tool_cost, 6),
+    }
+
 
 def _usage(response, model=None):
     usage = getattr(response, 'usage', None)
     response_model = model or getattr(response, 'model', '') or ''
     prices = _MODEL_PRICES_PER_M.get(response_model)
+    tool_usage = _tool_usage(response)
 
     if not usage:
         return {
@@ -40,7 +103,9 @@ def _usage(response, model=None):
             'standard_input': 0,
             'output': 0,
             'reasoning': 0,
-            'cost': 0.0,
+            'model_api_cost': 0.0,
+            **tool_usage,
+            'cost': tool_usage['tool_cost_estimate'],
         }
 
     inp = getattr(usage, 'input_tokens', 0) or 0
@@ -56,15 +121,16 @@ def _usage(response, model=None):
     standard_input = max(inp - cached - cache_write, 0)
     uncached = max(inp - cached, 0)
 
-    cost = 0.0
+    model_api_cost = 0.0
     if prices:
-        cost = (
+        model_api_cost = (
             standard_input * prices['input']
             + cached * prices['cached']
             + cache_write * prices['cache_write']
             + out * prices['output']
         ) / 1_000_000
 
+    total_cost = model_api_cost + tool_usage['tool_cost_estimate']
     return {
         'model': response_model,
         'input': inp,
@@ -74,7 +140,9 @@ def _usage(response, model=None):
         'standard_input': standard_input,
         'output': out,
         'reasoning': reasoning,
-        'cost': round(cost, 6),
+        'model_api_cost': round(model_api_cost, 6),
+        **tool_usage,
+        'cost': round(total_cost, 6),
     }
 
 
@@ -501,6 +569,15 @@ class Workflow:
                         'candidate': app.candidate_key,
                         'application_id': app.application_id,
                         'cumulative_cost_usd': current_cost,
+                        'cost_basis': {
+                            'model_cost': 'Estimated from response token usage and configured model prices.',
+                            'web_search_usd_per_search_action': _TOOL_PRICES_USD['web_search_call'],
+                            'code_interpreter_1gb_session_usd': _TOOL_PRICES_USD['code_interpreter_1gb_session'],
+                            'note': (
+                                'Built-in tool charges are estimated from tool activity visible '
+                                'in the response. Provider billing remains authoritative.'
+                            ),
+                        },
                         'latest_stage_usage': manifest.get('latest_stage_usage', {}),
                         'usage_history': manifest.get('usage_history', []),
                     },
