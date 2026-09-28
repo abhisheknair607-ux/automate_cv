@@ -1,8 +1,58 @@
 import json
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 from openai import OpenAI
+
+
+_STAGE2_HANDOFF_REPAIR_INSTRUCTIONS = '''
+You are repairing the machine-readable handoff from an already-completed Stage 2 CV evidence-selection draft.
+
+Return ONLY one compact machine-readable handoff. Do not repeat the analysis and do not add facts, evidence, metrics, ownership, qualifications, skills or conclusions that are not supported by the supplied Stage 2 draft.
+
+The first line MUST be exactly:
+STAGE2_HANDOFF
+
+Then provide YAML using this schema. Use [] or an empty value when the draft does not support a field; never invent missing information.
+
+company:
+role_title:
+location:
+team_or_function:
+seniority:
+role_family:
+cv_structure:
+cv_evidence_strategy:
+critical_requirements:
+  - id:
+    need:
+    selected_evidence_keys: []
+strongly_preferred_requirements:
+  - id:
+    need:
+    selected_evidence_keys: []
+selected_professional_evidence:
+  - key:
+    requirements: []
+    factual_anchor:
+    supported_metrics: []
+selected_projects:
+  - id:
+    classification:
+    ownership_boundary:
+    requirements: []
+selected_achievements_qualifications_skills: []
+ats_priority_terms: []
+definitely_include: []
+include_if_space: []
+exclude_or_interview_only: []
+gaps: []
+do_not_claim: []
+stage3_evidence_to_retrieve_or_verify: []
+
+Preserve the Stage 2 draft's own evidence IDs where present. Do not substitute new IDs. Do not write prose before or after the handoff.
+'''.strip()
 
 
 class AI:
@@ -27,6 +77,61 @@ class AI:
             return False
         candidate = str(cache_key).split(':', 1)[0]
         return candidate in self.cache_candidates
+
+    @staticmethod
+    def _usage_value(response, name):
+        usage = getattr(response, 'usage', None)
+        return int(getattr(usage, name, 0) or 0) if usage else 0
+
+    @staticmethod
+    def _usage_detail(response, group, name):
+        usage = getattr(response, 'usage', None)
+        details = getattr(usage, group, None) if usage else None
+        return int(getattr(details, name, 0) or 0) if details else 0
+
+    def _combined_text_response(self, responses, output_text):
+        """Return one response-like object whose usage includes every paid call."""
+        if len(responses) == 1:
+            return responses[0]
+        usage = SimpleNamespace(
+            input_tokens=sum(self._usage_value(r, 'input_tokens') for r in responses),
+            output_tokens=sum(self._usage_value(r, 'output_tokens') for r in responses),
+            input_tokens_details=SimpleNamespace(
+                cached_tokens=sum(
+                    self._usage_detail(r, 'input_tokens_details', 'cached_tokens')
+                    for r in responses
+                ),
+                cache_write_tokens=sum(
+                    self._usage_detail(r, 'input_tokens_details', 'cache_write_tokens')
+                    for r in responses
+                ),
+            ),
+            output_tokens_details=SimpleNamespace(
+                reasoning_tokens=sum(
+                    self._usage_detail(r, 'output_tokens_details', 'reasoning_tokens')
+                    for r in responses
+                )
+            ),
+        )
+        return SimpleNamespace(
+            model=getattr(responses[0], 'model', ''),
+            usage=usage,
+            output=[],
+            output_text=output_text,
+        )
+
+    def _repair_stage2_handoff(self, selected_model, draft_text):
+        print(
+            '[openai] Stage 2 output omitted STAGE2_HANDOFF; running compact handoff repair only.',
+            flush=True,
+        )
+        return self.client.responses.create(
+            model=selected_model,
+            instructions=_STAGE2_HANDOFF_REPAIR_INSTRUCTIONS,
+            input=f'STAGE 2 DRAFT TO REPAIR\n\n{draft_text}',
+            reasoning={'effort': 'low'},
+            max_output_tokens=3500,
+        )
 
     def text(
         self,
@@ -86,7 +191,24 @@ class AI:
         if max_output_tokens:
             kwargs['max_output_tokens'] = max_output_tokens
         response = self.client.responses.create(**kwargs)
-        return response.output_text, response
+        output_text = response.output_text
+        responses = [response]
+
+        # Stage 2's prose analysis can occasionally consume the visible response
+        # before the mandatory machine handoff is emitted. Do not rerun the full
+        # expensive Stage 2 analysis in that case. A small Terra/low formatting
+        # repair converts only the already-produced draft into the required handoff.
+        if 'STAGE2_HANDOFF' in str(prompt) and 'STAGE2_HANDOFF' not in str(output_text):
+            repair = self._repair_stage2_handoff(selected_model, output_text)
+            responses.append(repair)
+            repaired_text = str(repair.output_text or '').strip()
+            if 'STAGE2_HANDOFF' not in repaired_text:
+                raise RuntimeError(
+                    'Stage 2 handoff repair did not produce the required STAGE2_HANDOFF marker.'
+                )
+            output_text = f'{str(output_text).rstrip()}\n\n{repaired_text}'
+
+        return output_text, self._combined_text_response(responses, output_text)
 
     def upload(self, path):
         with Path(path).open('rb') as fh:
