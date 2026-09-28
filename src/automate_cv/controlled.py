@@ -52,6 +52,9 @@ def _configure_pooja_test_sources(folder_id):
 
     drive = Drive(credentials(settings))
     names = {
+        'POOJA_PROMPT1_FILE_ID': 'TEST_POOJA_PROMPT1.md',
+        'POOJA_PROMPT2_FILE_ID': 'TEST_POOJA_PROMPT2.md',
+        'POOJA_PROMPT3_FILE_ID': 'TEST_POOJA_PROMPT3.md',
         'POOJA_SUMMARY_DOC_FILE_ID': 'TEST_POOJA_SUMMARY_ROUTER.docx',
         'POOJA_MASTER_EVIDENCE_BANK_FILE_ID': 'TEST_POOJA_MASTER_EVIDENCE_BANK.docx',
         'POOJA_BASE_CV_FILE_ID': 'TEST_POOJA_BASE_CV.docx',

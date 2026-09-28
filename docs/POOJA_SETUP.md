@@ -104,14 +104,17 @@ Do not tick Pooja Make CV in production until all required Pooja file IDs are co
 
 ## Controlled CV test while production files remain placeholders
 
-A separate `Controlled Test Sources - Pooja` folder contains a test Summary Router,
-Master Evidence Bank and base CV derived from the supplied Pooja documents. These
+A separate `Controlled Test Sources - Pooja` folder contains test copies of the
+three original prompts, a test Summary Router, Master Evidence Bank and base CV
+derived from the supplied Pooja documents. The first two prompts retain their
+original wording. The third removes a repeated final quality-control checklist
+without changing the underlying instructions. These
 are provisional test material; review every claim before using an output for an
 application. The production source files and their repository Variables stay intact.
 
 In GitHub Actions, run `controlled-cv-test` on the Pooja branch with candidate
 `pooja`, the desired Freshmal row number, and the Drive folder ID in the optional
-`pooja_test_folder_id` input. The workflow resolves three `TEST_POOJA_*` files from
+`pooja_test_folder_id` input. The workflow resolves six `TEST_POOJA_*` files from
 that folder for this run alone. Leave E (Make CV) unticked; the controlled run
 enables CV generation in memory. F and G must be unticked. Output goes to
 `Outputs / Pooja Controlled Tests / ...` with `TEST_ONLY` in the CV filename.
