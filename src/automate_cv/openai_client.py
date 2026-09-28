@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -53,6 +54,36 @@ stage3_evidence_to_retrieve_or_verify: []
 
 Preserve the Stage 2 draft's own evidence IDs where present. Do not substitute new IDs. Do not write prose before or after the handoff.
 '''.strip()
+
+
+def _has_parseable_stage2_handoff(text):
+    """Mirror workflow handoff parsing closely enough to decide whether repair is needed.
+
+    A casual prose mention of the token STAGE2_HANDOFF must not count as a valid
+    machine handoff. This prevents the exact failure where the model discusses the
+    required marker but never emits it as a standalone heading/block.
+    """
+    text = str(text or '')
+    fenced_marker = re.search(
+        r'(?is)```(?:ya?ml|json)?\s*\n\s*STAGE2_HANDOFF\s*:?\s*\n(?P<body>.*?)\n```',
+        text,
+    )
+    if fenced_marker and fenced_marker.group('body').strip():
+        return True
+
+    heading = re.search(
+        r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
+        text,
+    )
+    if not heading:
+        return False
+
+    tail = text[heading.end():]
+    fenced = re.search(r'(?is)```(?:ya?ml|json)?\s*\n(?P<body>.*?)\n```', tail)
+    if fenced and fenced.group('body').strip():
+        return True
+    body = re.split(r'(?m)^\s*#{1,6}\s+', tail, maxsplit=1)[0].strip()
+    return bool(body)
 
 
 class AI:
@@ -122,7 +153,8 @@ class AI:
 
     def _repair_stage2_handoff(self, selected_model, draft_text):
         print(
-            '[openai] Stage 2 output omitted STAGE2_HANDOFF; running compact handoff repair only.',
+            '[openai] Stage 2 output omitted or malformed STAGE2_HANDOFF; '
+            'running compact handoff repair only.',
             flush=True,
         )
         return self.client.responses.create(
@@ -195,16 +227,20 @@ class AI:
         responses = [response]
 
         # Stage 2's prose analysis can occasionally consume the visible response
-        # before the mandatory machine handoff is emitted. Do not rerun the full
-        # expensive Stage 2 analysis in that case. A small Terra/low formatting
-        # repair converts only the already-produced draft into the required handoff.
-        if 'STAGE2_HANDOFF' in str(prompt) and 'STAGE2_HANDOFF' not in str(output_text):
+        # before the mandatory machine handoff is emitted, or mention the marker
+        # only in prose. Do not rerun the full Stage 2 analysis in either case.
+        # A small Terra/low formatting repair converts only the already-produced
+        # draft into the required parseable handoff.
+        if (
+            'STAGE2_HANDOFF' in str(prompt)
+            and not _has_parseable_stage2_handoff(output_text)
+        ):
             repair = self._repair_stage2_handoff(selected_model, output_text)
             responses.append(repair)
             repaired_text = str(repair.output_text or '').strip()
-            if 'STAGE2_HANDOFF' not in repaired_text:
+            if not _has_parseable_stage2_handoff(repaired_text):
                 raise RuntimeError(
-                    'Stage 2 handoff repair did not produce the required STAGE2_HANDOFF marker.'
+                    'Stage 2 handoff repair did not produce a parseable STAGE2_HANDOFF block.'
                 )
             output_text = f'{str(output_text).rstrip()}\n\n{repaired_text}'
 
