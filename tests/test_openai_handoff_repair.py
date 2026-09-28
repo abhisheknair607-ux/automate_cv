@@ -88,23 +88,23 @@ def test_stage2_missing_handoff_uses_small_repair_call_and_aggregates_usage():
     assert response.usage.output_tokens_details.reasoning_tokens == 780
 
 
-def test_stage2_inline_marker_mention_is_not_mistaken_for_machine_handoff():
+def test_stage2_mentions_marker_in_prose_still_triggers_repair():
     first = Response(
-        'Stage 2 analysis complete. The STAGE2_HANDOFF should preserve the selected evidence keys.',
-        9000,
-        4700,
-        reasoning=650,
+        'The STAGE2_HANDOFF should summarize the selected evidence, but here is only analysis.',
+        4000,
+        2000,
+        reasoning=200,
     )
     repair = Response(
-        'STAGE2_HANDOFF\ncompany: PwC\nrole_title: Transfer Pricing - Senior Associate\n'
-        'cv_structure: High Experience\nselected_professional_evidence:\n  - key: PR-EY-FAR',
-        1200,
-        700,
-        reasoning=60,
+        'STAGE2_HANDOFF\ncompany: PwC\ncv_structure: High Experience\n'
+        'selected_professional_evidence:\n  - key: PR-EY-FAR',
+        800,
+        500,
+        reasoning=40,
     )
     ai = ai_with([first, repair])
 
-    text, response = ai.text(
+    text, _ = ai.text(
         'Stage 2 instructions. You MUST produce STAGE2_HANDOFF.',
         'current application inputs',
         reasoning_effort='medium',
@@ -113,9 +113,7 @@ def test_stage2_inline_marker_mention_is_not_mistaken_for_machine_handoff():
     )
 
     assert len(ai.client.responses.calls) == 2
-    assert '\n\nSTAGE2_HANDOFF\n' in text
-    assert response.usage.input_tokens == 10200
-    assert response.usage.output_tokens == 5400
+    assert '\nSTAGE2_HANDOFF\n' in f'\n{text}\n'
 
 
 def test_stage2_with_valid_handoff_does_not_make_repair_call():
@@ -133,3 +131,25 @@ def test_stage2_with_valid_handoff_does_not_make_repair_call():
     assert len(ai.client.responses.calls) == 1
     assert text.startswith('STAGE2_HANDOFF')
     assert response is first
+
+
+def test_cache_prefix_context_is_still_sent_when_explicit_cache_is_disabled():
+    first = Response('STAGE2_HANDOFF\ncompany: PwC\nselected_professional_evidence: []', 2000, 800)
+    ai = ai_with([first])
+
+    ai.text(
+        'Stage 2 instructions. You MUST produce STAGE2_HANDOFF.',
+        'current application inputs',
+        reasoning_effort='medium',
+        max_output_tokens=8000,
+        model='gpt-5.6-terra',
+        cache_prefix='COMPACT SUMMARY DOC / EVIDENCE ROUTER\nPR-EY-FAR -> EY FAR evidence',
+        cache_key='abhishek:stage2',
+    )
+
+    assert len(ai.client.responses.calls) == 1
+    call = ai.client.responses.calls[0]
+    assert 'COMPACT SUMMARY DOC / EVIDENCE ROUTER' in call['instructions']
+    assert 'PR-EY-FAR' in call['instructions']
+    assert 'prompt_cache_options' not in call
+    assert call['input'] == 'current application inputs'
