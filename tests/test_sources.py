@@ -107,7 +107,8 @@ class FakeDrive:
 
     def download_named(self, file_id, directory):
         source = self.files[file_id]
-        target = directory / source.name
+        name = source.name[4:] if source.name.startswith('src-') else source.name
+        target = directory / name
         shutil.copy2(source, target)
         return target
 
@@ -147,7 +148,7 @@ stage3_evidence_to_retrieve_or_verify: []
 '''
 
 
-def test_stage3_omits_cv_cl_rules_for_cv_only_and_uses_one_reference(tmp_path):
+def _stage3_sources(tmp_path, structure, make_cover_letter):
     master = tmp_path / 'MASTER EVIDENCE BANK.docx'
     _write_master(master)
     files = {}
@@ -183,10 +184,14 @@ def test_stage3_omits_cv_cl_rules_for_cv_only_and_uses_one_reference(tmp_path):
         work,
         tmp_path / 'summary.docx',
         master,
-        _minimal_stage3_handoff(),
-        make_cover_letter=False,
+        _minimal_stage3_handoff(structure),
+        make_cover_letter=make_cover_letter,
     )
-    names = {p.name for p in paths}
+    return {p.name for p in paths}
+
+
+def test_stage3_omits_cv_cl_rules_for_cv_only_and_uses_one_reference(tmp_path):
+    names = _stage3_sources(tmp_path, 'High Experience', False)
     assert 'Selected_Evidence.md' in names
     assert 'High Experience Reference.docx' in names
     assert 'Lower Experience Reference.docx' not in names
@@ -197,45 +202,7 @@ def test_stage3_omits_cv_cl_rules_for_cv_only_and_uses_one_reference(tmp_path):
 
 
 def test_stage3_includes_cv_cl_rules_only_when_cover_letter_is_requested(tmp_path):
-    master = tmp_path / 'MASTER EVIDENCE BANK.docx'
-    _write_master(master)
-    files = {}
-    for file_id, name in (
-        ('fmt', 'CV Formatting & Structure Master.docx'),
-        ('base', 'Base CV.docx'),
-        ('high', 'High Experience Reference.docx'),
-        ('low', 'Lower Experience Reference.docx'),
-        ('rules', 'CV & Cover letter.docx'),
-        ('cl', 'Cover Letter Template.docx'),
-    ):
-        path = tmp_path / f'src-{name}'
-        path.write_bytes(file_id.encode())
-        files[file_id] = path
-
-    sources = Sources(FakeDrive(files), None)
-    sources.profiles = {
-        'abhishek': SimpleNamespace(
-            formatting_master_file_id='fmt',
-            base_cv_file_id='base',
-            high_experience_reference_file_id='high',
-            lower_experience_reference_file_id='low',
-            cv_cover_letter_rules_file_id='rules',
-            cover_letter_template_file_id='cl',
-            final_projects_folder_id='',
-            projects_folder_id='',
-        )
-    }
-    work = tmp_path / 'work'
-    work.mkdir()
-    paths = sources.stage3(
-        'abhishek',
-        work,
-        tmp_path / 'summary.docx',
-        master,
-        _minimal_stage3_handoff('Lower Experience'),
-        make_cover_letter=True,
-    )
-    names = {p.name for p in paths}
+    names = _stage3_sources(tmp_path, 'Lower Experience', True)
     assert 'Lower Experience Reference.docx' in names
     assert 'High Experience Reference.docx' not in names
     assert 'CV & Cover letter.docx' in names
