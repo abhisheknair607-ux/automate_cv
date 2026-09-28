@@ -252,6 +252,41 @@ class Sources:
         self.last_stage3_telemetry = []
         self.last_selected_evidence_ids = []
 
+    def pooja_preflight(self, workdir, make_cover_letter=False):
+        """Reject unfinished Pooja sources before any paid model stage."""
+        from .pooja_evidence import HEADING, ID
+
+        p = self.profiles['pooja']
+        errors = []
+        summary = docx_text(self.drive.download_named(p.summary_doc_file_id, workdir))
+        master = docx_text(self.drive.download_named(p.master_evidence_bank_file_id, workdir))
+        base = docx_text(self.drive.download_named(p.base_cv_file_id, workdir))
+        bank_ids = {match.group(1) for match in HEADING.finditer(master)}
+        router_ids = set(re.findall(rf'(?<![A-Z0-9-]){ID}(?![A-Z0-9-])', summary))
+        if not router_ids:
+            errors.append('Pooja Summary Doc has no evidence IDs; convert it into an evidence router.')
+        if 'PLACEHOLDER' in master.upper() or not bank_ids:
+            errors.append('Pooja Master Evidence Bank is still a placeholder or has no EVIDENCE_ID blocks.')
+        elif router_ids:
+            unmatched = sorted(router_ids - bank_ids)
+            if unmatched:
+                errors.append('Pooja Master Evidence Bank is missing router IDs: ' + ', '.join(unmatched[:12]))
+        if 'PLACEHOLDER' in base.upper():
+            errors.append('Pooja base CV is still a placeholder; replace it with the approved formatted DOCX.')
+        if make_cover_letter:
+            for label, file_id in (
+                ('cover-letter rules', p.cv_cover_letter_rules_file_id),
+                ('cover-letter template', p.cover_letter_template_file_id),
+            ):
+                if not file_id:
+                    errors.append(f'Pooja {label} file ID is missing.')
+                    continue
+                path = self.drive.download_named(file_id, workdir)
+                content = docx_text(path) if path.suffix.lower() == '.docx' else path.read_text(encoding='utf-8')
+                if 'PLACEHOLDER' in content.upper():
+                    errors.append(f'Pooja {label} is still a placeholder.')
+        return errors
+
     def stage2(self, candidate_key, workdir):
         p = self.profiles[candidate_key]
         if not p.summary_doc_file_id:

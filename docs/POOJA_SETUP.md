@@ -39,6 +39,10 @@ Optional/configuration-dependent:
 Use GitHub repository Variables for these non-sensitive IDs. OAuth/OpenAI credentials stay in GitHub Secrets.
 
 The workflow fails closed with ERROR_CONFIG before making an OpenAI call if a required Pooja profile file ID is missing. The new base CV, Master Evidence Bank, rules, cover-letter template and both reference CVs are placeholders until Pooja supplies approved content. Do not start a controlled or hourly Pooja run while they still contain placeholder text.
+For Pooja, a read-only preflight also checks that the Summary Doc contains
+evidence IDs, that every router ID has a detailed block in the Master Evidence
+Bank, and that the base CV has been replaced. Missing or placeholder content
+produces `ERROR_CONFIG` before any OpenAI call and unticks Pooja Make CV.
 
 ## Pooja router and evidence bank format
 

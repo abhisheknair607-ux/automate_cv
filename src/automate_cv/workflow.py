@@ -389,6 +389,11 @@ class Workflow:
             errors.append(
                 f'{app.candidate_name} profile is missing required configuration: {", ".join(missing)}.'
             )
+        if app.candidate_key == 'pooja' and not errors:
+            errors.extend(self.sources.pooja_preflight(
+                Path(self.s.workdir) / app.application_id,
+                make_cover_letter=app.make_cl,
+            ))
         if errors:
             message = ' '.join(errors)
             self.sheet.fail(app, message, 'ERROR_CONFIG')
