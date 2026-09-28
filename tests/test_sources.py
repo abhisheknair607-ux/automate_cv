@@ -21,11 +21,11 @@ selected_achievements_qualifications_skills:
   - ACCA Member
 exclude_or_interview_only:
   - PR-EY-GTM
+do_not_claim:
+  - PR-EY-CONTROVERSY
 stage3_evidence_to_retrieve_or_verify:
   - FIN-ALPHA
   - PR-EY-FAR
-do_not_claim:
-  - PR-EY-CONTROVERSY
 '''
 
 
