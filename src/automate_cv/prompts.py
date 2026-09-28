@@ -21,10 +21,19 @@ class Prompts:
             path=self.drive.download(file_id,Path(workdir)/f'authoritative_{candidate_key}_{name.replace("#","")}')
             self.cache[key]=path.read_text(encoding='utf-8')
         text=self.cache[key]
+        if candidate_key == 'pooja' and name == '#Prompt1.md':
+            return text + '\n\n' + (self.root/'prompts'/'pooja_stage1_handoff.md').read_text(encoding='utf-8')
         if name=='#Prompt2.md':
-            return text+_STAGE2_CONTEXT_CONTRACT
+            result = text+_STAGE2_CONTEXT_CONTRACT
+            if candidate_key == 'pooja':
+                result += '\n\n' + (self.root/'prompts'/'pooja_stage2_handoff.md').read_text(encoding='utf-8')
+            return result
         if name!='#Prompt3.md': return text
         controls=(self.root/'prompts'/'03_automation_controls.md').read_text(encoding='utf-8')
-        marker='# Authoritative Inputs and Stage Handoff'; pos=text.find(marker)
+        if candidate_key == 'pooja':
+            controls += '\n\n' + (self.root/'prompts'/'pooja_stage3_sources.md').read_text(encoding='utf-8')
+        marker=('# Source Files' if candidate_key == 'pooja'
+                else '# Authoritative Inputs and Stage Handoff')
+        pos=text.find(marker)
         if pos<0: raise RuntimeError('Prompt 3 insertion marker not found.')
         return text[:pos]+controls+'\n\n'+text[pos:]

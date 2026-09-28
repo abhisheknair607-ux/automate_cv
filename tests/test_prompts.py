@@ -57,3 +57,13 @@ def test_prompt3_missing_marker_fails_closed(tmp_path, monkeypatch):
     prompts = Prompts(FakeDrive('NO MARKER'), FakeSettings(), root_with_controls(tmp_path))
     with pytest.raises(RuntimeError, match='insertion marker'):
         prompts.read('abhishek', '#Prompt3.md', tmp_path / 'work')
+
+
+def test_pooja_prompt3_uses_its_own_section_marker(tmp_path, monkeypatch):
+    monkeypatch.setenv('POOJA_PROMPT3_FILE_ID', 'pooja-p3')
+    root = root_with_controls(tmp_path)
+    (root/'prompts'/'pooja_stage3_sources.md').write_text('POOJA SOURCE MAPPING', encoding='utf-8')
+    prompts = Prompts(FakeDrive('INTRO\n# Source Files\nBODY'), FakeSettings(), root)
+    result = prompts.read('pooja', '#Prompt3.md', tmp_path/'work')
+    assert result.index('AUTOMATION CONTROLS') < result.index('# Source Files')
+    assert result.index('POOJA SOURCE MAPPING') < result.index('# Source Files')

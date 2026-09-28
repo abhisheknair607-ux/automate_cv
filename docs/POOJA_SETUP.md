@@ -14,10 +14,9 @@ A raw source folder has been prepared under the existing `Automate CV` folder:
 
 `Automate CV / Pooja Sources`
 
-Folder ID:
-`1mlxbfKT672OJQH8Diehv0QVS6caUr5wA`
-
-Place Pooja's verified source files there. Do not reuse Abhishek source IDs or project folders.
+The folder contains Pooja's own sources. Its files are named with their corresponding
+`POOJA_*_FILE_ID` variable followed by a descriptive name. Keep their Drive IDs in
+repository Variables; never commit them to this public repository.
 
 ## Required GitHub repository Variables
 Add the Drive file IDs for Pooja's own files:
@@ -25,6 +24,7 @@ Add the Drive file IDs for Pooja's own files:
 - POOJA_PROMPT2_FILE_ID
 - POOJA_PROMPT3_FILE_ID
 - POOJA_SUMMARY_DOC_FILE_ID
+- POOJA_MASTER_EVIDENCE_BANK_FILE_ID
 - POOJA_BASE_CV_FILE_ID
 - POOJA_CV_FORMATTING_MASTER_FILE_ID
 - POOJA_CV_COVER_LETTER_RULES_FILE_ID
@@ -38,10 +38,42 @@ Optional/configuration-dependent:
 
 Use GitHub repository Variables for these non-sensitive IDs. OAuth/OpenAI credentials stay in GitHub Secrets.
 
-The workflow fails closed with ERROR_CONFIG before making an OpenAI call if a required Pooja profile file ID is missing.
+The workflow fails closed with ERROR_CONFIG before making an OpenAI call if a required Pooja profile file ID is missing. The new base CV, Master Evidence Bank, rules, cover-letter template and both reference CVs are placeholders until Pooja supplies approved content. Do not start a controlled or hourly Pooja run while they still contain placeholder text.
+
+## Pooja router and evidence bank format
+
+The existing Summary Doc contains detailed prose; convert it into a compact router
+when filling Pooja's new bank. The router should name the exact evidence IDs and
+briefly point to their classification and location. Stage 2 sees this router.
+The Master Evidence Bank contains the verified details, qualifications, ownership
+boundaries, project maturity and exact supported metrics. Each independently
+retrievable block must begin on its own line with this form:
+
+```text
+EVIDENCE_ID: PR-BROKER-MORTGAGE
+Classification: professional experience
+Verified facts and outcomes here.
+
+EVIDENCE_ID: PROJ-LIFEGOALS
+Classification: independent project
+Verified scope and ownership here.
+```
+
+Use `PR-`, `PROJ-`, `QUAL-`, `EDU-`, `SKILL-` and `ACH-` prefixes with uppercase
+letters, digits and hyphens. Pooja's Stage 2 handoff must select IDs that exist
+in both the router and bank. A missing or duplicate bank ID stops Stage 3 rather
+than silently uploading the whole bank. Selected blocks alone go to Stage 3;
+the full bank remains available locally for factual QA.
+
+The two reference CV variables can remain unset until approved reference CVs
+are ready. Stage 2 chooses a High or Lower Experience structure, and only the
+matching configured reference is included. The cover-letter rules and template
+are included only when Cover Letter is selected.
 
 ## Prompt handling
-Keep Pooja's approved Prompt 1/2/3 contents unchanged. The code selects Pooja's files based on `candidate_key=pooja`; it does not rewrite her prompt files for token reduction.
+Keep Pooja's approved Prompt 1/2/3 Drive contents unchanged. The worker adds
+Pooja-only handoff instructions at runtime. Prompt 3 uses the `# Source Files`
+section for its automation control insertion; Abhishek keeps his existing marker.
 
 ## Output path
 Pooja output is separated immediately below Outputs:
@@ -62,6 +94,6 @@ Abhishek remains:
 7. Force an Abhishek error -> Abhishek state changes, while Pooja remains unaffected.
 8. Verify Drive outputs land under separate candidate roots.
 9. Verify run_manifest.json for each candidate contains that candidate's prompt/JD hashes only.
-10. Verify Factual_QA.md checks each final CV against that candidate's Summary Doc.
+10. Verify Factual_QA.md checks each final CV against that candidate's Master Evidence Bank.
 
 Do not tick Pooja Make CV in production until all required Pooja file IDs are configured and the controlled Pooja test passes.

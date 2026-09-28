@@ -284,7 +284,10 @@ class Sources:
         p = self.profiles[candidate_key]
         handoff = stage2_handoff_only(stage2_output)
         master_text = docx_text(master_path)
-        selected_path, selected_ids = build_selected_evidence(
+        extractor = build_selected_evidence
+        if candidate_key == 'pooja':
+            from .pooja_evidence import build_selected_evidence as extractor
+        selected_path, selected_ids = extractor(
             master_text,
             handoff,
             Path(workdir) / 'Selected_Evidence.md',
