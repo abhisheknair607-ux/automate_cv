@@ -1,5 +1,4 @@
 import json
-import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -54,36 +53,6 @@ stage3_evidence_to_retrieve_or_verify: []
 
 Preserve the Stage 2 draft's own evidence IDs where present. Do not substitute new IDs. Do not write prose before or after the handoff.
 '''.strip()
-
-
-def _has_parseable_stage2_handoff(text):
-    """Mirror workflow handoff parsing closely enough to decide whether repair is needed.
-
-    A casual prose mention of the token STAGE2_HANDOFF must not count as a valid
-    machine handoff. This prevents the exact failure where the model discusses the
-    required marker but never emits it as a standalone heading/block.
-    """
-    text = str(text or '')
-    fenced_marker = re.search(
-        r'(?is)```(?:ya?ml|json)?\s*\n\s*STAGE2_HANDOFF\s*:?\s*\n(?P<body>.*?)\n```',
-        text,
-    )
-    if fenced_marker and fenced_marker.group('body').strip():
-        return True
-
-    heading = re.search(
-        r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
-        text,
-    )
-    if not heading:
-        return False
-
-    tail = text[heading.end():]
-    fenced = re.search(r'(?is)```(?:ya?ml|json)?\s*\n(?P<body>.*?)\n```', tail)
-    if fenced and fenced.group('body').strip():
-        return True
-    body = re.split(r'(?m)^\s*#{1,6}\s+', tail, maxsplit=1)[0].strip()
-    return bool(body)
 
 
 class AI:
@@ -165,6 +134,21 @@ class AI:
             max_output_tokens=3500,
         )
 
+    @staticmethod
+    def _has_stage2_handoff(text):
+        text = str(text or '')
+        # Match the same broad forms accepted by workflow._extract_handoff:
+        # a standalone marker/heading, optionally inside a fenced YAML/JSON block.
+        if __import__('re').search(
+            r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
+            text,
+        ):
+            return True
+        return bool(__import__('re').search(
+            r'(?is)```(?:ya?ml|json)?\s*\n\s*STAGE2_HANDOFF\s*:?\s*\n',
+            text,
+        ))
+
     def text(
         self,
         prompt,
@@ -183,10 +167,14 @@ class AI:
             },
         }
 
+        # cache_prefix is content, not merely a cache optimization. Always include it
+        # in the request. For singleton/hourly calls we skip only the explicit cache
+        # breakpoint/write, never the router/context itself.
+        stable = prompt
+        if cache_prefix:
+            stable = f'{prompt}\n\n{cache_prefix}'
+
         if cache_prefix is not None and self._cache_allowed(cache_key):
-            stable = prompt
-            if cache_prefix:
-                stable = f'{prompt}\n\n{cache_prefix}'
             kwargs['input'] = [
                 {
                     'role': 'developer',
@@ -215,9 +203,9 @@ class AI:
             kwargs['prompt_cache_key'] = cache_key
         else:
             # No cache write for a candidate with only one application in this
-            # hourly batch. This avoids paying GPT-5.6's 1.25x cache-write rate
-            # when the guaranteed 30-minute lifetime is shorter than the schedule.
-            kwargs['instructions'] = prompt
+            # hourly batch. The stable content is still supplied; only the explicit
+            # cache-write controls are omitted.
+            kwargs['instructions'] = stable
             kwargs['input'] = user_input
 
         if max_output_tokens:
@@ -227,18 +215,14 @@ class AI:
         responses = [response]
 
         # Stage 2's prose analysis can occasionally consume the visible response
-        # before the mandatory machine handoff is emitted, or mention the marker
-        # only in prose. Do not rerun the full Stage 2 analysis in either case.
-        # A small Terra/low formatting repair converts only the already-produced
-        # draft into the required parseable handoff.
-        if (
-            'STAGE2_HANDOFF' in str(prompt)
-            and not _has_parseable_stage2_handoff(output_text)
-        ):
+        # before the mandatory machine handoff is emitted. Do not rerun the full
+        # expensive Stage 2 analysis in that case. A small Terra/low formatting
+        # repair converts only the already-produced draft into the required handoff.
+        if 'STAGE2_HANDOFF' in str(prompt) and not self._has_stage2_handoff(output_text):
             repair = self._repair_stage2_handoff(selected_model, output_text)
             responses.append(repair)
             repaired_text = str(repair.output_text or '').strip()
-            if not _has_parseable_stage2_handoff(repaired_text):
+            if not self._has_stage2_handoff(repaired_text):
                 raise RuntimeError(
                     'Stage 2 handoff repair did not produce a parseable STAGE2_HANDOFF block.'
                 )
