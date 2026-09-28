@@ -54,6 +54,16 @@ stage3_evidence_to_retrieve_or_verify: []
 Preserve the Stage 2 draft's own evidence IDs where present. Do not substitute new IDs. Do not write prose before or after the handoff.
 '''.strip()
 
+_POOJA_STAGE1_HANDOFF_REPAIR_INSTRUCTIONS = '''
+Produce only the compact, machine-readable handoff from the supplied completed
+Stage 1 JD analysis. Do not analyse the job again, introduce candidate evidence,
+or add requirements that are absent from the draft. The first line must be
+exactly STAGE1_HANDOFF, followed by YAML with role_family, seniority,
+critical_requirements, strongly_preferred_requirements, ats_priority_terms,
+evidence_strategy, retrieval_tags, and gaps. Use [] for unsupported lists.
+Do not write prose before or after the handoff.
+'''.strip()
+
 
 class AI:
     def __init__(self, settings):
@@ -134,6 +144,26 @@ class AI:
             max_output_tokens=3500,
         )
 
+    def _repair_pooja_stage1_handoff(self, selected_model, draft_text):
+        if not str(draft_text or '').strip():
+            raise RuntimeError('Pooja Stage 1 produced no JD analysis to repair.')
+        print('[openai] Pooja Stage 1 omitted STAGE1_HANDOFF; repairing the completed draft.', flush=True)
+        return self.client.responses.create(
+            model=selected_model,
+            instructions=_POOJA_STAGE1_HANDOFF_REPAIR_INSTRUCTIONS,
+            input=f'COMPLETED STAGE 1 DRAFT\n\n{draft_text}',
+            reasoning={'effort': 'low'},
+            max_output_tokens=1800,
+        )
+
+    @staticmethod
+    def _has_handoff(text, marker):
+        import re
+        heading = re.search(rf'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?{marker}\s*:?\s*$', str(text or ''))
+        if not heading:
+            return False
+        return bool(str(text or '')[heading.end():].strip())
+
     @staticmethod
     def _has_stage2_handoff(text):
         text = str(text or '')
@@ -213,6 +243,19 @@ class AI:
         response = self.client.responses.create(**kwargs)
         output_text = response.output_text
         responses = [response]
+
+        # Pooja's long JD-analysis prompt may use its output budget before the
+        # appended automation handoff. Repair only that handoff from the completed
+        # draft; leave Abhishek's prompt and execution path untouched.
+        if '# Pooja automation handoff' in str(prompt) and not self._has_handoff(
+            output_text, 'STAGE1_HANDOFF'
+        ):
+            repair = self._repair_pooja_stage1_handoff(selected_model, output_text)
+            responses.append(repair)
+            repaired_text = str(repair.output_text or '').strip()
+            if not self._has_handoff(repaired_text, 'STAGE1_HANDOFF'):
+                raise RuntimeError('Pooja Stage 1 handoff repair did not produce STAGE1_HANDOFF.')
+            output_text = f'{str(output_text).rstrip()}\n\n{repaired_text}'
 
         # Stage 2's prose analysis can occasionally consume the visible response
         # before the mandatory machine handoff is emitted. Do not rerun the full
