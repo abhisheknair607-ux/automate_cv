@@ -11,11 +11,22 @@ class AI:
             raise RuntimeError('OPENAI_API_KEY is not configured.')
         self.client = OpenAI(api_key=settings.openai_api_key)
         self.settings = settings
+        # The hourly runner fills this only for candidates with 2+ applications in
+        # the same run. GPT-5.6 guarantees a 30-minute cache lifetime, so a single
+        # application in an hourly batch should not pay a cache-write premium that
+        # is unlikely to be reused before the next scheduled run.
+        self.cache_candidates = set()
         self.http = httpx.Client(
             base_url='https://api.openai.com/v1',
             headers={'Authorization': f'Bearer {settings.openai_api_key}'},
             timeout=180,
         )
+
+    def _cache_allowed(self, cache_key):
+        if not cache_key:
+            return False
+        candidate = str(cache_key).split(':', 1)[0]
+        return candidate in self.cache_candidates
 
     def text(
         self,
@@ -35,9 +46,7 @@ class AI:
             },
         }
 
-        if cache_prefix is not None:
-            # GPT-5.6 explicit caching requires the reusable prefix to live in an
-            # input content block rather than top-level `instructions`.
+        if cache_prefix is not None and self._cache_allowed(cache_key):
             stable = prompt
             if cache_prefix:
                 stable = f'{prompt}\n\n{cache_prefix}'
@@ -66,11 +75,11 @@ class AI:
                 'mode': self.settings.prompt_cache_mode,
                 'ttl': self.settings.prompt_cache_ttl,
             }
-            if cache_key:
-                # On GPT-5.6 this is optional for routing; here it is used only
-                # to keep cache accounting separated by candidate/stage.
-                kwargs['prompt_cache_key'] = cache_key
+            kwargs['prompt_cache_key'] = cache_key
         else:
+            # No cache write for a candidate with only one application in this
+            # hourly batch. This avoids paying GPT-5.6's 1.25x cache-write rate
+            # when the guaranteed 30-minute lifetime is shorter than the schedule.
             kwargs['instructions'] = prompt
             kwargs['input'] = user_input
 
