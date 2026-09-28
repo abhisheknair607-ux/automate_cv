@@ -15,6 +15,10 @@ on:
         options:
           - abhishek
           - pooja
+      pooja_test_folder_id:
+        description: Optional Pooja-only test source folder ID; leaves production source variables unchanged
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -95,6 +99,7 @@ jobs:
           POOJA_COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.POOJA_COVER_LETTER_TEMPLATE_FILE_ID }}
           POOJA_FINAL_PROJECTS_FOLDER_ID: ${{ vars.POOJA_FINAL_PROJECTS_FOLDER_ID }}
           POOJA_PROJECTS_FOLDER_ID: ${{ vars.POOJA_PROJECTS_FOLDER_ID }}
+          POOJA_TEST_FOLDER_ID: ${{ inputs.pooja_test_folder_id }}
 
           MAX_RETRIES: ${{ vars.MAX_RETRIES || '2' }}
           MAX_ROW_ATTEMPTS: ${{ vars.MAX_ROW_ATTEMPTS || '3' }}

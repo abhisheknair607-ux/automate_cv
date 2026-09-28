@@ -101,3 +101,27 @@ Abhishek remains:
 10. Verify Factual_QA.md checks each final CV against that candidate's Master Evidence Bank.
 
 Do not tick Pooja Make CV in production until all required Pooja file IDs are configured and the controlled Pooja test passes.
+
+## Controlled CV test while production files remain placeholders
+
+A separate `Controlled Test Sources - Pooja` folder contains a test Summary Router,
+Master Evidence Bank and base CV derived from the supplied Pooja documents. These
+are provisional test material; review every claim before using an output for an
+application. The production source files and their repository Variables stay intact.
+
+In GitHub Actions, run `controlled-cv-test` on the Pooja branch with candidate
+`pooja`, the desired Freshmal row number, and the Drive folder ID in the optional
+`pooja_test_folder_id` input. The workflow resolves three `TEST_POOJA_*` files from
+that folder for this run alone. Leave E (Make CV) unticked; the controlled run
+enables CV generation in memory. F and G must be unticked. Output goes to
+`Outputs / Pooja Controlled Tests / ...` with `TEST_ONLY` in the CV filename.
+
+This is a real workflow run: it writes Pooja's status, CV link, cost, and checkpoint
+state back to the selected Freshmal row. Prefer a dedicated test row if the row
+must retain its current status. It does not alter the E checkbox or Abhishek's
+status and state. A completed test row will not be eligible for another controlled
+run until its Pooja completion state is reset or a different test row is used.
+
+The test covers CV generation only. Cover letter and web search need their own
+approved sources later. A run can still fail on model output, document rendering,
+or factual QA; the test source override only clears the placeholder preflight.
