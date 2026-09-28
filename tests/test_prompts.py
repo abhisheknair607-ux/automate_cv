@@ -28,6 +28,18 @@ def root_with_controls(tmp_path):
     return tmp_path
 
 
+def test_prompt2_adds_router_context_contract(tmp_path, monkeypatch):
+    monkeypatch.setenv('PROMPT1_FILE_ID', 'p1')
+    monkeypatch.setenv('PROMPT2_FILE_ID', 'p2')
+    monkeypatch.setenv('PROMPT3_FILE_ID', 'p3')
+    prompts = Prompts(FakeDrive('STAGE 2 BASE'), FakeSettings(), root_with_controls(tmp_path))
+    result = prompts.read('abhishek', '#Prompt2.md', tmp_path / 'work')
+    assert 'STAGE 2 BASE' in result
+    assert 'Automation Context Contract — Stage 2 v2' in result
+    assert 'Treat that router as available' in result
+    assert 'STAGE2_HANDOFF' in result
+
+
 def test_prompt3_controls_insert_before_authoritative_marker(tmp_path, monkeypatch):
     monkeypatch.setenv('PROMPT1_FILE_ID', 'p1')
     monkeypatch.setenv('PROMPT2_FILE_ID', 'p2')

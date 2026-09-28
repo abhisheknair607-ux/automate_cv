@@ -1,7 +1,9 @@
 import hashlib
 import uuid
 from datetime import datetime, timezone
+
 from googleapiclient.discovery import build
+
 from .models import ApplicationRow
 from .profiles import profiles
 
@@ -110,10 +112,18 @@ class Freshmal:
             return False
 
     def eligible(self, a):
-        if not a.make_cv or a.complete() or a.workflow in STOP_STATES:
+        if not a.make_cv or a.complete():
             return False
-        if retry_count(a.workflow) >= self.settings.max_row_attempts:
+
+        # Terminal failures are fail-closed: fail() automatically unticks Make CV.
+        # If the user later re-checks Make CV while Status is ERROR, that is an
+        # explicit manual retry request and the same row becomes eligible again.
+        if a.workflow in STOP_STATES:
+            if a.status != 'ERROR':
+                return False
+        elif retry_count(a.workflow) >= self.settings.max_row_attempts:
             return False
+
         if a.lock_id and not self._lock_stale(a.lock_id):
             return False
         return True
@@ -145,12 +155,13 @@ class Freshmal:
     def prepare(self, a):
         d = digest(a.raw_jd)
         if a.jd_hash and a.jd_hash != d:
-            # A changed JD invalidates prior status/checkpoints. Require a deliberate re-check by the user.
+            # A changed JD invalidates prior status/checkpoints. Make the row visibly
+            # actionable, but require the user to review it and re-check Make CV.
             self.update(a, {
                 'make_cv': False,
                 'id': '',
                 'hash': d,
-                'status': 'NA',
+                'status': 'ERROR',
                 'workflow': 'JD_CHANGED_REVIEW_REQUIRED',
                 'lock': '',
                 'last': '',
@@ -176,8 +187,24 @@ class Freshmal:
     def fail(self, a, msg, state='ERROR_RETRYABLE'):
         if state == 'ERROR_RETRYABLE':
             count = retry_count(a.workflow) + 1
-            state = 'ERROR_MAX_RETRIES' if count >= self.settings.max_row_attempts else f'ERROR_RETRYABLE_{count}'
-        self.update(a, {'workflow': state, 'error': msg[:5000], 'lock': ''})
+            state = (
+                'ERROR_MAX_RETRIES'
+                if count >= self.settings.max_row_attempts
+                else f'ERROR_RETRYABLE_{count}'
+            )
+
+        changes = {
+            'status': 'ERROR',
+            'workflow': state,
+            'error': msg[:5000],
+            'lock': '',
+        }
+        # Terminal errors must not silently re-run every hour. Unticking Make CV
+        # turns the checkbox into the deliberate retry control: once the user fixes
+        # the cause, re-checking Make CV makes this same row eligible again.
+        if state in STOP_STATES:
+            changes['make_cv'] = False
+        self.update(a, changes)
 
     def done(self, a, cv, cl, context, cost):
         self.update(a, {
