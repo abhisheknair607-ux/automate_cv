@@ -9,9 +9,6 @@ from docx.text.paragraph import Paragraph
 from .profiles import profiles
 
 
-# Stable evidence keys in SUMMARY DOC map to exact section boundaries in the
-# detailed MASTER EVIDENCE BANK. Keeping the map deterministic means Stage 3
-# receives only evidence Stage 2 actually selected, without another model call.
 _EVIDENCE_MARKERS = {
     'PR-TAXLINK-CLIENT': ('Client-facing responsibilities', 'Ireland-India team coordination'),
     'PR-TAXLINK-COORD': ('Ireland-India team coordination', 'Revenue and compliance liaison'),
@@ -33,14 +30,12 @@ _EVIDENCE_MARKERS = {
 
 
 def _iter_blocks(parent):
-    """Yield paragraphs/tables in their real DOCX order."""
     if isinstance(parent, _Document):
         parent_elm = parent.element.body
     elif isinstance(parent, _Cell):
         parent_elm = parent._tc
     else:
         raise TypeError(f'Unsupported DOCX parent: {type(parent)!r}')
-
     for child in parent_elm.iterchildren():
         if child.tag.endswith('}p'):
             yield Paragraph(child, parent)
@@ -68,7 +63,7 @@ def docx_text(path):
 def mentioned_files(text):
     endings = ('.docx', '.doc', '.pdf', '.xlsx', '.xls', '.md', '.txt')
     found = []
-    for raw in text.replace('`', ' ').replace('“', ' ').replace('”', ' ').splitlines():
+    for raw in str(text).replace('`', ' ').replace('“', ' ').replace('”', ' ').splitlines():
         line = raw.strip().strip('* -')
         for ending in endings:
             pos = line.lower().find(ending)
@@ -79,31 +74,42 @@ def mentioned_files(text):
     return found
 
 
+def stage2_handoff_only(text):
+    """Extract only STAGE2_HANDOFF from a complete Stage 2 response, if needed."""
+    text = str(text or '')
+    heading = re.search(
+        r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
+        text,
+    )
+    if not heading:
+        return text
+    tail = text[heading.end():]
+    fenced = re.search(r'(?is)```(?:ya?ml|json)?\s*\n(?P<body>.*?)\n```', tail)
+    if fenced and fenced.group('body').strip():
+        return 'STAGE2_HANDOFF\n' + fenced.group('body').strip()
+    body = re.split(r'(?m)^\s*#{1,6}\s+', tail, maxsplit=1)[0].strip()
+    return 'STAGE2_HANDOFF\n' + body if body else text
+
+
 def _handoff_section(text, start_field, end_field=None):
     start = re.search(rf'(?m)^{re.escape(start_field)}\s*:\s*.*$', text)
     if not start:
         return ''
     tail = text[start.start():]
     if end_field:
-        end = re.search(rf'(?m)^{re.escape(end_field)}\s*:\s*.*$', tail[start.end() - start.start():])
-        if end:
-            return tail[: start.end() - start.start() + end.start()]
+        end = re.search(rf'(?m)^{re.escape(end_field)}\s*:\s*.*$', tail)
+        if end and end.start() > 0:
+            return tail[:end.start()]
     return tail
 
 
 def selected_evidence_ids(stage2_handoff):
-    """Return only evidence IDs Stage 2 selected or explicitly asked Stage 3 to verify.
-
-    This deliberately ignores IDs that appear only in exclusions/do-not-claim so
-    the selected-evidence bundle cannot accidentally reintroduce rejected evidence.
-    """
-    text = str(stage2_handoff or '')
+    """Evidence selected or explicitly marked for Stage 3 verification only."""
+    text = stage2_handoff_only(stage2_handoff)
     selected = []
-
     professional = _handoff_section(text, 'selected_professional_evidence', 'selected_projects')
     projects = _handoff_section(text, 'selected_projects', 'selected_achievements_qualifications_skills')
     verification = _handoff_section(text, 'stage3_evidence_to_retrieve_or_verify')
-
     for section in (professional, projects, verification):
         for match in re.finditer(r'\b(?:PR-[A-Z0-9-]+|FIN-[A-Z0-9-]+|P\d{2})\b', section):
             key = match.group(0)
@@ -113,7 +119,8 @@ def selected_evidence_ids(stage2_handoff):
 
 
 def selected_cv_structure(stage2_handoff):
-    match = re.search(r'(?im)^cv_structure\s*:\s*["\']?([^\n"\']+)', str(stage2_handoff or ''))
+    text = stage2_handoff_only(stage2_handoff)
+    match = re.search(r'(?im)^cv_structure\s*:\s*["\']?([^\n"\']+)', text)
     if not match:
         raise RuntimeError('STAGE2_HANDOFF is missing cv_structure.')
     value = match.group(1).strip().lower().replace('_', ' ')
@@ -126,15 +133,14 @@ def selected_cv_structure(stage2_handoff):
 
 def _slice_exact(text, start_marker, end_marker=None):
     lines = str(text).splitlines()
-    start_index = next((i for i, line in enumerate(lines) if line.strip() == start_marker), None)
-    if start_index is None:
-        # A few source headings include punctuation/casing variants. A unique
-        # prefix fallback is deterministic while still failing closed on ambiguity.
+    exact = [i for i, line in enumerate(lines) if line.strip() == start_marker]
+    if len(exact) == 1:
+        start_index = exact[0]
+    else:
         candidates = [i for i, line in enumerate(lines) if line.strip().startswith(start_marker)]
         if len(candidates) != 1:
             raise RuntimeError(f'Could not uniquely locate evidence section: {start_marker}')
         start_index = candidates[0]
-
     end_index = len(lines)
     if end_marker:
         for i in range(start_index + 1, len(lines)):
@@ -152,19 +158,16 @@ def _project_block(master_text, project_id):
     number = int(project_id[1:])
     if not 1 <= number <= 26:
         raise RuntimeError(f'Unsupported project evidence ID: {project_id}')
-
     if number <= 11:
         anchor = 'PART I — PRIORITY 1: AUTHORITATIVE FINAL SUBMISSIONS'
         terminal = 'PART II — PRIORITY 2: GENUINELY ADDITIONAL PROJECTS FROM THE PROJECTS FOLDER'
     else:
         anchor = 'PART II — PRIORITY 2: GENUINELY ADDITIONAL PROJECTS FROM THE PROJECTS FOLDER'
         terminal = 'PART III — CONSOLIDATED HARD-SKILL MAP'
-
     lines = str(master_text).splitlines()
     anchor_index = next((i for i, line in enumerate(lines) if line.strip() == anchor), None)
     if anchor_index is None:
         raise RuntimeError(f'Master Evidence Bank project anchor missing: {anchor}')
-
     heading_re = re.compile(rf'^{number}\.\s+')
     start_index = next(
         (i for i in range(anchor_index + 1, len(lines)) if heading_re.match(lines[i].strip())),
@@ -172,7 +175,6 @@ def _project_block(master_text, project_id):
     )
     if start_index is None:
         raise RuntimeError(f'Could not locate {project_id} in Master Evidence Bank.')
-
     next_heading = re.compile(rf'^{number + 1}\.\s+') if number < 26 else None
     end_index = len(lines)
     for i in range(start_index + 1, len(lines)):
@@ -184,26 +186,23 @@ def _project_block(master_text, project_id):
 
 
 def build_selected_evidence(master_text, stage2_handoff, output_path):
-    """Write the minimum detailed Master Bank evidence package for Stage 3."""
-    ids = selected_evidence_ids(stage2_handoff)
+    handoff = stage2_handoff_only(stage2_handoff)
+    ids = selected_evidence_ids(handoff)
     if not ids:
         raise RuntimeError(
             'STAGE2_HANDOFF selected no evidence IDs; refusing to send the full Master Evidence Bank.'
         )
-
-    sections = []
-
-    # Core chronology and credentials are required by both approved one-page CV
-    # structures and are small enough to include without reopening evidence search.
-    core_chronology = _slice_exact(master_text, 'CAREER OVERVIEW', 'EXPERIENCE SCOPE AT A GLANCE')
-    credentials = _slice_exact(
-        master_text,
-        'EDUCATION, CREDENTIALS AND RECOGNITION',
-        'HOW THIS MASTER DOCUMENT SHOULD BE USED',
-    )
-    sections.append(('CORE-CHRONOLOGY', core_chronology))
-    sections.append(('CORE-CREDENTIALS', credentials))
-
+    sections = [
+        ('CORE-CHRONOLOGY', _slice_exact(master_text, 'CAREER OVERVIEW', 'EXPERIENCE SCOPE AT A GLANCE')),
+        (
+            'CORE-CREDENTIALS',
+            _slice_exact(
+                master_text,
+                'EDUCATION, CREDENTIALS AND RECOGNITION',
+                'HOW THIS MASTER DOCUMENT SHOULD BE USED',
+            ),
+        ),
+    ]
     for evidence_id in ids:
         if evidence_id.startswith('P') and evidence_id[1:].isdigit():
             block = _project_block(master_text, evidence_id)
@@ -215,7 +214,6 @@ def build_selected_evidence(master_text, stage2_handoff, output_path):
                 )
             block = _slice_exact(master_text, markers[0], markers[1])
         sections.append((evidence_id, block))
-
     output_path = Path(output_path)
     lines = [
         '# SELECTED EVIDENCE — DETERMINISTIC STAGE 3 PACKAGE',
@@ -230,23 +228,19 @@ def build_selected_evidence(master_text, stage2_handoff, output_path):
     ]
     for evidence_id, block in sections:
         lines.extend([f'## {evidence_id}', '', block, ''])
-
     output_path.write_text('\n'.join(lines).strip() + '\n', encoding='utf-8')
     return output_path, ids
 
 
 def source_telemetry(paths):
-    result = []
-    for path in paths:
-        path = Path(path)
-        result.append(
-            {
-                'file': path.name,
-                'bytes': path.stat().st_size,
-                'suffix': path.suffix.lower(),
-            }
-        )
-    return result
+    return [
+        {
+            'file': Path(path).name,
+            'bytes': Path(path).stat().st_size,
+            'suffix': Path(path).suffix.lower(),
+        }
+        for path in paths
+    ]
 
 
 class Sources:
@@ -254,9 +248,11 @@ class Sources:
         self.drive = drive
         self.settings = settings
         self.profiles = profiles()
+        self.make_cover_letter = False
+        self.last_stage3_telemetry = []
+        self.last_selected_evidence_ids = []
 
     def stage2(self, candidate_key, workdir):
-        """Load only the compact Summary Doc / Evidence Router for Stage 2."""
         p = self.profiles[candidate_key]
         if not p.summary_doc_file_id:
             raise RuntimeError(f'{candidate_key}: SUMMARY_DOC_FILE_ID missing.')
@@ -264,7 +260,6 @@ class Sources:
         return docx_text(path), path
 
     def master_evidence(self, candidate_key, workdir):
-        """Load the detailed factual bank for deterministic selection and final QA."""
         p = self.profiles[candidate_key]
         if not p.master_evidence_bank_file_id:
             raise RuntimeError(f'{candidate_key}: MASTER_EVIDENCE_BANK_FILE_ID missing.')
@@ -277,33 +272,33 @@ class Sources:
         workdir,
         summary_path,
         master_path,
-        stage2_handoff,
-        make_cover_letter=False,
+        stage2_output,
+        make_cover_letter=None,
     ):
         """Build the minimal Stage 3 source package.
 
-        summary_path/master_path remain inputs for compatibility and local source
-        generation, but neither full document is uploaded to Stage 3.
+        The full Summary Router and full Master Evidence Bank are intentionally not
+        uploaded to Sol. The full Master Bank remains local for deterministic QA.
         """
-        del summary_path  # Stage 3 must not receive the compact router by default.
+        del summary_path
         p = self.profiles[candidate_key]
+        handoff = stage2_handoff_only(stage2_output)
         master_text = docx_text(master_path)
-        selected_path, _ = build_selected_evidence(
+        selected_path, selected_ids = build_selected_evidence(
             master_text,
-            stage2_handoff,
+            handoff,
             Path(workdir) / 'Selected_Evidence.md',
         )
+        self.last_selected_evidence_ids = selected_ids
         paths = [selected_path]
 
-        # Always supply the formatting master and editable base CV.
         for file_id in (p.formatting_master_file_id, p.base_cv_file_id):
             if file_id:
                 path = self.drive.download_named(file_id, workdir)
                 if path not in paths:
                     paths.append(path)
 
-        # Supply exactly one visual reference, according to Stage 2's structure decision.
-        structure = selected_cv_structure(stage2_handoff)
+        structure = selected_cv_structure(handoff)
         reference_id = (
             p.high_experience_reference_file_id
             if structure == 'high'
@@ -314,22 +309,26 @@ class Sources:
             if path not in paths:
                 paths.append(path)
 
-        # Prompt 3 already contains the CV rules. The combined CV/Cover-Letter rules
-        # and any separate cover-letter template are only useful when a CL is requested.
-        if make_cover_letter:
+        # CV-only: Prompt 3 + Formatting Master already contain the CV rules, so
+        # CV & Cover letter.docx is omitted. When Cover Letter is ticked it is
+        # deliberately included, together with an optional dedicated CL template.
+        use_cover_letter_rules = (
+            self.make_cover_letter if make_cover_letter is None else bool(make_cover_letter)
+        )
+        if use_cover_letter_rules:
             for file_id in (p.cv_cover_letter_rules_file_id, p.cover_letter_template_file_id):
                 if file_id:
                     path = self.drive.download_named(file_id, workdir)
                     if path not in paths:
                         paths.append(path)
 
-        # If Stage 2 explicitly names an underlying project/source file for unresolved
-        # verification, attach only those named files.
         candidate_project_folders = [p.final_projects_folder_id, p.projects_folder_id]
-        for name in mentioned_files(stage2_handoff):
+        for name in mentioned_files(handoff):
             item = self.drive.find(name, candidate_project_folders)
             if item:
                 path = self.drive.download_named(item['id'], workdir)
                 if path not in paths:
                     paths.append(path)
+
+        self.last_stage3_telemetry = source_telemetry(paths)
         return paths
