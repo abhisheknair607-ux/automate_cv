@@ -1,4 +1,10 @@
+import shutil
+from types import SimpleNamespace
+
+from docx import Document
+
 from automate_cv.sources import (
+    Sources,
     build_selected_evidence,
     selected_cv_structure,
     selected_evidence_ids,
@@ -93,3 +99,144 @@ skills
     assert 'PR-EY-GTM' not in text
     assert 'PR-EY-CONTROVERSY' not in text
     assert 'p13 evidence' not in text
+
+
+class FakeDrive:
+    def __init__(self, files):
+        self.files = files
+
+    def download_named(self, file_id, directory):
+        source = self.files[file_id]
+        target = directory / source.name
+        shutil.copy2(source, target)
+        return target
+
+    def find(self, name, folders):
+        return None
+
+
+def _write_master(path):
+    doc = Document()
+    for line in (
+        'CAREER OVERVIEW',
+        'EY | Analyst | Mumbai | Jun 2022 - Jul 2025',
+        'EXPERIENCE SCOPE AT A GLANCE',
+        'scope',
+        '1. Functional analysis, FAR interviews and value-chain assessment',
+        'far evidence',
+        '2. Economic benchmarking and comparable-company analysis',
+        'bench evidence',
+        'EDUCATION, CREDENTIALS AND RECOGNITION',
+        'ACCA Member',
+        'HOW THIS MASTER DOCUMENT SHOULD BE USED',
+        'rules',
+    ):
+        doc.add_paragraph(line)
+    doc.save(path)
+
+
+def _minimal_stage3_handoff(structure='High Experience'):
+    return f'''STAGE2_HANDOFF
+cv_structure: {structure}
+selected_professional_evidence:
+  - key: PR-EY-FAR
+selected_projects: []
+selected_achievements_qualifications_skills: []
+do_not_claim: []
+stage3_evidence_to_retrieve_or_verify: []
+'''
+
+
+def test_stage3_omits_cv_cl_rules_for_cv_only_and_uses_one_reference(tmp_path):
+    master = tmp_path / 'MASTER EVIDENCE BANK.docx'
+    _write_master(master)
+    files = {}
+    for file_id, name in (
+        ('fmt', 'CV Formatting & Structure Master.docx'),
+        ('base', 'Base CV.docx'),
+        ('high', 'High Experience Reference.docx'),
+        ('low', 'Lower Experience Reference.docx'),
+        ('rules', 'CV & Cover letter.docx'),
+        ('cl', 'Cover Letter Template.docx'),
+    ):
+        path = tmp_path / f'src-{name}'
+        path.write_bytes(file_id.encode())
+        files[file_id] = path
+
+    sources = Sources(FakeDrive(files), None)
+    sources.profiles = {
+        'abhishek': SimpleNamespace(
+            formatting_master_file_id='fmt',
+            base_cv_file_id='base',
+            high_experience_reference_file_id='high',
+            lower_experience_reference_file_id='low',
+            cv_cover_letter_rules_file_id='rules',
+            cover_letter_template_file_id='cl',
+            final_projects_folder_id='',
+            projects_folder_id='',
+        )
+    }
+    work = tmp_path / 'work'
+    work.mkdir()
+    paths = sources.stage3(
+        'abhishek',
+        work,
+        tmp_path / 'summary.docx',
+        master,
+        _minimal_stage3_handoff(),
+        make_cover_letter=False,
+    )
+    names = {p.name for p in paths}
+    assert 'Selected_Evidence.md' in names
+    assert 'High Experience Reference.docx' in names
+    assert 'Lower Experience Reference.docx' not in names
+    assert 'CV & Cover letter.docx' not in names
+    assert 'Cover Letter Template.docx' not in names
+    assert 'MASTER EVIDENCE BANK.docx' not in names
+    assert 'summary.docx' not in names
+
+
+def test_stage3_includes_cv_cl_rules_only_when_cover_letter_is_requested(tmp_path):
+    master = tmp_path / 'MASTER EVIDENCE BANK.docx'
+    _write_master(master)
+    files = {}
+    for file_id, name in (
+        ('fmt', 'CV Formatting & Structure Master.docx'),
+        ('base', 'Base CV.docx'),
+        ('high', 'High Experience Reference.docx'),
+        ('low', 'Lower Experience Reference.docx'),
+        ('rules', 'CV & Cover letter.docx'),
+        ('cl', 'Cover Letter Template.docx'),
+    ):
+        path = tmp_path / f'src-{name}'
+        path.write_bytes(file_id.encode())
+        files[file_id] = path
+
+    sources = Sources(FakeDrive(files), None)
+    sources.profiles = {
+        'abhishek': SimpleNamespace(
+            formatting_master_file_id='fmt',
+            base_cv_file_id='base',
+            high_experience_reference_file_id='high',
+            lower_experience_reference_file_id='low',
+            cv_cover_letter_rules_file_id='rules',
+            cover_letter_template_file_id='cl',
+            final_projects_folder_id='',
+            projects_folder_id='',
+        )
+    }
+    work = tmp_path / 'work'
+    work.mkdir()
+    paths = sources.stage3(
+        'abhishek',
+        work,
+        tmp_path / 'summary.docx',
+        master,
+        _minimal_stage3_handoff('Lower Experience'),
+        make_cover_letter=True,
+    )
+    names = {p.name for p in paths}
+    assert 'Lower Experience Reference.docx' in names
+    assert 'High Experience Reference.docx' not in names
+    assert 'CV & Cover letter.docx' in names
+    assert 'Cover Letter Template.docx' in names
