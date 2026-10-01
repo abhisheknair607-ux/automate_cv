@@ -403,7 +403,7 @@ class Workflow:
         manifest_path = None
 
         try:
-            folder, _ = self._folders(app)
+            folder, folder_link = self._folders(app)
             prompt1 = self.prompts.read(app.candidate_key, '#Prompt1.md', work)
             prompt2 = self.prompts.read(app.candidate_key, '#Prompt2.md', work)
             prompt3 = self.prompts.read(app.candidate_key, '#Prompt3.md', work)
@@ -773,7 +773,10 @@ class Workflow:
                 }
             )
             self._save_manifest(manifest, manifest_path, folder)
-            self.sheet.done(app, cv_link, cl_link, context_link, current_cost)
+            self.sheet.done(
+                app, cv_link, cl_link, context_link, current_cost,
+                output_folder=folder_link or f'https://drive.google.com/drive/folders/{folder}',
+            )
             print(
                 f'[workflow] COMPLETE: {app.application_id}; cumulative cost=${current_cost:.4f}',
                 flush=True,

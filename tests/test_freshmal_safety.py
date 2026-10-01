@@ -105,6 +105,7 @@ def test_changed_jd_is_visible_error_and_requires_recheck():
     assert captured['status'] == 'ERROR'
     assert captured['workflow'] == 'JD_CHANGED_REVIEW_REQUIRED'
     assert captured['make_cv'] is False
+    assert captured['output_folder'] == ''
 
 
 def test_fresh_lock_blocks_and_stale_lock_recovers():
@@ -146,3 +147,32 @@ def test_profile_columns_are_independent():
     assert (p['pooja'].make_cv_col, p['pooja'].make_cl_col, p['pooja'].web_search_col, p['pooja'].status_col) == (4, 5, 6, 10)
     assert (p['abhishek'].make_cv_col, p['abhishek'].make_cl_col, p['abhishek'].web_search_col, p['abhishek'].status_col) == (7, 8, 9, 11)
     assert p['pooja'].state_start_col != p['abhishek'].state_start_col
+    assert p['pooja'].output_folder_col == 35
+    assert p['abhishek'].output_folder_col == 36
+
+
+@pytest.mark.parametrize('candidate_key,folder_column,status_column', [
+    ('pooja', 'AJ', 'K'),
+    ('abhishek', 'AK', 'L'),
+])
+def test_done_saves_output_folder_with_cv_in_candidate_columns(candidate_key, folder_column, status_column):
+    s = sheet()
+    s.profiles = profiles()
+    s.settings.freshmal_spreadsheet_id = 'sheet-id'
+    s.settings.freshmal_sheet_name = 'Sheet1'
+    captured = {}
+
+    def batch_update(**kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(execute=lambda: {})
+
+    s.values = SimpleNamespace(batchUpdate=batch_update)
+    s.done(app(candidate_key=candidate_key), 'cv-link', '', 'context-link', 0.5,
+           output_folder='https://drive.google.com/drive/folders/role-folder')
+    data = {entry['range']: entry['values'][0][0] for entry in captured['body']['data']}
+    assert data[f'Sheet1!{folder_column}3'] == 'https://drive.google.com/drive/folders/role-folder'
+    assert data[f'Sheet1!{status_column}3'] == 'CV'
+    cv_column = 'AB' if candidate_key == 'pooja' else 'R'
+    assert data[f'Sheet1!{cv_column}3'] == 'cv-link'
+    assert captured['body']['valueInputOption'] == 'RAW'
+    assert not any(key.startswith('Sheet1!AH') or key.startswith('Sheet1!AI') for key in data)

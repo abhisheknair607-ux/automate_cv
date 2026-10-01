@@ -13,6 +13,7 @@ class CandidateProfile:
     web_search_col: int
     status_col: int
     state_start_col: int
+    output_folder_col: int
     prompt1_file_id: str
     prompt2_file_id: str
     prompt3_file_id: str
@@ -57,6 +58,7 @@ def profiles():
             web_search_col=6,
             status_col=10,
             state_start_col=22,
+            output_folder_col=35,  # AJ; Pooja application output folder.
             prompt1_file_id=_env('POOJA_PROMPT1_FILE_ID'),
             prompt2_file_id=_env('POOJA_PROMPT2_FILE_ID'),
             prompt3_file_id=_env('POOJA_PROMPT3_FILE_ID'),
@@ -81,6 +83,7 @@ def profiles():
             web_search_col=9,
             status_col=11,
             state_start_col=12,
+            output_folder_col=36,  # AK; Abhishek application output folder.
             prompt1_file_id=_env('PROMPT1_FILE_ID'),
             prompt2_file_id=_env('PROMPT2_FILE_ID'),
             prompt3_file_id=_env('PROMPT3_FILE_ID'),

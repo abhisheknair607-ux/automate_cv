@@ -139,6 +139,7 @@ class Freshmal:
             'make_cl': p.make_cl_col,
             'web_search': p.web_search_col,
             'status': p.status_col,
+            'output_folder': p.output_folder_col,
         }
         mapping.update({k: p.state_start_col + i for i, k in enumerate(STATE_KEYS)})
         unknown = [k for k in changes if k not in mapping]
@@ -172,6 +173,7 @@ class Freshmal:
                 'cvlink': '',
                 'cllink': '',
                 'context': '',
+                'output_folder': '',
                 'cost': 0,
                 'error': 'JD changed; review the row and re-check Make CV.',
             })
@@ -210,8 +212,8 @@ class Freshmal:
             changes['make_cv'] = False
         self.update(a, changes)
 
-    def done(self, a, cv, cl, context, cost):
-        self.update(a, {
+    def done(self, a, cv, cl, context, cost, output_folder=''):
+        changes = {
             'status': a.requested_status(),
             'workflow': 'COMPLETE',
             'cvlink': cv,
@@ -220,4 +222,7 @@ class Freshmal:
             'cost': round(cost, 4),
             'error': '',
             'lock': '',
-        })
+        }
+        if output_folder:
+            changes['output_folder'] = output_folder
+        self.update(a, changes)

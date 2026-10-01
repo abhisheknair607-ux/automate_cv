@@ -35,6 +35,7 @@ The workflow is intentionally fail-closed: missing candidate configuration, chan
 - AG = optional Location used for Drive folder naming and ATS review prompts
 - AH = Pooja ATS Review Prompt (Google Sheets formula)
 - AI = Abhishek ATS Review Prompt (Google Sheets formula)
+- AJ:AK = hidden candidate-specific application output-folder links (Pooja, Abhishek)
 
 Status dropdowns are `NA`, `CV`, `CV+CL`, `CV+CL+WS`, `ERROR`, and `Applied`.
 
@@ -46,7 +47,7 @@ rules still apply.
 
 The ATS prompt columns use the row's company, designation, location, vacancy
 link, raw job description and candidate-specific CV link. They include each
-candidate's verified project folder for evidence-based gap review. Prompts stay
+candidate's exact application output folder and saved analysis/context for gap review. The worker saves the role-folder link alongside the CV link, so future prompts update automatically. Prompts stay
 blank until the candidate's CV link and job description are available; a blank
 location is labelled `Not specified`. Copy the resulting cell text into ChatGPT
 to request an estimated ATS match score and supported improvements. These
