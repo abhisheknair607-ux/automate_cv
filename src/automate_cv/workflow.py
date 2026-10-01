@@ -12,6 +12,7 @@ from .context import write_context
 from .profiles import profiles
 from .qa import QAError, factual_report, normalize, one_page
 from .sources import Sources, source_telemetry
+from .optimization import combine_analysis_prompts
 
 
 class CostLimitError(RuntimeError):
@@ -310,6 +311,76 @@ class Workflow:
             'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
         }
 
+    def _merged_analysis(self, app, prompt1, prompt2, folder, work, manifest, manifest_path):
+        """One paid call, retaining both logical stages and their durable audits."""
+        self._guard(manifest)
+        summary, summary_path = self.sources.stage2(app.candidate_key, work)
+        combined_prompt = combine_analysis_prompts(prompt1, prompt2)
+        key = {
+            'analysis_mode': 'merged-v1',
+            'candidate': app.candidate_key,
+            'jd_hash': app.jd_hash,
+            'company': app.company,
+            'designation': app.designation,
+            'location': app.location,
+            'application_link': app.application_link,
+            'combined_prompt_hash': _hash(combined_prompt),
+            'summary_hash': _hash(summary),
+            'stage2_model': self.s.stage2_model,
+            'stage2_reasoning_effort': self.s.stage2_reasoning_effort,
+            'stage2_max_output_tokens': self.s.stage2_max_output_tokens,
+        }
+        paths = [work / 'stage1.md', work / 'stage2.md']
+        valid = (manifest.get('merged_analysis_key') == key
+                 and manifest.get('stage1_complete') is True
+                 and manifest.get('stage2_complete') is True)
+        if valid:
+            valid = all(self.drive.download_if_exists(p.name, folder, p) for p in paths)
+        if valid:
+            stage1, stage2 = [p.read_text(encoding='utf-8') for p in paths]
+            _extract_handoff(stage1, 'STAGE1_HANDOFF')
+            handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
+            print('[workflow] Reusing verified combined Stage 1/2 checkpoint', flush=True)
+            self._guard(manifest)
+            return stage1, stage2, handoff, manifest['stage2_key'], summary_path
+        self._invalidate_from(manifest, 'stage1')
+        self.sheet.update(app, {'workflow': 'STAGE_1_2'})
+        effective = work / 'Effective_Prompt1_2.md'
+        effective.write_text(combined_prompt, encoding='utf-8')
+        self.drive.upload(effective, folder)
+        input_text = (f'Company: {app.company}\nDesignation: {app.designation}\n'
+                      f'Location: {app.location}\nLink: {app.application_link}\n\n'
+                      f'RAW JOB DESCRIPTION\n{app.raw_jd}')
+        output, response = self.retry(
+            lambda: self.ai.text(combined_prompt, input_text,
+                                 self.s.stage2_reasoning_effort,
+                                 self.s.stage2_max_output_tokens,
+                                 model=self.s.stage2_model,
+                                 cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
+                                 cache_key=f'{app.candidate_key}:stage1_2'),
+            'Combined Stage 1/2 AI call')
+        # Record the paid work before validation, including handoff-format repair.
+        self._record_usage(manifest, 'stage1_2', _usage(response, self.s.stage2_model))
+        self._save_manifest(manifest, manifest_path, folder)
+        handoff1 = _extract_handoff(output, 'STAGE1_HANDOFF')
+        handoff = _extract_handoff(output, 'STAGE2_HANDOFF')
+        split = re.split(r'(?m)^# EVIDENCE SELECTION\s*$', output, maxsplit=1)
+        stage1 = split[0] if len(split) == 2 else handoff1
+        stage2 = split[1].strip() if len(split) == 2 else output
+        for path, text in zip(paths, (stage1, stage2)):
+            path.write_text(text, encoding='utf-8')
+            self.drive.upload(path, folder)
+        combined_path = work / 'stage1_2.md'
+        combined_path.write_text(output, encoding='utf-8')
+        self.drive.upload(combined_path, folder)
+        stage2_key = {**key, 'stage1_handoff_hash': _hash(handoff1),
+                      'stage2_handoff_hash': _hash(handoff)}
+        manifest.update(merged_analysis_key=key, stage1_complete=True,
+                        stage2_complete=True, stage2_key=stage2_key)
+        self._save_manifest(manifest, manifest_path, folder)
+        self._guard(manifest)
+        return stage1, stage2, handoff, stage2_key, summary_path
+
     def _checkpoint_key_stage3(
         self,
         stage2_key,
@@ -413,94 +484,101 @@ class Workflow:
             manifest.setdefault('application_id', app.application_id)
             manifest.setdefault('cumulative_cost_usd', 0.0)
 
-            # Stage 1
-            current_stage = 'STAGE_1'
-            self.sheet.update(app, {'workflow': current_stage})
-            stage1_path = work / 'stage1.md'
-            stage1_key = self._checkpoint_key_stage1(app, prompt1)
-            stage1_valid = (
-                self._matches(manifest, stage1_key)
-                and manifest.get('stage1_complete') is True
-                and self.drive.download_if_exists('stage1.md', folder, stage1_path)
-            )
-            if stage1_valid:
-                stage1 = stage1_path.read_text(encoding='utf-8')
-                stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
-                print('[workflow] Reusing verified Stage 1 checkpoint', flush=True)
-            else:
-                self._invalidate_from(manifest, 'stage1')
-                manifest.update(stage1_key)
-                input1 = (
-                    f'Company: {app.company}\nDesignation: {app.designation}\nLink: {app.application_link}'
-                    f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
-                )
-                stage1, response1 = self.retry(
-                    lambda: self.ai.text(
-                        prompt1,
-                        input1,
-                        self.s.stage1_reasoning_effort,
-                        self.s.stage1_max_output_tokens,
-                        model=self.s.stage1_model,
-                        cache_prefix='',
-                        cache_key=f'{app.candidate_key}:stage1',
-                    ),
-                    'Stage 1 AI call',
-                )
-                stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
-                stage1_path.write_text(stage1, encoding='utf-8')
-                self.drive.upload(stage1_path, folder)
-                manifest['stage1_complete'] = True
-                self._record_usage(manifest, 'stage1', _usage(response1, self.s.stage1_model))
-                self._save_manifest(manifest, manifest_path, folder)
-            self._guard(manifest)
+            # Detect missing candidate facts before spending on analysis.
+            master_evidence, master_path = self.sources.master_evidence(app.candidate_key, work)
 
-            # Stage 2
-            current_stage = 'STAGE_2'
-            self.sheet.update(app, {'workflow': current_stage})
-            summary, summary_path = self.sources.stage2(app.candidate_key, work)
-            stage2_key = self._checkpoint_key_stage2(stage1_key, prompt2, summary, stage1_handoff)
-            stage2_path = work / 'stage2.md'
-            stage2_valid = (
-                manifest.get('stage2_key') == stage2_key
-                and manifest.get('stage2_complete') is True
-                and self.drive.download_if_exists('stage2.md', folder, stage2_path)
-            )
-            if stage2_valid:
-                stage2 = stage2_path.read_text(encoding='utf-8')
-                stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
-                print('[workflow] Reusing verified Stage 2 checkpoint', flush=True)
+            if self.s.merged_analysis:
+                current_stage = 'STAGE_1_2'
+                stage1, stage2, stage2_handoff, stage2_key, summary_path = self._merged_analysis(
+                    app, prompt1, prompt2, folder, work, manifest, manifest_path)
             else:
-                self._invalidate_from(manifest, 'stage2')
-                input2 = (
-                    f'Company: {app.company}\nDesignation: {app.designation}\nLink: {app.application_link}'
-                    f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
-                    f'\n\n{stage1_handoff}'
+                # Stage 1
+                current_stage = 'STAGE_1'
+                self.sheet.update(app, {'workflow': current_stage})
+                stage1_path = work / 'stage1.md'
+                stage1_key = self._checkpoint_key_stage1(app, prompt1)
+                stage1_valid = (
+                    self._matches(manifest, stage1_key)
+                    and manifest.get('stage1_complete') is True
+                    and self.drive.download_if_exists('stage1.md', folder, stage1_path)
                 )
-                stage2, response2 = self.retry(
-                    lambda: self.ai.text(
-                        prompt2,
-                        input2,
-                        self.s.stage2_reasoning_effort,
-                        self.s.stage2_max_output_tokens,
-                        model=self.s.stage2_model,
-                        cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
-                        cache_key=f'{app.candidate_key}:stage2',
-                    ),
-                    'Stage 2 AI call',
+                if stage1_valid:
+                    stage1 = stage1_path.read_text(encoding='utf-8')
+                    stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
+                    print('[workflow] Reusing verified Stage 1 checkpoint', flush=True)
+                else:
+                    self._invalidate_from(manifest, 'stage1')
+                    manifest.update(stage1_key)
+                    input1 = (
+                        f'Company: {app.company}\nDesignation: {app.designation}\nLink: {app.application_link}'
+                        f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
+                    )
+                    stage1, response1 = self.retry(
+                        lambda: self.ai.text(
+                            prompt1,
+                            input1,
+                            self.s.stage1_reasoning_effort,
+                            self.s.stage1_max_output_tokens,
+                            model=self.s.stage1_model,
+                            cache_prefix='',
+                            cache_key=f'{app.candidate_key}:stage1',
+                        ),
+                        'Stage 1 AI call',
+                    )
+                    stage1_handoff = _extract_handoff(stage1, 'STAGE1_HANDOFF')
+                    stage1_path.write_text(stage1, encoding='utf-8')
+                    self.drive.upload(stage1_path, folder)
+                    manifest['stage1_complete'] = True
+                    self._record_usage(manifest, 'stage1', _usage(response1, self.s.stage1_model))
+                    self._save_manifest(manifest, manifest_path, folder)
+                self._guard(manifest)
+
+                # Stage 2
+                current_stage = 'STAGE_2'
+                self.sheet.update(app, {'workflow': current_stage})
+                summary, summary_path = self.sources.stage2(app.candidate_key, work)
+                stage2_key = self._checkpoint_key_stage2(stage1_key, prompt2, summary, stage1_handoff)
+                stage2_path = work / 'stage2.md'
+                stage2_valid = (
+                    manifest.get('stage2_key') == stage2_key
+                    and manifest.get('stage2_complete') is True
+                    and self.drive.download_if_exists('stage2.md', folder, stage2_path)
                 )
-                stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
-                stage2_path.write_text(stage2, encoding='utf-8')
-                self.drive.upload(stage2_path, folder)
-                manifest['stage2_key'] = stage2_key
-                manifest['stage2_complete'] = True
-                self._record_usage(manifest, 'stage2', _usage(response2, self.s.stage2_model))
-                self._save_manifest(manifest, manifest_path, folder)
-            self._guard(manifest)
+                if stage2_valid:
+                    stage2 = stage2_path.read_text(encoding='utf-8')
+                    stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
+                    print('[workflow] Reusing verified Stage 2 checkpoint', flush=True)
+                else:
+                    self._invalidate_from(manifest, 'stage2')
+                    input2 = (
+                        f'Company: {app.company}\nDesignation: {app.designation}\nLink: {app.application_link}'
+                        f'\n\nRAW JOB DESCRIPTION\n{app.raw_jd}'
+                        f'\n\n{stage1_handoff}'
+                    )
+                    stage2, response2 = self.retry(
+                        lambda: self.ai.text(
+                            prompt2,
+                            input2,
+                            self.s.stage2_reasoning_effort,
+                            self.s.stage2_max_output_tokens,
+                            model=self.s.stage2_model,
+                            cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
+                            cache_key=f'{app.candidate_key}:stage2',
+                        ),
+                        'Stage 2 AI call',
+                    )
+                    stage2_handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
+                    stage2_path.write_text(stage2, encoding='utf-8')
+                    self.drive.upload(stage2_path, folder)
+                    manifest['stage2_key'] = stage2_key
+                    manifest['stage2_complete'] = True
+                    self._record_usage(manifest, 'stage2', _usage(response2, self.s.stage2_model))
+                    self._save_manifest(manifest, manifest_path, folder)
+                self._guard(manifest)
 
             # Stage 3 generation
             current_stage = 'STAGE_3'
             self.sheet.update(app, {'workflow': current_stage})
-            master_evidence, master_path = self.sources.master_evidence(app.candidate_key, work)
             source_paths = self.sources.stage3(
                 app.candidate_key,
                 work,
@@ -539,6 +617,8 @@ class Workflow:
                     'Do not search for or reconstruct the full Summary Doc or Master Evidence Bank. '
                     'Use the supplied Formatting Master, Base CV and the single selected structure reference. '
                     'If MAKE_COVER_LETTER=TRUE, also use the supplied CV & Cover letter rules/template. '
+                    'Use template_editing.py for run-preserving template edits and rendering; '
+                    'do not regenerate generic formatting code. Preserve candidate master rules. '
                     'Create the requested Word artifact(s). Keep the textual completion report compact: '
                     'include the ATS Match Score, a short category breakdown, strongest matched keywords, '
                     'material missing/unsupported keywords, top recruiter strengths/concerns, and any material '
@@ -557,6 +637,9 @@ class Workflow:
                     ),
                     'Stage 3 AI/artifact call',
                 )
+                effective3 = work / 'Effective_Prompt3.md'
+                effective3.write_text(prompt3, encoding='utf-8')
+                self.drive.upload(effective3, folder)
                 stage3_path = work / 'stage3.md'
                 stage3_path.write_text(stage3, encoding='utf-8')
                 self.drive.upload(stage3_path, folder)

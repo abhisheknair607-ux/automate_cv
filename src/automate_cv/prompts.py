@@ -1,5 +1,6 @@
 from pathlib import Path
 from .profiles import profiles
+from .optimization import optimize_formatting_prompt
 
 _STAGE2_CONTEXT_CONTRACT = '''
 
@@ -24,7 +25,11 @@ class Prompts:
         if name=='#Prompt2.md':
             return text+_STAGE2_CONTEXT_CONTRACT
         if name!='#Prompt3.md': return text
+        text=optimize_formatting_prompt(text,candidate_key)
         controls=(self.root/'prompts'/'03_automation_controls.md').read_text(encoding='utf-8')
         marker='# Authoritative Inputs and Stage Handoff'; pos=text.find(marker)
+        if pos<0 and candidate_key=='pooja':
+            # Pooja's original production prompt starts at the JD section.
+            pos=text.find('# Job Description')
         if pos<0: raise RuntimeError('Prompt 3 insertion marker not found.')
         return text[:pos]+controls+'\n\n'+text[pos:]

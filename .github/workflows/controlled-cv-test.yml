@@ -49,6 +49,7 @@ jobs:
           OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'medium' }}
 
           STAGE1_MODEL: ${{ vars.STAGE1_MODEL || 'gpt-5.6-terra' }}
+          MERGED_ANALYSIS: ${{ vars.MERGED_ANALYSIS || 'true' }}
           STAGE2_MODEL: ${{ vars.STAGE2_MODEL || 'gpt-5.6-terra' }}
           STAGE3_MODEL: ${{ vars.STAGE3_MODEL || 'gpt-5.6-sol' }}
           STAGE1_REASONING_EFFORT: ${{ vars.STAGE1_REASONING_EFFORT || 'low' }}

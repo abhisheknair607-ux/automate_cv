@@ -4,7 +4,9 @@ Freshmal-driven, multi-profile CV automation using the OpenAI Responses API, Goo
 
 ## Production flow
 
-Freshmal → candidate controls → Prompt 1 → Prompt 2 → Prompt 3 → deterministic QA → Google Drive → candidate-specific Freshmal status.
+Freshmal → candidate controls → combined Prompt 1/2 → Prompt 3 → deterministic QA → Google Drive → candidate-specific Freshmal status.
+
+The combined step runs independent JD analysis before evidence selection, retaining both source rule sets, machine handoffs and saved reports. Stage 3 reuses template-editing utilities and candidate-specific Formatting Master rules. See [the optimization notes](docs/MERGED_ANALYSIS_2026-10-01.md) for validation and mobile testing. The separate Stage 1/2 descriptions below remain the legacy route (`MERGED_ANALYSIS=false`); the default combined route uses the Stage 2 model/reasoning/output budget.
 
 Default model routing is deliberately stage-specific:
 

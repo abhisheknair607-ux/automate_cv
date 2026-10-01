@@ -1,5 +1,6 @@
 import shutil
 from types import SimpleNamespace
+import pytest
 
 from docx import Document
 
@@ -114,6 +115,19 @@ class FakeDrive:
 
     def find(self, name, folders):
         return None
+
+
+def test_master_evidence_placeholder_is_rejected(tmp_path):
+    source = tmp_path / 'src-placeholder.docx'
+    doc = Document()
+    doc.add_paragraph('PLACEHOLDER — DO NOT RUN AUTOMATION')
+    doc.save(source)
+    work = tmp_path / 'work'
+    work.mkdir()
+    sources = Sources(FakeDrive({'master': source}), None)
+    sources.profiles['pooja'] = SimpleNamespace(master_evidence_bank_file_id='master')
+    with pytest.raises(RuntimeError, match='verified candidate evidence'):
+        sources.master_evidence('pooja', work)
 
 
 def _write_master(path):

@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     openai_api_key: str = ''
+    merged_analysis: bool = True
 
     # Stage-specific model routing. Keep a global fallback for local/backward compatibility.
     openai_model: str = 'gpt-5.6-sol'

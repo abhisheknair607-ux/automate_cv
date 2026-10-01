@@ -264,7 +264,10 @@ class Sources:
         if not p.master_evidence_bank_file_id:
             raise RuntimeError(f'{candidate_key}: MASTER_EVIDENCE_BANK_FILE_ID missing.')
         path = self.drive.download_named(p.master_evidence_bank_file_id, workdir)
-        return docx_text(path), path
+        text = docx_text(path)
+        if 'PLACEHOLDER' in text.upper() and 'DO NOT RUN AUTOMATION' in text.upper():
+            raise RuntimeError(f'{candidate_key}: Master Evidence Bank is a placeholder; verified candidate evidence is required before generation.')
+        return text, path
 
     def stage3(
         self,
@@ -330,5 +333,8 @@ class Sources:
                 if path not in paths:
                     paths.append(path)
 
+        helper = Path(__file__).with_name('template_editing.py')
+        if helper.is_file():
+            paths.append(helper)
         self.last_stage3_telemetry = source_telemetry(paths)
         return paths

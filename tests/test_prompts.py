@@ -57,3 +57,10 @@ def test_prompt3_missing_marker_fails_closed(tmp_path, monkeypatch):
     prompts = Prompts(FakeDrive('NO MARKER'), FakeSettings(), root_with_controls(tmp_path))
     with pytest.raises(RuntimeError, match='insertion marker'):
         prompts.read('abhishek', '#Prompt3.md', tmp_path / 'work')
+
+
+def test_pooja_original_prompt_accepts_jd_marker(tmp_path, monkeypatch):
+    monkeypatch.setenv('POOJA_PROMPT3_FILE_ID', 'p3')
+    prompts = Prompts(FakeDrive('START\n# Job Description\nEND'), FakeSettings(), root_with_controls(tmp_path))
+    result = prompts.read('pooja', '#Prompt3.md', tmp_path / 'work')
+    assert result.index('AUTOMATION CONTROLS') < result.index('# Job Description')
