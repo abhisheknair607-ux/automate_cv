@@ -112,6 +112,10 @@ class Freshmal:
             return False
 
     def eligible(self, a):
+        # Applied is a deliberate terminal status for either candidate, even if
+        # Make CV is still ticked or the saved output/checkpoint is missing.
+        if a.status.strip().casefold() == 'applied':
+            return False
         if not a.make_cv or a.complete():
             return False
 

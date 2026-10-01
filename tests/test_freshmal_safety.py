@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 
+import pytest
+
 from automate_cv.freshmal import Freshmal, retry_count
 from automate_cv.models import ApplicationRow
 from automate_cv.profiles import profiles
@@ -114,6 +116,29 @@ def test_fresh_lock_blocks_and_stale_lock_recovers():
 
 def test_complete_row_is_not_eligible():
     assert not sheet().eligible(app(status='CV', cv_link='drive-link'))
+
+
+@pytest.mark.parametrize('candidate_key', ['pooja', 'abhishek'])
+@pytest.mark.parametrize('status', ['Applied', 'APPLIED', ' applied '])
+@pytest.mark.parametrize('cv_link', ['', 'drive-link'])
+@pytest.mark.parametrize('workflow', ['', 'COMPLETE', 'ERROR_RETRYABLE_1', 'ERROR_MANUAL'])
+def test_applied_always_skips_checked_make_cv(candidate_key, status, cv_link, workflow):
+    assert not sheet().eligible(app(
+        candidate_key=candidate_key,
+        status=status,
+        cv_link=cv_link,
+        workflow=workflow,
+        make_cv=True,
+        make_cl=True,
+        web_search=True,
+    ))
+
+
+@pytest.mark.parametrize('candidate_key', ['pooja', 'abhishek'])
+def test_applied_skip_does_not_block_other_candidate_on_same_row(candidate_key):
+    other = 'abhishek' if candidate_key == 'pooja' else 'pooja'
+    assert not sheet().eligible(app(candidate_key=candidate_key, status='Applied'))
+    assert sheet().eligible(app(candidate_key=other, status='NA'))
 
 
 def test_profile_columns_are_independent():

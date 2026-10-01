@@ -32,9 +32,25 @@ The workflow is intentionally fail-closed: missing candidate configuration, chan
 
 ### Shared
 - A:D = company, designation, application link, raw job description
-- AG = optional Location used only for Drive folder naming
+- AG = optional Location used for Drive folder naming and ATS review prompts
+- AH = Pooja ATS Review Prompt (Google Sheets formula)
+- AI = Abhishek ATS Review Prompt (Google Sheets formula)
 
-Status dropdowns are `NA`, `CV`, `CV+CL`, `CV+CL+WS`, and `ERROR`.
+Status dropdowns are `NA`, `CV`, `CV+CL`, `CV+CL+WS`, `ERROR`, and `Applied`.
+
+`Applied` explicitly skips that candidate's work item even when **Make CV** is
+still ticked, with or without a saved CV link or checkpoint. The other candidate
+on the same row remains independent. To make an applied row eligible again,
+first change its status away from `Applied`; normal completion, lock and retry
+rules still apply.
+
+The ATS prompt columns use the row's company, designation, location, vacancy
+link, raw job description and candidate-specific CV link. They include each
+candidate's verified project folder for evidence-based gap review. Prompts stay
+blank until the candidate's CV link and job description are available; a blank
+location is labelled `Not specified`. Copy the resulting cell text into ChatGPT
+to request an estimated ATS match score and supported improvements. These
+formulas do not invoke OpenAI or start CV generation.
 
 Cover Letter and Web Search are independent optional controls. Web Search is invoked only when that candidate's Web Search checkbox is selected. When Web Search is selected without a Cover Letter, artifact status remains `CV`; the research setting is retained in audit/context information.
 
