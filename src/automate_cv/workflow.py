@@ -837,7 +837,7 @@ class Workflow:
                     'prompt1_hash': _hash(prompt1),
                     'prompt2_hash': _hash(prompt2),
                     'prompt3_hash': _hash(prompt3),
-                    'summary_hash': _hash(summary),
+                    'summary_hash': stage2_key['summary_hash'],
                     'master_evidence_hash': _hash(master_evidence),
                     'stage1_model': self.s.stage1_model,
                     'stage2_model': self.s.stage2_model,
