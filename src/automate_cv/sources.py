@@ -185,26 +185,49 @@ def _project_block(master_text, project_id):
     return '\n'.join(lines[start_index:end_index]).strip()
 
 
-def build_selected_evidence(master_text, stage2_handoff, output_path):
+def _explicit_evidence_block(master_text, evidence_id):
+    """Read a bounded candidate-owned record; never search legacy prose loosely."""
+    return _slice_exact(
+        master_text, f'EVIDENCE {evidence_id}', f'END EVIDENCE {evidence_id}'
+    )
+
+
+def build_selected_evidence(master_text, stage2_handoff, output_path, candidate_key=None):
     handoff = stage2_handoff_only(stage2_handoff)
     ids = selected_evidence_ids(handoff)
     if not ids:
         raise RuntimeError(
             'STAGE2_HANDOFF selected no evidence IDs; refusing to send the full Master Evidence Bank.'
         )
-    sections = [
-        ('CORE-CHRONOLOGY', _slice_exact(master_text, 'CAREER OVERVIEW', 'EXPERIENCE SCOPE AT A GLANCE')),
-        (
-            'CORE-CREDENTIALS',
-            _slice_exact(
-                master_text,
-                'EDUCATION, CREDENTIALS AND RECOGNITION',
-                'HOW THIS MASTER DOCUMENT SHOULD BE USED',
+    explicit_pooja = 'CANDIDATE KEY pooja' in str(master_text).splitlines()
+    if candidate_key == 'pooja' and not explicit_pooja:
+        raise RuntimeError('pooja: candidate-owned evidence bank marker missing.')
+    if candidate_key and candidate_key != 'pooja' and explicit_pooja:
+        raise RuntimeError('Candidate mismatch: Pooja evidence bank supplied to another profile.')
+    if explicit_pooja:
+        if any(not key.startswith(('PR-POOJA-', 'FIN-POOJA-')) for key in ids):
+            raise RuntimeError('Pooja handoff contains evidence IDs from another candidate.')
+        sections = [
+            ('CORE-CHRONOLOGY', _explicit_evidence_block(master_text, 'CORE-CHRONOLOGY')),
+            ('CORE-CREDENTIALS', _explicit_evidence_block(master_text, 'CORE-CREDENTIALS')),
+            ('CORE-GUARDRAILS', _explicit_evidence_block(master_text, 'CORE-GUARDRAILS')),
+        ]
+    else:
+        sections = [
+            ('CORE-CHRONOLOGY', _slice_exact(master_text, 'CAREER OVERVIEW', 'EXPERIENCE SCOPE AT A GLANCE')),
+            (
+                'CORE-CREDENTIALS',
+                _slice_exact(
+                    master_text,
+                    'EDUCATION, CREDENTIALS AND RECOGNITION',
+                    'HOW THIS MASTER DOCUMENT SHOULD BE USED',
+                ),
             ),
-        ),
-    ]
+        ]
     for evidence_id in ids:
-        if evidence_id.startswith('P') and evidence_id[1:].isdigit():
+        if explicit_pooja:
+            block = _explicit_evidence_block(master_text, evidence_id)
+        elif evidence_id.startswith('P') and evidence_id[1:].isdigit():
             block = _project_block(master_text, evidence_id)
         else:
             markers = _EVIDENCE_MARKERS.get(evidence_id)
@@ -291,6 +314,7 @@ class Sources:
             master_text,
             handoff,
             Path(workdir) / 'Selected_Evidence.md',
+            candidate_key=candidate_key,
         )
         self.last_selected_evidence_ids = selected_ids
         paths = [selected_path]
