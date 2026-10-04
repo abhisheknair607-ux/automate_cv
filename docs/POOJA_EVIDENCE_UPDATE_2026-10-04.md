@@ -31,3 +31,11 @@ The latest master controls current facts, while existing project contribution re
 - No paid OpenAI generation or scheduled production run was initiated by this update.
 
 Merge the source-selector changes before using the new Pooja bank in production. Then run connectivity-test and one controlled-cv-test on the branch or merged commit, choosing candidate `pooja` and a reviewed Freshmal row. Verify the final one-page CV and optional cover letter, current facts, Factual_QA.md, selected evidence and cost telemetry before enabling unattended processing. Repository variables and secrets were not modified or independently inspected in this update.
+
+## Final source audit
+
+Pooja's two reference CVs, cover-letter template and CV/cover-letter rules were still setup placeholders. They are now populated in place, and the older base CV was corrected for portfolio size, MSc completion and qualification status. Prior versions are backed up under Pooja Sources. The references render to one page, retain the candidate's actual employment chronology and use the existing CV layout. Cover-letter template fields are intentional job-specific inputs; final letters must contain no unfilled fields.
+
+The latest scheduled run (`37229206387`) shows every required Pooja source ID configured to the IDs above and the existing Pooja folder. Optional project folders remain unset; indexed project evidence is in the detailed bank. The run fails before reading sheet rows because the configured Google OAuth refresh token is expired or revoked (`invalid_grant`). This is a shared runtime authentication blocker, not a candidate-source issue. Restore the Google authorization through the repository's documented OAuth setup, then run connectivity and a single controlled Pooja generation before treating the checkbox workflow as operational. No secrets were changed by this source update.
+
+Fresh Maal was audited through row 1000: no Pooja CV or cover-letter requests were selected. Abhishek's sources, requests and saved outputs were left untouched. Local deterministic checks passed; a live Pooja CV generation remains unverified while authentication is blocked.
