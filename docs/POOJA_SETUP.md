@@ -25,6 +25,7 @@ Add the Drive file IDs for Pooja's own files:
 - POOJA_PROMPT2_FILE_ID
 - POOJA_PROMPT3_FILE_ID
 - POOJA_SUMMARY_DOC_FILE_ID
+- POOJA_MASTER_EVIDENCE_BANK_FILE_ID
 - POOJA_BASE_CV_FILE_ID
 - POOJA_CV_FORMATTING_MASTER_FILE_ID
 - POOJA_CV_COVER_LETTER_RULES_FILE_ID
@@ -62,6 +63,10 @@ Abhishek remains:
 7. Force an Abhishek error -> Abhishek state changes, while Pooja remains unaffected.
 8. Verify Drive outputs land under separate candidate roots.
 9. Verify run_manifest.json for each candidate contains that candidate's prompt/JD hashes only.
-10. Verify Factual_QA.md checks each final CV against that candidate's Summary Doc.
+10. Verify Factual_QA.md checks each final CV against that candidate's detailed Master Evidence Bank.
 
 Do not tick Pooja Make CV in production until all required Pooja file IDs are configured and the controlled Pooja test passes.
+
+## October 2026 evidence update
+
+See [the Pooja evidence update](POOJA_EVIDENCE_UPDATE_2026-10-04.md) for the additive Summary Doc, populated Master Evidence Bank, exact evidence keys and validation steps.
