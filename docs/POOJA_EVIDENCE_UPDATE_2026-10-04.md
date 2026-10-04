@@ -39,3 +39,12 @@ Pooja's two reference CVs, cover-letter template and CV/cover-letter rules were 
 The latest scheduled run (`37229206387`) shows every required Pooja source ID configured to the IDs above and the existing Pooja folder. Optional project folders remain unset; indexed project evidence is in the detailed bank. The run fails before reading sheet rows because the configured Google OAuth refresh token is expired or revoked (`invalid_grant`). This is a shared runtime authentication blocker, not a candidate-source issue. Restore the Google authorization through the repository's documented OAuth setup, then run connectivity and a single controlled Pooja generation before treating the checkbox workflow as operational. No secrets were changed by this source update.
 
 Fresh Maal was audited through row 1000: no Pooja CV or cover-letter requests were selected. Abhishek's sources, requests and saved outputs were left untouched. Local deterministic checks passed; a live Pooja CV generation remains unverified while authentication is blocked.
+
+## Live verification completed — 4 October 2026 UTC
+This section supersedes the earlier authentication-blocked activation status.
+The user replaced the Google OAuth refresh token manually. Run 37243051387 on merged commit 762293d94635e566c61815592b159f56821ed149 then read Fresh Maal successfully, with no eligible rows and no generation calls.
+A single Pooja CV was subsequently requested through Sheet1!E14 (Goldman Sachs Fund Controller Analyst). All selected Abhishek rows already had completed CVs and were skipped; their state was unchanged.
+The first attempt stopped because the combined analysis exhausted its output budget before completing STAGE2_HANDOFF. Pooja's Prompt 2 was backed up and extended with a compact output budget reserving space for the complete handoff. No Abhishek prompt changed.
+The retry completed successfully: row 14 Pooja status CV, workflow COMPLETE, output link saved in AB14, error cleared and lock released. The final CV was downloaded, checked for candidate isolation/current facts/unfilled placeholders, and rendered to one clean page.
+The advisory QA flags (5+ years, ACCA 7/13, phone number) were manually reconciled against the supplied chronology, credentials and contact details.
+CV-only checkbox generation is now verified. Cover-letter generation and web-search combinations were not exercised in this live test. Template fields in the cover-letter source remain intentional inputs that must be filled by generation.
