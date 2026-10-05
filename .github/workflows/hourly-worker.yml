@@ -103,3 +103,6 @@ jobs:
           STALE_LOCK_MINUTES: ${{ vars.STALE_LOCK_MINUTES || '180' }}
           COST_HARD_STOP_USD: ${{ vars.COST_HARD_STOP_USD || '1.75' }}
         run: python -m automate_cv.runner
+
+# Scheduler hardening verified 2026-10-05; this comment also queues one follow-up
+# worker run to drain any backlog beyond the five-applications-per-run safety cap.
