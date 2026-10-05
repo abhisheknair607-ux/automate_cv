@@ -2,7 +2,10 @@ name: hourly-cv-worker
 
 on:
   schedule:
-    - cron: '17 * * * *'
+    # GitHub scheduled events can be delayed or occasionally dropped. Three
+    # staggered checks per hour give Freshmal multiple chances to be picked up
+    # without changing the CV-generation or candidate-isolation logic.
+    - cron: '7,27,47 * * * *'
   workflow_dispatch:
 
 permissions:
@@ -13,7 +16,7 @@ jobs:
   worker:
     if: ${{ vars.AUTOMATION_ENABLED == 'true' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     concurrency:
       group: freshmal-hourly-worker
       cancel-in-progress: false
