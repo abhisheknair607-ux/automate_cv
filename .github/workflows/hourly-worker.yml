@@ -7,6 +7,12 @@ on:
     # without changing the CV-generation or candidate-isolation logic.
     - cron: '7,27,47 * * * *'
   workflow_dispatch:
+  # Self-test only: a scheduler/config edit on main runs the worker once so a
+  # broken workflow is visible immediately instead of waiting for the next cron.
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/hourly-worker.yml'
 
 permissions:
   contents: read
