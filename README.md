@@ -273,3 +273,18 @@ WIF identifiers, model routing settings and Drive file IDs are non-secret reposi
 - `docs/POOJA_SETUP.md` — Pooja source/configuration checklist
 - `docs/MASTER_PLAN.md` — original project architecture
 - `docs/SETUP.md` — infrastructure/setup notes
+
+
+## Abhishek AI + quantified-impact policy
+
+Abhishek's workflow now carries an additive candidate-specific policy through both evidence selection and final CV generation.
+
+- Applied AI, automation and financial-data capability are treated as a permanent secondary differentiator when verified by source evidence.
+- AI prominence remains JD-dependent: concise applied-AI/automation positioning for general finance roles; stronger emphasis for data, fintech, automation or AI-heavy roles.
+- The workflow does not automatically label Abhishek an "AI Expert"; stronger specialist wording is used only when the JD and verified evidence justify it.
+- Stage 2 explicitly preserves relevant AI/automation evidence and supported metrics for Stage 3 instead of losing them during compact handoff.
+- For Professional Experience, supported outcome metrics are preferred first, then useful scale/volume/team/client/jurisdiction metrics, then qualitative impact.
+- Where enough relevant verified figures exist, Stage 3 aims for roughly 60-80% of professional-experience bullets to contain a meaningful metric. This is a preference, not a quota; unsupported or decorative figures are prohibited.
+- Approximate figures, ranges and plus signs retain their source qualifiers. The workflow must never turn an approximate/ranged source value into a false exact value.
+- Existing STAR, two-line, one-page, evidence-ranking, seniority and deterministic factual-QA protections remain unchanged.
+- These rules are Abhishek-only and do not alter Pooja's evidence or CV-generation policy.
