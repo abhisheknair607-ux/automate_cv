@@ -238,7 +238,14 @@ class AI:
         return obj.model_dump() if hasattr(obj, 'model_dump') else json.loads(obj.json())
 
     def _generated_files(self, response):
+        """Recover Word files from citations OR the Code Interpreter container.
+
+        The model can print a sandbox link without attaching a file citation.
+        Listing only assistant-created DOCX files avoids reusing the uploaded
+        base CV, templates or other user-supplied documents as generated output.
+        """
         found = []
+        containers = set()
 
         def walk(x):
             if isinstance(x, dict):
@@ -247,13 +254,14 @@ class AI:
                     and x.get('container_id')
                     and x.get('file_id')
                 ):
-                    found.append(
-                        (
-                            x['container_id'],
-                            x['file_id'],
-                            x.get('filename') or f"{x['file_id']}.bin",
-                        )
-                    )
+                    containers.add(x['container_id'])
+                    found.append((
+                        x['container_id'],
+                        x['file_id'],
+                        x.get('filename') or f"{x['file_id']}.bin",
+                    ))
+                if x.get('type') == 'code_interpreter_call' and x.get('container_id'):
+                    containers.add(x['container_id'])
                 for value in x.values():
                     walk(value)
             elif isinstance(x, list):
@@ -261,7 +269,46 @@ class AI:
                     walk(value)
 
         walk(self._dict(response))
-        return list(dict.fromkeys(found))
+        for container_id in sorted(containers):
+            after = None
+            try:
+                while True:
+                    params = {'limit': 100}
+                    if after:
+                        params['after'] = after
+                    listing = self.http.get(
+                        f'/containers/{container_id}/files', params=params,
+                    )
+                    listing.raise_for_status()
+                    page = listing.json()
+                    entries = page.get('data') or []
+                    for entry in entries:
+                        path = entry.get('path') or ''
+                        if (
+                            entry.get('source') == 'assistant'
+                            and entry.get('id')
+                            and Path(path).suffix.lower() == '.docx'
+                        ):
+                            found.append((container_id, entry['id'], Path(path).name))
+                    if not page.get('has_more') or not entries:
+                        break
+                    after = entries[-1].get('id')
+                    if not after:
+                        break
+            except Exception as error:
+                # A listing problem must not discard already-cited Word files.
+                if not any(Path(name).suffix.lower() == '.docx' for _, _, name in found):
+                    raise
+                print(
+                    f'[openai] WARNING: container file listing unavailable: '
+                    f'{type(error).__name__}: {error}',
+                    flush=True,
+                )
+        # Prefer the original citation name if the same file is also listed.
+        unique = {}
+        for container_id, file_id, name in found:
+            unique.setdefault((container_id, file_id), (container_id, file_id, name))
+        return list(unique.values())
 
     def stage3(
         self,
@@ -295,17 +342,47 @@ class AI:
             }
             if max_output_tokens:
                 kwargs['max_output_tokens'] = max_output_tokens
-            response = self.client.responses.create(**kwargs)
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
-            artifacts = []
-            for container_id, file_id, filename in self._generated_files(response):
-                result = self.http.get(f'/containers/{container_id}/files/{file_id}/content')
-                result.raise_for_status()
-                target = output_dir / Path(filename).name
-                target.write_bytes(result.content)
-                artifacts.append(target)
-            return response.output_text, response, artifacts
+            responses = []
+            for attempt in range(2):
+                if attempt:
+                    # Retry only a missing Word artifact. Preserve the exact
+                    # JD, evidence and formatting instructions on both calls.
+                    kwargs['input'] = (
+                        user_input + '\n\nARTIFACT RETRY: The previous response returned '
+                        'no retrievable DOCX. Actually create the requested Word '
+                        'document(s) with Code Interpreter, save them in /mnt/data, '
+                        'and cite the real files. Do not claim success from a '
+                        'text-only sandbox link. Do not change candidate facts.'
+                    )
+                response = self.client.responses.create(**kwargs)
+                responses.append(response)
+                artifacts = []
+                for container_id, file_id, filename in self._generated_files(response):
+                    result = self.http.get(
+                        f'/containers/{container_id}/files/{file_id}/content'
+                    )
+                    result.raise_for_status()
+                    target = output_dir / Path(filename).name
+                    target.write_bytes(result.content)
+                    artifacts.append(target)
+                if any(path.suffix.lower() == '.docx' for path in artifacts):
+                    break
+                if attempt == 0:
+                    print(
+                        '[openai] Stage 3 returned no retrievable DOCX; '
+                        'retrying document generation once.',
+                        flush=True,
+                    )
+            combined = self._combined_text_response(responses, response.output_text)
+            if len(responses) > 1:
+                # Keep all tool calls in cost telemetry, including the first
+                # paid attempt that produced no Word document.
+                combined.output = [
+                    item for one in responses for item in (getattr(one, 'output', None) or [])
+                ]
+            return response.output_text, combined, artifacts
         finally:
             for file_id in ids:
                 try:
