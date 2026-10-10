@@ -105,6 +105,101 @@ seniority, STAR, ATS, one-page, formatting or source-verification rule.
 '''.strip()
 
 
+_POOJA_PARAPLANNING_STAR_ATS_CONTRACT = '''
+# Pooja Paraplanning, Seniority, STAR and ATS Addendum
+
+This is an additive candidate-specific rule set for Pooja only. It does not
+change Abhishek's prompts, evidence, files, routing or generation behavior.
+It supplements Pooja's verified/source-backed evidence and the latest facts
+explicitly confirmed by the candidate.
+
+## Newly confirmed paraplanning and financial-planning evidence
+Treat the following as candidate-confirmed evidence available for Pooja's
+Stage 2 evidence selection and Stage 3 CV tailoring. Use it only where relevant
+to the target JD and do not broaden it beyond the stated scope.
+
+J.P. Nugent / current Ireland financial-planning and mortgage-advisory work:
+- Performs paraplanning and financial-planning work within an Irish advisory
+  business, including client financial plans and cash-flow/scenario modelling.
+- Uses Voyant for cash-flow modelling.
+- Produces suitability reports and supports complex suitability-report work.
+- Reviews adviser recommendations for technical accuracy, suitability and
+  regulatory compliance and prepares client-meeting materials.
+- Works across DB and DC pensions, retirement planning, investments, protection,
+  estate planning, inheritance-tax planning and taxation/tax planning.
+- Acts as a technical point of reference for advisers/planning stakeholders,
+  liaises with financial providers, resolves technical queries and manages
+  multiple financial-planning cases independently.
+- Contributes to process improvement and paraplanning best practice while
+  coordinating advisers, providers, product/technology stakeholders and clients.
+- This is Ireland experience, not UK financial-advice-firm experience.
+
+Bajaj Capital / Wealth Manager evidence:
+- Performed paraplanning alongside wealth-management responsibilities, including
+  building financial plans and cash-flow analysis for private/HNW clients.
+- Produced complex suitability reports and reviewed recommendations for technical
+  accuracy and regulatory compliance.
+- Worked across DB and DC pensions, retirement planning, investments, protection,
+  estate planning, inheritance-tax planning, tax planning/taxation and client
+  meeting preparation.
+- Managed multiple client cases independently and maintained suitability/client
+  records and supporting documentation while coordinating advisory, operations
+  and product/provider stakeholders.
+
+## Explicit guardrails
+- Do not claim Pooja has worked in a UK financial advice firm; her directly
+  confirmed advisory experience is in Ireland and India.
+- Do not claim FCA-authorised advice, FCA sign-off or direct FCA-regulated work
+  unless a verified source explicitly supports it. Use "regulatory compliance",
+  "suitability reporting" and other truthful transferable wording instead.
+- Do not claim CII Level 6 Advanced Diploma, CURO or FE Analytics unless a later
+  verified source confirms them.
+- QFA and CFP must not be described as automatically equivalent to CII Level 6.
+- Voyant may be used because the candidate explicitly confirmed hands-on use.
+- Never invent experience, qualifications, software, metrics or regulatory
+  authority to satisfy an ATS target.
+
+## Manager-level professional-experience bullet standard
+- Every work-experience bullet must start with a strong action verb appropriate
+  to the candidate's demonstrated ownership/seniority, for example: Led,
+  Managed, Built, Designed, Developed, Directed, Delivered, Structured,
+  Evaluated, Reviewed, Advised, Coordinated, Mentored, Optimised or Implemented.
+- Do not start a bullet with a passive situation statement. Express the
+  situation/context after the opening action verb while retaining an integrated
+  STAR structure.
+- Every bullet must clearly contain Situation/Context + Task/Objective +
+  Action/Method + Result/Outcome in one flowing sentence.
+- End every professional-experience bullet with a supported quantitative result
+  where one exists; otherwise end with a concrete qualitative delivery outcome.
+- Prefer manager-level ownership language when supported, but never inflate a
+  title, reporting line, decision right or team responsibility beyond evidence.
+- Keep each final professional-experience bullet concise: target 25-30 words and
+  never exceed 30 words unless a locked formatting/source rule explicitly
+  requires otherwise.
+- Avoid weak openings such as "Responsible for", "Helped", "Worked on" or
+  situation-first phrasing when a stronger truthful action verb is available.
+
+## ATS keyword coverage standard for Pooja-generated CVs
+- For every Pooja CV requested from Fresh Maal, build a distinct relevant-JD
+  keyword inventory before drafting and target 85-100% truthful keyword coverage.
+- Prioritise exact JD wording in Profile, Experience and Skills where the
+  candidate's evidence supports the exact term; use close transferable wording
+  only when the exact term would overstate experience.
+- Critical and strongly preferred JD keywords should appear naturally in the CV
+  at least once when supported, with the strongest terms reinforced in evidence-
+  bearing experience bullets rather than keyword stuffing.
+- Re-check keyword coverage after drafting and use available truthful evidence to
+  close remaining gaps before finalising.
+- The 85% threshold is a factual-coverage target, not permission to fabricate.
+  If unsupported mandatory terms prevent 85% truthful coverage, do not invent
+  them: preserve factual accuracy, explicitly record the missing keywords/gaps,
+  and report the achieved coverage honestly.
+- Keep the CV ATS-friendly: conventional headings, plain text, no hidden keyword
+  stuffing, no unsupported synonyms presented as direct experience, and no
+  duplication that damages recruiter readability.
+'''.strip()
+
+
 class Prompts:
     def __init__(self,drive,settings,root): self.drive=drive; self.settings=settings; self.root=Path(root); self.cache={}; self.profiles=profiles()
     def _id(self,candidate_key,name):
@@ -124,12 +219,15 @@ class Prompts:
                 contract += '\n' + _ABHISHEK_AI_METRICS_CONTRACT + '\n'
             if candidate_key == 'pooja':
                 contract += '\nFor Pooja, use the exact PR-POOJA-* and FIN-POOJA-* evidence keys in the Summary Doc automation index. Read the October 2026 additions and current-fact precedence rules before using historical evidence. Do not emit Abhishek PR-EY, PR-TAXLINK or P01-P26 identifiers. Retain project classifications and contribution restrictions. The Summary Doc is preserved in full; its historical facts may be superseded by the additive update.\n'
+                contract += '\n\n' + _POOJA_PARAPLANNING_STAR_ATS_CONTRACT + '\n'
             return text+contract
         if name!='#Prompt3.md': return text
         text=optimize_formatting_prompt(text,candidate_key)
         controls=(self.root/'prompts'/'03_automation_controls.md').read_text(encoding='utf-8')
         if candidate_key == 'abhishek':
             controls += '\n\n' + _ABHISHEK_AI_METRICS_CONTRACT
+        if candidate_key == 'pooja':
+            controls += '\n\n' + _POOJA_PARAPLANNING_STAR_ATS_CONTRACT
         marker='# Authoritative Inputs and Stage Handoff'; pos=text.find(marker)
         if pos<0 and candidate_key=='pooja':
             # Pooja's original production prompt starts at the JD section.
