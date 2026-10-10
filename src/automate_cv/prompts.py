@@ -161,9 +161,18 @@ Bajaj Capital / Wealth Manager evidence:
 
 ## Manager-level professional-experience bullet standard
 - Every work-experience bullet must start with a strong action verb appropriate
-  to the candidate's demonstrated ownership/seniority, for example: Led,
-  Managed, Built, Designed, Developed, Directed, Delivered, Structured,
-  Evaluated, Reviewed, Advised, Coordinated, Mentored, Optimised or Implemented.
+  to the candidate's demonstrated ownership, seniority and the specific JD.
+  The examples below are illustrative only, not a fixed or exhaustive list:
+  Led, Managed, Built, Designed, Developed, Directed, Delivered, Structured,
+  Evaluated, Reviewed, Advised, Coordinated, Mentored, Optimised, Implemented,
+  Spearheaded, Orchestrated, Governed, Transformed, Strengthened, Streamlined,
+  Established, Oversaw, Drove, Executed, Shaped, Advanced, Integrated, Resolved,
+  Negotiated, Guided, Prioritised, Improved, Standardised, Mobilised, Enabled,
+  Reengineered, Consolidated, Assessed, Analysed, Facilitated and Championed.
+- Select the strongest precise verb that accurately reflects the actual task and
+  level of ownership. Vary openings across bullets so the CV does not read as
+  repetitive or formulaic, and use additional senior action verbs beyond these
+  examples whenever the verified evidence and JD make them more appropriate.
 - Do not start a bullet with a passive situation statement. Express the
   situation/context after the opening action verb while retaining an integrated
   STAR structure.
