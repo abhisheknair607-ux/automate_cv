@@ -169,7 +169,7 @@ right tabs, date alignment and one-page layout.
 
 EDUCATION
 - MSc Finance, University College Dublin (UCD), Ireland (2:1) — Aug 2025 to Sep 2026
-- Masters in Economics, Mumbai University (3.8/4) — May 2024
+- Masters in Economics, Mumbai University (3.2/4) — May 2024
 - Bachelor of Commerce (Financial Markets), K.J. Somaiya College, India (GPA 3.9/4) — May 2020
 
 CERTIFICATIONS
@@ -187,9 +187,17 @@ ACHIEVEMENTS: 2025-2026
 - Advantage Award | Global Leadership Professional Program Award | McKinsey Forward Award
 
 Rendering rules for these locked sections:
-- Keep the four-section flow exactly: EDUCATION -> CERTIFICATIONS ->
-  VOLUNTEERING AND ACHIEVEMENTS, with VOLUNTEER and ACHIEVEMENTS as the existing
-  in-section labels.
+- Keep the overall post-experience flow exactly: EDUCATION -> SKILLS ->
+  CERTIFICATIONS -> VOLUNTEERING AND ACHIEVEMENTS, with VOLUNTEER and
+  ACHIEVEMENTS as the existing in-section labels.
+- SKILLS is the only dynamic section within this post-experience flow. Build it
+  separately for every job description from the employer's critical and strongly
+  preferred requirements plus verified Pooja evidence. Retain only relevant,
+  truthful skills; add supported missing JD keywords where useful; remove generic
+  or low-value skills when space is limited. Do not lock one universal skills
+  list across applications.
+- Place SKILLS immediately after EDUCATION and before CERTIFICATIONS in every
+  Pooja CV. Do not move it above Education even when the JD is highly technical.
 - Use the Pooja master template's existing paragraph/run prototypes and right-tab
   stops for dates/status. Do not align dates with manual spaces.
 - Keep education/certification/volunteer entries on their existing line pattern
