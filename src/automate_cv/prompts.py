@@ -159,6 +159,53 @@ Bajaj Capital / Wealth Manager evidence:
 - Never invent experience, qualifications, software, metrics or regulatory
   authority to satisfy an ATS target.
 
+## Locked Pooja supporting sections
+These sections are identity/background records, not tailoring space. Preserve the
+exact section order, entry order and factual wording below in every Pooja CV.
+Do not rewrite, rename, merge, rank, remove or add entries for ATS purposes unless
+the user later supplies an explicit replacement. The repository's Pooja
+Formatting Master still controls font, bolding, line spacing, paragraph spacing,
+right tabs, date alignment and one-page layout.
+
+EDUCATION
+- MSc Finance, University College Dublin (UCD), Ireland (2:1) — Aug 2025 to Sep 2026
+- Masters in Economics, Mumbai University (3.8/4) — May 2024
+- Bachelor of Commerce (Financial Markets), K.J. Somaiya College, India (GPA 3.9/4) — May 2020
+
+CERTIFICATIONS
+- Qualified Financial Adviser (QFA), Ireland and Certified Financial Planner (CFP), Global — Completed
+- Chartered Financial Analyst (CFA) - Pursuing
+
+VOLUNTEERING AND ACHIEVEMENTS
+VOLUNTEER:
+- Finance Director - Rotaract Club of Great Britain and Dublin. — Current to Jul 2027
+- Operations and Social Media Executive - Ireland and Indian Business Association (IIBA). — Feb 2026 to Current
+
+ACHIEVEMENTS: 2025-2026
+- 1st Place - Accenture Competition (Ireland)
+- 3rd Place - UNA Europa Sustainability Challenge | RSM AI Case Competition | Start-Up Competition
+- Advantage Award | Global Leadership Professional Program Award | McKinsey Forward Award
+
+Rendering rules for these locked sections:
+- Keep the four-section flow exactly: EDUCATION -> CERTIFICATIONS ->
+  VOLUNTEERING AND ACHIEVEMENTS, with VOLUNTEER and ACHIEVEMENTS as the existing
+  in-section labels.
+- Use the Pooja master template's existing paragraph/run prototypes and right-tab
+  stops for dates/status. Do not align dates with manual spaces.
+- Keep education/certification/volunteer entries on their existing line pattern
+  and achievements on the same compact line pattern shown by the master.
+- Do not convert these entries into bullets, narrative prose, a table, a separate
+  Awards section or an Additional Information section.
+- Do not move achievements into Experience, Profile or Skills and do not change
+  competition placements or award names to sound more senior.
+- Do not add ACCA, other qualifications, other volunteering or other awards into
+  these locked sections unless the user explicitly updates this lock later.
+- Before finalising any Pooja CV, compare these supporting sections line-by-line
+  against this lock and correct any wording, order, date/status or grouping drift.
+- ATS optimisation must be achieved primarily through Profile, Experience and
+  Skills; never alter these locked supporting sections merely to increase keyword
+  coverage.
+
 ## Manager-level professional-experience bullet standard
 - Every work-experience bullet must start with a clear, natural action verb that
   reflects the candidate's actual ownership and seniority. Prefer normal human
