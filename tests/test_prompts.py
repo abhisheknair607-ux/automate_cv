@@ -110,6 +110,7 @@ def test_abhishek_metric_policy_preserves_strong_non_quantified_evidence(tmp_pat
     assert 'Relevance and factual strength always outrank numeric density' in stage2
 
     stage3_text = 'START\n# Authoritative Inputs and Stage Handoff\nEND'
+    (tmp_path / 'root3').mkdir()
     stage3_prompts = Prompts(FakeDrive(stage3_text), FakeSettings(), root_with_controls(tmp_path / 'root3'))
     stage3 = stage3_prompts.read('abhishek', '#Prompt3.md', tmp_path / 'work3')
     assert 'absence of a metric is never, by itself, a reason to' in stage3
