@@ -95,3 +95,22 @@ def test_pooja_prompt3_does_not_receive_abhishek_ai_metric_addendum(tmp_path, mo
     prompts = Prompts(FakeDrive('START\n# Job Description\nEND'), FakeSettings(), root_with_controls(tmp_path))
     result = prompts.read('pooja', '#Prompt3.md', tmp_path / 'work')
     assert 'Abhishek AI, Automation and Quantified-Impact Addendum' not in result
+
+
+def test_abhishek_metric_policy_preserves_strong_non_quantified_evidence(tmp_path, monkeypatch):
+    monkeypatch.setenv('PROMPT1_FILE_ID', 'p1')
+    monkeypatch.setenv('PROMPT2_FILE_ID', 'p2')
+    monkeypatch.setenv('PROMPT3_FILE_ID', 'p3')
+    prompts = Prompts(FakeDrive('STAGE 2 BASE'), FakeSettings(), root_with_controls(tmp_path))
+
+    stage2 = prompts.read('abhishek', '#Prompt2.md', tmp_path / 'work2')
+    assert 'Numbers are an enhancement, not an eligibility requirement' in stage2
+    assert 'Quantification is a tie-breaker or strengthening factor only' in stage2
+    assert 'supported_metrics is empty' in stage2
+    assert 'Relevance and factual strength always outrank numeric density' in stage2
+
+    stage3_text = 'START\n# Authoritative Inputs and Stage Handoff\nEND'
+    stage3_prompts = Prompts(FakeDrive(stage3_text), FakeSettings(), root_with_controls(tmp_path / 'root3'))
+    stage3 = stage3_prompts.read('abhishek', '#Prompt3.md', tmp_path / 'work3')
+    assert 'absence of a metric is never, by itself, a reason to' in stage3
+    assert 'drop a selected fact from the CV' in stage3
