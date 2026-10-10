@@ -160,52 +160,80 @@ Bajaj Capital / Wealth Manager evidence:
   authority to satisfy an ATS target.
 
 ## Manager-level professional-experience bullet standard
-- Every work-experience bullet must start with a strong action verb appropriate
-  to the candidate's demonstrated ownership, seniority and the specific JD.
-  The examples below are illustrative only, not a fixed or exhaustive list:
-  Led, Managed, Built, Designed, Developed, Directed, Delivered, Structured,
-  Evaluated, Reviewed, Advised, Coordinated, Mentored, Optimised, Implemented,
-  Spearheaded, Orchestrated, Governed, Transformed, Strengthened, Streamlined,
-  Established, Oversaw, Drove, Executed, Shaped, Advanced, Integrated, Resolved,
-  Negotiated, Guided, Prioritised, Improved, Standardised, Mobilised, Enabled,
-  Reengineered, Consolidated, Assessed, Analysed, Facilitated and Championed.
-- Select the strongest precise verb that accurately reflects the actual task and
-  level of ownership. Vary openings across bullets so the CV does not read as
-  repetitive or formulaic, and use additional senior action verbs beyond these
-  examples whenever the verified evidence and JD make them more appropriate.
-- Do not start a bullet with a passive situation statement. Express the
-  situation/context after the opening action verb while retaining an integrated
-  STAR structure.
-- Every bullet must clearly contain Situation/Context + Task/Objective +
-  Action/Method + Result/Outcome in one flowing sentence.
+- Every work-experience bullet must start with a clear, natural action verb that
+  reflects the candidate's actual ownership and seniority. Prefer normal human
+  CV language such as Led, Managed, Built, Designed, Developed, Delivered,
+  Reviewed, Advised, Mentored, Implemented, Coordinated, Analysed, Evaluated,
+  Improved, Resolved, Prepared, Produced, Oversaw, Strengthened or Streamlined.
+- Do not use inflated, theatrical or obviously AI-style verbs such as
+  "Orchestrated", "Spearheaded", "Championed" or similarly artificial wording
+  merely to make a bullet sound senior. Seniority must come from the scope,
+  decision-making, stakeholders, complexity and result, not from exaggerated
+  vocabulary.
+- Select the simplest strong verb that accurately describes the work. Vary
+  openings naturally, but never force unusual synonyms just to avoid repetition.
+  A familiar verb may be reused when it is genuinely the clearest description.
+- Write in concise, professional, human-sounding English. Avoid generic AI
+  phrasing, buzzword chains, over-polished corporate language, unnecessary
+  adjectives, repeated sentence templates and keyword lists disguised as prose.
+- Do not start a bullet with a passive situation statement. Put the action first,
+  then incorporate Situation/Context + Task/Objective + Action/Method +
+  Result/Outcome naturally within one flowing sentence.
+- Every bullet must clearly communicate STAR substance without labelling the
+  components or making the sentence sound formulaic.
 - End every professional-experience bullet with a supported quantitative result
-  where one exists; otherwise end with a concrete qualitative delivery outcome.
+  where one exists; otherwise end with a specific, credible qualitative outcome.
 - Prefer manager-level ownership language when supported, but never inflate a
-  title, reporting line, decision right or team responsibility beyond evidence.
+  title, reporting line, decision right, team responsibility or strategic scope.
 - Keep each final professional-experience bullet concise: target 25-30 words and
   never exceed 30 words unless a locked formatting/source rule explicitly
   requires otherwise.
-- Avoid weak openings such as "Responsible for", "Helped", "Worked on" or
-  situation-first phrasing when a stronger truthful action verb is available.
+- Avoid weak openings such as "Responsible for", "Helped" or "Worked on" when a
+  more direct and truthful action verb is available.
 
-## ATS keyword coverage standard for Pooja-generated CVs
-- For every Pooja CV requested from Fresh Maal, build a distinct relevant-JD
-  keyword inventory before drafting and target 85-100% truthful keyword coverage.
-- Prioritise exact JD wording in Profile, Experience and Skills where the
-  candidate's evidence supports the exact term; use close transferable wording
-  only when the exact term would overstate experience.
-- Critical and strongly preferred JD keywords should appear naturally in the CV
-  at least once when supported, with the strongest terms reinforced in evidence-
-  bearing experience bullets rather than keyword stuffing.
-- Re-check keyword coverage after drafting and use available truthful evidence to
-  close remaining gaps before finalising.
+## ATS, recruiter-fit and gap-closure standard for Pooja-generated CVs
+- For every Pooja CV requested from Fresh Maal, build a distinct JD keyword and
+  requirement inventory before drafting and target 85-100% truthful keyword
+  coverage.
+- Classify requirements into critical/mandatory, strongly preferred and
+  secondary. Map each requirement to verified Pooja evidence before deciding
+  where it belongs in Profile, Experience, Skills, Education or Certifications.
+- Prioritise exact JD wording where the evidence supports the exact term. Use
+  close transferable wording only when the exact phrase would overstate the
+  candidate's experience.
+- After the first draft, run a second gap pass. For every uncovered or weak JD
+  requirement, check all available Pooja evidence again and close the gap when
+  it is genuinely within the candidate's experience by adding or repositioning
+  concise keywords, evidence or skills.
+- Do not leave a controllable keyword gap merely because the first draft omitted
+  it. If a supported keyword can be added naturally without weakening readability
+  or factual accuracy, add it before finalising.
+- Critical and strongly preferred keywords should appear naturally at least once
+  when supported, with the most important terms evidenced in work-experience
+  bullets rather than only placed in Skills.
+- Do not keyword-stuff. Remove duplicated, awkward or low-value wording when the
+  same ATS coverage can be achieved more naturally elsewhere in the CV.
 - The 85% threshold is a factual-coverage target, not permission to fabricate.
-  If unsupported mandatory terms prevent 85% truthful coverage, do not invent
-  them: preserve factual accuracy, explicitly record the missing keywords/gaps,
-  and report the achieved coverage honestly.
-- Keep the CV ATS-friendly: conventional headings, plain text, no hidden keyword
-  stuffing, no unsupported synonyms presented as direct experience, and no
-  duplication that damages recruiter readability.
+  If unsupported mandatory terms prevent 85% truthful coverage, preserve factual
+  accuracy, explicitly record the unresolved gaps and report the achieved
+  coverage honestly rather than inventing experience.
+- Before finalising, perform a recruiter-fit review as well as the ATS check:
+  confirm the opening profile matches the target role and seniority; the first
+  bullets show the strongest relevant evidence; managerial ownership is visible;
+  achievements/results are credible; terminology is natural; chronology and
+  titles remain accurate; and the CV reads like a strong human-written
+  application rather than an ATS keyword document.
+- Check for repetitive verbs, repeated metrics, duplicated responsibilities,
+  weak filler bullets, unsupported claims, awkward grammar, excessive jargon and
+  unnatural phrasing. Rewrite any such issue before finalisation.
+- Preserve all existing factual QA, source-verification, one-page/rendering,
+  formatting, evidence-selection and candidate-isolation checks. ATS optimisation
+  and recruiter fit must never override factual support or verified source
+  boundaries.
+- Final objective: maximise truthful ATS coverage and recruiter relevance
+  simultaneously. A Pooja CV should not be marked final until all controllable
+  JD gaps have been addressed and the remaining gaps are genuinely unsupported
+  or outside the candidate's experience.
 '''.strip()
 
 
