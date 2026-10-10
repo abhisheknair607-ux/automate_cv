@@ -107,3 +107,4 @@ jobs:
 # Scheduler hardening verified 2026-10-05; this comment also queues one follow-up
 # worker run to drain any backlog beyond the five-applications-per-run safety cap.
 # One-time self-test trigger: 2026-10-10 Stage 3 DOCX recovery deployed; drain rechecked Fresh Maal queue.
+# Second bounded drain for the remaining Fresh Maal items (MAX_APPLICATIONS_PER_RUN=5).
