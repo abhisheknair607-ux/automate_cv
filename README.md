@@ -288,3 +288,15 @@ Abhishek's workflow now carries an additive candidate-specific policy through bo
 - Approximate figures, ranges and plus signs retain their source qualifiers. The workflow must never turn an approximate/ranged source value into a false exact value.
 - Existing STAR, two-line, one-page, evidence-ranking, seniority and deterministic factual-QA protections remain unchanged.
 - These rules are Abhishek-only and do not alter Pooja's evidence or CV-generation policy.
+
+
+### Non-quantified evidence safeguard
+
+The quantified-impact preference does not make numbers mandatory. Strong JD-aligned
+professional evidence remains eligible and may outrank quantified evidence when it
+has better relevance, ownership, seniority fit, technical depth, stakeholder value
+or distinctiveness. Quantification is used as a strengthening factor or tie-breaker,
+not as a selection gate. If a strong fact has no verified number, the workflow must
+use the strongest specific supported qualitative result rather than omit or suppress
+that evidence merely to increase numeric density. The 60-80% target is therefore
+subordinate to evidence quality and may legitimately be lower for a particular CV.
