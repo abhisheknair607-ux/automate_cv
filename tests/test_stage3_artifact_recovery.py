@@ -108,6 +108,21 @@ def test_cited_file_is_downloaded_without_duplication(tmp_path):
     assert artifacts[0].name == 'tailored_CV.docx'
 
 
+
+def test_uncited_real_filename_overrides_generic_file_citation_name():
+    citation = {'type': 'container_file_citation', 'container_id': 'cntr_1',
+                'file_id': 'word-file', 'filename': 'word-file.bin'}
+    output = ci_output() + [{'type': 'message',
+                             'content': [{'annotations': [citation]}]}]
+    pages = {None: {'data': [{'id': 'word-file', 'source': 'assistant',
+                              'path': '/mnt/data/real_CV.docx'}],
+                    'has_more': False}}
+    ai, _ = build_ai([], pages)
+    assert ai._generated_files(Response(output)) == [
+        ('cntr_1', 'word-file', 'real_CV.docx')
+    ]
+
+
 def test_missing_docx_triggers_one_retry_with_unchanged_rules_and_counted_usage(tmp_path):
     pages = {None: {'data': [{'id': 'generated', 'source': 'assistant',
                               'path': '/mnt/data/tailored_CV.docx'}],
