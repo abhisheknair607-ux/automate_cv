@@ -153,10 +153,14 @@ the page. Check table/cell boundaries only if genuinely present in the source.
 _POOJA_FORMATTING = '''
 ### Pooja locked master properties
 Use a duplicate of Pooja Tirupati K (2).docx, preserving the locked order:
-PERSONAL PROFILE, EXPERIENCE, SKILLS, EDUCATION, CERTIFICATIONS,
+PERSONAL PROFILE, EXPERIENCE, EDUCATION, SKILLS, CERTIFICATIONS,
 VOLUNTEERING AND ACHIEVEMENTS. No standalone Projects section unless explicitly
 authorised. Projects remain available for evidence analysis, cover letters and
-interviews. Her master overrides all generic High/Lower/dynamic-spacing advice.
+interviews. SKILLS is job-description-specific content: select and order only
+truthful, verified skills that materially match the target role, prioritising
+critical and strongly preferred JD terms and removing low-value generic skills
+when space is constrained. Keep SKILLS immediately after EDUCATION and before
+CERTIFICATIONS. Her master overrides all generic High/Lower/dynamic-spacing advice.
 A4, margins top/bottom .67 cm and left/right 1.20 cm; preserve header/footer
 distance 1.25 cm. Calibri 10 pt body; name 14 pt bold centred #1F3864;
 contact centred black, LinkedIn 10 pt underlined #1155CC. Headings 11 pt bold
