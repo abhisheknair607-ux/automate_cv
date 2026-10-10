@@ -304,10 +304,17 @@ class AI:
                     f'{type(error).__name__}: {error}',
                     flush=True,
                 )
-        # Prefer the original citation name if the same file is also listed.
+        # Deduplicate citations/listings but retain the real DOCX name when
+        # a citation supplies only a generic file ID or .bin placeholder.
         unique = {}
         for container_id, file_id, name in found:
-            unique.setdefault((container_id, file_id), (container_id, file_id, name))
+            key = (container_id, file_id)
+            prior = unique.get(key)
+            if prior is None or (
+                Path(prior[2]).suffix.lower() != '.docx'
+                and Path(name).suffix.lower() == '.docx'
+            ):
+                unique[key] = (container_id, file_id, name)
         return list(unique.values())
 
     def stage3(
