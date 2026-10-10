@@ -50,6 +50,30 @@ seniority, STAR, ATS, one-page, formatting or source-verification rule.
   selected_professional_evidence.supported_metrics and should flag any high-value
   metric or AI/automation evidence that Stage 3 must verify before use.
 
+## Non-quantified evidence protection
+- Numbers are an enhancement, not an eligibility requirement. Never exclude,
+  materially down-rank or underuse a strong fact merely because the source does
+  not contain a numeric result.
+- Select evidence primarily on JD relevance, strength, ownership, credibility,
+  seniority fit and distinctiveness. Quantification is a tie-breaker or
+  strengthening factor only after those criteria; it must not become a gate.
+- A directly relevant responsibility, specialist capability, complex assignment,
+  stakeholder/client exposure, leadership example, regulatory/technical task or
+  demonstrable achievement may be one of the strongest CV bullets even when its
+  result is qualitative.
+- Where a strong fact has no verified number, write the strongest specific and
+  truthful qualitative result supported by the source rather than omitting the
+  fact, weakening it, or substituting a less relevant quantified example.
+- Do not distort evidence mix to satisfy the 60-80% quantified-bullet preference.
+  If the best JD-aligned evidence produces a lower numeric share, keep the better
+  evidence. Relevance and factual strength always outrank numeric density.
+- Stage 2 must preserve high-value non-quantified professional evidence in the
+  handoff when it is important to a Critical or Strongly Preferred requirement,
+  even if supported_metrics is empty.
+- Stage 3 must review both quantified and non-quantified selected evidence before
+  deciding final bullets; absence of a metric is never, by itself, a reason to
+  drop a selected fact from the CV.
+
 ## Final CV generation
 - In Abhishek's Professional Experience, make measurable impact and scale more
   visible. Where the verified evidence genuinely supports enough figures, aim
