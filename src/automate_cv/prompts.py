@@ -54,6 +54,8 @@ seniority, STAR, ATS, one-page, formatting or source-verification rule.
 - Numbers are an enhancement, not an eligibility requirement. Never exclude,
   materially down-rank or underuse a strong fact merely because the source does
   not contain a numeric result.
+- Quantification is a tie-breaker or strengthening factor only; it never
+  overrides a more relevant, stronger or better-owned piece of evidence.
 - Select evidence primarily on JD relevance, strength, ownership, credibility,
   seniority fit and distinctiveness. Quantification is a tie-breaker or
   strengthening factor only after those criteria; it must not become a gate.
