@@ -1,0 +1,75 @@
+name: Rank Jobs - Fresh Maal
+
+on:
+  workflow_dispatch:
+    inputs:
+      candidate:
+        description: "Which candidate to score?"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - both
+          - abhishek
+          - pooja
+      max_jobs:
+        description: "Maximum unscored jobs PER candidate (1-50)"
+        required: true
+        default: "10"
+        type: string
+      selected_only:
+        description: "Only score jobs ticked under the person's Select Jobs column"
+        required: true
+        default: false
+        type: boolean
+      refresh:
+        description: "Recalculate existing scores instead of skipping them"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  rank-jobs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    concurrency:
+      group: freshmaal-ranking-manual
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Authenticate Google
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - name: Score and update Fresh Maal
+        env:
+          PYTHONPATH: src
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          RANK_MODEL: ${{ vars.RANK_MODEL || 'gpt-5.6-terra' }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID }}
+          FRESHMAL_SHEET_NAME: ${{ vars.FRESHMAL_SHEET_NAME || 'Sheet1' }}
+          SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID }}
+          POOJA_SUMMARY_DOC_FILE_ID: ${{ vars.POOJA_SUMMARY_DOC_FILE_ID }}
+          RANK_CANDIDATE: ${{ inputs.candidate }}
+          RANK_MAX_JOBS: ${{ inputs.max_jobs }}
+          RANK_SELECTED_ONLY: ${{ inputs.selected_only }}
+          RANK_REFRESH: ${{ inputs.refresh }}
+        run: |
+          ARGS=(--candidate "$RANK_CANDIDATE" --max-jobs "$RANK_MAX_JOBS")
+          if [ "$RANK_SELECTED_ONLY" = "true" ]; then ARGS+=(--selected-only); fi
+          if [ "$RANK_REFRESH" = "true" ]; then ARGS+=(--refresh); fi
+          python -m automate_cv.rank_jobs "${ARGS[@]}"
