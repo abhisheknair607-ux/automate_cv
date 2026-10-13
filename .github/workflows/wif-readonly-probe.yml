@@ -32,6 +32,20 @@ jobs:
       - name: Verify spreadsheets and Drive sources without stale OAuth secret
         env:
           FRESHMAL_SPREADSHEET_ID: ${{ vars.FRESHMAL_SPREADSHEET_ID }}
+          POOJA_SUMMARY_DOC_FILE_ID: ${{ vars.POOJA_SUMMARY_DOC_FILE_ID }}
+          POOJA_PROMPT1_FILE_ID: ${{ vars.POOJA_PROMPT1_FILE_ID }}
+          POOJA_PROMPT2_FILE_ID: ${{ vars.POOJA_PROMPT2_FILE_ID }}
+          POOJA_PROMPT3_FILE_ID: ${{ vars.POOJA_PROMPT3_FILE_ID }}
+          POOJA_MASTER_EVIDENCE_BANK_FILE_ID: ${{ vars.POOJA_MASTER_EVIDENCE_BANK_FILE_ID }}
+          POOJA_BASE_CV_FILE_ID: ${{ vars.POOJA_BASE_CV_FILE_ID }}
+          POOJA_CV_FORMATTING_MASTER_FILE_ID: ${{ vars.POOJA_CV_FORMATTING_MASTER_FILE_ID }}
+          POOJA_CV_COVER_LETTER_RULES_FILE_ID: ${{ vars.POOJA_CV_COVER_LETTER_RULES_FILE_ID }}
+          POOJA_COVER_LETTER_TEMPLATE_FILE_ID: ${{ vars.POOJA_COVER_LETTER_TEMPLATE_FILE_ID }}
+          PROMPT2_FILE_ID: ${{ vars.PROMPT2_FILE_ID }}
+          PROMPT3_FILE_ID: ${{ vars.PROMPT3_FILE_ID }}
+          MASTER_EVIDENCE_BANK_FILE_ID: ${{ vars.MASTER_EVIDENCE_BANK_FILE_ID }}
+          BASE_CV_FILE_ID: ${{ vars.BASE_CV_FILE_ID }}
+          CV_FORMATTING_MASTER_FILE_ID: ${{ vars.CV_FORMATTING_MASTER_FILE_ID }}
           SUMMARY_DOC_FILE_ID: ${{ vars.SUMMARY_DOC_FILE_ID }}
           PROMPT1_FILE_ID: ${{ vars.PROMPT1_FILE_ID }}
           DRIVE_OUTPUT_FOLDER_ID: ${{ vars.DRIVE_OUTPUT_FOLDER_ID }}
@@ -58,7 +72,15 @@ jobs:
               fields='spreadsheetId,sheets.properties.title'
           ).execute()
           print('SHEETS_READ_OK:', sorted(s['properties']['title'] for s in m['sheets']))
-          for key in ('SUMMARY_DOC_FILE_ID', 'PROMPT1_FILE_ID', 'DRIVE_OUTPUT_FOLDER_ID'):
+          for key in (
+              'SUMMARY_DOC_FILE_ID', 'PROMPT1_FILE_ID', 'PROMPT2_FILE_ID', 'PROMPT3_FILE_ID',
+              'MASTER_EVIDENCE_BANK_FILE_ID', 'BASE_CV_FILE_ID',
+              'CV_FORMATTING_MASTER_FILE_ID', 'DRIVE_OUTPUT_FOLDER_ID',
+              'POOJA_SUMMARY_DOC_FILE_ID', 'POOJA_PROMPT1_FILE_ID', 'POOJA_PROMPT2_FILE_ID',
+              'POOJA_PROMPT3_FILE_ID', 'POOJA_MASTER_EVIDENCE_BANK_FILE_ID',
+              'POOJA_BASE_CV_FILE_ID', 'POOJA_CV_FORMATTING_MASTER_FILE_ID',
+              'POOJA_CV_COVER_LETTER_RULES_FILE_ID', 'POOJA_COVER_LETTER_TEMPLATE_FILE_ID',
+          ):
               file_id = os.environ[key]
               if not file_id:
                   raise RuntimeError(key + ' is missing')
