@@ -1,6 +1,7 @@
 /**
  * Freshmaal Job Control Centre — standalone overlay.
- * No changes are made to the existing Sheets schema, GitHub CV worker,
+ * The only schema additions are candidate-specific Not Interested flags (Taaza N/O, Freshmaal AT/AU).
+ * No changes to GitHub CV worker,
  * API model prompts, or Taaza discovery scraper.
  *
  * DEPLOYMENT: Google Apps Script Web app -> Execute as 'User accessing the web app'.
@@ -14,11 +15,14 @@ const SETTINGS = Object.freeze({
   maxPageSize: 50, maxBulk: 20, maxJD: 49000,
   maxFreshRow: 1000
 });
+// Persistent per-candidate rejection flags in the existing sheet tabs.
+// Taaza N/O (no extra tab); Freshmaal AT/AU (after model tier AR/AS).
+const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42,
-             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, lock:16},
+             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, lock:16, notInterested:46},
   Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43,
-          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, lock:26}
+          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, lock:26, notInterested:47}
 });
 
 function doGet() {
@@ -104,11 +108,13 @@ function taazaRows_() {
   if (!count) return [];
   const left=sh.getRange(2,1,count,4).getValues();
   const right=sh.getRange(2,5,count,9).getValues();
+  const reject=sh.getRange(2,14,count,2).getValues();
   return left.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
     url:String(a[2]||''),jd:String(a[3]||''),location:String(right[i][0]||''),
     posted:String(right[i][1]||''),deadline:String(right[i][2]||''),start:String(right[i][3]||''),
     added:String(right[i][4]||''),salary:String(right[i][5]||''),
-    sendFlag:truthy_(right[i][6]),transferStatus:String(right[i][7]||''),source:String(right[i][8]||'')}))
+    sendFlag:truthy_(right[i][6]),transferStatus:String(right[i][7]||''),source:String(right[i][8]||''),
+    notInterested:{Abhishek:truthy_(reject[i][0]),Pooja:truthy_(reject[i][1])}}))
     .filter(x=>x.company || x.role || x.url);
 }
 function freshRows_() {
@@ -117,7 +123,7 @@ function freshRows_() {
   const first=sh.getRange(3,1,count,3).getValues();
   const checks=sh.getRange(3,5,count,8).getValues();
   const stages=sh.getRange(3,13,count,20).getValues();
-  const last=sh.getRange(3,33,count,13).getValues();
+  const last=sh.getRange(3,33,count,15).getValues();
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -128,7 +134,8 @@ function freshRows_() {
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
         workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
-        error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium')};
+        error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
+        notInterested:truthy_(e[c.notInterested-33])};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
             location:String(last[i][0]||''),person};
@@ -143,15 +150,27 @@ function listJobs(options) {
   const pageSize=Math.min(SETTINGS.maxPageSize, Math.max(1, Number(options.pageSize)||10));
   const page=Math.max(1, Math.floor(Number(options.page)||1));
   let jobs=source==='taaza'?taazaRows_():freshRows_();
-  let freshKeySet;
+  // Treat a rejection recorded in either source as effective for this candidate.
+  // Direct Sheet edits are reflected in both web lists without altering the other candidate.
   if (source==='taaza') {
-    freshKeySet=new Set(freshRows_().map(x=>canonical_(x.url)).filter(Boolean));
-    jobs=jobs.map(x=>Object.assign(x,{transferred:freshKeySet.has(canonical_(x.url)),jdReady:jdReady_(x.jd)}));
+    const other=freshRows_();
+    const transferred=new Set(other.map(x=>canonical_(x.url)).filter(Boolean));
+    const hidden=new Set(other.filter(x=>x.person[candidate].notInterested)
+      .map(x=>canonical_(x.url)).filter(Boolean));
+    jobs=jobs.map(x=>Object.assign(x,{
+      transferred:transferred.has(canonical_(x.url)),jdReady:jdReady_(x.jd),
+      notInterested:!!x.notInterested[candidate]||hidden.has(canonical_(x.url))
+    }));
     jobs.forEach(x=>delete x.jd);
   } else {
-    jobs=jobs.map(x=>Object.assign(x,{...x.person[candidate]}));
+    const hidden=new Set(taazaRows_().filter(x=>x.notInterested[candidate])
+      .map(x=>canonical_(x.url)).filter(Boolean));
+    jobs=jobs.map(x=>Object.assign(x,{...x.person[candidate],
+      notInterested:!!x.person[candidate].notInterested||hidden.has(canonical_(x.url))}));
     jobs.forEach(x=>delete x.person);
   }
+  if (filter==='not-interested') jobs=jobs.filter(x=>x.notInterested);
+  else jobs=jobs.filter(x=>!x.notInterested);
   if(query)jobs=jobs.filter(x=>[x.company,x.role,x.location,x.url].some(z=>String(z||'').toLowerCase().includes(query)));
   if(filter==='missing'&&source==='taaza')jobs=jobs.filter(x=>!x.jdReady);
   if(filter==='ready'&&source==='taaza')jobs=jobs.filter(x=>x.jdReady&&!x.transferred);
@@ -166,8 +185,11 @@ function listJobs(options) {
   else if(sort==='score'&&source==='fresh')jobs.sort((a,b)=>(Number(b.score)||-1)-(Number(a.score)||-1));
   else jobs.sort((a,b)=>b.row-a.row);
   const total=jobs.length, pages=Math.max(1,Math.ceil(total/pageSize));
+  const offset=Object.prototype.hasOwnProperty.call(options,'offset')?
+    Math.min(total,Math.max(0,Math.floor(Number(options.offset)||0))):
+    (Math.min(page,pages)-1)*pageSize;
   return {source,candidate,total,page:Math.min(page,pages),pageSize,pages,
-    rows:jobs.slice((Math.min(page,pages)-1)*pageSize,Math.min(page,pages)*pageSize),
+    rows:jobs.slice(offset,offset+pageSize),
     counts:{total,selected:source==='fresh'?jobs.filter(x=>x.selected).length:undefined}};
 }
 function getJob(options) {
@@ -177,20 +199,24 @@ function getJob(options) {
   const sh=sheet_(source),row=Number(options.row),min=source==='fresh'?3:2;
   if(!Number.isInteger(row)||row<min||row>sh.getMaxRows())throw new Error('Invalid row.');
   if(source==='taaza'){
-    const a=sh.getRange(row,1,1,13).getValues()[0];
+    const a=sh.getRange(row,1,1,15).getValues()[0];
     return {source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
       jd:String(a[3]||''),location:String(a[4]||''),posted:String(a[5]||''),deadline:String(a[6]||''),
       start:String(a[7]||''),added:String(a[8]||''),salary:String(a[9]||''),
-      transferStatus:String(a[11]||''),jdReady:jdReady_(a[3])};
+      transferStatus:String(a[11]||''),jdReady:jdReady_(a[3]),
+      notInterested:truthy_(a[TAAZA_INTEREST[candidate]-1])||
+        freshRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.person[candidate].notInterested)};
   }
-  const a=sh.getRange(row,1,1,45).getValues()[0];
+  const a=sh.getRange(row,1,1,47).getValues()[0];
   const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
     jd:String(a[3]||''),location:String(a[32]||''),cv:truthy_(a[conf.cv-1]),
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
     status:String(a[conf.status-1]||''),selected:truthy_(a[conf.selected-1]),
     score:a[conf.score-1],rank:a[conf.rank-1],workflow:String(a[conf.workflow-1]||''),
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
-    folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium')};
+    folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
+    notInterested:truthy_(a[conf.notInterested-1])||
+      taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
   const val=sh.getRange(row,conf.status).getDataValidation();
   if(val&&val.getCriteriaType()===SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST){
     data.statusOptions=val.getCriteriaValues()[0].map(String);
@@ -198,6 +224,46 @@ function getJob(options) {
   if(data.status&&!data.statusOptions.includes(data.status))data.statusOptions.unshift(data.status);
   return data;
 }
+/**
+ * Hide/restore a vacancy for just one person, in Taaza and Freshmaal together.
+ * This is NOT an application status and DOES NOT modify Make CV/CL or GitHub.
+ * All matching URL rows are included so duplicated discovery records do not resurface.
+ */
+function setNotInterested(payload) {
+  authorise_(); payload=payload||{};
+  const source=String(payload.source||''),candidate=String(payload.candidate||'');
+  const person=person_(candidate);
+  if(source!=='taaza'&&source!=='fresh') throw new Error('Choose Taaza or Freshmaal.');
+  if(typeof payload.value!=='boolean') throw new Error('Not Interested must be true or false.');
+  const val=payload.value;
+  return lockRun_(()=>{
+    const primary=sheet_(source);
+    const row=expected_(primary,payload.row,source==='taaza'?2:3,payload.expected);
+    const live=primary.getRange(row,1,1,3).getValues()[0];
+    const key=canonical_(live[2]);
+    if(!key) throw new Error('This vacancy needs a valid link to synchronise Not Interested.');
+    // Build the target list before starting any write to avoid partial row discoveries.
+    const targets=[];
+    const add=(kind,entries,col)=>{
+      entries.filter(x=>canonical_(x.url)===key).forEach(x=>targets.push({kind,row:x.row,col,
+        expected:{company:x.company,role:x.role,url:x.url}}));
+    };
+    add('taaza',taazaRows_(),TAAZA_INTEREST[candidate]);
+    add('fresh',freshRows_(),person.notInterested);
+    if(!targets.some(x=>x.kind===source&&x.row===row))
+      throw new Error('The source job was not found. Refresh and try again.');
+    targets.forEach(t=>expected_(sheet_(t.kind),t.row,t.kind==='taaza'?2:3,t.expected));
+    targets.forEach(t=>sheet_(t.kind).getRange(t.row,t.col).setValue(val));
+    SpreadsheetApp.flush();
+    for(const t of targets) {
+      if(truthy_(sheet_(t.kind).getRange(t.row,t.col).getValue())!==val)
+        throw new Error('The Not Interested write could not be verified. Refresh both sheets.');
+    }
+    return {saved:true,candidate,notInterested:val,updatedRows:targets.length,
+      message:val?'Moved to Not Interested for '+candidate+'.':'Restored for '+candidate+'.'};
+  });
+}
+
 function openSlot_(sh,firstRow,maxRow) {
   const limit=Math.min(sh.getMaxRows(), maxRow||sh.getMaxRows());
   if(limit<firstRow)throw new Error('Spreadsheet has no free job rows.');
@@ -226,6 +292,8 @@ function addDiscovery(payload) {
     const values=[company,role,link,jd,location,'',clean_(payload.deadline||'',60),'',
       new Date(),clean_(payload.salary||'',500),false,'','Webapp'];
     sh.getRange(row,1,1,13).setValues([values]);
+    // Reset candidate decisions when reusing a previously cleared discovery row.
+    sh.getRange(row,14,1,2).setValues([[false,false]]);
     SpreadsheetApp.flush();
     return {created:true,row,message:'Added to Taaza Videshi Maal.'};
   });
@@ -273,6 +341,9 @@ function transferJob(payload) {
     // Only input columns are populated. Never touch old CV state, locks, output links or rank formulas.
     fresh.getRange(newRow,1,1,4).setValues([[company,role,url,jd]]);
     fresh.getRange(newRow,33).setValue(location);
+    // Carry Taaza's candidate-specific exclusions to the newly created Freshmaal row.
+    const exclusions=taaza.getRange(row,14,1,2).getValues()[0].map(truthy_);
+    fresh.getRange(newRow,46,1,2).setValues([exclusions]); // Also clears reused-row flags.
     SpreadsheetApp.flush();
     const verify=fresh.getRange(newRow,1,1,4).getValues()[0];
     if(String(verify[2])!==url||String(verify[3])!==jd)
@@ -352,5 +423,7 @@ function getStats(candidate) {
     selected:own.filter(x=>x.selected).length,
     cvRequested:own.filter(x=>x.cv).length,
     applied:own.filter(x=>String(x.status).toLowerCase()==='applied').length,
-    missingJD:taaza.filter(x=>!jdReady_(x.jd)).length};
+    missingJD:taaza.filter(x=>!jdReady_(x.jd)).length,
+    notInterestedDiscovery:taaza.filter(x=>x.notInterested[candidate]).length,
+    notInterestedFresh:own.filter(x=>x.notInterested).length};
 }
