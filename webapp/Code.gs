@@ -427,3 +427,61 @@ function getStats(candidate) {
     notInterestedDiscovery:taaza.filter(x=>x.notInterested[candidate]).length,
     notInterestedFresh:own.filter(x=>x.notInterested).length};
 }
+
+/**
+ * Queue one candidate/job's existing controlled GitHub Actions workflow.
+ * The OpenAI key remains in GitHub Secrets. A separate GitHub Actions
+ * fine-grained token stays ONLY in the Google Apps Script script properties.
+ */
+function runCvApiNow(payload) {
+  authorise_();
+  payload = payload || {};
+  if (payload.confirm !== true) throw new Error('Confirm the paid API run first.');
+  return lockRun_(function() {
+    const candidate = String(payload.candidate || '');
+    const p = person_(candidate);
+    const sh = sheet_('fresh');
+    const row = expected_(sh, payload.row, 3, payload.expected);
+    const a = sh.getRange(row, 1, 1, 47).getValues()[0];
+    const status = String(a[p.status - 1] || '').trim().toLowerCase();
+    const tier = String(a[p.tier - 1] || 'Premium').trim();
+    if (!['Economy', 'Balanced', 'Premium'].includes(tier)) throw new Error('Select a valid CV model first.');
+    if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
+    if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
+    if (status === 'applied') throw new Error('Applied applications cannot be regenerated.');
+    if (truthy_(a[p.notInterested - 1])) throw new Error('Restore this job from Not Interested first.');
+    if (String(a[p.lock - 1] || '').trim()) throw new Error('This candidate/job is already being processed.');
+    if (String(a[p.cvLink - 1] || '').trim() || /^complete$/i.test(String(a[p.workflow - 1] || '').trim()))
+      throw new Error('A completed CV already exists. Review the existing result before requesting another.');
+    const token = String(PropertiesService.getScriptProperties().getProperty('GITHUB_WORKFLOW_TOKEN') || '').trim();
+    if (!token) throw new Error('One-time setup required: set GITHUB_WORKFLOW_TOKEN in Apps Script Script Properties.');
+    const cache = CacheService.getScriptCache();
+    const key = 'cv-api-manual-' + candidate.toLowerCase() + '-' + row;
+    if (cache.get(key)) throw new Error('Already queued recently for this candidate/job. Check GitHub Actions before retrying.');
+    const apiUrl = 'https://api.github.com/repos/abhisheknair607-ux/automate_cv/actions/workflows/controlled-cv-test.yml/dispatches';
+    const response = UrlFetchApp.fetch(apiUrl, {
+      method: 'post',
+      contentType: 'application/json',
+      payload: JSON.stringify({
+        ref: 'main',
+        inputs: {row_number: String(row), candidate: candidate.toLowerCase()}
+      }),
+      headers: {
+        Authorization: 'Bearer ' + token,
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      },
+      muteHttpExceptions: true,
+      followRedirects: false
+    });
+    const statusCode = response.getResponseCode();
+    if (statusCode !== 204)
+      throw new Error('GitHub did not accept the CV run (HTTP ' + statusCode + '). Check token Actions:write permission, expiry and repository access.');
+    cache.put(key, 'submitted', 300);
+    return {
+      queued: true, candidate: candidate, row: row, tier: tier,
+      actionsUrl: 'https://github.com/abhisheknair607-ux/automate_cv/actions/workflows/controlled-cv-test.yml',
+      message: 'GitHub accepted the ' + tier + ' CV request for ' + candidate + ', row ' + row + '. Check Actions for completion.'
+    };
+  });
+}
