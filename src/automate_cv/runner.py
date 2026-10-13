@@ -4,6 +4,7 @@ from collections import Counter
 from pathlib import Path
 
 from .config import settings
+from .model_presets import resolve_preset
 from .google_auth import credentials
 from .freshmal import Freshmal
 from .drive import Drive
@@ -35,6 +36,18 @@ def configure_batch(workflow, apps):
 def prepare_application(workflow, app):
     # Workflow.run predates conditional source loading, so Sources carries this
     # per-row flag. Execution is sequential; it is reset before every application.
+    # Isolate candidate/vacancy model routing. Never mutate global settings.
+    # The snapshot is taken before claim and stays fixed throughout this job.
+    preset = resolve_preset(app.model_tier)
+    app.model_tier = preset.tier
+    workflow.s = settings.model_copy(update={
+        'stage1_model': preset.stage1,
+        'stage2_model': preset.stage2,
+        'stage3_model': preset.stage3,
+        'stage1_reasoning_effort': preset.stage1_effort,
+        'stage2_reasoning_effort': preset.stage2_effort,
+        'stage3_reasoning_effort': preset.stage3_effort,
+    })
     workflow.sources.make_cover_letter = bool(app.make_cl)
     workflow.sources.last_stage3_telemetry = []
     workflow.sources.last_selected_evidence_ids = []
