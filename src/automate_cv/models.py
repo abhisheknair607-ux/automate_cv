@@ -25,6 +25,7 @@ class ApplicationRow:
     context_link: str = ''
     cost_usd: float = 0.0
     error: str = ''
+    model_tier: str = 'Premium'  # Blank Excel cells resolve to Premium; resolved per candidate/job.
 
     def validate(self):
         errors=[]

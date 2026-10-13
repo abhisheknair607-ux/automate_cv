@@ -23,6 +23,8 @@ _MODEL_PRICES_PER_M = {
     'gpt-5.6-sol': {'input': 4.0, 'cached': 0.4, 'cache_write': 5.0, 'output': 20.0},
     'gpt-5.6': {'input': 4.0, 'cached': 0.4, 'cache_write': 5.0, 'output': 20.0},
     'gpt-5.6-terra': {'input': 2.0, 'cached': 0.2, 'cache_write': 2.5, 'output': 12.0},
+    'gpt-6-luna': {'input': 0.10, 'cached': 0.01, 'cache_write': 0.125, 'output': 0.50},
+    'gpt-6.1-sol': {'input': 2.0, 'cached': 0.10, 'cache_write': 2.5, 'output': 10.0},
 }
 
 _TOOL_PRICES_USD = {
@@ -480,6 +482,7 @@ class Workflow:
             prompt3 = self.prompts.read(app.candidate_key, '#Prompt3.md', work)
             manifest, manifest_path = self._manifest(folder, work)
             manifest['schema_version'] = _CHECKPOINT_SCHEMA_VERSION
+            manifest['model_tier'] = getattr(app, 'model_tier', 'Premium')
             manifest.setdefault('candidate', app.candidate_key)
             manifest.setdefault('application_id', app.application_id)
             manifest.setdefault('cumulative_cost_usd', 0.0)
