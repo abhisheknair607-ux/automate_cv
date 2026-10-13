@@ -40,7 +40,7 @@ It sits on top of the existing Google Sheets and CV automation; it does not chan
 | Abhishek / Pooja selected | Freshmaal `AP / AQ` |
 | Abhishek / Pooja score & rank | Read only `AL:AM / AN:AO` |
 
-**No changes have been made to either Google Sheet, the Taaza discovery scraper or the existing GitHub CV worker as part of this webapp build.** The web app writes to the sheets only after it has been deployed and a user takes an explicit action.
+**Minimal new preference fields added on 13 October 2026**: Taaza `Jobs!N:O` and Freshmaal `Sheet1!AT:AU` for candidate-specific Not Interested flags, plus the previously introduced Freshmaal model-tier columns `AR:AS`. Original CV controls, statuses, job-description columns and the GitHub CV generation prompts remain unchanged. The web app writes job flags and other controls only after a separate Apps Script deployment and explicit user actions.
 
 ## One-time deployment — Google Apps Script
 
@@ -73,7 +73,7 @@ The live URL cannot be pre-created by code files alone: **Google requires the ow
 * `Index.html` — responsive web app frontend; doubles as standalone, clearly labelled demo
 * `README.md` — setup, field mapping, troubleshooting and limits
 
-To avoid changing the existing architecture prematurely, **the build has not been pushed into the current `automate_cv` repository or deployed into your Google account**. The source can be stored as a new separate GitHub project later, after you approve deployment.
+The source is versioned in the existing `automate_cv` repository under `webapp/` as a **separate overlay**; it is not an active GitHub Actions or Apps Script deployment. The existing CV worker continues to use the same spreadsheet columns and schedule.
 
 
 ## 13 October 2026 additions
@@ -83,3 +83,27 @@ To avoid changing the existing architecture prematurely, **the build has not bee
 - Each tier selection writes only one corresponding candidate/job cell; avoid changes during active CV generation.
 - Model IDs are resolved by GitHub's src/automate_cv/model_presets.py, not editable directly in Sheets.
 - Existing blank model tier resolves to Premium.
+
+
+## 13 October 2026 — Candidate-specific Not Interested (both sources)
+
+**Purpose:** Each of Abhishek and Pooja can permanently remove irrelevant roles from **their own normal discovery and CV lists**, while retaining a separate recoverable archive visible through the **Not Interested** filter/button. The other candidate's list remains unaffected, including when both are using different phones or computers. This is a preference, **not** a CV-automation status; marking a job Not Interested does not cancel an already requested CV or change the CV/CL/WS checkboxes.
+
+| Sheet/tab | Abhishek flag | Pooja flag | Behaviour |
+| --- | --- | --- | --- |
+| Taaza `Jobs` | N | O | Candidate-specific discovery exclusion |
+| Freshmaal `Sheet1` | AT | AU | Candidate-specific CV/application listing exclusion |
+
+Only these four previously unused columns were assigned to this feature. **No extra Google Sheets tabs or additional data stores.** Both columns use Boolean checkboxes. Existing entries start unchecked, so no jobs disappear on rollout.
+
+Workflow:
+1. Switch between Abhishek and Pooja in the same webpage. On **Taaza Discovery** or **Freshmaal Make CV**, click **Not Interested** on a job card or in the job-detail drawer.
+2. The backend verifies the source row's company/title/link and takes a script lock. It canonicalises the vacancy URL (removing tracking parameters) and writes the chosen candidate's flag to all matching URL rows in both Taaza and Freshmaal, if present. The other candidate's flag is left exactly as it was.
+3. The marked vacancy is removed from the candidate's default All jobs, Missing JD, Ready, Selected, Unapplied, Applied and other normal filters. It appears only in that candidate's dedicated **Not Interested** view (a filter chip on both pages, and direct dashboard shortcuts).
+4. From **Not Interested**, use **Restore**. The same backend operation clears that candidate's matching flags in both source sheets and the role reappears in normal results.
+5. The same vacancy can legitimately be Not Interested for Abhishek but visible or shortlisted for Pooja. Toggling candidate does not change the other person's underlying checkboxes, statuses, rankings or model preferences.
+6. The UI's **Next · Load more** action appends newly fetched jobs below the current cards without jumping to the top. The server accepts an offset to account for jobs hidden/restored while browsing; active search, filters, candidate and sort are maintained.
+
+**Integration notes:** The existing discovery-to-Freshmaal transfer copies N/O to AT/AU for newly transferred roles and clears stale flags when reusing a previously blank input row. A direct checkbox change in either original Sheet is read into the web app and used in effective cross-sheet filtering (a flag in either sheet hides the matching vacancy); using the webpage **Restore** clears both. Duplicate matching vacancy URLs are updated together. There is no extra OpenAI API use, no impact on CV templates/formatting and no changes to the hourly CV-worker schedule.
+
+**Validated locally:** Google Apps Script mocked tests cover cross-sheet updates, URL matching, independent candidate flags, direct-sheet edits, restore, stale-row checks, lock release and pagination offsets. Playwright Chromium UI tests on **390×844 phone** and **1440×900 desktop** cover mark/hide, view/restore, candidate isolation, Unapplied visibility and below-the-list loading. These local validations are **not equivalent to a live Apps Script deployment/authorisation test**. To go live, complete the one-time deployment instructions above.
