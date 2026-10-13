@@ -300,3 +300,18 @@ not as a selection gate. If a strong fact has no verified number, the workflow m
 use the strongest specific supported qualitative result rather than omit or suppress
 that evidence merely to increase numeric density. The 60-80% target is therefore
 subordinate to evidence quality and may legitimately be lower for a particular CV.
+
+
+## Google Drive service-account quota fix (October 2026)
+
+On 13 October, the scheduled CV worker reached Google Drive but failed with HTTP 403: "Service Accounts do not have storage quota." Workload Identity Federation is reliable for reading/writing the shared Freshmaal Sheet, but a service account cannot create files in an ordinary **personal** My Drive.
+
+The worker now uses **two separate identities**:
+- GitHub Actions WIF service account: Google Sheets control/status, no user refresh token.
+- Human-owned Google OAuth credential: Google Drive source files, folders, checkpoint files and final CVs.
+
+Before making any paid OpenAI request or changing a queued Freshmaal row, the worker now validates that the user's Google OAuth token is refreshable and the output folder is writable. The old GitHub `GOOGLE_OAUTH_REFRESH_TOKEN` was previously reported expired/revoked (`invalid_grant`); **the code change cannot restore that credential**.
+
+**Required one-time credential repair:** obtain a new Google OAuth offline refresh token with Google Drive access and update only the existing GitHub Actions secret `GOOGLE_OAUTH_REFRESH_TOKEN`. The existing `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET` must match its OAuth client. The Google account must have editor access to the output folder and all source documents. If its consent screen is still in testing mode, refresh tokens can expire quickly; prefer a production-published OAuth app where appropriate. Never paste OAuth secrets into GitHub code, Apps Script HTML, or chat. Run a controlled test before re-enabling significant paid CV work.
+
+Separate issue: the Apps Script **Run CV Now** button still needs a fine-grained GitHub Actions dispatch token added to Apps Script project **Script properties** as `GITHUB_WORKFLOW_TOKEN` (Actions read/write on only this repository). This is *not* the OpenAI API key or Google OAuth refresh token. The current `/exec` URL is unchanged.
