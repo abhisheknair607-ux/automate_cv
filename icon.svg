@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+<title id="title">Automate CV</title><desc id="desc">A white document with a blue upward automation arrow on a deep navy rounded-square icon.</desc>
+<defs>
+ <linearGradient id="bg" x1="0" x2="1" y1="1" y2="0"><stop stop-color="#0b2140"/><stop offset="1" stop-color="#1a61b7"/></linearGradient>
+ <linearGradient id="shine" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#53d2e9"/><stop offset="1" stop-color="#2b8def"/></linearGradient>
+</defs>
+<rect x="0" y="0" width="512" height="512" rx="116" fill="url(#bg)"/>
+<circle cx="422" cy="102" r="84" fill="#fff" opacity=".045"/>
+<path d="M146 91h152l79 80v219a32 32 0 0 1-32 32H146a32 32 0 0 1-32-32V123a32 32 0 0 1 32-32Z" fill="#f9fcff"/>
+<path d="M298 91v52a28 28 0 0 0 28 28h51Z" fill="#b8d9f9"/>
+<path d="M162 220h151" fill="none" stroke="#a1b9d0" stroke-width="19" stroke-linecap="round"/>
+<path d="M162 261h95" fill="none" stroke="#b8cbe1" stroke-width="17" stroke-linecap="round"/>
+<path d="M162 300h75" fill="none" stroke="#c9d9ea" stroke-width="17" stroke-linecap="round"/>
+<circle cx="322" cy="318" r="86" fill="url(#shine)" stroke="#fff" stroke-width="10"/>
+<path d="M286 349l71-71m-46 0h46v46" fill="none" stroke="white" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M155 359h76" fill="none" stroke="#b8cbe1" stroke-width="16" stroke-linecap="round"/>
+</svg>
