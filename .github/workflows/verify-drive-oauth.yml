@@ -48,12 +48,22 @@ jobs:
           try:
               credential.refresh(Request())
           except Exception as err:
-              msg = str(err).lower()
-              if 'invalid_grant' in msg:
-                  sys.exit('OAUTH_INVALID_GRANT: Refresh token expired/revoked, or OAuth credentials do not match.')
-              if 'invalid_client' in msg:
-                  sys.exit('OAUTH_INVALID_CLIENT: Client ID and secret do not match the token client.')
-              sys.exit('OAUTH_REFRESH_FAILED: ' + type(err).__name__ + '. Verify Google Cloud OAuth settings.')
+              # The oauth library puts Google's sanitized error code in a dict.
+              # Never echo the exception message, OAuth token or client credentials.
+              data = next((v for v in getattr(err, 'args', ()) if isinstance(v, dict)), {})
+              reason = str(data.get('error', 'unknown')).lower()
+              known = {
+                  'invalid_grant': 'Revoked/expired token or authorization issued to another OAuth client.',
+                  'invalid_client': 'Google OAuth client ID or client secret is incorrect.',
+                  'invalid_scope': 'The refresh-token OAuth grant does not authorize requested scopes.',
+                  'unauthorized_client': 'OAuth client is not authorized for this grant.',
+                  'access_denied': 'Google account denied authorization.',
+                  'invalid_request': 'Google rejected an OAuth token request parameter.',
+              }
+              if reason in known:
+                  sys.exit('OAUTH_' + reason.upper() + ': ' + known[reason])
+              sys.exit('OAUTH_REFRESH_FAILED: Provider error code=' +
+                       (reason if reason.isidentifier() and len(reason) <= 40 else 'unknown'))
           print('OAUTH_REFRESH_OK (user credential, no OpenAI calls)')
           api = build('drive','v3',credentials=credential,cache_discovery=False)
           try:
