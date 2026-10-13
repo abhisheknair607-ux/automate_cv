@@ -158,7 +158,8 @@ function listJobs(options) {
   if(filter==='transferred'&&source==='taaza')jobs=jobs.filter(x=>x.transferred);
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
-  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status).toLowerCase()==='applied');
+  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
+  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()!=='applied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
   const sort=String(options.sort||'newest');
   if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
