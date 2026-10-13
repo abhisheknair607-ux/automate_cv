@@ -4,7 +4,9 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
 
 class Drive:
-    def __init__(self,credentials): self.files=build('drive','v3',credentials=credentials,cache_discovery=False).files()
+    def __init__(self,credentials):
+        self.credentials=credentials
+        self.files=build('drive','v3',credentials=credentials,cache_discovery=False).files()
     def metadata(self,file_id): return self.files.get(fileId=file_id,fields='id,name,mimeType,webViewLink').execute()
     def download(self,file_id,destination):
         destination=Path(destination); destination.parent.mkdir(parents=True,exist_ok=True)
