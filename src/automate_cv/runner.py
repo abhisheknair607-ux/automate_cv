@@ -5,7 +5,7 @@ from pathlib import Path
 
 from .config import settings
 from .model_presets import resolve_preset
-from .google_auth import credentials
+from .google_auth import credentials, drive_credentials, verify_drive_writer
 from .freshmal import Freshmal
 from .drive import Drive
 from .prompts import Prompts
@@ -16,7 +16,7 @@ from .workflow import Workflow
 def build():
     creds = credentials(settings)
     sheet = Freshmal(creds, settings)
-    drive = Drive(creds)
+    drive = Drive(drive_credentials(settings) or creds)
     root = Path(__file__).resolve().parents[2]
     return sheet, Workflow(settings, sheet, drive, AI(settings), Prompts(drive, settings, root))
 
@@ -131,6 +131,7 @@ def main():
         print('No eligible Freshmal candidate work items; no OpenAI workflow calls made.')
         return
 
+    verify_drive_writer(workflow.drive, settings)
     failures = []
     for app in apps:
         try:
