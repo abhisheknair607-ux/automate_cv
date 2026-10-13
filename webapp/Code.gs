@@ -213,8 +213,11 @@ function listJobs(options) {
     const conf = person_(candidate), sh = sheet_('fresh');
     const start = Math.min(...visible.map(x => x.row));
     const end = Math.max(...visible.map(x => x.row));
-    const validations = sh.getRange(start, conf.status, end-start+1, 1).getDataValidations();
-    visible.forEach(x => { x.statusOptions = statusOptions_(validations[x.row-start][0], x.status); });
+    const statusRange = sh.getRange(start, conf.status, end-start+1, 1);
+    // Apps Script supports getDataValidations; tolerate lightweight test mocks too.
+    const validations = typeof statusRange.getDataValidations === 'function'
+      ? statusRange.getDataValidations() : Array.from({length:end-start+1}, () => [null]);
+    visible.forEach(x => { x.statusOptions = statusOptions_((validations[x.row-start]||[])[0], x.status); });
   }
   return {source,candidate,total,page:Math.min(page,pages),pageSize,pages,
     rows:visible,
