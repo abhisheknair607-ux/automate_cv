@@ -4,6 +4,7 @@ const ASSETS = [
   './', './index.html', './app.js', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './maskable-512.png', './apple-touch-icon.png'
 ];
+const ASSET_PATHS = new Set(ASSETS.map(asset => new URL(asset, self.registration.scope).pathname));
 self.addEventListener('install', evt => {
   evt.waitUntil(caches.open(CACHE).then(cache => cache.addAll(ASSETS)).then(() => self.skipWaiting()));
 });
@@ -17,8 +18,7 @@ self.addEventListener('fetch', evt => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Never touch Google login or Sheets.
   // Cache only the public installer assets, never credentials or app data.
-  if (!ASSETS.some(asset => url.pathname.endsWith(asset.replace(/^\.\//, '')) ||
-      (asset === './' && url.pathname.endsWith('/')))) return;
+  if (!ASSET_PATHS.has(url.pathname)) return;
   evt.respondWith(fetch(req).then(resp => {
     if (resp.ok) { const copy = resp.clone(); caches.open(CACHE).then(c => c.put(req, copy)); }
     return resp;
