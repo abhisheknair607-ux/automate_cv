@@ -342,6 +342,38 @@ class Workflow:
             stage1, stage2 = [p.read_text(encoding='utf-8') for p in paths]
             _extract_handoff(stage1, 'STAGE1_HANDOFF')
             handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
+            # A previously saved analysis can contain a truncated YAML handoff.
+            # Repair only the saved Stage 2 draft; do not pay for Stage 1+2 again.
+            from .sources import selected_evidence_ids, selected_cv_structure
+            if not selected_evidence_ids(handoff) or (
+                hasattr(self.ai, '_stage2_handoff_truncated')
+                and self.ai._stage2_handoff_truncated(stage2)
+            ):
+                print('[workflow] Saved Stage 2 handoff is incomplete; repairing compact handoff', flush=True)
+                repaired, repair_response = self.retry(
+                    lambda: self.ai.repair_stage2_handoff(stage2, self.s.stage2_model),
+                    'Repair saved Stage 2 handoff',
+                )
+                # Preserve this extra paid call in the manifest even if later QA fails.
+                self._record_usage(manifest, 'stage2_handoff_repair',
+                                   _usage(repair_response, self.s.stage2_model))
+                self._save_manifest(manifest, manifest_path, folder)
+                self._guard(manifest)
+                stage2 = self.ai._replace_partial_stage2_handoff(stage2, repaired)
+                handoff = _extract_handoff(stage2, 'STAGE2_HANDOFF')
+                if not selected_evidence_ids(handoff):
+                    raise RuntimeError('Stage 2 repaired handoff contains no verified evidence IDs.')
+                selected_cv_structure(handoff)
+                repair_path = work / 'Stage2_Handoff_Repair.md'
+                repair_path.write_text(repaired, encoding='utf-8')
+                self.drive.upload(repair_path, folder)
+                paths[1].write_text(stage2, encoding='utf-8')
+                self.drive.upload(paths[1], folder)
+                manifest['stage2_key'] = {
+                    **manifest['stage2_key'],
+                    'stage2_handoff_hash': _hash(handoff),
+                }
+                self._save_manifest(manifest, manifest_path, folder)
             print('[workflow] Reusing verified combined Stage 1/2 checkpoint', flush=True)
             self._guard(manifest)
             return stage1, stage2, handoff, manifest['stage2_key'], summary_path
@@ -366,6 +398,11 @@ class Workflow:
         self._save_manifest(manifest, manifest_path, folder)
         handoff1 = _extract_handoff(output, 'STAGE1_HANDOFF')
         handoff = _extract_handoff(output, 'STAGE2_HANDOFF')
+        # Never checkpoint a truncated or evidence-free machine handoff as complete.
+        from .sources import selected_evidence_ids, selected_cv_structure
+        if not selected_evidence_ids(handoff):
+            raise RuntimeError('Merged Stage 2 handoff selected no evidence IDs; no CV will be generated.')
+        selected_cv_structure(handoff)
         split = re.split(r'(?m)^# EVIDENCE SELECTION\s*$', output, maxsplit=1)
         stage1 = split[0] if len(split) == 2 else handoff1
         stage2 = split[1].strip() if len(split) == 2 else output
