@@ -5,6 +5,7 @@ from .runner import (
     build,
     configure_batch,
     prepare_application,
+    verify_drive_writer,
 )
 
 
@@ -38,6 +39,8 @@ def main():
     # A controlled single-row run deliberately does not pay a GPT-5.6 cache-write
     # premium because there is no second same-candidate request in this batch.
     configure_batch(workflow, [app])
+    from .config import settings
+    verify_drive_writer(workflow.drive, settings)
     prepare_application(workflow, app)
 
     print(
