@@ -126,3 +126,48 @@ def test_formatting_replacement_preserves_other_rules_and_allocation(candidate):
 
 def test_unrecognised_formatting_layout_keeps_original_source_untouched():
     assert optimize_formatting_prompt('unknown source rules','pooja') == 'unknown source rules'
+
+
+def test_incomplete_saved_fortis_handoff_is_repaired_without_repaying_analysis(tmp_path):
+    from automate_cv.openai_client import AI
+    w, app, calls = setup(tmp_path)
+    manifest = {}
+    mp = tmp_path / 'manifest.json'
+    w._merged_analysis(app, 'A', 'B', 'folder', tmp_path, manifest, mp)
+    original_count = len(calls)
+    # Emulate the October 13 Economy checkpoint: selected IDs exist in prose
+    # and early requirement keys, but the YAML never reaches selected sections.
+    truncated = (
+        'Selected professional evidence: PR-EY-FINTRANS\n'
+        'STAGE2_HANDOFF\n' + '```yaml\n'
+        'cv_structure: High Experience\ncritical_requirements:\n'
+        '  - id: R1\n    selected_evidence_keys: [PR-EY-FINTRANS]\n'
+    )
+    w.drive.files[('folder', 'stage2.md')] = truncated.encode()
+    repaired = (
+        'STAGE2_HANDOFF\ncv_structure: High Experience\n'
+        'selected_professional_evidence:\n  - key: PR-EY-FINTRANS\n'
+        'selected_projects: []\nstage3_evidence_to_retrieve_or_verify: [PR-EY-FINTRANS]'
+    )
+    repairs = []
+    w.ai = SimpleNamespace(
+        text=lambda *args, **kwargs: pytest.fail('Full Stage 1+2 was unnecessarily called'),
+        repair_stage2_handoff=lambda draft, model: (
+            repairs.append((draft, model)) or repaired,
+            SimpleNamespace(usage=None, output=[]),
+        ),
+        _replace_partial_stage2_handoff=AI._replace_partial_stage2_handoff,
+        _stage2_handoff_truncated=AI._stage2_handoff_truncated,
+    )
+    stage1, stage2, handoff, *_ = w._merged_analysis(
+        app, 'A', 'B', 'folder', tmp_path, manifest, mp
+    )
+    assert len(calls) == original_count
+    assert len(repairs) == 1
+    assert 'selected_professional_evidence:' in handoff
+    assert 'selected_professional_evidence:' in stage2
+    assert 'stage2_handoff_repair' in [v['stage'] for v in manifest['usage_history']]
+    assert ('folder', 'Stage2_Handoff_Repair.md') in w.drive.files
+    # Checkpoint survives a follow-on resume without paying for a second repair.
+    w._merged_analysis(app, 'A', 'B', 'folder', tmp_path, manifest, mp)
+    assert len(repairs) == 1
