@@ -153,3 +153,34 @@ def test_cache_prefix_context_is_still_sent_when_explicit_cache_is_disabled():
     assert 'PR-EY-FAR' in call['instructions']
     assert 'prompt_cache_options' not in call
     assert call['input'] == 'current application inputs'
+
+
+def test_truncated_fortis_yaml_is_repaired_without_repeating_analysis():
+    truncated = (
+        '# Evidence selection\nProfessional selections: PR-EY-FINTRANS and P12.\n'
+        '## STAGE2_HANDOFF\n' + '```yaml\n'
+        'company: Fortis Recruitment\ncv_structure: High Experience\n'
+        'critical_requirements:\n  - id: R1\n'
+        '    selected_evidence_keys: [PR-EY-FINTRANS, P12]\n'
+        '  - id: R2\n    need: "Incomplete'
+    )
+    repair = Response(
+        'STAGE2_HANDOFF\ncompany: Fortis Recruitment\ncv_structure: High Experience\n'
+        'selected_professional_evidence:\n  - key: PR-EY-FINTRANS\n'
+        'selected_projects:\n  - id: P12\n'
+        'stage3_evidence_to_retrieve_or_verify: [PR-EY-FINTRANS, P12]',
+        1700, 1100,
+    )
+    ai = ai_with([Response(truncated, 8820, 8000, reasoning=3336), repair])
+    result, combined = ai.text(
+        'Merged analysis instructions with STAGE2_HANDOFF',
+        'Fortis Investment Analyst JD',
+        max_output_tokens=8000,
+        model='gpt-6-luna',
+    )
+    assert len(ai.client.responses.calls) == 2
+    assert 'Professional selections: PR-EY-FINTRANS and P12.' in result
+    assert 'Incomplete' not in result
+    assert result.count('STAGE2_HANDOFF') == 1
+    assert 'selected_professional_evidence:' in result
+    assert combined.usage.output_tokens == 9100

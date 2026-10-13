@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -149,6 +150,56 @@ class AI:
             text,
         ))
 
+    @staticmethod
+    def _stage2_handoff_truncated(text):
+        """Detect a YAML handoff cut off while composing Stage 2."""
+        raw = str(text or '')
+        markers = list(re.finditer(
+            r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
+            raw,
+        ))
+        if not markers:
+            return False
+        tail = raw[markers[-1].end():]
+        if tail.count(chr(96) * 3) % 2:
+            return True
+        return 'critical_requirements:' in tail and (
+            'selected_professional_evidence:' not in tail
+            and 'selected_projects:' not in tail
+        )
+
+    @staticmethod
+    def _replace_partial_stage2_handoff(text, repaired):
+        """Keep the analysis audit, replacing only the incomplete handoff."""
+        raw = str(text or '')
+        markers = list(re.finditer(
+            r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*$',
+            raw,
+        ))
+        analysis = raw[:markers[-1].start()].rstrip() if markers else raw.rstrip()
+        return analysis + '\n\n' + str(repaired).strip()
+
+    @staticmethod
+    def _usable_stage2_handoff(text):
+        from .sources import selected_evidence_ids, selected_cv_structure
+        if not AI._has_stage2_handoff(text) or AI._stage2_handoff_truncated(text):
+            return False
+        try:
+            return bool(selected_evidence_ids(text)) and bool(selected_cv_structure(text))
+        except (ValueError, RuntimeError):
+            return False
+
+    def repair_stage2_handoff(self, draft, model):
+        """A compact, separately metered repair, not a full analysis rerun."""
+        response = self._repair_stage2_handoff(model, draft)
+        repaired = str(response.output_text or '').strip()
+        if not self._usable_stage2_handoff(repaired):
+            raise RuntimeError(
+                'Stage 2 handoff repair has no supported selected evidence IDs or '
+                'CV structure; refusing to proceed with unsupported facts.'
+            )
+        return repaired, response
+
     def text(
         self,
         prompt,
@@ -218,15 +269,17 @@ class AI:
         # before the mandatory machine handoff is emitted. Do not rerun the full
         # expensive Stage 2 analysis in that case. A small Terra/low formatting
         # repair converts only the already-produced draft into the required handoff.
-        if 'STAGE2_HANDOFF' in str(prompt) and not self._has_stage2_handoff(output_text):
-            repair = self._repair_stage2_handoff(selected_model, output_text)
+        if 'STAGE2_HANDOFF' in str(prompt) and (
+            not self._has_stage2_handoff(output_text)
+            or self._stage2_handoff_truncated(output_text)
+        ):
+            repaired_text, repair = self.repair_stage2_handoff(
+                output_text, selected_model
+            )
             responses.append(repair)
-            repaired_text = str(repair.output_text or '').strip()
-            if not self._has_stage2_handoff(repaired_text):
-                raise RuntimeError(
-                    'Stage 2 handoff repair did not produce a parseable STAGE2_HANDOFF block.'
-                )
-            output_text = f'{str(output_text).rstrip()}\n\n{repaired_text}'
+            output_text = self._replace_partial_stage2_handoff(
+                output_text, repaired_text
+            )
 
         return output_text, self._combined_text_response(responses, output_text)
 
