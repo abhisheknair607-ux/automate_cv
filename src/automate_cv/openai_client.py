@@ -152,7 +152,7 @@ class AI:
 
     @staticmethod
     def _stage2_handoff_truncated(text):
-        """Detect a YAML handoff cut off while composing the Stage 2 response."""
+        """Detect a YAML handoff cut off while composing Stage 2."""
         raw = str(text or '')
         markers = list(re.finditer(
             r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*
@@ -226,9 +226,13 @@ class AI:
             not self._has_stage2_handoff(output_text)
             or self._stage2_handoff_truncated(output_text)
         ):
-            repaired_text, repair = self.repair_stage2_handoff(output_text, selected_model)
+            repaired_text, repair = self.repair_stage2_handoff(
+                output_text, selected_model
+            )
             responses.append(repair)
-            output_text = self._replace_partial_stage2_handoff(output_text, repaired_text)
+            output_text = self._replace_partial_stage2_handoff(
+                output_text, repaired_text
+            )
 
         return output_text, self._combined_text_response(responses, output_text)
 
@@ -404,7 +408,7 @@ class AI:
         if not markers:
             return False
         tail = raw[markers[-1].end():]
-        if tail.count('```') % 2:
+        if tail.count(chr(96) * 3) % 2:
             return True
         return 'critical_requirements:' in tail and (
             'selected_professional_evidence:' not in tail
@@ -413,7 +417,7 @@ class AI:
 
     @staticmethod
     def _replace_partial_stage2_handoff(text, repaired):
-        """Keep the analysis audit intact, replacing only the broken handoff."""
+        """Keep the analysis audit, replacing only the incomplete handoff."""
         raw = str(text or '')
         markers = list(re.finditer(
             r'(?im)^\s*(?:#+\s*)?(?:\d+\.\s*)?STAGE2_HANDOFF\s*:?\s*
@@ -678,7 +682,7 @@ class AI:
             return False
 
     def repair_stage2_handoff(self, draft, model):
-        """Repair from saved analysis without re-running the entire paid analysis."""
+        """A compact, separately metered repair, not a full analysis rerun."""
         response = self._repair_stage2_handoff(model, draft)
         repaired = str(response.output_text or '').strip()
         if not self._usable_stage2_handoff(repaired):
