@@ -141,6 +141,26 @@ function freshRows_() {
             location:String(last[i][0]||''),person};
   }).filter(x=>x.company || x.role || x.url);
 }
+
+/** Return the live Sheet validation values (list OR range) without inventing states. */
+function statusOptions_(validation, current) {
+  let choices = [];
+  if (validation) {
+    const type = validation.getCriteriaType();
+    const criteria = validation.getCriteriaValues();
+    if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST) {
+      choices = criteria[0] || [];
+    } else if (type === SpreadsheetApp.DataValidationCriteria.VALUE_IN_RANGE && criteria[0]) {
+      choices = criteria[0].getDisplayValues().reduce((a, row) => a.concat(row), []);
+    }
+  }
+  // Mirrors the pre-existing detail drawer fallback when the cell has no validation.
+  if (!choices.length) choices = ['Not started', 'Ready', 'Applied'];
+  choices = [...new Set(choices.map(v => String(v == null ? '' : v).trim()).filter(Boolean))].slice(0, 75);
+  if (current && !choices.includes(String(current))) choices.unshift(String(current));
+  return choices;
+}
+
 function listJobs(options) {
   authorise_(); options=options||{};
   const source=options.source==='fresh'?'fresh':'taaza';
@@ -188,8 +208,16 @@ function listJobs(options) {
   const offset=Object.prototype.hasOwnProperty.call(options,'offset')?
     Math.min(total,Math.max(0,Math.floor(Number(options.offset)||0))):
     (Math.min(page,pages)-1)*pageSize;
+  const visible = jobs.slice(offset, offset + pageSize);
+  if (source === 'fresh' && visible.length) {
+    const conf = person_(candidate), sh = sheet_('fresh');
+    const start = Math.min(...visible.map(x => x.row));
+    const end = Math.max(...visible.map(x => x.row));
+    const validations = sh.getRange(start, conf.status, end-start+1, 1).getDataValidations();
+    visible.forEach(x => { x.statusOptions = statusOptions_(validations[x.row-start][0], x.status); });
+  }
   return {source,candidate,total,page:Math.min(page,pages),pageSize,pages,
-    rows:jobs.slice(offset,offset+pageSize),
+    rows:visible,
     counts:{total,selected:source==='fresh'?jobs.filter(x=>x.selected).length:undefined}};
 }
 function getJob(options) {
@@ -217,11 +245,7 @@ function getJob(options) {
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
     notInterested:truthy_(a[conf.notInterested-1])||
       taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
-  const val=sh.getRange(row,conf.status).getDataValidation();
-  if(val&&val.getCriteriaType()===SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST){
-    data.statusOptions=val.getCriteriaValues()[0].map(String);
-  } else data.statusOptions=['Not started','Ready','Applied'];
-  if(data.status&&!data.statusOptions.includes(data.status))data.statusOptions.unshift(data.status);
+  data.statusOptions=statusOptions_(sh.getRange(row,conf.status).getDataValidation(),data.status);
   return data;
 }
 /**
@@ -400,8 +424,8 @@ function updateFreshControl(payload) {
     } else if(field==='status'){
       value=clean_(payload.value||'',100);
       const val=cell.getDataValidation();
-      if(val&&val.getCriteriaType()===SpreadsheetApp.DataValidationCriteria.VALUE_IN_LIST){
-        const allowed=val.getCriteriaValues()[0].map(String);
+      if(val){
+        const allowed=statusOptions_(val, String(cell.getValue()||''));
         if(value&&!allowed.includes(value))throw new Error('Status is not allowed by Freshmaal: '+value);
       }
     } else {
