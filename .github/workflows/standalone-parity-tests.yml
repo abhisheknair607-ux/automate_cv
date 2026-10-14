@@ -52,9 +52,9 @@ jobs:
           const sharp=require('sharp');
           (async()=>{
             for (const size of [192,512]){
-              const f='standalone/pwa/garamaal-icon-'+size+'.jpg';
+              const f='standalone/pwa/garamaal-icon-192.jpg';
               const image=sharp(f,{failOn:'error'});
-              const result=await image.png().toBuffer({resolveWithObject:true});
+              const result=await image.resize(size,size).png().toBuffer({resolveWithObject:true});
               if(result.info.width!==size||result.info.height!==size)
                 throw Error(f+' dimensions are incorrect');
               console.log(f+' verified as decodable '+size+'x'+size+' image');
