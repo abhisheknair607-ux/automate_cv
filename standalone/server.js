@@ -6,6 +6,7 @@ const {GoogleAuth} = require("google-auth-library");
 const {initializeApp, getApps} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
 const {invoke,METHODS} = require("./runtime");
+const {getCvQueue} = require("./queue");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -77,6 +78,17 @@ async function authenticate(req) {
     throw Object.assign(new Error("This Google account is not authorised for Automate CV"),{httpCode:403});
   return email;
 }
+// Lightweight authenticated live queue feed, polled by the Make CV cards.
+app.post("/api/getCvQueue",async (req,res)=>{
+  try {
+    await authenticate(req);
+    const result=await getCvQueue(process.env.GITHUB_WORKFLOW_TOKEN||"");
+    res.json({data:result});
+  } catch(error) {
+    const status=error.httpCode||503;
+    res.status(status).json({error:String(error.message||"Queue status unavailable").slice(0,300)});
+  }
+});
 app.post("/api/:method",async (req,res)=>{
   try {
     if(!METHODS.has(req.params.method))
