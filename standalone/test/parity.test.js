@@ -44,7 +44,7 @@ test("original dashboard remains syntactically valid and transport is injectable
   assert.match(bridge,/Persistence\.LOCAL/);
   assert.match(bridge,/prompt:"select_account"/);
   assert.match(bridge,/cv-account-switch/);
-  assert.match(bridge,/not authorised for Automate CV/);
+  assert.match(bridge,/not authorised for Garamaal/);
   const server=fs.readFileSync(path.join(root,"standalone/server.js"),"utf8");
   assert.match(server,/"<script src=\\"\/bridge\.js\\"><\/script>\\n<script>\\n'use strict';"/);
 });
