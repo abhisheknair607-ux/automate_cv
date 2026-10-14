@@ -1,0 +1,34 @@
+{
+  "hosting": {
+    "site": "freshmaal-cv",
+    "public": "standalone/hosting-public",
+    "ignore": [
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "automate-cv-dashboard",
+          "region": "europe-west1"
+        }
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      }
+    ]
+  }
+}
