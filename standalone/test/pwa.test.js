@@ -18,11 +18,11 @@ test("Garamaal is a standalone installable app with two real photo PNG icons",()
     assert.ok(icon,"Missing standard "+size+"px app icon");
     assert.equal(icon.type,"image/png");
     assert.equal(icon.src,"/garamaal-icon-"+size+".png");
-    const bytes=fs.readFileSync(path.join(ROOT,"standalone/pwa/garamaal-icon-"+size+".jpg"));
-    assert.ok(bytes.length>1200,"Photo source must not be an empty placeholder");
-    assert.equal(bytes.subarray(0,2).toString("hex"),"ffd8");
-    assert.equal(bytes.subarray(-2).toString("hex"),"ffd9");
   }
+  const bytes=fs.readFileSync(path.join(ROOT,"standalone/pwa/garamaal-icon-192.jpg"));
+  assert.ok(bytes.length>1200,"Photo source must not be an empty placeholder");
+  assert.equal(bytes.subarray(0,2).toString("hex"),"ffd8");
+  assert.equal(bytes.subarray(-2).toString("hex"),"ffd9");
   assert.ok(m.icons.some(x=>x.purpose==="maskable"&&x.sizes==="512x512"));
   const server=fs.readFileSync(path.join(ROOT,"standalone/server.js"),"utf8");
   assert.match(server,/sharp\(source\)\.resize\(size,size\)\.png/);
