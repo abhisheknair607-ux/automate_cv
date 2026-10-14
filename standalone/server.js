@@ -56,7 +56,7 @@ async function authenticate(req) {
   const match=String(req.headers.authorization||"").match(/^Bearer\s+(.+)$/i);
   if(!match)throw Object.assign(new Error("Sign in to continue"),{httpCode:401});
   let claims;
-  try { claims=await getAuth().verifyIdToken(match[1],true); }
+  try { claims=await getAuth().verifyIdToken(match[1]); }
   catch { throw Object.assign(new Error("Your login has expired. Sign in again."),{httpCode:401}); }
   const email=String(claims.email||"").toLowerCase().trim();
   if(!claims.email_verified || !ALLOWED.includes(email))
