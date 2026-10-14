@@ -127,7 +127,7 @@ def test_sync_is_idempotent_ignores_alert_tabs_and_never_rewrites_existing():
     assert sheet.book["Jobs"][2][12] == "Pooja Europe"
     assert sheet.categories[1] == 'Job Categories'
     assert sheet.categories[2] == 'TP Europe'  # Existing Alpha also belongs to TP source
-    assert sheet.categories[3] == 'TP Europe'
+    assert sheet.categories[3] == 'TP Europe | Pooja Europe'
     assert sheet.categories[4] == 'Pooja Europe'
     assert 'TP Europe' in sheet.dropdown_options
     assert not any("Alert Setup" in call[1].get("range", "") and "!A2:" in call[1].get("range", "") for call in sheet.calls)
