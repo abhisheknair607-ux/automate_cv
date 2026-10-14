@@ -4,7 +4,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PROJECT="abhishek-cv-automation"
-SITE="freshmaal-cv"
+SITE="garamaal"
 REGION="europe-west1"
 SERVICE="automate-cv-dashboard"
 cd "$ROOT"
