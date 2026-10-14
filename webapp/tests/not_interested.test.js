@@ -1,9 +1,11 @@
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const vm=require('node:vm');
+let sheetID=100;
 class MockSheet{
-  constructor(name,rows,cols){this.name=name;this.rows=rows;this.cols=cols;this.cells=Array.from({length:rows},()=>Array(cols).fill(''));this.writes=[];}
+  constructor(name,rows,cols){this.id=++sheetID;this.name=name;this.rows=rows;this.cols=cols;this.cells=Array.from({length:rows},()=>Array(cols).fill(''));this.writes=[];}
   getName(){return this.name}
+  getSheetId(){return this.id}
   getMaxRows(){return this.rows}
   getMaxColumns(){return this.cols}
   getLastRow(){let max=0;this.cells.forEach((r,i)=>{if(r.some(v=>v!==''&&v!==undefined&&v!==null))max=i+1});return max}
@@ -22,7 +24,7 @@ class MockSheet{
   }
 }
 const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,47),regions={};
-taaza.set(1,1,'Company Name');fresh.set(1,1,'Company Name');
+taaza.set(1,1,'Company Name');taaza.set(1,2,'Designation');taaza.set(1,3,'Link');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
 taazaRow(2,'Alpha','https://jobs.test/open/1?utm_source=social');
@@ -33,7 +35,7 @@ for(let row=6;row<=26;row++)taazaRow(row,'Company '+row,`https://jobs.test/open/
 freshRow(3,'Alpha','https://www.jobs.test/open/1');freshRow(4,'Beta','https://jobs.test/open/2?utm_campaign=promo');freshRow(5,'Delta','https://jobs.test/open/4');
 let locks=0;
 const vmContext=vm.createContext({
- SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null}}},flush(){}},
+ SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null},getSheets(){return id.startsWith('1jt3')?[taaza,...Object.values(regions)]:[fresh]}}},flush(){}},
  Session:{getEffectiveUser(){return {getEmail(){return 'authorised@example.com'}}}},
  PropertiesService:{getScriptProperties(){return {getProperty(){return 'authorised@example.com'}}}},
  LockService:{getScriptLock(){return {waitLock(){locks++},releaseLock(){locks--}}}},
@@ -95,7 +97,7 @@ assert.equal(locks,0);
 // Both regional sources must join the Jobs master once, preserving their own tabs.
 const tp=new MockSheet('TP Europe',80,13);
 const pooja=new MockSheet('Pooja Europe',80,13);
-for(const reg of [tp,pooja])reg.set(1,1,'Company Name');
+for(const reg of [tp,pooja]){reg.set(1,1,'Company Name');reg.set(1,2,'Designation');reg.set(1,3,'Link');}
 tp.set(2,1,'TPCo');tp.set(2,2,'Transfer Pricing Senior');tp.set(2,3,'https://eu.test/tp/one');
 tp.set(2,4,'Full Europe TP job description');tp.set(2,11,true); // Do not copy the automated transfer trigger.
 tp.set(3,1,'Alpha');tp.set(3,2,'Alpha Role');tp.set(3,3,'https://jobs.test/open/1?utm_medium=social');
@@ -110,6 +112,35 @@ assert.equal(taaza.get(27,13),'TP Europe');
 assert.equal(taaza.get(28,13),'Pooja Europe');
 assert.equal(js(run('syncDiscoveryMaster()')).added,0); // Idempotent.
 assert.equal(tp.get(2,11),true); // Specialist source unchanged.
+
+
+// All job tabs are discoverable, stable through tab renames, and filter from Jobs.
+const tabs=list('taaza','Abhishek','all',{pageSize:80}).tabs;
+const tpID=tabs.find(t=>t.name==='TP Europe').id;
+const poojaID=tabs.find(t=>t.name==='Pooja Europe').id;
+assert.deepEqual(rows(list('taaza','Abhishek','all',{tabId:tpID,pageSize:80})),[27,5,2]);
+assert.deepEqual(rows(list('taaza','Abhishek','all',{tabId:poojaID,pageSize:80})),[28]);
+assert.ok(rows(list('taaza','Abhishek','all',{tabId:'common',pageSize:80})).includes(26));
+assert.ok(!rows(list('taaza','Abhishek','all',{tabId:'common',pageSize:80})).includes(27));
+const renamed=regions['TP Europe'];delete regions['TP Europe'];renamed.name='TP UK & Europe';regions['TP UK & Europe']=renamed;
+const renamedTabs=list('taaza','Abhishek','all',{tabId:tpID,pageSize:80});
+assert.equal(renamedTabs.tabId,tpID);
+assert.equal(renamedTabs.tabs.find(t=>t.id===tpID).name,'TP UK & Europe');
+assert.deepEqual(rows(renamedTabs),[27,5,2]);
+const other=new MockSheet('Corporate Finance Europe',80,13);
+other.set(1,1,'Company Name');other.set(1,2,'Designation');other.set(1,3,'Link');
+other.set(2,1,'ValCo');other.set(2,2,'Valuations Analyst');other.set(2,3,'https://eu.test/valuation');
+regions['Corporate Finance Europe']=other;
+const newTab=js(run('syncDiscoveryMaster()'));
+assert.equal(newTab.added,1);
+const allTabs=list('taaza','Abhishek','all',{pageSize:80});
+const otherID=allTabs.tabs.find(x=>x.name==='Corporate Finance Europe').id;
+assert.equal(list('taaza','Abhishek','all',{tabId:otherID,pageSize:80}).rows[0].company,'ValCo');
+const alert=new MockSheet('Pooja Alert Setup',80,13);
+alert.set(1,1,'Alert setup');alert.set(1,2,'Email');alert.set(1,3,'Target');
+regions['Pooja Alert Setup']=alert;
+assert.ok(!list('taaza').tabs.some(t=>t.name==='Pooja Alert Setup'));
+assert.equal(list('taaza','Abhishek','all',{tabId:'deleted-id',pageSize:80}).tabId,'all');
 
 // Unapplied contains ONLY generated CVs without an Applied status.
 fresh.set(3,12,'CV');fresh.set(3,18,'https://docs.google.com/document/d/confirmedAbhishek/edit');
