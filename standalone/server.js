@@ -18,6 +18,16 @@ const IDS = {
   taaza:process.env.TAAZA_SPREADSHEET_ID||"1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY",
   fresh:process.env.FRESHMAL_SPREADSHEET_ID||"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc"
 };
+// Prevent accidental production writes from either the pilot or a staging
+// service. The final cutover requires a separately approved explicit gate.
+const LIVE_SHEET_IDS = new Set([
+  "1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY",
+  "1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc"
+]);
+if(!READ_ONLY && Object.values(IDS).some(id=>LIVE_SHEET_IDS.has(id)) &&
+   process.env.APP_ALLOW_PRODUCTION_WRITES!=="true") {
+  throw new Error("Production spreadsheet writes are locked pending explicit cutover approval");
+}
 if(!getApps().length)initializeApp({projectId:PROJECT||undefined});
 const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets"]});
 const app=express();
