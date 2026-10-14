@@ -111,7 +111,7 @@
     try {json=await response.json();}
     catch {throw Error("The dashboard server did not return a valid response.");}
     if(!response.ok) {
-      if(response.status===403 && /not authorised for Automate CV/i.test(String(json.error||""))) {
+      if(response.status===403 && /not authorised for Garamaal/i.test(String(json.error||""))) {
         emitUser(null);
         errorText(json.error||"This Google account is not authorised. Select another account.");
         try {await authInstance.signOut();}catch{}
