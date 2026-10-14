@@ -118,3 +118,16 @@ The Freshmaal candidate/job cards and detail drawer expose **Run CV Now**. A con
 Safety rules: access allowlist, confirmation, exact row identity, candidate-specific Make CV and model checks, JD presence, Applied/Not Interested exclusions, existing CV/lock rejection, five-minute duplicate-dispatch cooldown. GitHub HTTP 204 means request accepted, **not** CV creation completed. The OpenAI model and API account require a separate live integration test; no chargeable run is performed as part of this source update.
 
 The manual workflow shares its concurrency group with the scheduled worker and uses GitHub's `queue: max` policy to avoid simultaneous jobs. If GitHub declines or rate-limits the dispatch, the interface displays an error. Do not enter GitHub or OpenAI tokens in the PWA/HTML frontend.
+
+## Multi-tab Taaza discovery and completed-CV actions (14 October 2026)
+
+- **Jobs is the master list.** The `TP Europe` and `Pooja Europe` tabs remain regional subsets. Their missing vacancies are mirrored into `Jobs` using canonical vacancy URLs, deduplicated across all three tabs. No existing master rows or original specialist rows are overwritten.
+- Mirror happens automatically on webapp startup and Discovery refresh (with a brief 3-minute cache to prevent repeated large sheet reads); authorised operators can also run the Apps Script `syncDiscoveryMaster()` function manually. If no one opens the dashboard, newly discovered regional jobs will appear in Jobs on the next sync, not necessarily instantly.
+- New mirrored rows copy A–J and regional Column L; **master Column K is always FALSE** to avoid accidentally re-triggering the CV transfer automation; master Column M notes the source tab. Master candidate-specific Not Interested flags in N/O are preserved for existing rows.
+- **Make CV → Unapplied** now displays only roles where the selected candidate has a **generated CV link** and their application status is not `Applied`. A checked Make CV box or a `CV` status alone does not qualify.
+- Completed-CV job cards have condensed **Download CV** and, once available, **Copy Prompt** actions directly alongside existing controls; the dashboard does not require the Details drawer. The download opens the original Google Drive DOCX file.
+- **Copy Prompt** reads the existing Freshmaal `AH` cell for Pooja and `AI` cell for Abhishek. The button appears only when that candidate has a generated CV link **and** their prompt cell is populated. The full prompt is fetched on demand; it is not embedded in the card HTML or available before generation. The backend re-checks ownership and CV readiness.
+- No new data sheets, candidate state changes, scoring changes, OpenAI API requests, or scheduled CV-generation runs are introduced by these UI features.
+
+**Deployment:** After updating `webapp/Code.gs` and `webapp/Index.html` in the existing Google Apps Script project, create a **new version of the existing web-app deployment** (Deploy → Manage deployments → Edit → New version → Deploy). The GitHub commit alone does **not** automatically publish changes to the currently live Apps Script URL.
+
