@@ -138,7 +138,7 @@ def test_pooja_dynamic_profile_contract_applies_to_stage2_and_stage3(tmp_path, m
     )
     stage3 = stage3_prompts.read('pooja', '#Prompt3.md', tmp_path / 'work3')
     assert 'Dynamic Personal Profile standard' in stage3
-    assert 'Do not copy the benchmark mechanically' in stage3
+    assert 'Reprioritise for each JD' in stage3
     assert 'four-sentence / 65-90-word target' in stage3
 
 
