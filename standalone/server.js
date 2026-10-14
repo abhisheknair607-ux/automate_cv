@@ -97,6 +97,18 @@ app.post("/api/:method",async (req,res)=>{
     if(req.params.method==="runCvApiNow" && process.env.ALLOW_MANUAL_CV_DISPATCH!=="true")
       return res.status(403).json({error:"Manual CV dispatch is disabled until separately configured and approved."});
     const email=await authenticate(req);
+    if(req.params.method==="runCvApiNow") {
+      // GitHub's live job queue blocks another paid dispatch for the same job.
+      // The legacy five-minute cache remains as a second safeguard.
+      const body=req.body?.arg||{};
+      const candidate=String(body.candidate||"").toLowerCase();
+      const row=Number(body.row);
+      if(["abhishek","pooja"].includes(candidate)&&Number.isInteger(row)&&row>=3) {
+        const queue=await getCvQueue(process.env.GITHUB_WORKFLOW_TOKEN||"");
+        if(queue.byJob[candidate+":"+row])
+          throw Object.assign(new Error("This CV is already queued or running on GitHub Actions."),{httpCode:409});
+      }
+    }
     const client=await auth.getClient();
     const access=await client.getAccessToken();
     const token=typeof access==="string"?access:access.token;
