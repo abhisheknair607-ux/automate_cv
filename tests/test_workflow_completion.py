@@ -41,7 +41,8 @@ class MemoryDrive:
 
 
 @pytest.mark.parametrize('merged', [True, False])
-def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_path, monkeypatch, merged):
+@pytest.mark.parametrize('make_cl', [False, True])
+def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_path, monkeypatch, merged, make_cl):
     completed, failed, calls = [], [], []
     sheet = SimpleNamespace(prepare=lambda app: True, claim=lambda app: None,
         update=lambda *args: None, done=lambda *args, **kwargs: completed.append(args),
@@ -55,12 +56,19 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     doc = Document()
     doc.add_paragraph('Supported candidate evidence.')
     doc.save(generated)
+    generated_cl = tmp_path/'Generated_Cover_Letter.docx'
+    doc.save(generated_cl)
 
     def analysis(*args, **kwargs):
         calls.append('analysis')
         return OUTPUT, response
 
     def generation(*args, **kwargs):
+        if 'MAKE_CV = FALSE' in args[1]:
+            assert kwargs['model'] == 'gpt-6.1-sol'
+            calls.append('cover_letter')
+            return 'Cover letter written', response, [generated_cl]
+        assert 'MAKE_COVER_LETTER = TRUE' not in args[1]
         calls.append('generation')
         return 'ATS Match Score: 80/100', response, [generated]
 
@@ -75,6 +83,10 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     def normalize(artifacts, cv_name, cl_name, out):
         cv = out/cv_name
         cv.write_bytes(generated.read_bytes())
+        if cl_name:
+            cl = out/cl_name
+            cl.write_bytes(generated_cl.read_bytes())
+            return cv, cl
         return cv, None
 
     def factual_report(cv, master, out):
@@ -85,7 +97,8 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     monkeypatch.setattr('automate_cv.workflow.one_page', lambda *args: None)
     monkeypatch.setattr('automate_cv.workflow.factual_report', factual_report)
     app = ApplicationRow(20, 'Kroll', 'Senior Associate', 'https://job.test',
-        'raw JD', True, False, False, '', application_id='test-row', jd_hash='jd-v1')
+        'raw JD', True, make_cl, False, '', application_id='test-row', jd_hash='jd-v1',
+        model_tier='Economy', cl_model_tier='Balanced')
 
     w.run(app)
     assert not failed
@@ -95,7 +108,13 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     assert manifest['complete'] is True
     assert manifest['summary_hash'] == _hash('verified router')
     assert manifest['context_link'] and manifest['cv_link']
-    assert calls == (['analysis', 'generation'] if merged else ['analysis', 'analysis', 'generation'])
+    if make_cl:
+        assert manifest['cl_link'] and manifest['cl_model_tier'] == 'Balanced'
+        assert manifest['latest_stage_usage']['cover_letter']['cover_letter_tier'] == 'Balanced'
+    expected = ['analysis', 'generation'] if merged else ['analysis', 'analysis', 'generation']
+    if make_cl:
+        expected.append('cover_letter')
+    assert calls == expected
     before = list(calls)
     w.run(app)
     assert calls == before
