@@ -27,7 +27,8 @@ class CandidateProfile:
     cover_letter_template_file_id: str = ''
     final_projects_folder_id: str = ''
     projects_folder_id: str = ''
-    model_tier_col: int = -1  # Appended Freshmaal column; separate for each candidate.
+    model_tier_col: int = -1  # CV tier AR/AS (zero based 43/44).
+    cl_model_tier_col: int = -1  # CL tier AV/AW, independent per candidate.
 
     def missing_required(self):
         required = {
@@ -52,6 +53,7 @@ def profiles():
         'pooja': CandidateProfile(
             key='pooja',
             model_tier_col=44,  # AS
+            cl_model_tier_col=48,  # AW
             display_name='Pooja Tirupati',
             filename_name='Pooja_Tirupati',
             folder_name='Pooja',
@@ -78,6 +80,7 @@ def profiles():
         'abhishek': CandidateProfile(
             key='abhishek',
             model_tier_col=43,  # AR
+            cl_model_tier_col=47,  # AV
             display_name='Abhishek Nair',
             filename_name='Abhishek_Nair',
             folder_name='Abhishek',
