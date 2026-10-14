@@ -122,12 +122,13 @@ function syncTaazaMaster_(force){
     if(!master)throw new Error('Master Jobs tab unavailable.');
     const n=Math.max(0,master.getLastRow()-1),links=n?master.getRange(2,3,n,1).getValues():[];
     const seen=new Set(links.map(x=>canonical_(x[0])).filter(Boolean)),add=[];
-    const sourceTabs=taazaJobTabs_(book);
+    const sourceTabs=taazaJobTabs_(book),membership={};
     sourceTabs.forEach(({name:tab,sheet:sh})=>{
       const n=Math.max(0,sh.getLastRow()-1);
       if(!n)return;
       sh.getRange(2,1,n,13).getValues().forEach(row=>{
         const url=canonical_(row[2]);
+        if(url){const names=membership[url]||[];if(!names.includes(tab))names.push(tab);membership[url]=names;}
         if(!/^https?:\/\/[^/]+/i.test(url)||seen.has(url)
           ||!String(row[0]||'').trim()||!String(row[1]||'').trim())return;
         seen.add(url);
@@ -145,8 +146,34 @@ function syncTaazaMaster_(force){
           throw new Error('Jobs master mirror verification failed at row '+(start+i));
       });
     }
+    // P = automatically calculated membership; never edit N/O interests or K.
+    // A vacancy may be present in multiple specialist job tabs.
+    const nRows=Math.max(0,master.getLastRow()-1);
+    let changed=0;
+    const choices=['Common',...sourceTabs.map(x=>x.name)];
+    if(String(master.getRange(1,16).getValue()||'')!=='Job Categories'){
+      master.getRange(1,16).setValue('Job Categories');changed++;
+    }
+    if(nRows){
+      const records=master.getRange(2,1,nRows,3).getValues();
+      const labels=records.map(row=>{
+        const key=canonical_(row[2]);
+        return key&&String(row[0]||'').trim()?(membership[key]||['Common']).join(' | '):'';
+      });
+      const range=master.getRange(2,16,nRows,1);
+      const current=range.getValues().map(x=>String(x[0]||''));
+      changed+=labels.reduce((sum,v,i)=>sum+(v===current[i]?0:1),0);
+      if(changed>0)range.setValues(labels.map(x=>[x]));
+      labels.forEach(x=>{if(x&&!choices.includes(x))choices.push(x)});
+      if(typeof range.setDataValidation==='function'&&typeof SpreadsheetApp.newDataValidation==='function'){
+        const rule=SpreadsheetApp.newDataValidation()
+          .requireValueInList([...new Set(choices)],true).setAllowInvalid(false).build();
+        range.setDataValidation(rule);
+      }
+    }
     if(cache)cache.put(cacheKey,'ok',180);
-    return {added:add.length,regionalTabs:sourceTabs.map(x=>x.name)};
+    return {added:add.length,regionalTabs:sourceTabs.map(x=>x.name),
+            categoryCellsChanged:changed};
   });
 }
 function syncDiscoveryMaster(){authorise_();return syncTaazaMaster_(true)}
