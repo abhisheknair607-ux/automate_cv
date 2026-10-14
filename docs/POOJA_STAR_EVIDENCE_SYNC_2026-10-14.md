@@ -17,3 +17,18 @@ Update Pooja's actual configured Drive sources before relying on these examples 
 6. Once Drive source synchronization is complete, test one Pooja-only row in Fresh Maal / garamaal, then inspect STAR integrity, metric sourcing and rendered DOCX formatting.
 
 This GitHub commit changes prompt guidance only. It does not upload the revised private Word documents to Drive, change repository variables, deploy the Firebase web application, or run a live CV-generation job.
+
+
+## Live source synchronization completed — 14 October 2026 UTC
+This section supersedes the earlier pending-sync statements above.
+
+Updated the **existing** Pooja Drive source files in place, preserving the exact GitHub-variable Drive IDs:
+- POOJA_SUMMARY_DOC_FILE_ID: `1lT_OP5Il-R8ifvvYqfO0NEARJYzo76SS`
+- POOJA_MASTER_EVIDENCE_BANK_FILE_ID: `1nCV4a4nBYWbBoh3AoIlH3nwFqgd_5JSb`
+- POOJA_BASE_CV_FILE_ID: `1oFmFFIxju7gQqcBSMJ35EmKj43xpTgsz`
+
+All three live files were re-read after the update in their original folder `1mlxbfKT672OJQH8Diehv0QVS6caUr5wA`. All four candidate-provided result percentages (15%, 20%, 25%, 30%) and the 60-day reference are present; the updated evidence bank retains the exact `EVIDENCE PR-POOJA-LIFEGOALS` / `END EVIDENCE PR-POOJA-LIFEGOALS` retrieval boundaries.
+
+A separate expanded, multi-page `Pooja_Tirupati_Comprehensive_Master_Base_CV_UPDATED_2026-10-14.docx` is also stored in Pooja Sources at Drive file ID `1fzZrXDttoY0eEi0naiwHu8ZPuFvJAiix`. It does **not** replace the one-page Base CV reference or any existing GitHub variable. The existing Base CV was updated using concise project-delivery bullets and was rendered and visually checked at one page. Earlier evidence remains in the Summary Doc and Evidence Bank. Dated backups of the prior Base CV and Evidence Bank were saved in the Pooja Sources folder before replacement.
+
+The 21-day vs 60-day roadmap interpretation and independent verification of the outcome metrics remain open factual-QA items. No live Fresh Maal or Garamaal CV-generation run was performed as part of this source-only update.
