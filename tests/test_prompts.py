@@ -120,7 +120,9 @@ def test_pooja_dynamic_profile_contract_applies_to_stage2_and_stage3(tmp_path, m
     monkeypatch.setenv('POOJA_PROMPT2_FILE_ID', 'p2')
     monkeypatch.setenv('POOJA_PROMPT3_FILE_ID', 'p3')
 
-    stage2_prompts = Prompts(FakeDrive('STAGE 2 BASE'), FakeSettings(), root_with_controls(tmp_path / 'stage2root'))
+    stage2_root = tmp_path / 'stage2root'
+    stage2_root.mkdir()
+    stage2_prompts = Prompts(FakeDrive('STAGE 2 BASE'), FakeSettings(), root_with_controls(stage2_root))
     stage2 = stage2_prompts.read('pooja', '#Prompt2.md', tmp_path / 'work2')
     assert 'Dynamic Personal Profile standard' in stage2
     assert 'exactly four sentences' in stage2
@@ -128,6 +130,7 @@ def test_pooja_dynamic_profile_contract_applies_to_stage2_and_stage3(tmp_path, m
     assert 'Approved style-and-length benchmark' in stage2
 
     stage3_root = tmp_path / 'stage3root'
+    stage3_root.mkdir()
     stage3_prompts = Prompts(
         FakeDrive('START\n# Job Description\nEND'),
         FakeSettings(),
