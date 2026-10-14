@@ -34,17 +34,17 @@ class FakeSheets:
     def get(self, **args):
         self.calls.append(("get", args))
         if "fields" in args:
-            if "sheetId" in args["fields"]:
-                result = {"sheets": [{"properties": {"title": name, "sheetId": i}}
-                                    for i, name in enumerate(self.book, 1)]}
-            else:
-                result = {"sheets": [{"properties": {
-                    "title": name, "gridProperties": {"rowCount": 1000}}}
-                    for name in self.book]}
+            result = {"sheets": [{"properties": {
+                "title": name, "sheetId": i, "gridProperties": {"rowCount": 1000}}}
+                for i, name in enumerate(self.book, 1)]}
         else:
             name, start, end = self._parse(args["range"])
-            section = self.book[name][start - 2: end - 1 if end is not None else None]
-            result = {"values": section}
+            if start == 1:
+                header = ["Company Name", "Designation", "Link"] if name != "Alert Setup" else ["Alert", "Enabled", "Email"]
+                result = {"values": [header]}
+            else:
+                section = self.book[name][start - 2: end - 1 if end is not None else None]
+                result = {"values": section}
         self.previous = result
         return self
 
@@ -104,6 +104,20 @@ def test_sync_is_idempotent_ignores_alert_tabs_and_never_rewrites_existing():
     second = taaza_sync.sync_once(sheet)
     assert second["added"] == 0
     assert before == sum(name == "update" for name, _ in sheet.calls)
+
+
+def test_new_or_renamed_job_tab_is_automatically_discovered():
+    sheet = FakeSheets()
+    sheet.book["New Role Category"] = [["NewCo", "Data", "https://new.example/job"]]
+    # A future tab is added without changing any list of tab names.
+    tabs = taaza_sync.discover_job_tabs(sheet)
+    assert "New Role Category" in [tab["name"] for tab in tabs]
+    assert "Alert Setup" not in [tab["name"] for tab in tabs]
+    result = taaza_sync.sync_once(sheet)
+    assert result["added"] == 3
+    del sheet.book["New Role Category"]
+    sheet.book["New Role Category (Renamed)"] = [["NewCo", "Data", "https://new.example/job"]]
+    assert taaza_sync.sync_once(sheet)["added"] == 0
 
 
 def test_generic_europe_tab_is_mirrored_if_it_exists():
