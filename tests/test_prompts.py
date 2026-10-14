@@ -126,8 +126,8 @@ def test_pooja_dynamic_profile_contract_applies_to_stage2_and_stage3(tmp_path, m
     stage2 = stage2_prompts.read('pooja', '#Prompt2.md', tmp_path / 'work2')
     assert 'Dynamic Personal Profile standard' in stage2
     assert 'exactly four sentences' in stage2
-    assert 'Target 80-95 words; never exceed 100 words' in stage2
-    assert 'Approved style-and-length benchmark' in stage2
+    assert 'Target 65-90 words; never exceed 100 words' in stage2
+    assert 'Latest approved applicant-supplied profile benchmark' in stage2
 
     stage3_root = tmp_path / 'stage3root'
     stage3_root.mkdir()
@@ -139,7 +139,7 @@ def test_pooja_dynamic_profile_contract_applies_to_stage2_and_stage3(tmp_path, m
     stage3 = stage3_prompts.read('pooja', '#Prompt3.md', tmp_path / 'work3')
     assert 'Dynamic Personal Profile standard' in stage3
     assert 'Do not copy the benchmark mechanically' in stage3
-    assert 'four-sentence / 80-95-word contract' in stage3
+    assert 'four-sentence / 65-90-word target' in stage3
 
 
 def test_abhishek_does_not_receive_pooja_dynamic_profile_contract(tmp_path, monkeypatch):
