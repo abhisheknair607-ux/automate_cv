@@ -214,6 +214,75 @@ Rendering rules for these locked sections:
   Skills; never alter these locked supporting sections merely to increase keyword
   coverage.
 
+
+## Dynamic Personal Profile standard
+The PERSONAL PROFILE is always tailored for the specific job description, but
+its format, length and visual footprint are deliberately stable across Pooja CVs.
+
+- Keep PERSONAL PROFILE as one compact paragraph of exactly four sentences.
+- Target 80-95 words; never exceed 100 words. Keep approximately the same
+  paragraph footprint as the approved 86-word benchmark below so tailoring does
+  not create page-layout drift.
+- Preserve the master CV heading, font, paragraph style, spacing and one-page
+  layout. Do not turn the profile into bullets, a multi-paragraph summary or an
+  objective statement.
+- Write with the concise, selective tone expected in top-tier finance,
+  consulting and professional-services applications. Sound commercially strong
+  and evidence-led, not aspirational or promotional. Never use first person or
+  phrases such as "seeking", "looking for", "excited to", "passionate about" or
+  "results-driven".
+- Do not make Pooja permanently sound like only a wealth-planning candidate.
+  Reposition her professional identity for each vacancy using the JD's most
+  important supported themes while retaining truthful continuity across finance,
+  strategy, private wealth, financial planning, investments, WealthTech,
+  commercial execution, analytics and client/stakeholder leadership.
+- Use exact JD terminology naturally when verified evidence supports it. Select
+  only the highest-value keywords for the profile; place the rest in Experience
+  or Skills. Never turn the profile into a keyword list.
+- Sentence 1: state professional identity, 5+ years of experience and the
+  2-4 most relevant domains/capabilities for this JD.
+- Sentence 2: lead with the strongest verified scale, achievement or commercial
+  result relevant to the vacancy, then connect it to the employer's priority
+  capabilities. Use €80.5M only when it materially strengthens role fit; choose a
+  different verified proof point when another achievement is more relevant.
+- Sentence 3: highlight the most relevant current or recent work, decision-making,
+  analytical/problem-solving, product, client or cross-functional capability for
+  the JD. AI-enabled/WealthTech wording is optional and should appear only when
+  it improves fit.
+- Sentence 4: close with the most relevant verified qualifications plus 2-3
+  high-value capabilities from the JD. Qualifications must remain factually
+  accurate and must not crowd out stronger job-specific positioning.
+- For strategy/consulting roles, prioritise structured problem-solving,
+  commercial analysis, strategic execution, stakeholder management and
+  cross-functional delivery when supported. For investment/markets/finance roles,
+  prioritise financial analysis, investments, risk, portfolio/commercial
+  decision-making and measurable impact. For wealth/planning roles, prioritise
+  HNW/private-client work, holistic financial planning, pensions/investments,
+  suitability, cash-flow modelling and relationship management. Apply the same
+  principle to any other role family using that JD's own critical requirements.
+- Never invent a new capability simply to make the opening sound suitable for a
+  prestigious employer. The profile must be fully traceable to verified Pooja
+  evidence or candidate-confirmed facts available to the workflow.
+- After drafting, compare the profile against the JD and the rest of the CV:
+  remove duplicated wording, ensure the opening is differentiated, confirm the
+  strongest supported keywords are present, and keep the final result within the
+  four-sentence / 80-95-word contract.
+
+Approved style-and-length benchmark (format anchor, not fixed wording):
+"Finance and strategy professional with 5+ years across private wealth,
+financial planning, investment markets and WealthTech, combining analytical
+rigour with client leadership and commercial execution. Managed an €80.5M HNW
+and corporate portfolio, delivering measurable growth through investment
+analysis, risk assessment, client advisory and relationship development.
+Currently developing an AI-enabled financial-planning proposition, translating
+complex commercial and client requirements into scalable solutions across
+product, technology and advisory teams. QFA and CFP qualified with an MSc
+Finance from UCD Smurfit, bringing strong financial analysis, strategic
+problem-solving and stakeholder-management capability."
+
+Do not copy the benchmark mechanically. Preserve its four-sentence architecture,
+density and senior professional tone while rewriting the substance for each JD.
+
 ## Manager-level professional-experience bullet standard
 - Every work-experience bullet must start with a clear, natural action verb that
   reflects the candidate's actual ownership and seniority. Prefer normal human
