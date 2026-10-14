@@ -1,0 +1,45 @@
+name: taaza-regional-master-sync
+
+# Sync automatically whether or not anyone opens the dashboard.
+# Runs independently from OpenAI CV generation and its enable/disable switch.
+on:
+  schedule:
+    - cron: '13,33,53 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/taaza-master-sync.yml'
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: taaza-regional-master-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install minimal Google Sheets dependencies
+        run: python -m pip install --disable-pip-version-check --quiet google-api-python-client google-auth google-auth-httplib2
+      - name: Mirror specialist jobs to master Jobs
+        env:
+          TAAZA_SPREADSHEET_ID: 1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+        run: python -m src.automate_cv.taaza_sync
