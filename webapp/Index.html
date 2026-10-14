@@ -3,12 +3,12 @@
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#132a49"/>
-<title>Freshmaal — CV Control Centre</title>
+<title>Garamaal — Job Control Centre</title>
 <link rel="manifest" href="/manifest.webmanifest"/>
-<link rel="icon" href="/app-icon-192.png" type="image/png"/>
-<link rel="apple-touch-icon" href="/app-icon-192.png"/>
+<link rel="icon" href="/garamaal-icon-192.jpg" type="image/jpeg"/>
+<link rel="apple-touch-icon" sizes="192x192" href="/garamaal-icon-192.jpg"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
-<meta name="apple-mobile-web-app-title" content="Freshmaal"/>
+<meta name="apple-mobile-web-app-title" content="Garamaal"/>
 <meta name="description" content="Private CV and Cover Letter application dashboard"/>
 <style>
 :root{--navy:#132a49;--navy2:#1e395b;--blue:#2563eb;--blueSoft:#eaf1ff;--ink:#14243a;--muted:#6c7a90;--line:#dfe6ef;--bg:#f5f7fb;--white:#fff;--green:#15803d;--amber:#a16207;--rose:#b91c1c;--shadow:0 5px 24px rgba(21,43,72,.055)}
@@ -94,11 +94,32 @@
 /* Unlimited job-category tabs stay on a single scrollable row. */
 .category-strip{display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding:8px 1px 2px;margin-top:6px;border-top:1px solid #e8edf5;max-width:100%}
 .category-strip .chip{flex:none;white-space:nowrap}
+/* Mobile home-screen installation and native touch ergonomics. */
+.install-sheet{margin:auto 16px max(18px,env(safe-area-inset-bottom));background:#fff;color:#19354f;padding:22px;border-radius:19px;box-shadow:0 18px 55px #14243a44;max-width:440px;width:calc(100% - 32px)}
+.install-sheet strong{display:block;font-size:18px;margin-bottom:9px}
+.install-sheet p{font-size:13px;line-height:1.55;color:#54677e;margin:8px 0 12px}
+.install-sheet .btn{width:100%;min-height:44px;margin-top:8px}
+@media(max-width:720px){
+  body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+  .topbar{padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top));}
+  .top-actions{min-width:0;gap:4px}
+  #cv-install-app{font-size:10px;padding:8px 9px;min-height:35px;flex:none}
+  .switch button{min-height:38px;padding:8px}
+  .mobilebar{height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+  .mobilebar button{min-height:48px;touch-action:manipulation}
+  .container{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+  .selectionbar{bottom:calc(74px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(79px + env(safe-area-inset-bottom))}
+  .job .jobcontrols button{min-height:39px}
+  .checks label{min-height:35px}
+  .job-settings select{min-height:42px}
+  .drawer-footer{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+}
 </style>
 </head>
 <body>
 <div class="shell">
- <aside class="sidebar"><div class="brand"><div class="brandmark">F</div><div><strong>Freshmaal</strong><small>JOB CONTROL CENTRE</small></div></div><nav id="deskNav"></nav><div class="side-bottom">Connected architecture<span>Taaza → Freshmaal → CV automation</span><span style="margin-top:8px">Separate overlay · No ranking API</span></div></aside>
+ <aside class="sidebar"><div class="brand"><div class="brandmark">G</div><div><strong>Garamaal</strong><small>JOB CONTROL CENTRE</small></div></div><nav id="deskNav"></nav><div class="side-bottom">Connected architecture<span>Taaza → Freshmaal → CV automation</span><span style="margin-top:8px">Separate overlay · No ranking API</span></div></aside>
  <div class="main"><header class="topbar"><div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div><div class="top-actions"><span id="modeBadge" class="demo">PREVIEW</span><div id="candidateToggle" class="switch"></div><div id="avatar" class="avatar">A</div></div></header><main id="content" class="container" aria-live="polite"></main></div>
 </div>
 <div class="mobilebar" id="mobileNav"></div>
@@ -325,7 +346,7 @@ async function pollCvQueue(){
 }
 function card(job){const discovery=state.section==='discovery';const cvReady=!!job.cvLink;const interestButton=`<button class="btn btn-xs ${job.notInterested?'btn-primary':''}" data-action="set-interest" data-row="${job.row}" data-value="${job.notInterested?'false':'true'}" aria-label="${job.notInterested?'Restore job for '+state.candidate:'Not Interested for '+state.candidate}">${icon(job.notInterested?'check':'trash')}${cvReady?'':` ${job.notInterested?'Restore':'Not Interested'}`}</button>`;const detailButton=`<button class="btn btn-xs" data-action="detail" data-row="${job.row}">${discovery?'Review JD':'Details'} ${icon('right')}</button>`;const apiReady=Boolean(job.cv&&!job.cvLink&&!job.notInterested&&!activityFor(job)&&String(job.status||'').toLowerCase()!=='applied');const readyButtons=`<button class="btn btn-xs btn-primary" data-action="download-cv" data-row="${job.row}" title="Download the completed Word CV">${icon('down')} Download CV</button>${job.clLink?`<button class="btn btn-xs btn-primary" data-action="download-cl" data-row="${job.row}" title="Download the completed Word cover letter">${icon('down')} Download CL</button>`:''}${job.promptReady?`<button class="btn btn-xs" data-action="copy-prompt" data-row="${job.row}" title="Copy the existing post-CV prompt from Freshmaal">${icon('file')} Copy Prompt</button>`:''}`;const runButton=`<button class="btn btn-xs btn-primary" data-action="run-cv-now" data-row="${job.row}" ${apiReady?'':'disabled'} title="Runs one paid OpenAI API CV job on GitHub Actions">Run CV Now</button>`;return `<article class="job ${cvReady?'cv-ready':''}" data-job-row="${job.row}"><div class="jobtop">${discovery?`<label class="check-label" title="Select for bulk transfer"><input aria-label="Select job" type="checkbox" data-action="bulk-select" data-row="${job.row}" ${state.bulk.has(job.row)?'checked':''}></label>`:''}<div class="jobbody"><h3>${h(job.role)}</h3><div class="company">${h(job.company)} · ${h(job.location||'Location not specified')}</div><div class="badges">${discovery?`${job.jdReady?'<span class="tag tag-ok">Seems Taaza</span>':'<span class="tag tag-warn">Seems Kacha</span>'}${job.transferred?'<span class="tag tag-blue">In Freshmaal</span>':'<span class="tag">Not transferred</span>'}`:`<span class="tag ${String(job.status)==='Applied'?'tag-ok':'tag-blue'}">${h(job.status||'NA')}</span>${job.cvLink?'<span class="tag tag-ok">Garam CV Ready</span>':job.selected?'<span class="tag tag-ok">Shortlisted</span>':''}${job.workflow?`<span class="tag">${h(job.workflow)}</span>`:''}`}</div></div>${discovery?'':`<div class="score"><strong>${job.score===''||job.score==null?'—':h(job.score)}</strong><span>${job.rank?'Rank #'+h(job.rank):'Score /100'}</span></div>`}</div>${discovery?'':`<div class="cv-activity-slot" data-row="${job.row}">${activityMarkup(job)}</div>`}<div class="jobcontrols">${discovery?`<div class="row"><button class="btn btn-xs" data-action="open-link" data-url="${h(job.url)}">${icon('external')} Vacancy</button><button class="btn btn-xs" data-action="detail" data-row="${job.row}">${icon('file')} Paste JD</button></div><div class="row">${!job.transferred?`<button class="btn btn-xs ${job.jdReady?'btn-primary':''}" data-action="transfer" data-row="${job.row}" ${!job.jdReady?'disabled title="JD missing"':''}>${icon('arrow')} Seems Fresh</button>`:detailButton}${interestButton}</div>`:`<div class="checks">${['selected','cv','cl','web'].map(field=>`<label><input type="checkbox" data-action="inline-control" data-row="${job.row}" data-field="${field}" ${job[field]?'checked':''}>${{selected:'Selected',cv:'Make CV',cl:'Make CL',web:'Web'}[field]}</label>`).join('')}</div><div class="row">${cvReady?readyButtons+interestButton:interestButton+runButton}${detailButton}</div>`}</div>${discovery?'':`<div class="job-settings"><div class="job-setting"><label for="tier-row-${job.row}">CV model</label><select class="tier-select" id="tier-row-${job.row}" data-action="tier-mode" data-row="${job.row}" aria-label="CV model for ${h(job.role)}">${tierChoices(job.row)}</select></div><div class="job-setting"><label for="cltier-row-${job.row}">Cover letter model</label><select class="tier-select" id="cltier-row-${job.row}" data-action="cl-tier-mode" data-row="${job.row}" aria-label="Cover letter model for ${h(job.role)}">${tierChoices(job.row,'clTier')}</select></div><div class="job-setting"><label for="status-row-${job.row}">Application status</label><select class="tier-select status-select" id="status-row-${job.row}" data-action="inline-status" data-row="${job.row}" aria-label="Application status for ${h(job.role)}">${statusChoices(job)}</select></div></div>`}</article>`}
 function pagination(){if(!state.data)return'';const d=state.data;const remaining=Math.max(0,d.total-d.rows.length);return `<div class="pagination"><span class="meta" aria-live="polite"><b>${d.rows.length}</b> of <b>${d.total}</b> jobs shown</span>${remaining?`<button class="btn btn-primary" data-action="load-more" ${state.loadingMore?'disabled':''}>${state.loadingMore?'Loading…':'Next · Load '+Math.min(remaining,state.pageSize)+' more'} ${icon('down')}</button>`:'<span class="tag tag-ok">All jobs loaded</span>'}</div>`}
-function listView(){const discovery=state.section==='discovery';const head=discovery?'Taaza · Discovery':'Freshmaal · Make CV';const desc='';return title(head,desc,discovery?`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`:`<button class="btn" data-action="nav" data-value="discovery">${icon('discover')} Discovery</button>`)+(discovery?'':tierBanner()+queueOverview())+filters()+(state.initError?`<div class="app-error">${h(state.initError)}</div>`:'')+(state.data&&state.data.rows.length?`<div class="jobs">${state.data.rows.map(card).join('')}</div>${pagination()}`:state.data?`<div class="empty">${icon('discover')}No jobs match these filters. Try a different search or filter.</div>`:`<div class="empty">${icon('refresh')}Loading job list...</div>`)+(discovery&&state.bulk.size?`<div class="selectionbar"><b>${state.bulk.size} selected</b><button class="btn" data-action="bulk-transfer">${icon('arrow')} Seems Fresh · selected</button></div>`:'')}
+function listView(){const discovery=state.section==='discovery';const head=discovery?'Taaza · Discovery':'Garamaal · Make CV';const desc='';return title(head,desc,discovery?`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`:`<button class="btn" data-action="nav" data-value="discovery">${icon('discover')} Discovery</button>`)+(discovery?'':tierBanner()+queueOverview())+filters()+(state.initError?`<div class="app-error">${h(state.initError)}</div>`:'')+(state.data&&state.data.rows.length?`<div class="jobs">${state.data.rows.map(card).join('')}</div>${pagination()}`:state.data?`<div class="empty">${icon('discover')}No jobs match these filters. Try a different search or filter.</div>`:`<div class="empty">${icon('refresh')}Loading job list...</div>`)+(discovery&&state.bulk.size?`<div class="selectionbar"><b>${state.bulk.size} selected</b><button class="btn" data-action="bulk-transfer">${icon('arrow')} Seems Fresh · selected</button></div>`:'')}
 function inputField(id,label,placeholder='',value='',type='text'){return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${h(value)}" placeholder="${h(placeholder)}"/></div>`}
 function addView(){return title('Add a vacancy','New jobs go to Taaza by default; optionally send straight to Freshmaal.')+`<section class="panel" style="max-width:840px"><div class="subhead">New discovery entry</div><form id="addForm"><div class="field-grid">${inputField('add-company','Company *','Company name')}${inputField('add-role','Designation *','Exact vacancy title')}${inputField('add-url','Employer vacancy link *','https://...','', 'url')}${inputField('add-location','Location','Dublin, Ireland')}${inputField('add-deadline','Application deadline','2026-11-30')}${inputField('add-salary','Salary / visa sponsorship','Optional')}</div><div class="field"><label for="add-jd">Complete job description (optional at entry)</label><textarea id="add-jd" placeholder="Paste the employer's job description. You can save the vacancy now and complete the JD later."></textarea><small>Taaza · Column D</small></div><div class="form-footer"><button class="btn btn-primary" type="submit" data-mode="save">${icon('check')} Seems Taaza · Save</button><button class="btn" type="submit" data-mode="send">${icon('arrow')} Seems Fresh</button></div></form></section>`}
 function render(){navRender();document.getElementById('content').innerHTML=state.section==='dashboard'?dash():state.section==='add'?addView():listView()}
@@ -443,35 +464,60 @@ if(!DEMO){
     navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
   }
   let installEvent=null;
+  const isIos=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)
+    ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isInstalled=()=>window.matchMedia('(display-mode: standalone)').matches
+    ||window.navigator.standalone===true;
+  function installHelp(){
+    const existing=document.getElementById('garamaal-install-help');
+    if(existing){existing.remove();return;}
+    const ios=isIos();
+    const box=document.createElement('div');
+    box.id='garamaal-install-help';
+    box.className='modal-back';
+    box.setAttribute('role','presentation');
+    const message=ios
+      ?'Open Garamaal in Safari, tap the Share icon, choose Add to Home Screen, then tap Add.'
+      :'In Chrome, open the menu (⋮), choose Add to Home screen or Install app, and confirm Install.';
+    box.innerHTML='<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install Garamaal">'
+      +'<strong>Install Garamaal</strong>'
+      +'<p>'+message+'</p>'
+      +'<p>After installing, launch Garamaal from your home screen. Your Google sign-in remains protected.</p>'
+      +'<button type="button" class="btn btn-primary" id="install-help-close">Got it</button></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click',e=>{if(e.target===box)box.remove()});
+    box.querySelector('#install-help-close').addEventListener('click',()=>box.remove());
+  }
   function showInstall(){
-    if(window.matchMedia('(display-mode: standalone)').matches)return;
+    const installed=isInstalled();
     const top=document.querySelector('.top-actions');
-    if(!top)return;
     let btn=document.getElementById('cv-install-app');
-    if(!btn){
+    if(!btn&&top){
       btn=document.createElement('button');
       btn.id='cv-install-app';btn.type='button';
       btn.textContent='Install app';
-      btn.title='Install Freshmaal in Chrome as a standalone desktop/mobile app';
+      btn.title='Install Garamaal on your phone or desktop';
       btn.addEventListener('click',async()=>{
-        if(!installEvent){
-          toast('In Chrome, open the menu (⋮) → Cast, save and share → Install page as app.',false);
-          return;
-        }
+        if(!installEvent){installHelp();return;}
         const event=installEvent;installEvent=null;
-        try{await event.prompt();await event.userChoice;}catch(_){}
-        btn.hidden=true;
+        try{
+          await event.prompt();
+          const choice=await event.userChoice;
+          if(choice?.outcome!=='accepted')installHelp();
+        }catch(_){installHelp();}
+        showInstall();
       });
       const toggle=document.getElementById('candidateToggle');
       top.insertBefore(btn,toggle||top.firstChild);
     }
+    if(btn)btn.hidden=installed;
   }
   window.addEventListener('beforeinstallprompt',event=>{
     event.preventDefault();installEvent=event;showInstall();
   });
   window.addEventListener('appinstalled',()=>{
-    const btn=document.getElementById('cv-install-app');
-    if(btn)btn.hidden=true;
+    installEvent=null;
+    showInstall();
   });
   showInstall();
   setTimeout(pollCvQueue,1200);
