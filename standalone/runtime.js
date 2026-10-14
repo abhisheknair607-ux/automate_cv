@@ -10,6 +10,22 @@ const {execFileSync} = require("node:child_process");
 const {createSpreadsheetApp} = require("./sheets");
 
 const SCRIPT = fs.readFileSync(path.resolve(__dirname,"../webapp/Code.gs"),"utf8");
+// Keep Code.gs immutable while binding its two spreadsheet IDs to the
+// deployment environment. Production pilot IDs remain identical; staging
+// deployments use COPIES, not the hard-coded production IDs.
+function sourceWithSheetIds(ids) {
+  const requested={taazaId:String(ids?.taaza||""),freshId:String(ids?.fresh||"")};
+  if(Object.values(requested).some(id=>!/^[A-Za-z0-9_-]{20,}$/.test(id)))
+    throw new Error("Valid Taaza and Freshmaal spreadsheet IDs are required");
+  const occurrences={taazaId:0,freshId:0};
+  const bound=SCRIPT.replace(/\b(taazaId|freshId):\s*'[^']+'/g,(_match,key)=>{
+    occurrences[key]++;
+    return key+": '"+requested[key]+"'";
+  });
+  if(occurrences.taazaId!==1||occurrences.freshId!==1)
+    throw new Error("Unable to safely bind both legacy spreadsheet IDs");
+  return bound;
+}
 const METHODS = new Set([
   "getBootstrap", "listJobs", "getJob", "setNotInterested", "addDiscovery",
   "saveDiscovery", "transferJob", "bulkTransfer", "updateFreshJD",
@@ -85,7 +101,7 @@ async function invoke(method,arg,options) {
   }
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
-  vm.runInContext(SCRIPT,context,{filename:"webapp/Code.gs",timeout:5000});
+  vm.runInContext(sourceWithSheetIds(options?.ids),context,{filename:"webapp/Code.gs",timeout:5000});
   if(options?.readOnly) {
     // The original read endpoints automatically call this master-sync routine,
     // which may write Jobs!P. Override ONLY in pilot mode; in production the
@@ -101,4 +117,4 @@ async function invoke(method,arg,options) {
   });
   return JSON.parse(JSON.stringify(result===undefined?null:result));
 }
-module.exports={invoke,METHODS,READ_ONLY_METHODS,constructServices};
+module.exports={invoke,METHODS,READ_ONLY_METHODS,constructServices,sourceWithSheetIds};
