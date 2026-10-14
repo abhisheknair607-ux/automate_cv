@@ -6,6 +6,7 @@ from googleapiclient.discovery import build
 
 from .models import ApplicationRow
 from .profiles import profiles
+from .google_retry import retry_google
 
 STOP_STATES = {'ERROR_MANUAL', 'ERROR_CONFIG', 'JD_CHANGED_REVIEW_REQUIRED', 'ERROR_MAX_RETRIES'}
 STATE_KEYS = ('id', 'hash', 'workflow', 'lock', 'last', 'cvlink', 'cllink', 'context', 'cost', 'error')
@@ -153,10 +154,11 @@ class Freshmal:
             }
             for k, v in changes.items()
         ]
-        self.values.batchUpdate(
+        # Repeating the same cell values is safe if the response was lost.
+        retry_google(lambda: self.values.batchUpdate(
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
             body={'valueInputOption': 'RAW', 'data': data},
-        ).execute()
+        ).execute())
 
     def prepare(self, a):
         d = digest(a.raw_jd)
