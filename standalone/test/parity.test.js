@@ -65,12 +65,12 @@ test("Google Sheets compatibility uses standard column addresses and typed cells
 
 test("deployment binds spreadsheet IDs to copies without modifying the Apps Script source",()=>{
   const staging={
-    taaza:"1S_A9hKGk3U303P5qjjXCs3VkFYWAxLhW9fV4fHSwq-U",
-    fresh:"19PoQED44im_aK-jst9x226n2mx-c1fwgWbwFDCzrBig"
+    taaza:"STAGING_TEST_TAAZA_FAKE_ID_DO_NOT_USE_001",
+    fresh:"STAGING_TEST_FRESH_FAKE_ID_DO_NOT_USE_002"
   };
   const bound=sourceWithSheetIds(staging);
-  assert.match(bound,/taazaId: '1S_A9hKGk3U303P5qjjXCs3VkFYWAxLhW9fV4fHSwq-U'/);
-  assert.match(bound,/freshId: '19PoQED44im_aK-jst9x226n2mx-c1fwgWbwFDCzrBig'/);
+  assert.match(bound,/taazaId: 'STAGING_TEST_TAAZA_FAKE_ID_DO_NOT_USE_001'/);
+  assert.match(bound,/freshId: 'STAGING_TEST_FRESH_FAKE_ID_DO_NOT_USE_002'/);
   assert.doesNotMatch(bound,/taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY'/);
   assert.doesNotMatch(bound,/freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'/);
   assert.match(source,/taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY'/);
