@@ -759,6 +759,7 @@ class Workflow:
                          or 'letter' in Path(p).name.lower()), cl_docs[0]
                     )
                     cl_target = work / 'cl_generated' / 'Generated_Cover_Letter.docx'
+                    cl_target.parent.mkdir(parents=True, exist_ok=True)
                     if Path(cl_source).resolve() != cl_target.resolve():
                         shutil.copy2(cl_source, cl_target)
                     artifacts = [
