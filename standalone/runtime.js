@@ -75,11 +75,23 @@ function constructServices({token,email,ids,githubToken,allowedEmails}) {
     console
   };
 }
+const READ_ONLY_METHODS = new Set([
+  "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats"
+]);
 async function invoke(method,arg,options) {
   if(!METHODS.has(method))throw new Error("Unknown application operation");
+  if(options?.readOnly && !READ_ONLY_METHODS.has(method)) {
+    throw Object.assign(new Error("Read-only pilot: changes are disabled until the new app is approved."),{httpCode:403});
+  }
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
   vm.runInContext(SCRIPT,context,{filename:"webapp/Code.gs",timeout:5000});
+  if(options?.readOnly) {
+    // The original read endpoints automatically call this master-sync routine,
+    // which may write Jobs!P. Override ONLY in pilot mode; in production the
+    // unmodified Apps Script function must execute unchanged.
+    vm.runInContext("syncTaazaMaster_ = function(){return {added:0,cached:true,readOnly:true}}",context);
+  }
   context.__rpcArg=arg;
   // The method name is checked against a static server-controlled allowlist.
   // VM timeout applies to pure JS, not synchronous I/O. Cloud Run timeout
@@ -89,4 +101,4 @@ async function invoke(method,arg,options) {
   });
   return JSON.parse(JSON.stringify(result===undefined?null:result));
 }
-module.exports={invoke,METHODS,constructServices};
+module.exports={invoke,METHODS,READ_ONLY_METHODS,constructServices};
