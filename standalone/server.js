@@ -81,6 +81,9 @@ app.post("/api/:method",async (req,res)=>{
   try {
     if(!METHODS.has(req.params.method))
       return res.status(404).json({error:"Unknown operation"});
+    // Keep paid GitHub/OpenAI execution explicitly disabled during cutover.
+    if(req.params.method==="runCvApiNow" && process.env.ALLOW_MANUAL_CV_DISPATCH!=="true")
+      return res.status(403).json({error:"Manual CV dispatch is disabled until separately configured and approved."});
     const email=await authenticate(req);
     const client=await auth.getClient();
     const access=await client.getAccessToken();
