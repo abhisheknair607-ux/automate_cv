@@ -1,0 +1,1 @@
+This directory intentionally serves no app data. All application routes, including the PWA manifest, securely proxy to the existing Cloud Run dashboard. Do not publish personal or Google Sheet data here.
