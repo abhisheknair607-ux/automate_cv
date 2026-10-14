@@ -34,6 +34,7 @@ FIREBASE_AUTH_DOMAIN: "$GOOGLE_CLOUD_PROJECT.firebaseapp.com"
 ALLOWED_EMAILS: "$ALLOWED_EMAILS"
 TAAZA_SPREADSHEET_ID: "$TAAZA"
 FRESHMAL_SPREADSHEET_ID: "$FRESH"
+APP_READ_ONLY: "true"
 EOF
 gcloud config set project "$GOOGLE_CLOUD_PROJECT"
 # Billing activation and permission approvals are performed by the user.
