@@ -11,7 +11,7 @@
 const SETTINGS = Object.freeze({
   taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
   freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc',
-  taazaTab: 'Jobs', freshTab: 'Sheet1',
+  taazaTab: 'Jobs', regionalTabs: ['TP Europe','Pooja Europe'], freshTab: 'Sheet1',
   maxPageSize: 50, maxBulk: 20, maxJD: 49000,
   maxFreshRow: 1000
 });
@@ -19,9 +19,9 @@ const SETTINGS = Object.freeze({
 // Taaza N/O (no extra tab); Freshmaal AT/AU (after model tier AR/AS).
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const PEOPLE = Object.freeze({
-  Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42,
+  Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
              workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, lock:16, notInterested:46},
-  Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43,
+  Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43, prompt:34,
           workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, lock:26, notInterested:47}
 });
 
@@ -95,9 +95,51 @@ function lockRun_(action) {
   lock.waitLock(15000);
   try { return action(); } finally { lock.releaseLock(); }
 }
+
+/** One-way regional-to-master mirror. No regional or existing master edits. */
+function syncTaazaMaster_(force){
+  const cache=typeof CacheService==='undefined'?null:CacheService.getScriptCache();
+  const cacheKey='taaza-master-regional-v3';
+  if(!force&&cache&&cache.get(cacheKey))return {added:0,cached:true};
+  return lockRun_(()=>{
+    const book=SpreadsheetApp.openById(SETTINGS.taazaId),master=book.getSheetByName(SETTINGS.taazaTab);
+    if(!master)throw new Error('Master Jobs tab unavailable.');
+    const n=Math.max(0,master.getLastRow()-1),links=n?master.getRange(2,3,n,1).getValues():[];
+    const seen=new Set(links.map(x=>canonical_(x[0])).filter(Boolean)),add=[];
+    SETTINGS.regionalTabs.forEach(tab=>{
+      const sh=book.getSheetByName(tab);
+      if(!sh)return; // existing older test mocks have only Jobs
+      const n=Math.max(0,sh.getLastRow()-1);
+      if(!n)return;
+      sh.getRange(2,1,n,13).getValues().forEach(row=>{
+        const url=canonical_(row[2]);
+        if(!/^https?:\/\/[^/]+/i.test(url)||seen.has(url)
+          ||!String(row[0]||'').trim()||!String(row[1]||'').trim())return;
+        seen.add(url);
+        // K = auto-transfer trigger, never copy TRUE from a regional sheet.
+        add.push([...row.slice(0,10),false,String(row[11]||''),tab]);
+      });
+    });
+    if(add.length){
+      const start=master.getLastRow()+1,finish=start+add.length-1;
+      if(finish>master.getMaxRows())master.insertRowsAfter(master.getMaxRows(),finish-master.getMaxRows());
+      master.getRange(start,1,add.length,13).setValues(add);
+      SpreadsheetApp.flush();
+      master.getRange(start,3,add.length,1).getValues().forEach((v,i)=>{
+        if(canonical_(v[0])!==canonical_(add[i][2]))
+          throw new Error('Jobs master mirror verification failed at row '+(start+i));
+      });
+    }
+    if(cache)cache.put(cacheKey,'ok',180);
+    return {added:add.length,regionalTabs:SETTINGS.regionalTabs.slice()};
+  });
+}
+function syncDiscoveryMaster(){authorise_();return syncTaazaMaster_(true)}
+
 function getBootstrap() {
   const email = authorise_();
   sheet_('taaza'); sheet_('fresh');
+  syncTaazaMaster_(false);
   return {email, people:Object.keys(PEOPLE), sources:{taaza:'Taaza Videshi Maal',fresh:'Freshmaal'},
     links:{taaza:'https://docs.google.com/spreadsheets/d/'+SETTINGS.taazaId+'/edit',
            fresh:'https://docs.google.com/spreadsheets/d/'+SETTINGS.freshId+'/edit'}};
@@ -135,7 +177,8 @@ function freshRows_() {
         workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
-        notInterested:truthy_(e[c.notInterested-33])};
+        notInterested:truthy_(e[c.notInterested-33]),
+        promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
             location:String(last[i][0]||''),person};
@@ -169,6 +212,7 @@ function listJobs(options) {
   const filter=String(options.filter||'all');
   const pageSize=Math.min(SETTINGS.maxPageSize, Math.max(1, Number(options.pageSize)||10));
   const page=Math.max(1, Math.floor(Number(options.page)||1));
+  if(source==='taaza')syncTaazaMaster_(false);
   let jobs=source==='taaza'?taazaRows_():freshRows_();
   // Treat a rejection recorded in either source as effective for this candidate.
   // Direct Sheet edits are reflected in both web lists without altering the other candidate.
@@ -198,7 +242,7 @@ function listJobs(options) {
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
   if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
-  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()!=='applied');
+  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&String(x.status||'').trim().toLowerCase()!=='applied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
   const sort=String(options.sort||'newest');
   if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
@@ -246,6 +290,7 @@ function getJob(options) {
     score:a[conf.score-1],rank:a[conf.rank-1],workflow:String(a[conf.workflow-1]||''),
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
+    promptReady:!!String(a[conf.cvLink-1]||'').trim()&&!!String(a[conf.prompt-1]||'').trim(),
     notInterested:truthy_(a[conf.notInterested-1])||
       taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
   data.statusOptions=statusOptions_(sh.getRange(row,conf.status).getDataValidation(),data.status);
@@ -410,6 +455,19 @@ function updateFreshJD(payload) {
     return {changed:true,freshRow:found.row,message:'Freshmaal JD updated. Existing CVs are not automatically regenerated.'};
   });
 }
+
+/** Candidate-specific copy prompt remains hidden until that CV has a link. */
+function getCopyPrompt(payload){
+  authorise_();payload=payload||{};
+  const candidate=String(payload.candidate||''),p=person_(candidate);
+  const sh=sheet_('fresh'),row=expected_(sh,payload.row,3,payload.expected);
+  const data=sh.getRange(row,1,1,Math.max(p.prompt,p.cvLink)).getValues()[0];
+  const link=String(data[p.cvLink-1]||'').trim(),prompt=String(data[p.prompt-1]||'').trim();
+  if(!/^https:\/\/(?:docs|drive)\.google\.com\//i.test(link))
+    throw new Error('A completed CV is required before copying the prompt.');
+  if(!prompt)throw new Error('The post-CV prompt is not ready in Freshmaal.');
+  return {candidate,row,prompt};
+}
 function updateFreshControl(payload) {
   authorise_();payload=payload||{};
   return lockRun_(()=>{
@@ -445,6 +503,7 @@ function updateFreshControl(payload) {
 
 function getStats(candidate) {
   authorise_(); person_(candidate);
+  syncTaazaMaster_(false);
   const taaza=taazaRows_(), fresh=freshRows_(), own=fresh.map(x=>x.person[candidate]);
   return {discovered:taaza.length,applications:fresh.length,
     selected:own.filter(x=>x.selected).length,
