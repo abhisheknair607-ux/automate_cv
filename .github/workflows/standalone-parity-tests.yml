@@ -46,6 +46,21 @@ jobs:
           node webapp/tests/not_interested.test.js
       - name: Resolve production dependency tree for deployability
         run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Validate both photo icons decode into PNG before packaging
+        run: |
+          node - <<'JS'
+          const sharp=require('sharp');
+          (async()=>{
+            for (const size of [192,512]){
+              const f='standalone/pwa/garamaal-icon-'+size+'.jpg';
+              const image=sharp(f,{failOn:'error'});
+              const result=await image.png().toBuffer({resolveWithObject:true});
+              if(result.info.width!==size||result.info.height!==size)
+                throw Error(f+' dimensions are incorrect');
+              console.log(f+' verified as decodable '+size+'x'+size+' image');
+            }
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          JS
       - name: Build isolated Cloud Run container (no cloud credentials, no API costs)
         run: docker build -f Dockerfile.standalone -t cv-standalone-test:ci .
       - name: Smoke test container health and block unauthenticated API access
