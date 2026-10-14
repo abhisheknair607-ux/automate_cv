@@ -3,7 +3,13 @@
 <head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover"/>
 <meta name="theme-color" content="#132a49"/>
-<title>Freshmaal — Model Presets Prototype</title>
+<title>Freshmaal — CV Control Centre</title>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="/app-icon-192.png" type="image/png"/>
+<link rel="apple-touch-icon" href="/app-icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Freshmaal"/>
+<meta name="description" content="Private CV and Cover Letter application dashboard"/>
 <style>
 :root{--navy:#132a49;--navy2:#1e395b;--blue:#2563eb;--blueSoft:#eaf1ff;--ink:#14243a;--muted:#6c7a90;--line:#dfe6ef;--bg:#f5f7fb;--white:#fff;--green:#15803d;--amber:#a16207;--rose:#b91c1c;--shadow:0 5px 24px rgba(21,43,72,.055)}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.48}input,select,textarea{color:var(--ink)}a{color:var(--blue)}.hidden{display:none!important}
@@ -66,6 +72,10 @@
 .cv-queue-overview strong{font-weight:800;color:#1a4784}
 .cv-queue-overview .cv-dot{height:7px;width:7px;border-radius:50%;background:#367cf1;box-shadow:0 0 0 3px #e5efff}
 @media(prefers-reduced-motion:reduce){.cv-activity .cv-spin{animation:none;border-color:#2563eb}}
+/* Installable app: unobtrusive compact action in the existing account header. */
+#cv-install-app{border:1px solid #dbe6f5;border-radius:8px;background:#edf4ff;color:#1d4e7d;padding:7px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+#cv-install-app:hover{background:#dcecff}
+@media(max-width:500px){#cv-install-app{padding:6px 7px;font-size:10px}}
 /* Two immediately editable per-candidate settings on every Freshmaal job card. */
 .job-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;border-top:1px solid #edf1f7;padding-top:10px}
 .job-setting{min-width:0;display:flex;flex-direction:column;gap:5px}
@@ -424,6 +434,41 @@ window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.p
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
 init();
 if(!DEMO){
+  if('serviceWorker' in navigator && location.protocol==='https:'){
+    navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
+  }
+  let installEvent=null;
+  function showInstall(){
+    if(window.matchMedia('(display-mode: standalone)').matches)return;
+    const top=document.querySelector('.top-actions');
+    if(!top)return;
+    let btn=document.getElementById('cv-install-app');
+    if(!btn){
+      btn=document.createElement('button');
+      btn.id='cv-install-app';btn.type='button';
+      btn.textContent='Install app';
+      btn.title='Install Freshmaal in Chrome as a standalone desktop/mobile app';
+      btn.addEventListener('click',async()=>{
+        if(!installEvent){
+          toast('In Chrome, open the menu (⋮) → Cast, save and share → Install page as app.',false);
+          return;
+        }
+        const event=installEvent;installEvent=null;
+        try{await event.prompt();await event.userChoice;}catch(_){}
+        btn.hidden=true;
+      });
+      const toggle=document.getElementById('candidateToggle');
+      top.insertBefore(btn,toggle||top.firstChild);
+    }
+  }
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();installEvent=event;showInstall();
+  });
+  window.addEventListener('appinstalled',()=>{
+    const btn=document.getElementById('cv-install-app');
+    if(btn)btn.hidden=true;
+  });
+  showInstall();
   setTimeout(pollCvQueue,1200);
   setInterval(()=>{if(!document.hidden)pollCvQueue()},15000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollCvQueue()});
