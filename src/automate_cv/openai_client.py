@@ -115,10 +115,11 @@ class AI:
             ),
         )
         return SimpleNamespace(
-            model=getattr(responses[0], 'model', ''),
+            model=getattr(responses[-1], 'model', ''),
             usage=usage,
             output=[],
             output_text=output_text,
+            component_responses=list(responses),
         )
 
     def _repair_stage2_handoff(self, selected_model, draft_text):
@@ -380,6 +381,7 @@ class AI:
         reasoning_effort=None,
         max_output_tokens=None,
         model=None,
+        fallback_model=None,
     ):
         ids = [self.upload(path) for path in paths]
         tools = [
@@ -435,6 +437,36 @@ class AI:
                         'retrying document generation once.',
                         flush=True,
                     )
+            # Economy-only safety net: one Sol attempt AFTER Luna's existing
+            # two attempts fail to produce a retrievable Word document.
+            # Preserve all instructions, evidence, candidate data and usage.
+            # Never invoke this branch for Balanced or Premium.
+            if (fallback_model
+                and not any(path.suffix.lower() == '.docx' for path in artifacts)):
+                print(
+                    f'[openai] Economy Stage 3 has no DOCX after two attempts; '
+                    f'trying one {fallback_model} fallback.',
+                    flush=True,
+                )
+                kwargs['model'] = fallback_model
+                kwargs['input'] = (
+                    user_input + '\\n\\nECONOMY DOCUMENT FALLBACK: Generate the '
+                    'requested actual Word document using Code Interpreter. '
+                    'Save the Word file to /mnt/data and provide its real '
+                    'file reference. Preserve the exact JD, verified evidence, '
+                    'formatting rules and candidate identity.'
+                )
+                response = self.client.responses.create(**kwargs)
+                responses.append(response)
+                artifacts = []
+                for container_id, file_id, filename in self._generated_files(response):
+                    result = self.http.get(
+                        f'/containers/{container_id}/files/{file_id}/content'
+                    )
+                    result.raise_for_status()
+                    target = output_dir / Path(filename).name
+                    target.write_bytes(result.content)
+                    artifacts.append(target)
             combined = self._combined_text_response(responses, response.output_text)
             if len(responses) > 1:
                 # Keep all tool calls in cost telemetry, including the first
