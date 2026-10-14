@@ -16,7 +16,6 @@ from googleapiclient.errors import HttpError
 
 SHEET_ID = os.getenv("TAAZA_SPREADSHEET_ID", "1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY")
 MASTER = "Jobs"
-REGIONAL = ("TP Europe", "Pooja Europe", "Europe")
 SCOPES = ("https://www.googleapis.com/auth/spreadsheets",)
 DROP_QUERY = re.compile(r"^(utm_.+|fbclid|gclid|msclkid|igshid|ref_src|source|trk|tracking|tm_event|tm_company)$", re.I)
 
@@ -35,6 +34,38 @@ def canonical(value):
         return "https://" + domain + path + ("?" + urlencode(params) if params else "")
     except ValueError:
         return ""
+
+
+def is_job_tab_header(row):
+    """Detect job tabs by column schema, never by name.
+
+    This deliberately excludes alert, dashboard, instructions and setup tabs.
+    New job tabs must retain A=Company, B=Designation, C=Link headers.
+    """
+    values = [str(v or "").strip().lower() for v in (list(row) + ["", "", ""])[:3]]
+    return (
+        values[0] in ("company name", "company", "employer")
+        and values[1] in ("designation", "job title", "role", "position", "title")
+        and values[2] in ("link", "job link", "vacancy link", "url", "job url")
+    )
+
+
+def discover_job_tabs(sheets, master=MASTER):
+    """Read all live spreadsheet tabs. Renaming keeps its stable sheet ID."""
+    result = sheets.spreadsheets().get(
+        spreadsheetId=SHEET_ID,
+        fields="sheets(properties(sheetId,title,hidden,gridProperties(rowCount)))",
+    ).execute()
+    all_tabs = []
+    for entry in result.get("sheets", []):
+        props = entry["properties"]
+        name = props["title"]
+        if props.get("hidden") or name == master:
+            continue
+        header = get_values(sheets, name, 1, 1)
+        if header and is_job_tab_header(header[0]):
+            all_tabs.append({"id": str(props["sheetId"]), "name": name})
+    return all_tabs
 
 
 def candidates(master_rows, regional_rows):
@@ -96,7 +127,7 @@ def get_values(sheets, name, start=2, end=None):
 def tabs_and_dimensions(sheets):
     response = sheets.spreadsheets().get(
         spreadsheetId=SHEET_ID,
-        fields="sheets(properties(title,gridProperties(rowCount)))",
+        fields="sheets(properties(sheetId,title,gridProperties(rowCount)))",
     ).execute()
     return {entry["properties"]["title"]: entry["properties"]["gridProperties"]["rowCount"]
             for entry in response.get("sheets", [])}
@@ -112,7 +143,7 @@ def sync_once(sheets):
     dimensions = tabs_and_dimensions(sheets)
     if MASTER not in dimensions:
         raise RuntimeError("Taaza master Jobs tab not found. No spreadsheet changes made.")
-    tabs = [t for t in REGIONAL if t in dimensions]
+    tabs = [t["name"] for t in discover_job_tabs(sheets)]
     # Avoid any dependence on alert or setup tabs.
     master_rows = get_values(sheets, MASTER)
     sources = {tab: get_values(sheets, tab) for tab in tabs}
