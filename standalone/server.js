@@ -1,0 +1,88 @@
+"use strict";
+const express = require("express");
+const fs = require("node:fs");
+const path = require("node:path");
+const {GoogleAuth} = require("google-auth-library");
+const {initializeApp, getApps} = require("firebase-admin/app");
+const {getAuth} = require("firebase-admin/auth");
+const {invoke,METHODS} = require("./runtime");
+
+const BASE = path.resolve(__dirname,"..");
+const PORT = Number(process.env.PORT||8080);
+const PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || "";
+const ALLOWED = String(process.env.ALLOWED_EMAILS||"")
+  .split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
+const IDS = {
+  taaza:process.env.TAAZA_SPREADSHEET_ID||"1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY",
+  fresh:process.env.FRESHMAL_SPREADSHEET_ID||"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc"
+};
+if(!getApps().length)initializeApp({projectId:PROJECT||undefined});
+const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets"]});
+const app=express();
+app.disable("x-powered-by");
+app.set("trust proxy",1);
+app.use(express.json({limit:"120kb"}));
+app.use((req,res,next)=>{
+  res.set("X-Content-Type-Options","nosniff");
+  res.set("Referrer-Policy","same-origin");
+  res.set("Cache-Control","no-store");
+  next();
+});
+app.get("/health",(req,res)=>res.json({
+  ok:true,
+  migrations:"standalone-read-write-compatibility",
+  credentialsConfigured:!!PROJECT&&ALLOWED.length>0,
+  // This endpoint does not reveal emails, secret names or tokens.
+}));
+app.get("/config",(req,res)=>res.json({
+  apiKey:process.env.FIREBASE_WEB_API_KEY||"",
+  authDomain:process.env.FIREBASE_AUTH_DOMAIN||(PROJECT?PROJECT+".firebaseapp.com":""),
+  projectId:PROJECT,
+  appId:process.env.FIREBASE_WEB_APP_ID||"",
+}));
+app.get("/bridge.js",(req,res)=>{
+  res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js"));
+});
+app.get("/",(req,res)=>{
+  let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
+  // The UI is unchanged. Only a secure replacement for google.script.run is
+  // injected before its original script runs.
+  html=html.replace("<script>\n'use strict';",
+    "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
+  res.type("html").send(html);
+});
+
+async function authenticate(req) {
+  const match=String(req.headers.authorization||"").match(/^Bearer\s+(.+)$/i);
+  if(!match)throw Object.assign(new Error("Sign in to continue"),{httpCode:401});
+  let claims;
+  try { claims=await getAuth().verifyIdToken(match[1],true); }
+  catch { throw Object.assign(new Error("Your login has expired. Sign in again."),{httpCode:401}); }
+  const email=String(claims.email||"").toLowerCase().trim();
+  if(!claims.email_verified || !ALLOWED.includes(email))
+    throw Object.assign(new Error("This Google account is not authorised for Automate CV"),{httpCode:403});
+  return email;
+}
+app.post("/api/:method",async (req,res)=>{
+  try {
+    if(!METHODS.has(req.params.method))
+      return res.status(404).json({error:"Unknown operation"});
+    const email=await authenticate(req);
+    const client=await auth.getClient();
+    const access=await client.getAccessToken();
+    const token=typeof access==="string"?access:access.token;
+    if(!token)throw new Error("Cloud Run cannot access the authorised Google Sheets");
+    const data=await invoke(req.params.method,req.body?.arg,{
+      email,token,ids:IDS,githubToken:process.env.GITHUB_WORKFLOW_TOKEN||"",
+      allowedEmails:ALLOWED.join(",")
+    });
+    res.json({data});
+  } catch(error) {
+    const status=error.httpCode||(/Invalid|No |changed in Google Sheets|job row|cannot|unknown/i.test(error.message)?400:500);
+    console.error("[cv-api]",req.params.method,"status="+status,String(error.message||"Error").slice(0,350));
+    res.status(status).json({error:String(error.message||"Operation failed").slice(0,500)});
+  }
+});
+app.use((req,res)=>res.status(404).type("text").send("Not found"));
+if(require.main===module)app.listen(PORT,"0.0.0.0",()=>console.log("[cv-api] listening port",PORT));
+module.exports={app};
