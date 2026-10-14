@@ -50,6 +50,23 @@
     }
     overlay.style.display=show?"flex":"none";
   }
+  function installAccountSwitch() {
+    const actions=document.querySelector(".top-actions");
+    if(!actions||document.getElementById("cv-account-switch"))return;
+    const button=document.createElement("button");
+    button.id="cv-account-switch";
+    button.type="button";
+    button.textContent="Switch Google";
+    button.title="Sign out and choose a different approved Google account";
+    button.style.cssText="padding:7px 9px;border:1px solid #c6d3e8;border-radius:8px;background:#fff;color:#23466e;cursor:pointer;font-size:11px;font-weight:650;white-space:nowrap";
+    button.addEventListener("click",async()=>{
+      try {
+        if(authInstance)await authInstance.signOut();
+        emitUser(null);
+      } catch(e) { errorText(e.message||"Sign-out failed."); }
+    });
+    actions.appendChild(button);
+  }
   function waitForUser() {
     if(currentUser)return Promise.resolve(currentUser);
     renderLogin(true);
@@ -94,7 +111,7 @@
     try {json=await response.json();}
     catch {throw Error("The dashboard server did not return a valid response.");}
     if(!response.ok) {
-      if(response.status===403) {
+      if(response.status===403 && /not authorised for Automate CV/i.test(String(json.error||""))) {
         emitUser(null);
         errorText(json.error||"This Google account is not authorised. Select another account.");
         try {await authInstance.signOut();}catch{}
@@ -113,6 +130,7 @@
   }
   async function initAuth() {
     renderLogin(true);
+    installAccountSwitch();
     try {
       const response=await fetch("/config",{cache:"no-store"});
       if(!response.ok)throw Error("Dashboard authentication settings are unavailable.");
