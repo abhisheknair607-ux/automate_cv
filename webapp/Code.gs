@@ -221,6 +221,7 @@ function freshRows_() {
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
          clTier:String(clTiers[i][c.clTier-48]||e[c.tier-33]||'Premium'),
+         clTierExplicit:!!String(clTiers[i][c.clTier-48]||'').trim(),
         notInterested:truthy_(e[c.notInterested-33]),
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
@@ -358,6 +359,7 @@ function getJob(options) {
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
      clTier:String(a[conf.clTier-1]||a[conf.tier-1]||'Premium'),
+     clTierExplicit:!!String(a[conf.clTier-1]||'').trim(),
     promptReady:!!String(a[conf.cvLink-1]||'').trim()&&!!String(a[conf.prompt-1]||'').trim(),
     notInterested:truthy_(a[conf.notInterested-1])||
       taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
