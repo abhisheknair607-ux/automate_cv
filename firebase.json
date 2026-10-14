@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "site": "freshmaal-cv",
+    "site": "garamaal",
     "public": "standalone/hosting-public",
     "ignore": [
       "**/.*",
