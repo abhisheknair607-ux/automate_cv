@@ -42,7 +42,8 @@ class MemoryDrive:
 
 @pytest.mark.parametrize('merged', [True, False])
 @pytest.mark.parametrize('make_cl', [False, True])
-def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_path, monkeypatch, merged, make_cl):
+@pytest.mark.parametrize('candidate', ['abhishek', 'pooja'])
+def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_path, monkeypatch, merged, make_cl, candidate):
     completed, failed, calls = [], [], []
     sheet = SimpleNamespace(prepare=lambda app: True, claim=lambda app: None,
         update=lambda *args: None, done=lambda *args, **kwargs: completed.append(args),
@@ -66,16 +67,22 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     def generation(*args, **kwargs):
         if 'MAKE_CV = FALSE' in args[1]:
             assert kwargs['model'] == 'gpt-6.1-sol'
+            assert 'COVER LETTER VOICE AND STORY' in args[0]
+            assert f'For {candidate.title()}' in args[0]
+            assert f'For {"Pooja" if candidate == "abhishek" else "Abhishek"}' not in args[0]
+            assert 'MAKE_CV = FALSE\nMAKE_COVER_LETTER = TRUE\n' in args[1]
             calls.append('cover_letter')
             return 'Cover letter written', response, [generated_cl]
         assert 'MAKE_COVER_LETTER = TRUE' not in args[1]
+        assert 'PROFESSIONAL PROFILE VOICE' in args[0]
+        assert f'For {candidate.title()}' in args[0]
         calls.append('generation')
         return 'ATS Match Score: 80/100', response, [generated]
 
     w = Workflow(settings, sheet, drive,
         SimpleNamespace(text=analysis, stage3=generation),
         SimpleNamespace(read=lambda *args: 'authoritative source rules'))
-    w.profiles = {'abhishek': SimpleNamespace(missing_required=lambda: [])}
+    w.profiles = {candidate: SimpleNamespace(missing_required=lambda: [])}
     w.sources = SimpleNamespace(stage2=lambda *args: ('verified router', source),
         master_evidence=lambda *args: ('verified master', source),
         stage3=lambda *args, **kwargs: [source])
@@ -98,7 +105,7 @@ def test_both_analysis_routes_finalize_and_resume_without_new_paid_calls(tmp_pat
     monkeypatch.setattr('automate_cv.workflow.factual_report', factual_report)
     app = ApplicationRow(20, 'Kroll', 'Senior Associate', 'https://job.test',
         'raw JD', True, make_cl, False, '', application_id='test-row', jd_hash='jd-v1',
-        model_tier='Economy', cl_model_tier='Balanced')
+        candidate_key=candidate, model_tier='Economy', cl_model_tier='Balanced')
 
     w.run(app)
     assert not failed

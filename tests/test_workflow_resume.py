@@ -96,6 +96,7 @@ def test_stage3_checkpoint_key_changes_when_generation_inputs_change(tmp_path):
     source.write_bytes(b'v1')
     stage2_key = {'jd_hash': 'jd-a', 'prompt2_hash': 'p2'}
     app = SimpleNamespace(
+        candidate_key='abhishek',
         make_cl=False,
         web_search=False,
         company='EY',

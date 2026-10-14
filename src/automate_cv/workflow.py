@@ -14,7 +14,7 @@ from .qa import QAError, factual_report, normalize, one_page
 from .sources import Sources, source_telemetry
 from .optimization import combine_analysis_prompts
 from .model_presets import resolve_preset
-from .writing_guidance import PROFILE_VOICE, COVER_LETTER_VOICE
+from .writing_guidance import profile_voice, cover_letter_voice
 
 
 class CostLimitError(RuntimeError):
@@ -450,6 +450,10 @@ class Workflow:
             'checkpoint_schema_version': _CHECKPOINT_SCHEMA_VERSION,
             'stage2_key_hash': _hash(json.dumps(stage2_key, sort_keys=True)),
             'prompt3_hash': _hash(prompt3),
+            'profile_voice_hash': _hash(profile_voice(app.candidate_key)),
+            'cover_letter_voice_hash': (
+                _hash(cover_letter_voice(app.candidate_key)) if app.make_cl else ''
+            ),
             'master_evidence_hash': _hash(master_evidence),
             'stage2_handoff_hash_for_stage3': _hash(stage2_handoff),
             'stage3_source_hashes': _source_hashes(source_paths),
@@ -685,7 +689,7 @@ class Workflow:
                 )
                 stage3, response3, artifacts = self.retry(
                     lambda: self.ai.stage3(
-                        prompt3 + '\\n\\n' + PROFILE_VOICE,
+                        prompt3 + '\n\n' + profile_voice(app.candidate_key),
                         input3.replace('MAKE_COVER_LETTER = TRUE', 'MAKE_COVER_LETTER = FALSE'),
                         source_paths,
                         work / 'generated',
@@ -720,12 +724,12 @@ class Workflow:
                         and 'letter' not in Path(p).name.lower()
                     ]
                     cl_input = (
-                        'MAKE_CV = FALSE\\nMAKE_COVER_LETTER = TRUE\\n'
-                        f'WEB_SEARCH = {str(app.web_search).upper()}\\n\\n'
-                        f'Company: {app.company}\\nRole: {app.designation}\\n'
-                        f'Location: {app.location}\\nLink: {app.application_link}\\n\\n'
-                        f'RAW JOB DESCRIPTION\\n{app.raw_jd}\\n\\n'
-                        f'{stage2_handoff}\\n\\n'
+                        'MAKE_CV = FALSE\nMAKE_COVER_LETTER = TRUE\n'
+                        f'WEB_SEARCH = {str(app.web_search).upper()}\n\n'
+                        f'Company: {app.company}\nRole: {app.designation}\n'
+                        f'Location: {app.location}\nLink: {app.application_link}\n\n'
+                        f'RAW JOB DESCRIPTION\n{app.raw_jd}\n\n'
+                        f'{stage2_handoff}\n\n'
                         'Create ONLY one standalone cover-letter DOCX; do not create a CV. '
                         'Use the attached generated CV solely to ensure factual alignment. '
                         'Apply the candidate-specific Cover Letter Rules and template. '
@@ -734,7 +738,7 @@ class Workflow:
                     )
                     cl_text, cl_response, cl_artifacts = self.retry(
                         lambda: self.ai.stage3(
-                            prompt3 + '\\n\\n' + COVER_LETTER_VOICE,
+                            prompt3 + '\n\n' + cover_letter_voice(app.candidate_key),
                             cl_input,
                             cl_sources,
                             work / 'cl_generated',
