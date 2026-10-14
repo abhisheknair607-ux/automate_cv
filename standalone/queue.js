@@ -8,10 +8,10 @@ let cached = null;
 let cacheExpires = 0;
 
 function classifyRuns(all) {
-  const active = (all || []).filter(r => r && ACTIVE.has(r.status) && RUN_NAME.test(r.display_title || ""));
+  const active = (all || []).filter(r => r && ACTIVE.has(r.cvJobStatus || r.status) && RUN_NAME.test(r.display_title || ""));
   // GitHub's queue order is not formally guaranteed FIFO; show position among
   // currently visible manual requests, not an ETA or guaranteed execution order.
-  const queued = active.filter(r => PENDING.has(r.status))
+  const queued = active.filter(r => PENDING.has(r.cvJobStatus || r.status))
     .sort((a,b) => Date.parse(a.created_at)-Date.parse(b.created_at) || a.id-b.id);
   const position = new Map(queued.map((r,i) => [r.id,i+1]));
   const byJob = {};
@@ -19,7 +19,7 @@ function classifyRuns(all) {
     const match = (run.display_title || "").match(RUN_NAME);
     const key = match[1].toLowerCase() + ":" + Number(match[2]);
     const candidateRun = {
-      state: run.status === "in_progress" ? "running" : "queued",
+      state: (run.cvJobStatus || run.status) === "in_progress" ? "running" : "queued",
       queueNumber: position.get(run.id) || null,
       url: run.html_url,
       runId: run.id
@@ -28,7 +28,7 @@ function classifyRuns(all) {
     if (!byJob[key] || (byJob[key].state !== "running" && candidateRun.state === "running"))
       byJob[key] = candidateRun;
   }
-  return {byJob, running:active.filter(r=>r.status==="in_progress").length,
+  return {byJob, running:active.filter(r=>(r.cvJobStatus || r.status)==="in_progress").length,
     queued:queued.length, checkedAt:new Date().toISOString(),
     queueNote:"Queue numbers count visible manual CV requests. Scheduled worker jobs may also delay execution."};
 }
@@ -52,7 +52,28 @@ async function getCvQueue(token, options={}) {
   let data;
   try {data = await response.json();}
   catch (_) {throw Object.assign(new Error("GitHub queue response was invalid"),{httpCode:503});}
-  const result = classifyRuns(data.workflow_runs);
+  const runs=data.workflow_runs || [];
+  // A workflow run may be in_progress while its sole job is still queued
+  // behind the shared concurrency group. Check the actual job status where
+  // possible to avoid reporting "running" prematurely.
+  const visible=runs.filter(r=>RUN_NAME.test(r?.display_title||"") && r.status==="in_progress").slice(0,20);
+  await Promise.all(visible.map(async run=>{
+    try{
+      const detail=await fetcher(
+        "https://api.github.com/repos/abhisheknair607-ux/automate_cv/actions/runs/"+
+        encodeURIComponent(String(run.id))+"/jobs?per_page=10",
+        {method:"GET",headers:{"Authorization":"Bearer "+token,
+          "Accept":"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28",
+          "User-Agent":"automate-cv-dashboard"},signal:AbortSignal.timeout(12000)}
+      );
+      if(detail.ok){
+        const payload=await detail.json();
+        const job=(payload.jobs||[]).find(j=>j.name==="controlled-cv")||(payload.jobs||[])[0];
+        if(job && ACTIVE.has(job.status))run.cvJobStatus=job.status;
+      }
+    }catch(_){/* Retain provider run-level status on temporary job API errors. */}
+  }));
+  const result = classifyRuns(runs);
   if (!options.fetcher){cached=result;cacheExpires=Date.now()+8000;}
   return result;
 }
