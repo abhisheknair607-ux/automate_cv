@@ -26,6 +26,7 @@ class ApplicationRow:
     cost_usd: float = 0.0
     error: str = ''
     model_tier: str = 'Premium'  # Blank Excel cells resolve to Premium; resolved per candidate/job.
+    cl_model_tier: str = ''  # Blank inherits the CV tier for backwards compatibility.
 
     def validate(self):
         errors=[]
