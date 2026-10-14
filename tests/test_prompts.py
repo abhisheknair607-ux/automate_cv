@@ -171,7 +171,7 @@ def test_pooja_star_and_source_result_rules_apply_only_to_pooja(tmp_path, monkey
     stage3_root = tmp_path / 'stage3root'
     stage3_root.mkdir()
     stage3 = Prompts(
-        FakeDrive('START\\n# Job Description\\nEND'),
+        FakeDrive('START\n# Job Description\nEND'),
         FakeSettings(),
         root_with_controls(stage3_root),
     ).read('pooja', '#Prompt3.md', tmp_path / 'work3')
@@ -181,7 +181,7 @@ def test_pooja_star_and_source_result_rules_apply_only_to_pooja(tmp_path, monkey
     other_root = tmp_path / 'abhroot'
     other_root.mkdir()
     abhishek = Prompts(
-        FakeDrive('START\\n# Authoritative Inputs and Stage Handoff\\nEND'),
+        FakeDrive('START\n# Authoritative Inputs and Stage Handoff\nEND'),
         FakeSettings(),
         root_with_controls(other_root),
     ).read('abhishek', '#Prompt3.md', tmp_path / 'abhwork')
