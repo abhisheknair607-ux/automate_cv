@@ -149,3 +149,64 @@ def test_two_text_only_attempts_still_fail_closed_without_using_uploaded_cv(tmp_
     _, _, artifacts = ai.stage3('rules', 'job', [], tmp_path/'out')
     assert len(calls) == 2
     assert artifacts == []  # Existing QA will reject, never claim CV success.
+
+
+def test_economy_only_falls_back_once_to_sol_for_missing_word(tmp_path):
+    pages = {None: {'data': [{'id': 'generated', 'source': 'assistant',
+                              'path': '/mnt/data/recovered_CV.docx'}],
+                    'has_more': False}}
+    ai, calls = build_ai([
+        Response([], 'Luna first text'),
+        Response([], 'Luna retry text'),
+        Response(ci_output(), 'Sol produced Word file'),
+    ], pages)
+    _, result, artifacts = ai.stage3(
+        'preserve user formatting', 'raw JD and evidence', [],
+        tmp_path/'generated', model='gpt-6-luna', fallback_model='gpt-6.1-sol',
+    )
+    assert [call['model'] for call in calls] == [
+        'gpt-6-luna', 'gpt-6-luna', 'gpt-6.1-sol',
+    ]
+    assert len(artifacts) == 1
+    assert artifacts[0].name == 'recovered_CV.docx'
+    assert len(result.component_responses) == 3
+    assert all(call['instructions'] == 'preserve user formatting' for call in calls)
+    assert 'raw JD and evidence' in calls[-1]['input']
+
+
+def test_balanced_never_auto_falls_back(tmp_path):
+    ai, calls = build_ai([Response([]), Response([])], {})
+    _, response, artifacts = ai.stage3(
+        'rules', 'JD', [], tmp_path/'out',
+        model='gpt-6.1-sol', fallback_model=None,
+    )
+    assert [call['model'] for call in calls] == ['gpt-6.1-sol'] * 2
+    assert len(artifacts) == 0
+
+
+def test_mixed_model_usage_is_priced_separately(tmp_path):
+    from automate_cv.workflow import _usage
+    pages = {None: {'data': [{'id': 'generated', 'source': 'assistant',
+                              'path': '/mnt/data/fallback_CV.docx'}],
+                    'has_more': False}}
+    first = Response([], 'Luna text', input_tokens=100000, output_tokens=1000)
+    first.model = 'gpt-6-luna'
+    second = Response([], 'Luna retry', input_tokens=50000, output_tokens=500)
+    second.model = 'gpt-6-luna'
+    last = Response(ci_output(), 'Sol Word', input_tokens=10000, output_tokens=2000)
+    last.model = 'gpt-6.1-sol'
+    ai, calls = build_ai([first, second, last], pages)
+    _, combined, artifacts = ai.stage3(
+        'rules', 'JD', [], tmp_path/'out',
+        model='gpt-6-luna', fallback_model='gpt-6.1-sol',
+    )
+    priced = _usage(combined, 'gpt-6-luna')
+    assert [x['model'] for x in priced['model_breakdown']] == [
+        'gpt-6-luna', 'gpt-6-luna', 'gpt-6.1-sol',
+    ]
+    assert priced['model_api_cost'] == round(
+        sum(x['model_api_cost'] for x in priced['model_breakdown']), 6
+    )
+    assert priced['model_api_cost'] > sum(
+        _usage(x, 'gpt-6-luna')['model_api_cost'] for x in [first, second, last]
+    )
