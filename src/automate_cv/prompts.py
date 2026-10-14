@@ -220,9 +220,7 @@ The PERSONAL PROFILE is always tailored for the specific job description, but
 its format, length and visual footprint are deliberately stable across Pooja CVs.
 
 - Keep PERSONAL PROFILE as one compact paragraph of exactly four sentences.
-- Target 80-95 words; never exceed 100 words. Keep approximately the same
-  paragraph footprint as the approved 86-word benchmark below so tailoring does
-  not create page-layout drift.
+- Target 65-90 words; never exceed 100 words. Use the latest applicant-provided four-sentence, approximately 67-word finance/debt-advisory profile as the tone-and-length benchmark, tailoring supported language to each JD without changing fixed formatting.
 - Preserve the master CV heading, font, paragraph style, spacing and one-page
   layout. Do not turn the profile into bullets, a multi-paragraph summary or an
   objective statement.
@@ -266,22 +264,9 @@ its format, length and visual footprint are deliberately stable across Pooja CVs
 - After drafting, compare the profile against the JD and the rest of the CV:
   remove duplicated wording, ensure the opening is differentiated, confirm the
   strongest supported keywords are present, and keep the final result within the
-  four-sentence / 80-95-word contract.
+  four-sentence / 65-90-word target (maximum 100 words).
 
-Approved style-and-length benchmark (format anchor, not fixed wording):
-"Finance and strategy professional with 5+ years across private wealth,
-financial planning, investment markets and WealthTech, combining analytical
-rigour with client leadership and commercial execution. Managed an €80.5M HNW
-and corporate portfolio, delivering measurable growth through investment
-analysis, risk assessment, client advisory and relationship development.
-Currently developing an AI-enabled financial-planning proposition, translating
-complex commercial and client requirements into scalable solutions across
-product, technology and advisory teams. QFA and CFP qualified with an MSc
-Finance from UCD Smurfit, bringing strong financial analysis, strategic
-problem-solving and stakeholder-management capability."
-
-Do not copy the benchmark mechanically. Preserve its four-sentence architecture,
-density and senior professional tone while rewriting the substance for each JD.
+Latest approved applicant-supplied profile benchmark (14 Oct 2026) is preserved verbatim in Pooja's private Summary Doc and detailed Master CV. It is four sentences and approximately 67 words. Follow its structure: (1) professional identity and 5+ years; (2) quantified portfolio/impact and analytical actions; (3) client work alongside company valuation, LBO financing, debt-capacity and financial modelling from academic/independent projects, explicitly labelled as such; (4) MSc Finance, UCD Smurfit, QFA/CFP and truthful CFA status. Reprioritise for each JD; do not fabricate professional transaction ownership, metrics or qualifications.
 
 ## Manager-level professional-experience bullet standard
 - Every work-experience bullet must start with a clear, natural action verb that
@@ -309,9 +294,7 @@ density and senior professional tone while rewriting the substance for each JD.
   where one exists; otherwise end with a specific, credible qualitative outcome.
 - Prefer manager-level ownership language when supported, but never inflate a
   title, reporting line, decision right, team responsibility or strategic scope.
-- Keep each final professional-experience bullet concise: target 20-25
-  words and never exceed 25 words. Preserve Situation, Task, Action and
-  Result rather than stripping context to reduce word count.
+- Keep final professional-experience bullets within 25 words and approximately two lines, each containing Situation, Task, Action and Result. Longer original source examples must be preserved verbatim in the evidence bank and selectively condensed for CVs without losing STAR meaning or supported metrics.
 - Avoid weak openings such as "Responsible for", "Helped" or "Worked on" when a
   more direct and truthful action verb is available.
 
@@ -329,11 +312,8 @@ density and senior professional tone while rewriting the substance for each JD.
   the bullet with that measured result, with its exact unit and qualifiers.
   Prefer genuinely quantified efficiency, planning, implementation-cost and
   turnaround results over invented or generic business impact.
-- Review the current J.P. Nugent source additions for MVP workstream delivery,
-  integrated financial-planning platform design, financial-planning vendor
-  assessment and cross-functional adviser/client requirements management.
-  These are candidate-specific evidence-selection topics, not four mandatory
-  bullets for every vacancy: select only examples relevant to the JD.
+- Review Pooja's latest candidate-supplied J.P. Nugent / LifeGoals & MortgageStop source evidence: five MVP workstreams and 60-day roadmap with reported 15% delivery-efficiency improvement; eight-domain planning platform design with reported 20% planning-efficiency improvement; vendor/commercial assessment with reported 25% implementation-cost reduction; and adviser/client cross-functional delivery with reported 30% turnaround improvement. Preserve exact source wording in private evidence files. Select by JD relevance; do not force all four on each CV.
+- Prefer latest applicant-supplied role-title style: Proposition Manager / Project Lead - J.P. Nugent (Jul 2026 to Current). Check the MortgageStop.ai vs MortgageStop.com product-name variation before using a suffix.
 - When multiple versions describe different MVP roadmap durations or
   implementation phases, preserve both original statements and do not
   silently replace, reconcile or combine timelines. Confirm which scope and
