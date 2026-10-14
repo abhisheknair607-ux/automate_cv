@@ -1,0 +1,43 @@
+name: standalone-migration-parity-tests
+
+on:
+  push:
+    branches:
+      - migration/standalone-google-auth-no-appscript
+    paths:
+      - 'standalone/**'
+      - 'webapp/**'
+      - 'Dockerfile'
+      - 'package.json'
+      - '.github/workflows/standalone-parity-tests.yml'
+  pull_request:
+    paths:
+      - 'standalone/**'
+      - 'webapp/**'
+      - 'Dockerfile'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify standalone JS syntax
+        run: |
+          node --check standalone/sheets.js
+          node --check standalone/runtime.js
+          node --check standalone/server.js
+          node --check standalone/bridge.js
+      - name: Test existing and migrated app logic (no API calls)
+        run: |
+          npm test
+          node webapp/tests/not_interested.test.js
+      - name: Resolve production dependency tree for deployability
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
