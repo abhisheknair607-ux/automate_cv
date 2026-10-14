@@ -25,6 +25,16 @@ node_modules
 .env
 *.json.secret
 EOF
+cat > "$STAGING/cv-env.yaml" <<EOF
+GOOGLE_CLOUD_PROJECT: "$GOOGLE_CLOUD_PROJECT"
+FIREBASE_PROJECT_ID: "$GOOGLE_CLOUD_PROJECT"
+FIREBASE_WEB_API_KEY: "$FIREBASE_WEB_API_KEY"
+FIREBASE_WEB_APP_ID: "$FIREBASE_WEB_APP_ID"
+FIREBASE_AUTH_DOMAIN: "$GOOGLE_CLOUD_PROJECT.firebaseapp.com"
+ALLOWED_EMAILS: "$ALLOWED_EMAILS"
+TAAZA_SPREADSHEET_ID: "$TAAZA"
+FRESHMAL_SPREADSHEET_ID: "$FRESH"
+EOF
 gcloud config set project "$GOOGLE_CLOUD_PROJECT"
 # Billing activation and permission approvals are performed by the user.
 gcloud services enable run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com sheets.googleapis.com --project="$GOOGLE_CLOUD_PROJECT"
@@ -41,7 +51,7 @@ gcloud run deploy "$SERVICE" \
   --timeout=300 \
   --cpu=1 \
   --memory=512Mi \
-  --set-env-vars="GOOGLE_CLOUD_PROJECT=$GOOGLE_CLOUD_PROJECT,FIREBASE_PROJECT_ID=$GOOGLE_CLOUD_PROJECT,FIREBASE_WEB_API_KEY=$FIREBASE_WEB_API_KEY,FIREBASE_WEB_APP_ID=$FIREBASE_WEB_APP_ID,FIREBASE_AUTH_DOMAIN=$GOOGLE_CLOUD_PROJECT.firebaseapp.com,ALLOWED_EMAILS=$ALLOWED_EMAILS,TAAZA_SPREADSHEET_ID=$TAAZA,FRESHMAL_SPREADSHEET_ID=$FRESH" \
+  --env-vars-file="$STAGING/cv-env.yaml" \
   --quiet
 printf '\n%s\n' "Cloud Run deployed. Add its hostname to Firebase Authentication > Settings > Authorized domains."
 printf '%s\n' "For Run CV Now: attach a GitHub token via Google Secret Manager. Never include it in browser code."
