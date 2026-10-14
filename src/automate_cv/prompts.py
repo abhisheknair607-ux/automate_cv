@@ -309,9 +309,9 @@ density and senior professional tone while rewriting the substance for each JD.
   where one exists; otherwise end with a specific, credible qualitative outcome.
 - Prefer manager-level ownership language when supported, but never inflate a
   title, reporting line, decision right, team responsibility or strategic scope.
-- Keep each final professional-experience bullet concise: target 25-30 words and
-  never exceed 30 words unless a locked formatting/source rule explicitly
-  requires otherwise.
+- Keep each final professional-experience bullet concise: target 20-25
+  words and never exceed 25 words. Preserve Situation, Task, Action and
+  Result rather than stripping context to reduce word count.
 - Avoid weak openings such as "Responsible for", "Helped" or "Worked on" when a
   more direct and truthful action verb is available.
 
