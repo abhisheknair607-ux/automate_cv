@@ -21,7 +21,7 @@ class MockSheet{
     }
   }
 }
-const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,47);
+const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,47),regions={};
 taaza.set(1,1,'Company Name');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
@@ -33,7 +33,7 @@ for(let row=6;row<=26;row++)taazaRow(row,'Company '+row,`https://jobs.test/open/
 freshRow(3,'Alpha','https://www.jobs.test/open/1');freshRow(4,'Beta','https://jobs.test/open/2?utm_campaign=promo');freshRow(5,'Delta','https://jobs.test/open/4');
 let locks=0;
 const vmContext=vm.createContext({
- SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?taaza:fresh;return s.name===tab?s:null}}},flush(){}},
+ SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null}}},flush(){}},
  Session:{getEffectiveUser(){return {getEmail(){return 'authorised@example.com'}}}},
  PropertiesService:{getScriptProperties(){return {getProperty(){return 'authorised@example.com'}}}},
  LockService:{getScriptLock(){return {waitLock(){locks++},releaseLock(){locks--}}}},
@@ -91,4 +91,47 @@ assert.deepEqual(rows(next),[23,22,21]);
 assert.throws(()=>interest('taaza','Pooja',2,true,'Wrong Company','https://jobs.test/open/1?utm_source=social'),/job changed/i);
 assert.throws(()=>interest('fresh','Unknown',3,true,'Alpha','https://www.jobs.test/open/1'),/Unknown candidate/);
 assert.equal(locks,0);
+
+// Both regional sources must join the Jobs master once, preserving their own tabs.
+const tp=new MockSheet('TP Europe',80,13);
+const pooja=new MockSheet('Pooja Europe',80,13);
+for(const reg of [tp,pooja])reg.set(1,1,'Company Name');
+tp.set(2,1,'TPCo');tp.set(2,2,'Transfer Pricing Senior');tp.set(2,3,'https://eu.test/tp/one');
+tp.set(2,4,'Full Europe TP job description');tp.set(2,11,true); // Do not copy the automated transfer trigger.
+tp.set(3,1,'Alpha');tp.set(3,2,'Alpha Role');tp.set(3,3,'https://jobs.test/open/1?utm_medium=social');
+pooja.set(2,1,'PlanCo');pooja.set(2,2,'Paraplanner');pooja.set(2,3,'https://eu.test/pooja/one');
+regions['TP Europe']=tp;regions['Pooja Europe']=pooja;
+const sync=js(run('syncDiscoveryMaster()'));
+assert.equal(sync.added,2);
+assert.equal(taaza.get(27,1),'TPCo');
+assert.equal(taaza.get(28,1),'PlanCo');
+assert.equal(taaza.get(27,11),false); // Never trigger a CV transfer accidentally.
+assert.equal(taaza.get(27,13),'TP Europe');
+assert.equal(taaza.get(28,13),'Pooja Europe');
+assert.equal(js(run('syncDiscoveryMaster()')).added,0); // Idempotent.
+assert.equal(tp.get(2,11),true); // Specialist source unchanged.
+
+// Unapplied contains ONLY generated CVs without an Applied status.
+fresh.set(3,12,'CV');fresh.set(3,18,'https://docs.google.com/document/d/confirmedAbhishek/edit');
+fresh.set(3,35,'Abhishek post-CV prompt');
+fresh.set(4,12,'Applied');fresh.set(4,18,'https://docs.google.com/document/d/confirmedApplied/edit');
+fresh.set(4,35,'Should not appear under Unapplied');
+fresh.set(5,12,'CV'); // Requested but no generated file.
+assert.deepEqual(rows(list('fresh','Abhishek','unapplied',{pageSize:15})),[3]);
+assert.equal(list('fresh','Abhishek','unapplied',{pageSize:15}).rows[0].promptReady,true);
+assert.equal(js(run('getCopyPrompt({candidate:"Abhishek",row:3,expected:{company:"Alpha",role:"Alpha Role",url:"https://www.jobs.test/open/1"}})')).prompt,
+  'Abhishek post-CV prompt');
+// Pooja's existing AH content must remain hidden until Pooja has her own CV.
+fresh.set(3,34,'Pooja secret pre-CV prompt');
+assert.equal(js(run('getJob({candidate:"Pooja",source:"fresh",row:3})')).promptReady,false);
+assert.throws(()=>run('getCopyPrompt({candidate:"Pooja",row:3,expected:{company:"Alpha",role:"Alpha Role",url:"https://www.jobs.test/open/1"}})'),/completed CV/);
+
+// Client-side syntax and presence of compact buttons.
+const html=fs.readFileSync(__dirname+'/../Index.html','utf8');
+const script=html.match(/<script>([\s\S]+?)<\/script>/);
+assert.ok(script);
+new vm.Script(script[1],{filename:'Index.html'});
+assert.match(html,/Download CV/);assert.match(html,/Copy Prompt/);
+assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
+
 console.log('PASS: candidate isolation, cross-sheet linkage, duplicate canonical URLs, restoration, filtering, offset paging, validation and lock release');
