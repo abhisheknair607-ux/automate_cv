@@ -32,12 +32,13 @@ jobs:
         with:
           node-version: '22'
       - name: Verify standalone release scripts
-        run: bash -n standalone/deploy.sh standalone/deploy-staging.sh standalone/cutover-live.sh standalone/enable-run-cv-now.sh
+        run: bash -n standalone/deploy.sh standalone/deploy-staging.sh standalone/cutover-live.sh standalone/enable-run-cv-now.sh standalone/deploy-live-update.sh
       - name: Verify standalone JS syntax
         run: |
           node --check standalone/sheets.js
           node --check standalone/runtime.js
           node --check standalone/server.js
+          node --check standalone/queue.js
           node --check standalone/bridge.js
       - name: Test existing and migrated app logic (no API calls)
         run: |
