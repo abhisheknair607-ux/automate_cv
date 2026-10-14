@@ -35,7 +35,7 @@ function api(token, path, {method="GET", body, query}={}) {
 }
 function toSheetValue(val) {
   if (val == null) return "";
-  if (val instanceof Date) return val.toISOString();
+  if (Object.prototype.toString.call(val)==="[object Date]") return val.toISOString();
   return typeof val==="string"||typeof val==="number"||typeof val==="boolean" ? val : String(val);
 }
 function quote(name) {return "'" + String(name).replace(/'/g,"''") + "'";}
