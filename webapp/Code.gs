@@ -20,9 +20,9 @@ const SETTINGS = Object.freeze({
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
-             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, lock:16, notInterested:46},
+             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46},
   Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43, prompt:34,
-          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, lock:26, notInterested:47}
+          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, clTier:49, lock:26, notInterested:47}
 });
 
 function doGet() {
@@ -208,6 +208,7 @@ function freshRows_() {
   const checks=sh.getRange(3,5,count,8).getValues();
   const stages=sh.getRange(3,13,count,20).getValues();
   const last=sh.getRange(3,33,count,15).getValues();
+  const clTiers=sh.getRange(3,48,count,2).getValues();
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -219,6 +220,7 @@ function freshRows_() {
         workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
+         clTier:String(clTiers[i][c.clTier-48]||e[c.tier-33]||'Premium'),
         notInterested:truthy_(e[c.notInterested-33]),
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
@@ -347,7 +349,7 @@ function getJob(options) {
       notInterested:truthy_(a[TAAZA_INTEREST[candidate]-1])||
         freshRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.person[candidate].notInterested)};
   }
-  const a=sh.getRange(row,1,1,47).getValues()[0];
+  const a=sh.getRange(row,1,1,49).getValues()[0];
   const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
     jd:String(a[3]||''),location:String(a[32]||''),cv:truthy_(a[conf.cv-1]),
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
@@ -355,6 +357,7 @@ function getJob(options) {
     score:a[conf.score-1],rank:a[conf.rank-1],workflow:String(a[conf.workflow-1]||''),
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
+     clTier:String(a[conf.clTier-1]||a[conf.tier-1]||'Premium'),
     promptReady:!!String(a[conf.cvLink-1]||'').trim()&&!!String(a[conf.prompt-1]||'').trim(),
     notInterested:truthy_(a[conf.notInterested-1])||
       taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
@@ -538,12 +541,12 @@ function updateFreshControl(payload) {
   return lockRun_(()=>{
     const candidate=String(payload.candidate||''),p=person_(candidate),sh=sheet_('fresh');
     const row=expected_(sh,payload.row,3,payload.expected);
-    const fields={cv:p.cv,cl:p.cl,web:p.web,selected:p.selected,status:p.status,tier:p.tier};
+    const fields={cv:p.cv,cl:p.cl,web:p.web,selected:p.selected,status:p.status,tier:p.tier,clTier:p.clTier};
     const field=String(payload.field||'');
     if(!Object.prototype.hasOwnProperty.call(fields,field))throw new Error('Unsupported control field.');
     const col=fields[field],cell=sh.getRange(row,col);
     let value;
-    if(field==='tier'){
+    if(field==='tier'||field==='clTier'){
       value=String(payload.value||'').trim();
       if(!['Economy','Balanced','Premium'].includes(value))throw new Error('Select Economy, Balanced or Premium.');
       if(String(sh.getRange(row,p.lock).getValue()||'').trim())throw new Error('CV is running; wait before changing the model.');
@@ -562,7 +565,7 @@ function updateFreshControl(payload) {
     SpreadsheetApp.flush();
     const got=cell.getValue();
     if(String(got)!==String(value))throw new Error('Could not verify control update.');
-    return {saved:true,row,field,candidate,value,message:field==='tier'?value+' saved for '+candidate+' in Freshmaal.':'Saved directly in Freshmaal.'};
+    return {saved:true,row,field,candidate,value,message:(field==='tier'||field==='clTier')?value+' '+(field==='clTier'?'cover letter':'CV')+' tier saved for '+candidate+'.':'Saved directly in Freshmaal.'};
   });
 }
 
@@ -593,10 +596,12 @@ function runCvApiNow(payload) {
     const p = person_(candidate);
     const sh = sheet_('fresh');
     const row = expected_(sh, payload.row, 3, payload.expected);
-    const a = sh.getRange(row, 1, 1, 47).getValues()[0];
+    const a = sh.getRange(row, 1, 1, 49).getValues()[0];
     const status = String(a[p.status - 1] || '').trim().toLowerCase();
     const tier = String(a[p.tier - 1] || 'Premium').trim();
+    const clTier = String(a[p.clTier - 1] || tier).trim();
     if (!['Economy', 'Balanced', 'Premium'].includes(tier)) throw new Error('Select a valid CV model first.');
+    if (truthy_(a[p.cl - 1]) && !['Economy', 'Balanced', 'Premium'].includes(clTier)) throw new Error('Select a valid CL model first.');
     if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
     if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
     if (status === 'applied') throw new Error('Applied applications cannot be regenerated.');
@@ -630,9 +635,9 @@ function runCvApiNow(payload) {
       throw new Error('GitHub did not accept the CV run (HTTP ' + statusCode + '). Check token Actions:write permission, expiry and repository access.');
     cache.put(key, 'submitted', 300);
     return {
-      queued: true, candidate: candidate, row: row, tier: tier,
+      queued: true, candidate: candidate, row: row, tier: tier, clTier: clTier,
       actionsUrl: 'https://github.com/abhisheknair607-ux/automate_cv/actions/workflows/controlled-cv-test.yml',
-      message: 'GitHub accepted the ' + tier + ' CV request for ' + candidate + ', row ' + row + '. Check Actions for completion.'
+      message: 'GitHub accepted the ' + tier + ' CV request (CL: ' + (truthy_(a[p.cl-1]) ? clTier : 'off') + ') for ' + candidate + ', row ' + row + '. Check Actions for completion.'
     };
   });
 }
