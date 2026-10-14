@@ -62,6 +62,8 @@ const PWA_ASSETS=Object.freeze({
   "/manifest.webmanifest":["manifest.webmanifest","application/manifest+json"],
   "/app-icon-192.png":["app-icon-192.png","image/png"],
   "/app-icon-512.png":["app-icon-512.png","image/png"],
+  "/garamaal-icon-192.jpg":["garamaal-icon-192.jpg","image/jpeg"],
+  "/garamaal-icon-512.jpg":["garamaal-icon-512.jpg","image/jpeg"],
   "/offline.html":["offline.html","text/html"],
   "/sw.js":["sw.js","text/javascript"]
 });
