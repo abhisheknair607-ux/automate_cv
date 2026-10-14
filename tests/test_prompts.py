@@ -150,3 +150,39 @@ def test_abhishek_does_not_receive_pooja_dynamic_profile_contract(tmp_path, monk
     result = prompts.read('abhishek', '#Prompt2.md', tmp_path / 'work')
     assert 'Dynamic Personal Profile standard' not in result
 
+
+
+def test_pooja_star_and_source_result_rules_apply_only_to_pooja(tmp_path, monkeypatch):
+    monkeypatch.setenv('POOJA_PROMPT2_FILE_ID', 'p2')
+    monkeypatch.setenv('POOJA_PROMPT3_FILE_ID', 'p3')
+    monkeypatch.setenv('PROMPT2_FILE_ID', 'p2a')
+    monkeypatch.setenv('PROMPT3_FILE_ID', 'p3a')
+
+    stage2_root = tmp_path / 'stage2root'
+    stage2_root.mkdir()
+    stage2 = Prompts(
+        FakeDrive('STAGE 2 BASE'), FakeSettings(), root_with_controls(stage2_root)
+    ).read('pooja', '#Prompt2.md', tmp_path / 'work2')
+    assert 'Mandatory Pooja STAR bullet and quantified-result standard' in stage2
+    assert 'no more than 25 words' in stage2
+    assert 'Situation/client or business context' in stage2
+    assert 'source-backed result' in stage2
+
+    stage3_root = tmp_path / 'stage3root'
+    stage3_root.mkdir()
+    stage3 = Prompts(
+        FakeDrive('START\\n# Job Description\\nEND'),
+        FakeSettings(),
+        root_with_controls(stage3_root),
+    ).read('pooja', '#Prompt3.md', tmp_path / 'work3')
+    assert 'Mandatory Pooja STAR bullet and quantified-result standard' in stage3
+    assert 'approximately two rendered lines' in stage3
+
+    other_root = tmp_path / 'abhroot'
+    other_root.mkdir()
+    abhishek = Prompts(
+        FakeDrive('START\\n# Authoritative Inputs and Stage Handoff\\nEND'),
+        FakeSettings(),
+        root_with_controls(other_root),
+    ).read('abhishek', '#Prompt3.md', tmp_path / 'abhwork')
+    assert 'Mandatory Pooja STAR bullet and quantified-result standard' not in abhishek
