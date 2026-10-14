@@ -53,7 +53,7 @@ class Freshmal:
     def rows(self):
         result = self.values.get(
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
-            range=f'{self.settings.freshmal_sheet_name}!A3:AS1000',
+            range=f'{self.settings.freshmal_sheet_name}!A3:AW1000',
             valueRenderOption='UNFORMATTED_VALUE',
         ).execute()
         apps = []
@@ -95,6 +95,7 @@ class Freshmal:
                     cost_usd=float(state[8] or 0),
                     error=str(state[9]),
                     model_tier=str(_v(row, p.model_tier_col) or 'Premium'),
+                    cl_model_tier=str(_v(row, p.cl_model_tier_col) or _v(row, p.model_tier_col) or 'Premium'),
                 ))
         return apps
 
