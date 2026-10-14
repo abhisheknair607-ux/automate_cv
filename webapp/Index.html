@@ -5,8 +5,8 @@
 <meta name="theme-color" content="#132a49"/>
 <title>Garamaal — Job Control Centre</title>
 <link rel="manifest" href="/manifest.webmanifest"/>
-<link rel="icon" href="/garamaal-icon-192.jpg" type="image/jpeg"/>
-<link rel="apple-touch-icon" sizes="192x192" href="/garamaal-icon-192.jpg"/>
+<link rel="icon" href="/garamaal-icon-192.png" type="image/png"/>
+<link rel="apple-touch-icon" sizes="192x192" href="/garamaal-icon-192.png"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-title" content="Garamaal"/>
 <meta name="description" content="Private CV and Cover Letter application dashboard"/>
@@ -115,6 +115,21 @@
   .job-settings select{min-height:42px}
   .drawer-footer{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
 }
+/* The install action must never expand the mobile header or create side gutters. */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+#garamaal-install-dock[hidden]{display:none!important}
+@media(max-width:720px){
+  .shell,.main,.container{min-width:0;max-width:100%;width:100%}
+  .topbar{width:100%;min-width:0;max-width:100%;padding-left:10px;padding-right:10px}
+  .top-actions{min-width:0;max-width:100%;display:flex;align-items:center;gap:5px;justify-content:space-between}
+  #candidateToggle{flex:none}
+  #cv-account-switch{max-width:105px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #garamaal-install-dock{position:fixed;bottom:calc(79px + env(safe-area-inset-bottom));right:12px;z-index:11}
+  #garamaal-install-dock #cv-install-app{background:#2563eb;color:white;border-color:#2563eb;border-radius:12px;min-height:43px;padding:10px 14px;box-shadow:0 6px 20px #19365338}
+  #modeBadge{flex:0 1 auto;min-width:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media(max-width:385px){#modeBadge{display:none}}
+@media(min-width:721px){#garamaal-install-dock{display:none}}
 </style>
 </head>
 <body>
@@ -490,9 +505,19 @@ if(!DEMO){
   }
   function showInstall(){
     const installed=isInstalled();
+    // On phones the install control lives above bottom navigation, not in
+    // the crowded account header. This prevents side overflow/blank gutters.
+    const mobile=window.matchMedia('(max-width:720px)').matches;
     const top=document.querySelector('.top-actions');
+    let dock=document.getElementById('garamaal-install-dock');
+    if(!dock){
+      dock=document.createElement('div');
+      dock.id='garamaal-install-dock';
+      document.body.appendChild(dock);
+    }
+    const parent=mobile?dock:top;
     let btn=document.getElementById('cv-install-app');
-    if(!btn&&top){
+    if(!btn&&parent){
       btn=document.createElement('button');
       btn.id='cv-install-app';btn.type='button';
       btn.textContent='Install app';
@@ -507,10 +532,16 @@ if(!DEMO){
         }catch(_){installHelp();}
         showInstall();
       });
-      const toggle=document.getElementById('candidateToggle');
-      top.insertBefore(btn,toggle||top.firstChild);
+    }
+    if(btn && parent && btn.parentNode!==parent){
+      if(mobile)parent.appendChild(btn);
+      else{
+        const toggle=document.getElementById('candidateToggle');
+        parent.insertBefore(btn,toggle||parent.firstChild);
+      }
     }
     if(btn)btn.hidden=installed;
+    if(dock)dock.hidden=installed || !mobile;
   }
   window.addEventListener('beforeinstallprompt',event=>{
     event.preventDefault();installEvent=event;showInstall();
@@ -520,6 +551,7 @@ if(!DEMO){
     showInstall();
   });
   showInstall();
+  window.addEventListener('resize',showInstall);
   setTimeout(pollCvQueue,1200);
   setInterval(()=>{if(!document.hidden)pollCvQueue()},15000);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollCvQueue()});
