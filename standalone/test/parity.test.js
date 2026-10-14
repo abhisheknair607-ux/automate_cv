@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
 const {colLetters,toSheetValue,createSpreadsheetApp}=require("../sheets");
-const {invoke,METHODS}=require("../runtime");
+const {invoke,METHODS,READ_ONLY_METHODS}=require("../runtime");
 
 const root=path.resolve(__dirname,"../..");
 const source=fs.readFileSync(path.join(root,"webapp/Code.gs"),"utf8");
@@ -77,4 +77,21 @@ test("Cloud Run image uses zero-extra-background-process deployment",()=>{
   assert.ok(pkg.dependencies["firebase-admin"]);
   assert.ok(pkg.dependencies["google-auth-library"]);
   assert.ok(pkg.dependencies.express);
+});
+
+
+test("pilot prevents all mutations including paid GitHub dispatch",async()=>{
+  const options={readOnly:true};
+  for(const name of ["setNotInterested","addDiscovery","saveDiscovery","transferJob",
+    "bulkTransfer","updateFreshJD","updateFreshControl","runCvApiNow",
+    "syncDiscoveryMaster"]) {
+    assert.equal(READ_ONLY_METHODS.has(name),false,name+" must not be callable in pilot");
+    await assert.rejects(invoke(name,{},options),/Read-only pilot/);
+  }
+  for(const name of ["getBootstrap","listJobs","getJob","getStats","getCopyPrompt"])
+    assert.equal(READ_ONLY_METHODS.has(name),true,name+" must remain readable");
+  const deployment=fs.readFileSync(path.join(root,"standalone/deploy.sh"),"utf8");
+  assert.match(deployment,/APP_READ_ONLY: "true"/);
+  assert.match(deployment,/--min-instances=0/);
+  assert.match(deployment,/--max-instances=1/);
 });
