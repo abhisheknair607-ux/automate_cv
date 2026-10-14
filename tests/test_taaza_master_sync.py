@@ -126,7 +126,7 @@ def test_sync_is_idempotent_ignores_alert_tabs_and_never_rewrites_existing():
     assert sheet.book["Jobs"][1][10] is False
     assert sheet.book["Jobs"][2][12] == "Pooja Europe"
     assert sheet.categories[1] == 'Job Categories'
-    assert sheet.categories[2] == 'Common'
+    assert sheet.categories[2] == 'TP Europe'  # Existing Alpha also belongs to TP source
     assert sheet.categories[3] == 'TP Europe'
     assert sheet.categories[4] == 'Pooja Europe'
     assert 'TP Europe' in sheet.dropdown_options
@@ -149,7 +149,7 @@ def test_new_or_renamed_job_tab_is_automatically_discovered():
     del sheet.book["New Role Category"]
     sheet.book["New Role Category (Renamed)"] = [["NewCo", "Data", "https://new.example/job"]]
     assert taaza_sync.sync_once(sheet)["added"] == 0
-    assert sheet.categories[4] == "New Role Category (Renamed)"
+    assert sheet.categories[5] == "New Role Category (Renamed)"
 
 
 def test_generic_europe_tab_is_mirrored_if_it_exists():
