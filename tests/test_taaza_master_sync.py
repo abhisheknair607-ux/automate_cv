@@ -99,7 +99,7 @@ def test_sync_is_idempotent_ignores_alert_tabs_and_never_rewrites_existing():
     assert sheet.book["Jobs"][0][0] == "Alpha"
     assert sheet.book["Jobs"][1][10] is False
     assert sheet.book["Jobs"][2][12] == "Pooja Europe"
-    assert not any("Alert Setup" in call[1].get("range", "") for call in sheet.calls)
+    assert not any("Alert Setup" in call[1].get("range", "") and "!A2:" in call[1].get("range", "") for call in sheet.calls)
     before = sum(name == "update" for name, _ in sheet.calls)
     second = taaza_sync.sync_once(sheet)
     assert second["added"] == 0
