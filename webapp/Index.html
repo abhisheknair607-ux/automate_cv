@@ -333,8 +333,10 @@ function downloadDoc(row,kind='cv'){
  const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);
  const docLink=kind==='cl'?job?.clLink:job?.cvLink;
  if(!job||!docLink){toast('No completed '+(kind==='cl'?'cover letter':'CV')+' is ready.',true);return}
- const link=safeUrl(docLink),match=link&&link.match(/\\/d\\/([a-zA-Z0-9_-]+)/);
- if(!match||!/^(?:https:\\/\\/docs\\.google\\.com\\/|https:\\/\\/drive\\.google\\.com\\/)/.test(link)){
+ const link=safeUrl(docLink);
+ const match=link&&link.match(new RegExp('/d/([a-zA-Z0-9_-]+)'));
+ const recognised=link&&(link.startsWith('https://docs.google.com/')||link.startsWith('https://drive.google.com/'));
+ if(!match||!recognised){
    toast('The document link is not a recognised Google Drive file.',true);return;
  }
  window.open('https://drive.google.com/uc?export=download&id='+encodeURIComponent(match[1]),'_blank','noopener,noreferrer');
