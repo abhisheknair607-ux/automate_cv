@@ -1,0 +1,53 @@
+name: Garamaal Dashboard Deploy
+
+on:
+  # One-time deployment run when this workflow is introduced or modified.
+  # Does not dispatch paid CV/CL jobs.
+  push:
+    branches:
+      - migration/standalone-google-auth-no-appscript
+    paths:
+      - '.github/workflows/deploy-garamaal-dashboard.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: garamaal-cloudrun-dashboard-release
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify frontend and PWA without paid jobs
+        run: |
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund
+          npm test
+          node - <<'JS'
+          const sharp=require('sharp');
+          (async()=>{for(const size of [192,512]){
+            const result=await sharp('standalone/pwa/garamaal-icon-192.jpg')
+              .resize(size,size).png().toBuffer({resolveWithObject:true});
+            if(result.info.width!==size||result.info.height!==size)throw Error('Icon size');
+          }})().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+      - name: Authenticate Google Cloud with existing WIF
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: abhishek-cv-automation
+      - name: Deploy live dashboard without changing credentials or sheets
+        run: bash standalone/deploy-live-update.sh
