@@ -58,10 +58,25 @@ app.get("/config",(req,res)=>res.json({
 app.get("/bridge.js",(req,res)=>{
   res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js"));
 });
+const PWA_ASSETS=Object.freeze({
+  "/manifest.webmanifest":["manifest.webmanifest","application/manifest+json"],
+  "/app-icon-192.png":["app-icon-192.png","image/png"],
+  "/app-icon-512.png":["app-icon-512.png","image/png"],
+  "/offline.html":["offline.html","text/html"],
+  "/sw.js":["sw.js","text/javascript"]
+});
+for(const [route,[file,mime]] of Object.entries(PWA_ASSETS)) {
+  app.get(route,(req,res)=>{
+    res.type(mime);
+    if(route==="/sw.js"){res.set("Service-Worker-Allowed","/");res.set("Cache-Control","no-cache");}
+    res.sendFile(path.join(__dirname,"pwa",file));
+  });
+}
+
 app.get("/",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
-  // The UI is unchanged. Only a secure replacement for google.script.run is
-  // injected before its original script runs.
+  // Preserve existing authenticated dashboard; inject its Cloud Run transport.
+  // Installable PWA assets never cache authenticated Google Sheets responses.
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   res.type("html").send(html);
