@@ -139,57 +139,147 @@ def _occupied(row):
                for i in list(range(10)) + [11, 12])
 
 
+CATEGORY_COL = "P"
+CATEGORY_SEPARATOR = " | "
+
+
+def category_assignments(master_rows, regional_rows):
+    """Return per-row membership, including combinations and Common jobs.
+
+    A vacancy belongs to each specialist tab where its canonical URL occurs.
+    Membership derives from live tabs, never from its historical source in M.
+    """
+    memberships = {}
+    for name, rows in regional_rows.items():
+        for values in rows:
+            if len(values) < 3:
+                continue
+            key = canonical(values[2])
+            if key:
+                parts = memberships.setdefault(key, [])
+                if name not in parts:
+                    parts.append(name)
+    labels = []
+    for row in master_rows:
+        key = canonical(row[2]) if len(row) > 2 else ""
+        if not key or not str(row[0]).strip():
+            labels.append("")
+        else:
+            labels.append(CATEGORY_SEPARATOR.join(memberships.get(key, ["Common"])))
+    choices = list(dict.fromkeys(["Common", *regional_rows.keys(), *(v for v in labels if v)]))
+    return labels, choices
+
+
+def sync_categories(sheets, master_rows, sources, row_capacity):
+    """Refresh Jobs!P as an automatically verified, dropdown-backed category.
+
+    P stores all matching categories as a single dropdown option for shared
+    vacancies, e.g. 'TP Europe | Pooja Europe'. Column N/O decisions and the
+    master data in A:M are never modified by this function.
+    """
+    labels, options = category_assignments(master_rows, sources)
+    count = len(labels)
+    existing_data = sheets.spreadsheets().values().get(
+        spreadsheetId=SHEET_ID,
+        range=f"'{MASTER}'!{CATEGORY_COL}1:{CATEGORY_COL}{max(count + 1, 1)}",
+    ).execute().get("values", [])
+    existing = [(r[0] if r else "") for r in existing_data]
+    target = ["Job Categories", *labels]
+    differences = [i for i, val in enumerate(target) if val != (existing[i] if i < len(existing) else "")]
+    changes = []
+    if differences:
+        groups = []
+        group = [differences[0]]
+        for i in differences[1:]:
+            if i == group[-1] + 1:
+                group.append(i)
+            else:
+                groups.append(group)
+                group = [i]
+        groups.append(group)
+        for group in groups:
+            first, last = group[0], group[-1]
+            # Master row 1 is index 0, master data begins at row 2.
+            changes.append({"range": f"'{MASTER}'!{CATEGORY_COL}{first + 1}:{CATEGORY_COL}{last + 1}",
+                            "values": [[v] for v in target[first:last + 1]]})
+        sheets.spreadsheets().values().batchUpdate(
+            spreadsheetId=SHEET_ID,
+            body={"valueInputOption": "RAW", "data": changes},
+        ).execute()
+
+    dropdown = [{"userEnteredValue": val} for val in options]
+    if dropdown:
+        sheets.spreadsheets().batchUpdate(
+            spreadsheetId=SHEET_ID,
+            body={"requests": [{"repeatCell": {
+                "range": {
+                    "sheetId": _sheet_id(sheets, MASTER),
+                    "startRowIndex": 1,
+                    "endRowIndex": max(2, row_capacity),
+                    "startColumnIndex": 15,
+                    "endColumnIndex": 16,
+                },
+                "cell": {"dataValidation": {
+                    "condition": {"type": "ONE_OF_LIST", "values": dropdown},
+                    "strict": True,
+                    "showCustomUi": True,
+                }},
+                "fields": "dataValidation",
+            }}]},
+        ).execute()
+    return len(differences)
+
+
 def sync_once(sheets):
     dimensions = tabs_and_dimensions(sheets)
     if MASTER not in dimensions:
         raise RuntimeError("Taaza master Jobs tab not found. No spreadsheet changes made.")
     tabs = [t["name"] for t in discover_job_tabs(sheets)]
-    # Avoid any dependence on alert or setup tabs.
     master_rows = get_values(sheets, MASTER)
     sources = {tab: get_values(sheets, tab) for tab in tabs}
     additions, counts = candidates(master_rows, sources)
-    if not additions:
-        return {"added": 0, "by_source": counts, "master_row": None}
+    first = None
 
-    # Re-read shortly before the write to catch a job added concurrently.
-    fresh = get_values(sheets, MASTER)
-    additions, counts = candidates(fresh, sources)
-    if not additions:
-        return {"added": 0, "by_source": counts, "master_row": None}
+    if additions:
+        # Re-read shortly before append; preserve master edits made meanwhile.
+        fresh = get_values(sheets, MASTER)
+        additions, counts = candidates(fresh, sources)
+        if additions:
+            occupied = [i + 2 for i, row in enumerate(fresh) if any(str(v).strip() for v in row[:3])]
+            first = (max(occupied) + 1) if occupied else 2
+            last = first + len(additions) - 1
+            target = get_values(sheets, MASTER, first, min(last, dimensions[MASTER]))
+            if any(_occupied(row) for row in target):
+                raise RuntimeError("Jobs destination contains data; refusing to overwrite.")
+            if last > dimensions[MASTER]:
+                sheets.spreadsheets().batchUpdate(
+                    spreadsheetId=SHEET_ID,
+                    body={"requests": [{"appendDimension": {
+                        "sheetId": _sheet_id(sheets, MASTER),
+                        "dimension": "ROWS",
+                        "length": last - dimensions[MASTER],
+                    }}]},
+                ).execute()
+                dimensions[MASTER] = last
+            sheets.spreadsheets().values().update(
+                spreadsheetId=SHEET_ID,
+                range=f"'{MASTER}'!A{first}:M{last}",
+                valueInputOption="RAW",
+                body={"values": additions},
+            ).execute()
+            written = get_values(sheets, MASTER, first, last)
+            if len(written) != len(additions) or any(
+                canonical(row[2] if len(row) > 2 else "") != canonical(values[2])
+                for row, values in zip(written, additions)
+            ):
+                raise RuntimeError("Taaza master write verification failed.")
 
-    occupied = [i + 2 for i, row in enumerate(fresh) if any(str(v).strip() for v in row[:3])]
-    first = (max(occupied) + 1) if occupied else 2
-    last = first + len(additions) - 1
-    # Never overwrite an unexpected existing entry, even if its A-C are blank.
-    target = get_values(sheets, MASTER, first, min(last, dimensions[MASTER]))
-    if any(_occupied(row) for row in target):
-        raise RuntimeError("Jobs destination contains other data; refusing to overwrite. Retry after review.")
-
-    if last > dimensions[MASTER]:
-        sheets.spreadsheets().batchUpdate(
-            spreadsheetId=SHEET_ID,
-            body={"requests": [{"appendDimension": {
-                "sheetId": _sheet_id(sheets, MASTER),
-                "dimension": "ROWS",
-                "length": last - dimensions[MASTER],
-            }}]},
-        ).execute()
-
-    sheets.spreadsheets().values().update(
-        spreadsheetId=SHEET_ID,
-        range=f"'{MASTER}'!A{first}:M{last}",
-        valueInputOption="RAW",
-        body={"values": additions},
-    ).execute()
-
-    # Verify the new rows actually arrived before announcing success.
-    written = get_values(sheets, MASTER, first, last)
-    if len(written) != len(additions) or any(
-        canonical(row[2] if len(row) > 2 else "") != canonical(values[2])
-        for row, values in zip(written, additions)
-    ):
-        raise RuntimeError("Taaza master write verification failed; review Jobs before retry.")
-    return {"added": len(additions), "by_source": counts, "master_row": first}
+    # The category dropdown must be refreshed on EVERY run, even with zero new
+    # jobs: tab renames and shared specialist membership also change over time.
+    current = get_values(sheets, MASTER)
+    changed = sync_categories(sheets, current, sources, dimensions[MASTER])
+    return {"added": len(additions), "by_source": counts,
+            "master_row": first, "category_cells_changed": changed}
 
 
 def _sheet_id(sheets, name):
