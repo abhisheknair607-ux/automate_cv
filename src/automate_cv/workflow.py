@@ -76,6 +76,21 @@ def _tool_usage(response):
 
 
 def _usage(response, model=None):
+    # A combined Stage 3 response may contain paid calls to different models.
+    # Price every call with its real model, not the initial Economy preset.
+    calls = getattr(response, 'component_responses', None)
+    if calls:
+        entries = [_usage(item, getattr(item, 'model', None)) for item in calls]
+        totals = {key: sum(item[key] for item in entries)
+                  for key in ('input', 'cached', 'cache_write', 'uncached',
+                              'standard_input', 'output', 'reasoning',
+                              'model_api_cost', 'web_search_calls',
+                              'code_interpreter_calls', 'code_interpreter_sessions',
+                              'tool_cost_estimate', 'cost')}
+        for key in ('model_api_cost', 'tool_cost_estimate', 'cost'):
+            totals[key] = round(totals[key], 6)
+        return {'model': 'mixed' if len({e['model'] for e in entries}) > 1
+                else entries[0]['model'], 'model_breakdown': entries, **totals}
     usage = getattr(response, 'usage', None)
     response_model = model or getattr(response, 'model', '') or ''
     prices = _MODEL_PRICES_PER_M.get(response_model)
@@ -674,6 +689,8 @@ class Workflow:
                         self.s.stage3_reasoning_effort,
                         self.s.stage3_max_output_tokens,
                         model=self.s.stage3_model,
+                        fallback_model=('gpt-6.1-sol' if app.model_tier == 'Economy'
+                                        else None),
                     ),
                     'Stage 3 AI/artifact call',
                 )
@@ -703,6 +720,11 @@ class Workflow:
                 manifest['stage3_model'] = self.s.stage3_model
                 manifest['stage3_reasoning_effort'] = self.s.stage3_reasoning_effort
                 stage3_usage = _usage(response3, self.s.stage3_model)
+                stage3_usage['economy_docx_fallback_used'] = (
+                    app.model_tier == 'Economy'
+                    and any(part.get('model') == 'gpt-6.1-sol'
+                            for part in stage3_usage.get('model_breakdown', []))
+                )
                 stage3_usage['sources'] = stage3_sources
                 stage3_usage['source_count'] = len(stage3_sources)
                 stage3_usage['source_bytes_total'] = sum(x['bytes'] for x in stage3_sources)
