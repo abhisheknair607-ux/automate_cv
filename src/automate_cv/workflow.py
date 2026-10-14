@@ -13,6 +13,8 @@ from .profiles import profiles
 from .qa import QAError, factual_report, normalize, one_page
 from .sources import Sources, source_telemetry
 from .optimization import combine_analysis_prompts
+from .model_presets import resolve_preset
+from .writing_guidance import PROFILE_VOICE, COVER_LETTER_VOICE
 
 
 class CostLimitError(RuntimeError):
@@ -454,6 +456,7 @@ class Workflow:
             'stage3_model': self.s.stage3_model,
             'stage3_reasoning_effort': self.s.stage3_reasoning_effort,
             'make_cl': bool(app.make_cl),
+            'cl_model_tier': (getattr(app, 'cl_model_tier', '') or getattr(app,'model_tier','Premium')) if app.make_cl else '',
             'web_search': bool(app.web_search),
             'company': app.company,
             'designation': app.designation,
@@ -535,6 +538,7 @@ class Workflow:
             manifest, manifest_path = self._manifest(folder, work)
             manifest['schema_version'] = _CHECKPOINT_SCHEMA_VERSION
             manifest['model_tier'] = getattr(app, 'model_tier', 'Premium')
+            manifest['cl_model_tier'] = getattr(app, 'cl_model_tier', '') or getattr(app, 'model_tier', 'Premium')
             manifest.setdefault('candidate', app.candidate_key)
             manifest.setdefault('application_id', app.application_id)
             manifest.setdefault('cumulative_cost_usd', 0.0)
@@ -681,8 +685,8 @@ class Workflow:
                 )
                 stage3, response3, artifacts = self.retry(
                     lambda: self.ai.stage3(
-                        prompt3,
-                        input3,
+                        prompt3 + '\\n\\n' + PROFILE_VOICE,
+                        input3.replace('MAKE_COVER_LETTER = TRUE', 'MAKE_COVER_LETTER = FALSE'),
                         source_paths,
                         work / 'generated',
                         app.web_search,
@@ -702,6 +706,77 @@ class Workflow:
                         'Stage 3 returned no retrievable DOCX after two attempts. '
                         'Review model tier and Code Interpreter output before retrying.'
                     )
+                # Generate CL independently at its selected tier, with the
+                # finished CV and selected facts as grounding materials.
+                if app.make_cl:
+                    current_stage = 'COVER_LETTER'
+                    self.sheet.update(app, {'workflow': current_stage})
+                    cl_tier = resolve_preset(
+                        getattr(app, 'cl_model_tier', '') or app.model_tier
+                    )
+                    cl_sources = list(source_paths) + [
+                        p for p in artifacts if Path(p).suffix.lower() == '.docx'
+                        and 'cover' not in Path(p).name.lower()
+                        and 'letter' not in Path(p).name.lower()
+                    ]
+                    cl_input = (
+                        'MAKE_CV = FALSE\\nMAKE_COVER_LETTER = TRUE\\n'
+                        f'WEB_SEARCH = {str(app.web_search).upper()}\\n\\n'
+                        f'Company: {app.company}\\nRole: {app.designation}\\n'
+                        f'Location: {app.location}\\nLink: {app.application_link}\\n\\n'
+                        f'RAW JOB DESCRIPTION\\n{app.raw_jd}\\n\\n'
+                        f'{stage2_handoff}\\n\\n'
+                        'Create ONLY one standalone cover-letter DOCX; do not create a CV. '
+                        'Use the attached generated CV solely to ensure factual alignment. '
+                        'Apply the candidate-specific Cover Letter Rules and template. '
+                        'Use only verified selected evidence; no invented claims. '
+                        'Save a Word file whose filename includes Cover_Letter.'
+                    )
+                    cl_text, cl_response, cl_artifacts = self.retry(
+                        lambda: self.ai.stage3(
+                            prompt3 + '\\n\\n' + COVER_LETTER_VOICE,
+                            cl_input,
+                            cl_sources,
+                            work / 'cl_generated',
+                            app.web_search,
+                            cl_tier.stage3_effort,
+                            self.s.stage3_max_output_tokens,
+                            model=cl_tier.stage3,
+                            fallback_model=('gpt-6.1-sol' if cl_tier.tier == 'Economy'
+                                            else None),
+                        ),
+                        'Independent cover letter generation',
+                    )
+                    cl_docs = [
+                        p for p in cl_artifacts if Path(p).suffix.lower() == '.docx'
+                        and Path(p).is_file()
+                    ]
+                    if not cl_docs:
+                        raise QAError('Cover-letter model produced no retrievable DOCX.')
+                    import shutil
+                    cl_source = next(
+                        (p for p in cl_docs if 'cover' in Path(p).name.lower()
+                         or 'letter' in Path(p).name.lower()), cl_docs[0]
+                    )
+                    cl_target = work / 'cl_generated' / 'Generated_Cover_Letter.docx'
+                    if Path(cl_source).resolve() != cl_target.resolve():
+                        shutil.copy2(cl_source, cl_target)
+                    artifacts = [
+                        p for p in artifacts if Path(p).suffix.lower() == '.docx'
+                        and 'cover' not in Path(p).name.lower()
+                        and 'letter' not in Path(p).name.lower()
+                    ] + [cl_target]
+                    # Account for separately metered cover-letter calls.
+                    cl_usage = _usage(cl_response, cl_tier.stage3)
+                    cl_usage['cover_letter_tier'] = cl_tier.tier
+                    cl_usage['economy_docx_fallback_used'] = any(
+                        part.get('model') == 'gpt-6.1-sol'
+                        for part in cl_usage.get('model_breakdown', [])
+                    ) if cl_tier.tier == 'Economy' else False
+                    manifest['cover_letter_usage'] = cl_usage
+                    cl_report = work / 'Cover_Letter_Generation.md'
+                    cl_report.write_text(cl_text or '', encoding='utf-8')
+                    self.drive.upload(cl_report, folder)
                 effective3 = work / 'Effective_Prompt3.md'
                 effective3.write_text(prompt3, encoding='utf-8')
                 self.drive.upload(effective3, folder)
@@ -729,6 +804,9 @@ class Workflow:
                 stage3_usage['source_count'] = len(stage3_sources)
                 stage3_usage['source_bytes_total'] = sum(x['bytes'] for x in stage3_sources)
                 self._record_usage(manifest, 'stage3', stage3_usage)
+                if app.make_cl and manifest.get('cover_letter_usage'):
+                    self._record_usage(manifest, 'cover_letter', manifest['cover_letter_usage'])
+                    manifest.pop('cover_letter_usage', None)
                 self._save_manifest(manifest, manifest_path, folder)
             self._guard(manifest)
 
