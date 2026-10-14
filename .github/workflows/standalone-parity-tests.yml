@@ -8,6 +8,7 @@ on:
       - 'standalone/**'
       - 'webapp/**'
       - 'Dockerfile'
+      - 'Dockerfile.standalone'
       - 'package.json'
       - '.github/workflows/standalone-parity-tests.yml'
   pull_request:
@@ -15,6 +16,7 @@ on:
       - 'standalone/**'
       - 'webapp/**'
       - 'Dockerfile'
+      - 'Dockerfile.standalone'
       - 'package.json'
 
 permissions:
@@ -41,3 +43,22 @@ jobs:
           node webapp/tests/not_interested.test.js
       - name: Resolve production dependency tree for deployability
         run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Build isolated Cloud Run container (no cloud credentials, no API costs)
+        run: docker build -f Dockerfile.standalone -t cv-standalone-test:ci .
+      - name: Smoke test container health and block unauthenticated API access
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name cv-standalone-smoke -p 127.0.0.1:18081:8080 cv-standalone-test:ci
+          trap 'docker logs cv-standalone-smoke || true; docker rm -f cv-standalone-smoke || true' EXIT
+          for attempt in {1..25}; do
+            if curl -fsS http://127.0.0.1:18081/health > /tmp/health.json; then break; fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json
+          x = json.load(open('/tmp/health.json', encoding='utf8'))
+          assert x['ok'] is True
+          assert x['readOnly'] is True, 'Pilot must not permit writes'
+          PY
+          status="$(curl -s -o /tmp/unauthorized.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"arg":{}}' http://127.0.0.1:18081/api/listJobs)"
+          test "$status" = 401
