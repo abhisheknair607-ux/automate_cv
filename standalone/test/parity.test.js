@@ -82,6 +82,7 @@ test("deployment binds spreadsheet IDs to copies without modifying the Apps Scri
   const guard=fs.readFileSync(path.join(root,"standalone/server.js"),"utf8");
   assert.match(guard,/APP_ALLOW_PRODUCTION_WRITES/);
   assert.match(guard,/Production spreadsheet writes are locked/);
+  assert.match(guard,/ALLOW_MANUAL_CV_DISPATCH/);
 });
 
 test("API operation allowlist rejects unexpected methods before touching Google",async()=>{
