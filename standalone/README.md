@@ -36,6 +36,21 @@ and explicitly confirmed GitHub CV dispatch.
   512 MiB memory to minimise usage fees. Google Cloud billing is needed;
   actual charges are not guaranteed to be zero.
 
+## Pilot safety gate (before any live cutover)
+
+The first Cloud Run deployment uses APP_READ_ONLY=true by default.
+The server rejects ALL write and paid-dispatch operations in this mode.
+Read-only endpoints also suppress the original automatic Jobs!P sync so
+opening the pilot cannot alter the production spreadsheets.
+
+Start with Viewer access to both existing sheets. Do not run manual CV
+generation from the pilot. Then test changes with separate, dated working
+copies of Taaza and Freshmaal, NEVER with the live sheet IDs. Only after
+both users approve the copy-based tests should the new service be allowed
+to write to the production spreadsheets.
+
+See [the full acceptance checklist](ACCEPTANCE.md) before switching.
+
 ## One-time authorisations (user)
 
 1. Open Firebase Console, add Firebase to the chosen Google Cloud project,
@@ -43,7 +58,8 @@ and explicitly confirmed GitHub CV dispatch.
    and copy the Firebase web app ID and public API key.
 2. Enable Cloud Run billing and deploy permissions on that project.
    Create a dedicated Cloud Run runtime service account and share both
-   Taaza and Freshmaal Google Sheets with its email as Editor.
+   Taaza and Freshmaal Google Sheets with its email as Viewer for the
+   initial read-only pilot. Use Editor access only on later staging copies.
 3. In Google Cloud Shell, clone the migration branch and set the following
    environment variables to your own information:
    GOOGLE_CLOUD_PROJECT, FIREBASE_WEB_API_KEY, FIREBASE_WEB_APP_ID,
