@@ -131,3 +131,17 @@ The manual workflow shares its concurrency group with the scheduled worker and u
 
 **Deployment:** After updating `webapp/Code.gs` and `webapp/Index.html` in the existing Google Apps Script project, create a **new version of the existing web-app deployment** (Deploy → Manage deployments → Edit → New version → Deploy). The GitHub commit alone does **not** automatically publish changes to the currently live Apps Script URL.
 
+
+## Always-on discovery categories and master tracking (14 October 2026)
+
+**Architecture:** The `Jobs` tab in Taaza is the one master list. Any other visible tab in the same spreadsheet with headers **A = Company Name, B = Designation, C = Link** is automatically recognised as a job category. Alert configuration tabs with other headers are excluded. Tab names are labels; Google sheet IDs are used by the web-app category filters so renames do not break an active category. `Jobs` must retain its name; a new category tab must use the same A–M job schema.
+
+**Independently scheduled:** `.github/workflows/taaza-master-sync.yml` invokes `src/automate_cv/taaza_sync.py` at minute 13, 33 and 53 (UTC) of each hour, plus manual dispatch. It does not depend on the app being open or on `AUTOMATION_ENABLED` for CVs, and it never calls the OpenAI API. GitHub Actions schedule times can be delayed. The dashboard additionally syncs its master list on startup/Discovery refresh, using a 3-minute cache.
+
+**Master `Jobs!P` — Job Categories:** Automatically updated for **all** current master jobs on every scheduled/dashboard sync. A job appearing in several specialist tabs is displayed with all labels separated by ` | ` (e.g. `TP Europe | Pooja Europe`). A job appearing only in master displays `Common`. The cell uses a dropdown whose options are rebuilt from the live tab names plus any shared-category combinations. The dropdown is for inspection; automatic source-tab membership is authoritative and will restore the computed value on the next sync. Avoid manually changing category cells to classify a role; instead add it to the appropriate specialist tab.
+
+**Web-app Discovery:** Horizontal, scrollable category chips show `All jobs` (full master), `Common · Jobs only`, and all specialist job tabs. Selecting a specialist category filters the **master row** by vacancy URL membership. This preserves safe editing, candidate-specific flags and Freshmaal transfer actions. The filter is based on the tab's stable sheet ID; when you rename a category, the chip label updates automatically. Multiple category membership is allowed and does not duplicate master records. The existing separate Freshmaal Make CV filters remain unchanged.
+
+**Safety:** Existing master rows, statuses, source tabs, not-interested flags N/O and column K transfer triggers are not overwritten. New master rows have K=FALSE, record their originating tab in M, and are deduplicated by canonical vacancy URL. A job that belongs to more than one specialist category has just one master vacancy. Other columns outside the additions and P are left untouched.
+
+**Publishing:** GitHub changes require updating the existing Google Apps Script `Code.gs` and `Index.html` files, then Deploy → Manage deployments → Edit → New version → Deploy to activate new category chips in the live dashboard. Independent scheduled master synchronisation operates from GitHub as soon as the workflow is merged and its scheduled job runs successfully, even if Apps Script has not yet been redeployed.
