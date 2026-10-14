@@ -365,17 +365,14 @@ function listView(){const discovery=state.section==='discovery';const head=disco
 function inputField(id,label,placeholder='',value='',type='text'){return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${h(value)}" placeholder="${h(placeholder)}"/></div>`}
 function addView(){return title('Add a vacancy','New jobs go to Taaza by default; optionally send straight to Freshmaal.')+`<section class="panel" style="max-width:840px"><div class="subhead">New discovery entry</div><form id="addForm"><div class="field-grid">${inputField('add-company','Company *','Company name')}${inputField('add-role','Designation *','Exact vacancy title')}${inputField('add-url','Employer vacancy link *','https://...','', 'url')}${inputField('add-location','Location','Dublin, Ireland')}${inputField('add-deadline','Application deadline','2026-11-30')}${inputField('add-salary','Salary / visa sponsorship','Optional')}</div><div class="field"><label for="add-jd">Complete job description (optional at entry)</label><textarea id="add-jd" placeholder="Paste the employer's job description. You can save the vacancy now and complete the JD later."></textarea><small>Taaza · Column D</small></div><div class="form-footer"><button class="btn btn-primary" type="submit" data-mode="save">${icon('check')} Seems Taaza · Save</button><button class="btn" type="submit" data-mode="send">${icon('arrow')} Seems Fresh</button></div></form></section>`}
 function render(){navRender();document.getElementById('content').innerHTML=state.section==='dashboard'?dash():state.section==='add'?addView():listView()}
-function downloadDoc(row,kind='cv'){
+async function downloadDoc(row,kind='cv'){
  const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);
  const docLink=kind==='cl'?job?.clLink:job?.cvLink;
  if(!job||!docLink){toast('No completed '+(kind==='cl'?'cover letter':'CV')+' is ready.',true);return}
- const link=safeUrl(docLink);
- const match=link&&link.match(new RegExp('/d/([a-zA-Z0-9_-]+)'));
- const recognised=link&&(link.startsWith('https://docs.google.com/')||link.startsWith('https://drive.google.com/'));
- if(!match||!recognised){
-   toast('The document link is not a recognised Google Drive file.',true);return;
- }
- window.open('https://drive.google.com/uc?export=download&id='+encodeURIComponent(match[1]),'_blank','noopener,noreferrer');
+ if(DEMO){toast('Downloads are unavailable in preview.',true);return}
+ if(!window.__cvStandalone?.downloadDocument){toast('Direct download is available in the Garamaal app.',true);return}
+ try{await window.__cvStandalone.downloadDocument(state.candidate,row,kind)}
+ catch(e){toast(e.message||'Download failed. Please try again.',true)}
 }
 function downloadCv(row){return downloadDoc(row,'cv')}
 function downloadCl(row){return downloadDoc(row,'cl')}

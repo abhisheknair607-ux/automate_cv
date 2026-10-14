@@ -8,6 +8,8 @@ const {initializeApp, getApps} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
 const {invoke,METHODS} = require("./runtime");
 const {getCvQueue} = require("./queue");
+const {Readable} = require("node:stream");
+const {DOCX,getDocument} = require("./download");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -31,7 +33,7 @@ if(!READ_ONLY && Object.values(IDS).some(id=>LIVE_SHEET_IDS.has(id)) &&
   throw new Error("Production spreadsheet writes are locked pending explicit cutover approval");
 }
 if(!getApps().length)initializeApp({projectId:PROJECT||undefined});
-const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets"]});
+const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive.readonly"]});
 const app=express();
 app.disable("x-powered-by");
 app.set("trust proxy",1);
@@ -123,6 +125,29 @@ app.post("/api/getCvQueue",async (req,res)=>{
   } catch(error) {
     const status=error.httpCode||503;
     res.status(status).json({error:String(error.message||"Queue status unavailable").slice(0,300)});
+  }
+});
+app.post("/api/download",async (req,res)=>{
+  try {
+    const email=await authenticate(req);
+    const {candidate,row,kind}=req.body||{};
+    const client=await auth.getClient();
+    const access=await client.getAccessToken();
+    const token=typeof access==="string"?access:access.token;
+    if(!token)throw new Error("Cloud Run cannot access Google files");
+    const document=await getDocument({candidate,row,kind,token,
+      lookup:(person,jobRow)=>invoke("getJob",{source:"fresh",candidate:person,row:jobRow},{
+        email,token,ids:IDS,readOnly:READ_ONLY,allowedEmails:ALLOWED.join(",")
+      })
+    });
+    res.type(DOCX);
+    res.set("Content-Disposition","attachment; filename=\""+document.name.replace(/\"/g,"")+"\"");
+    if(document.size)res.set("Content-Length",String(document.size));
+    Readable.fromWeb(document.response.body).on("error",()=>res.destroy()).pipe(res);
+  } catch(error) {
+    const status=error.httpCode||500;
+    console.error("[cv-download] status="+status,String(error.message||"Error").slice(0,200));
+    res.status(status).json({error:String(error.message||"Download failed").slice(0,300)});
   }
 });
 app.post("/api/:method",async (req,res)=>{

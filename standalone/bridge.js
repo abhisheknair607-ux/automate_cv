@@ -120,6 +120,31 @@
     }
     return json.data;
   }
+  async function downloadDocument(candidate,row,kind) {
+    const user=await waitForUser();
+    async function send(force=false) {
+      return fetch("/api/download",{
+        method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        body:JSON.stringify({candidate,row,kind})
+      });
+    }
+    let response=await send();
+    if(response.status===401)response=await send(true);
+    if(!response.ok) {
+      const body=await response.json().catch(()=>({}));
+      throw Error(body.error||"Could not download the document.");
+    }
+    const disposition=response.headers.get("Content-Disposition")||"";
+    const name=disposition.match(/filename="([^"\r\n]+)"/i)?.[1]||((kind==="cl"?"CL":"CV")+".docx");
+    const blob=await response.blob();
+    const url=URL.createObjectURL(blob);
+    const anchor=document.createElement("a");
+    anchor.href=url;anchor.download=name;anchor.style.display="none";
+    document.body.appendChild(anchor);
+    anchor.click();anchor.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }
   function loadScript(src) {
     return new Promise((resolve,reject)=>{
       const el=document.createElement("script");
@@ -159,7 +184,7 @@
   window.google=window.google||{};
   window.google.script=window.google.script||{};
   window.google.script.run=chain(null,null);
-  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);}};
+  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initAuth,{once:true});
   else initAuth();
 })();

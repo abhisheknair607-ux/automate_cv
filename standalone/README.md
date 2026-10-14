@@ -30,6 +30,13 @@ and explicitly confirmed GitHub CV dispatch.
 - The new server validates the Firebase ID token and an email allowlist.
 - Cloud Run service-account credentials, not Chrome account cookies, read
   and write the two existing spreadsheets.
+- Download CV / CL asks the same-origin authenticated server for the file link
+  in that candidate's Freshmaal row. The server reads the DOCX from Drive and
+  returns it as an attachment; Open CV / CL still uses the saved Drive view link.
+- The Cloud Run runtime service account needs Viewer access to the existing
+  output folder (and inherited access to its DOCX files). Its OAuth scope now
+  includes Drive read-only. No Drive token or file ID is sent to the browser
+  for downloads, and no CV/CL generation is involved.
 - The Apps Script business rules execute through a Google Sheets adapter.
 - GitHub CV schedulers still run independently, untouched.
 - Cloud Run uses 0 minimum instances, 1 maximum, 1 concurrent request,
