@@ -75,7 +75,7 @@ for(const size of [192,512]){
   app.get("/garamaal-icon-"+size+".png",async(_req,res)=>{
     try{
       if(!iconCache.has(size)){
-        const source=path.join(__dirname,"pwa","garamaal-icon-"+size+".jpg");
+        const source=path.join(__dirname,"pwa","garamaal-icon-192.jpg");
         iconCache.set(size,sharp(source).resize(size,size).png({compressionLevel:9}).toBuffer());
       }
       res.type("png").send(await iconCache.get(size));
