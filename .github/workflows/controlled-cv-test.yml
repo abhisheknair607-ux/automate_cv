@@ -1,4 +1,6 @@
 name: controlled-cv-test
+# Expose only candidate and Freshmaal row to the authenticated queue monitor.
+run-name: "CV · ${{ inputs.candidate }} · Freshmaal #${{ inputs.row_number }}"
 
 on:
   workflow_dispatch:
