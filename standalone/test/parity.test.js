@@ -70,7 +70,7 @@ test("API operation allowlist rejects unexpected methods before touching Google"
 });
 
 test("Cloud Run image uses zero-extra-background-process deployment",()=>{
-  const docker=fs.readFileSync(path.join(root,"Dockerfile"),"utf8");
+  const docker=fs.readFileSync(path.join(root,"Dockerfile.standalone"),"utf8");
   assert.match(docker,/USER node/);
   assert.match(docker,/CMD \["node","standalone\/server.js"\]/);
   const pkg=require("../../package.json");
