@@ -880,6 +880,10 @@ class Workflow:
                     if cover_letter:
                         one_page(cover_letter, work / 'rendered')
                     qa_report = factual_report(cv, master_evidence, qa_report_path)
+                    if cover_letter:
+                        cl_qa_path = work / 'Cover_Letter_Factual_QA.md'
+                        cl_qa = factual_report(cover_letter, master_evidence, cl_qa_path)
+                        self.drive.upload(cl_qa_path, folder)
                     if qa_report['critical']:
                         raise QAError(
                             'Factual QA found unsupported high-risk claims: '
