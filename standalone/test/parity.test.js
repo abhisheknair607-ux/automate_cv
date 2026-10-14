@@ -83,6 +83,11 @@ test("deployment binds spreadsheet IDs to copies without modifying the Apps Scri
   assert.match(guard,/APP_ALLOW_PRODUCTION_WRITES/);
   assert.match(guard,/Production spreadsheet writes are locked/);
   assert.match(guard,/ALLOW_MANUAL_CV_DISPATCH/);
+  const enable=fs.readFileSync(path.join(root,"standalone/enable-run-cv-now.sh"),"utf8");
+  assert.match(enable,/--update-secrets/);
+  assert.match(enable,/GITHUB_WORKFLOW_TOKEN/);
+  assert.match(enable,/roles\/secretmanager\.secretAccessor/);
+  assert.match(enable,/ALLOW_MANUAL_CV_DISPATCH=true/);
 });
 
 test("API operation allowlist rejects unexpected methods before touching Google",async()=>{
