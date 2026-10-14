@@ -1,0 +1,26 @@
+{
+  "id": "/",
+  "name": "Freshmaal — CV Control Centre",
+  "short_name": "Freshmaal",
+  "description": "Manage job applications, CVs and cover letters for Abhishek and Pooja.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f7fb",
+  "theme_color": "#132a49",
+  "icons": [
+    {
+      "src": "/app-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/app-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
