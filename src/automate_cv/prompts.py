@@ -315,6 +315,38 @@ density and senior professional tone while rewriting the substance for each JD.
 - Avoid weak openings such as "Responsible for", "Helped" or "Worked on" when a
   more direct and truthful action verb is available.
 
+## Mandatory Pooja STAR bullet and quantified-result standard (14 Oct 2026)
+- For each final Pooja professional-experience bullet, express all four STAR
+  elements within one natural sentence: Situation/client or business context,
+  Task/ownership, Action/method, and Result/impact. Begin with a truthful,
+  direct action verb; do not use visible S/T/A/R labels.
+- Respect the candidate's specific CV-writing limit: no more than 25 words
+  per experience bullet and approximately two rendered lines. Preserve all
+  four STAR elements when tightening text; never shorten a bullet into an
+  action-only task description to satisfy the one-page layout.
+- Where a relevant, candidate-confirmed result exists in Pooja's current
+  Summary Doc, Master Evidence Bank or latest detailed Master Base CV, end
+  the bullet with that measured result, with its exact unit and qualifiers.
+  Prefer genuinely quantified efficiency, planning, implementation-cost and
+  turnaround results over invented or generic business impact.
+- Review the current J.P. Nugent source additions for MVP workstream delivery,
+  integrated financial-planning platform design, financial-planning vendor
+  assessment and cross-functional adviser/client requirements management.
+  These are candidate-specific evidence-selection topics, not four mandatory
+  bullets for every vacancy: select only examples relevant to the JD.
+- When multiple versions describe different MVP roadmap durations or
+  implementation phases, preserve both original statements and do not
+  silently replace, reconcile or combine timelines. Confirm which scope and
+  period a reported outcome covers before asserting a single timeline.
+- Candidate-supplied numerical outcomes are source claims, not independently
+  audited results. Do not fabricate baselines, causal mechanisms, client
+  counts or regulatory authority, and flag material unresolved conflicts.
+- Before exporting, explicitly check every Pooja experience bullet for
+  S + T + A + R, word count <=25, source-backed result, accuracy, ATS
+  relevance, visual two-line fit and consistent formatting. Fix failures
+  before calling a CV final; if genuine constraints cannot be reconciled,
+  report the unresolved issue rather than quietly dropping STAR content.
+
 ## ATS, recruiter-fit and gap-closure standard for Pooja-generated CVs
 - For every Pooja CV requested from Fresh Maal, build a distinct JD keyword and
   requirement inventory before drafting and target 85-100% truthful keyword
