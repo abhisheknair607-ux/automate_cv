@@ -5,7 +5,7 @@ const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
 const {colLetters,toSheetValue,createSpreadsheetApp}=require("../sheets");
-const {invoke,METHODS,READ_ONLY_METHODS}=require("../runtime");
+const {invoke,METHODS,READ_ONLY_METHODS,sourceWithSheetIds}=require("../runtime");
 
 const root=path.resolve(__dirname,"../..");
 const source=fs.readFileSync(path.join(root,"webapp/Code.gs"),"utf8");
@@ -60,6 +60,26 @@ test("Google Sheets compatibility uses standard column addresses and typed cells
   assert.throws(()=>app.openById("unrecognised-sheet"),/not permitted/i);
   assert.equal(app.newDataValidation().requireValueInList(["CV","Applied"],true)
     .setAllowInvalid(false).build().strict,true);
+});
+
+
+test("deployment binds spreadsheet IDs to copies without modifying the Apps Script source",()=>{
+  const staging={
+    taaza:"1S_A9hKGk3U303P5qjjXCs3VkFYWAxLhW9fV4fHSwq-U",
+    fresh:"19PoQED44im_aK-jst9x226n2mx-c1fwgWbwFDCzrBig"
+  };
+  const bound=sourceWithSheetIds(staging);
+  assert.match(bound,/taazaId: '1S_A9hKGk3U303P5qjjXCs3VkFYWAxLhW9fV4fHSwq-U'/);
+  assert.match(bound,/freshId: '19PoQED44im_aK-jst9x226n2mx-c1fwgWbwFDCzrBig'/);
+  assert.doesNotMatch(bound,/taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY'/);
+  assert.doesNotMatch(bound,/freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'/);
+  assert.match(source,/taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY'/);
+  assert.match(source,/freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'/);
+  new vm.Script(bound);
+  assert.throws(()=>sourceWithSheetIds({taaza:"bad",fresh:staging.fresh}),/spreadsheet IDs/);
+  const guard=fs.readFileSync(path.join(root,"standalone/server.js"),"utf8");
+  assert.match(guard,/APP_ALLOW_PRODUCTION_WRITES/);
+  assert.match(guard,/Production spreadsheet writes are locked/);
 });
 
 test("API operation allowlist rejects unexpected methods before touching Google",async()=>{
