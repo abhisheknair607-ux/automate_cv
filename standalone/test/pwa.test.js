@@ -45,6 +45,25 @@ test("Authenticated app and API responses are never stored by service worker",()
   assert.match(code,/clTier:49/);
 });
 
+test("Mobile Garamaal content scrolls vertically and install is available on dashboard",()=>{
+  const html=fs.readFileSync(path.join(ROOT,"webapp/Index.html"),"utf8");
+  const css=html.slice(html.indexOf("<style>"),html.indexOf("</style>"));
+  const script=html.slice(html.indexOf("<script>")+8,html.lastIndexOf("</script>"));
+  new vm.Script(script,{filename:"Index.html"});
+  // A fixed-height mobile shell must have its own vertically scrollable pane.
+  assert.match(css,/\.shell\{height:100dvh;min-height:0;overflow:hidden\}/);
+  assert.match(css,/\.main\{height:100%;min-height:0;overflow-y:auto;/);
+  assert.match(css,/touch-action:pan-y/);
+  assert.match(script,/function scrollMainTo\(y\)/);
+  assert.match(script,/function resetDrawerScroll\(\)/);
+  assert.match(script,/function closeDetail\(\)\{state\.detail=null;resetDrawerScroll\(\)/);
+  // Installation is a real interaction in the dashboard, not merely the floating toolbar.
+  assert.match(html,/data-action="install-app"/);
+  assert.match(script,/window\.__cvInstall=requestInstall/);
+  assert.match(script,/if\(a==='install-app'\)/);
+  assert.match(script,/btn\.hidden=installed \|\| state\.section==='dashboard'/);
+});
+
 test("Garamaal Hosting proxies to existing authenticated Cloud Run service",()=>{
   const h=JSON.parse(fs.readFileSync(path.join(ROOT,"firebase.json"),"utf8")).hosting;
   assert.equal(h.site,"garamaal");
