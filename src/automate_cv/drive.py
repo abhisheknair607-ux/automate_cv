@@ -2,6 +2,7 @@ import io, mimetypes
 from pathlib import Path
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload, MediaIoBaseDownload
+from .google_retry import retry_google
 
 class Drive:
     def __init__(self,credentials):
@@ -36,7 +37,7 @@ class Drive:
             if not folder: continue
             q=f"'{folder}' in parents and name = '{escaped}' and trashed = false"
             if mime_type: q+=f" and mimeType = '{mime_type}'"
-            r=self.files.list(q=q,fields='files(id,name,mimeType,webViewLink)',pageSize=10).execute().get('files',[])
+            r=retry_google(lambda: self.files.list(q=q,fields='files(id,name,mimeType,webViewLink)',pageSize=10).execute()).get('files',[])
             if r: return r[0]
         return None
     def download_if_exists(self,name,parent,destination):
