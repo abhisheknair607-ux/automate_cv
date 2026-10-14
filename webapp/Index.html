@@ -121,7 +121,7 @@ function getPreviewTier(row,candidate=state.candidate){
   const key=candidate+':'+row; if(MODEL_PRESETS[tierPreviewMemory[key]])return tierPreviewMemory[key];
  try{const p=localStorage.getItem('freshmaal-tier-preview:'+key);return MODEL_PRESETS[p]?p:'Premium'}catch(e){return 'Premium'}
 }
-function getPreviewClTier(row){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);return MODEL_PRESETS[job?.clTier]?job.clTier:getPreviewTier(row)}
+function getPreviewClTier(row){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);return job?.clTierExplicit&&MODEL_PRESETS[job.clTier]?job.clTier:getPreviewTier(row)}
 function tierChoices(row,kind='tier'){const current=kind==='clTier'?getPreviewClTier(row):getPreviewTier(row);return Object.keys(MODEL_PRESETS).map(name=>`<option value="${name}" ${current===name?'selected':''}>${name}</option>`).join('')}
 function tierInfo(tier){const names=MODEL_PRESETS[tier]||MODEL_PRESETS.Premium;return `<div class="tier-grid">${names.map((v,i)=>`<div class="tier-cell"><span>Stage ${i+1}</span><strong>${v}</strong></div>`).join('')}</div><div class="tier-note">When the current merged analysis is enabled, Stages 1 and 2 make one model call using the Stage 2 setting. Stage 3 remains the Word-document generation stage.</div>`}
 
@@ -147,8 +147,9 @@ async function changePreviewTier(row,tier,kind='tier'){
    try{
      const result=await run('updateFreshControl',{row,candidate:state.candidate,field:kind,value:tier,expected:expected(item)});
      item[kind]=tier;
-     if(state.detail?.row===row)state.detail[kind]=tier;
-     if(state.data)state.data.rows.forEach(j=>{if(j.row===row)j[kind]=tier});
+     if(kind==='clTier')item.clTierExplicit=true;
+     if(state.detail?.row===row){state.detail[kind]=tier;if(kind==='clTier')state.detail.clTierExplicit=true;}
+     if(state.data)state.data.rows.forEach(j=>{if(j.row===row){j[kind]=tier;if(kind==='clTier')j.clTierExplicit=true;}});
      toast(result.message);
      if(state.detail)drawDetail();else render();
    }catch(e){if(state.detail)drawDetail();else render()}
