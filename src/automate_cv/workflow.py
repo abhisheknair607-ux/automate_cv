@@ -677,6 +677,14 @@ class Workflow:
                     ),
                     'Stage 3 AI/artifact call',
                 )
+                # Fail before uploading anything if both paid generation
+                # attempts returned no retrievable Word file.
+                if not any(Path(p).suffix.lower() == '.docx' and Path(p).is_file()
+                           for p in artifacts):
+                    raise QAError(
+                        'Stage 3 returned no retrievable DOCX after two attempts. '
+                        'Review model tier and Code Interpreter output before retrying.'
+                    )
                 effective3 = work / 'Effective_Prompt3.md'
                 effective3.write_text(prompt3, encoding='utf-8')
                 self.drive.upload(effective3, folder)
