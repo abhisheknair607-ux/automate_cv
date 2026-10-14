@@ -2,6 +2,7 @@
 const express = require("express");
 const fs = require("node:fs");
 const path = require("node:path");
+const sharp = require("sharp");
 const {GoogleAuth} = require("google-auth-library");
 const {initializeApp, getApps} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
@@ -67,6 +68,24 @@ const PWA_ASSETS=Object.freeze({
   "/offline.html":["offline.html","text/html"],
   "/sw.js":["sw.js","text/javascript"]
 });
+// Real photographic PNG icons from the uploaded, mask-safe JPEG. Chrome and
+// Android reliably recognise PNG install assets, including the 512px splash.
+const iconCache=new Map();
+for(const size of [192,512]){
+  app.get("/garamaal-icon-"+size+".png",async(_req,res)=>{
+    try{
+      if(!iconCache.has(size)){
+        const source=path.join(__dirname,"pwa","garamaal-icon-"+size+".jpg");
+        iconCache.set(size,sharp(source).resize(size,size).png({compressionLevel:9}).toBuffer());
+      }
+      res.type("png").send(await iconCache.get(size));
+    }catch(error){
+      iconCache.delete(size);
+      console.error("[garamaal-icon]",size,String(error.message||"").slice(0,150));
+      res.status(500).type("text/plain").send("App icon unavailable");
+    }
+  });
+}
 for(const [route,[file,mime]] of Object.entries(PWA_ASSETS)) {
   app.get(route,(req,res)=>{
     res.type(mime);
