@@ -20,9 +20,9 @@ const SETTINGS = Object.freeze({
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
-             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46, profileFit:50, careerFit:51},
+             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46, profileFit:50, careerFit:51, cost:21, applicationId:13},
   Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43, prompt:34,
-          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, clTier:49, lock:26, notInterested:47, profileFit:52, careerFit:53}
+          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, clTier:49, lock:26, notInterested:47, profileFit:52, careerFit:53, cost:31, applicationId:23}
 });
 
 function doGet() {
@@ -98,6 +98,22 @@ function preferenceDropdown_(range){
     // In that case clearing the cell remains the neutral/blank selection.
     range.setDataValidation(build(['Not Interested','Favorite']));
   }
+}
+/** A blank/invalid Sheet cost is unknown, never silently counted as $0.
+ * Amounts are recorded worker estimates, not an invoice from the provider.
+ */
+function recordedCost_(value){
+  if(value===null||value===undefined||String(value).trim()==='')return null;
+  const n=Number(value);
+  return Number.isFinite(n)&&n>=0&&n<=100000?n:null;
+}
+function costUsdTotal_(rows){
+  // Sheet stores estimates at 4 decimal places. Sum integer ten-thousandths
+  // to avoid floating-point drift in long lists.
+  let units=0;
+  for(const row of rows)if(row.costUsd!==null&&row.costUsd!==undefined)
+    units+=Math.round(row.costUsd*10000);
+  return Math.round(units)/10000;
 }
 function scorePart_(value){
   if(value===''||value===null||value===undefined)return '';
@@ -298,7 +314,9 @@ function freshRows_() {
         status:String(b[c.status-5]||''),score:e[c.score-33]===''?'':e[c.score-33],
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
         profileFit:scorePart_(scoreParts[i][c.profileFit-50]),careerFit:scorePart_(scoreParts[i][c.careerFit-50]),
-        workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
+        workflow:String(shifted(c.workflow)||''),
+        costUsd:recordedCost_(shifted(c.cost)),applicationId:String(shifted(c.applicationId)||''),
+        cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
          clTier:String(clTiers[i][c.clTier-48]||e[c.tier-33]||'Premium'),
@@ -455,7 +473,9 @@ function getJob(options) {
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
     status:String(a[conf.status-1]||''),selected:truthy_(a[conf.selected-1]),
     score:a[conf.score-1],rank:a[conf.rank-1],
-    profileFit:scorePart_(a[conf.profileFit-1]),careerFit:scorePart_(a[conf.careerFit-1]),workflow:String(a[conf.workflow-1]||''),
+    profileFit:scorePart_(a[conf.profileFit-1]),careerFit:scorePart_(a[conf.careerFit-1]),
+    costUsd:recordedCost_(a[conf.cost-1]),applicationId:String(a[conf.applicationId-1]||''),
+    workflow:String(a[conf.workflow-1]||''),
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
      clTier:String(a[conf.clTier-1]||a[conf.tier-1]||'Premium'),
@@ -725,6 +745,31 @@ function updateFreshControl(payload) {
   });
 }
 
+/** Read-only cost ledger for BOTH candidates from existing Freshmaal U/AE.
+ * On-demand invocation only; no polling and no external billing calls.
+ */
+function getExpenses() {
+  authorise_();
+  const list=freshRows_();
+  const totals={},detail=[];
+  Object.keys(PEOPLE).forEach(candidate=>{
+    const entries=list.map(job=>({candidate,row:job.row,company:job.company,role:job.role,
+      url:job.url,folder:job.person[candidate].folder,
+      costUsd:job.person[candidate].costUsd,workflow:job.person[candidate].workflow}))
+      .filter(job=>job.costUsd!==null);
+    totals[candidate]={
+      recordedUsd:costUsdTotal_(entries),recordedJobs:entries.length,
+      completedJobs:list.filter(x=>String(x.person[candidate].workflow).toUpperCase()==='COMPLETE').length,
+      missingCostJobs:list.filter(x=>String(x.person[candidate].workflow).toUpperCase()==='COMPLETE'
+        &&x.person[candidate].costUsd===null).length
+    };
+    detail.push(...entries.filter(x=>x.costUsd>0));
+  });
+  const rows=detail.sort((a,b)=>b.row-a.row).slice(0,40);
+  return {currency:'USD',basis:'Recorded token/tool cost estimates from the CV worker, saved in Freshmaal (U/AE) and Token_Usage.json. Not an invoice; earlier overwritten or failed attempts may be missing.',
+    totalUsd:Math.round((totals.Abhishek.recordedUsd+totals.Pooja.recordedUsd)*10000)/10000,
+    candidates:totals,recent:rows};
+}
 function getStats(candidate) {
   authorise_(); person_(candidate);
   const taaza=taazaRows_(), fresh=freshRows_(), own=fresh.map(x=>x.person[candidate]);
