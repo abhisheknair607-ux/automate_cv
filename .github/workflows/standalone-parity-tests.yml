@@ -1,0 +1,82 @@
+name: standalone-migration-parity-tests
+
+on:
+  push:
+    branches:
+      - migration/standalone-google-auth-no-appscript
+    paths:
+      - 'standalone/**'
+      - 'webapp/**'
+      - 'Dockerfile'
+      - 'Dockerfile.standalone'
+      - 'package.json'
+      - '.github/workflows/standalone-parity-tests.yml'
+  pull_request:
+    paths:
+      - 'standalone/**'
+      - 'webapp/**'
+      - 'Dockerfile'
+      - 'Dockerfile.standalone'
+      - 'package.json'
+
+permissions:
+  contents: read
+
+jobs:
+  parity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify standalone release scripts
+        run: bash -n standalone/deploy.sh standalone/deploy-staging.sh standalone/cutover-live.sh standalone/enable-run-cv-now.sh standalone/deploy-live-update.sh
+      - name: Verify standalone JS syntax
+        run: |
+          node --check standalone/sheets.js
+          node --check standalone/runtime.js
+          node --check standalone/server.js
+          node --check standalone/queue.js
+          node --check standalone/bridge.js
+      - name: Test existing and migrated app logic (no API calls)
+        run: |
+          npm test
+          node webapp/tests/not_interested.test.js
+      - name: Resolve production dependency tree for deployability
+        run: npm install --omit=dev --ignore-scripts --no-audit --no-fund
+      - name: Validate both photo icons decode into PNG before packaging
+        run: |
+          node - <<'JS'
+          const sharp=require('sharp');
+          (async()=>{
+            for (const size of [192,512]){
+              const f='standalone/pwa/garamaal-icon-192.jpg';
+              const image=sharp(f,{failOn:'error'});
+              const result=await image.resize(size,size).png().toBuffer({resolveWithObject:true});
+              if(result.info.width!==size||result.info.height!==size)
+                throw Error(f+' dimensions are incorrect');
+              console.log(f+' verified as decodable '+size+'x'+size+' image');
+            }
+          })().catch(e=>{console.error(e);process.exitCode=1});
+          JS
+      - name: Build isolated Cloud Run container (no cloud credentials, no API costs)
+        run: docker build -f Dockerfile.standalone -t cv-standalone-test:ci .
+      - name: Smoke test container health and block unauthenticated API access
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name cv-standalone-smoke -p 127.0.0.1:18081:8080 cv-standalone-test:ci
+          trap 'docker logs cv-standalone-smoke || true; docker rm -f cv-standalone-smoke || true' EXIT
+          for attempt in {1..25}; do
+            if curl -fsS http://127.0.0.1:18081/health > /tmp/health.json; then break; fi
+            sleep 1
+          done
+          python - <<'PY'
+          import json
+          x = json.load(open('/tmp/health.json', encoding='utf8'))
+          assert x['ok'] is True
+          assert x['readOnly'] is True, 'Pilot must not permit writes'
+          PY
+          status="$(curl -s -o /tmp/unauthorized.json -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"arg":{}}' http://127.0.0.1:18081/api/listJobs)"
+          test "$status" = 401

@@ -1,0 +1,20 @@
+{
+  "name": "automate-cv-standalone",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Independent Google Cloud Run host preserving the existing Apps Script application logic and UI",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node standalone/server.js",
+    "test": "node --test standalone/test/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "express": "^4.21.2",
+    "firebase-admin": "^13.1.0",
+    "google-auth-library": "^9.15.1",
+    "sharp": "^0.34.4"
+  }
+}
