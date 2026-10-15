@@ -8,6 +8,39 @@ The original webapp/Index.html and webapp/Code.gs stay untouched.
 The existing Python worker, GitHub schedules, old Apps Script deployment,
 Taaza spreadsheet and Freshmaal spreadsheet are untouched.
 
+## Google Sheets 429 read-quota mitigation (15 October 2026)
+
+The Firebase Hosting URL `https://garamaal.web.app` forwards to the existing
+Cloud Run `automate-cv-dashboard` service in `europe-west1`. It does not
+call the old Google Apps Script web-app deployment. The Cloud Run Node runtime
+still executes the shared `webapp/Code.gs` business rules through the
+`standalone/runtime.js` compatibility layer; editing `Code.gs` in this branch
+therefore **does** affect Cloud Run after deployment, but requires no Apps
+Script deployment.
+
+- The independent 20-minute GitHub regional-to-master synchroniser updates
+  the existing `Jobs` rows and `Jobs!P` category membership.
+- Garamaal no longer repeats that multi-tab sync on startup, search,
+  Discovery refresh or dashboard statistics.
+- Read-only list projections from the Taaza and Freshmaal spreadsheets are
+  cached for 30 seconds in Cloud Run; tab metadata is cached for 4 minutes.
+  Full JD and CV prompt text is not stored in this shared list cache.
+- All app-side mutations invalidate list caches; direct spreadsheet edits may
+  take up to 30 seconds to appear. A tab renamed immediately before the
+  scheduled sync uses a narrow fallback when necessary.
+- Rapid search requests are debounced; duplicate quick-filter fetches are removed.
+  A Google Sheets 429 now displays a short retry message instead of raw JSON.
+
+After the approved migration-branch changes pass CI, deploy **only** the
+existing Cloud Run service from the updated migration branch using:
+`bash standalone/deploy-live-update.sh` in an authenticated Google Cloud Shell.
+This production-safe script first verifies its live service-account, spreadsheet
+IDs, edit gates and GitHub secret, and preserves them during the source update.
+Do **not** run `standalone/deploy.sh` against the existing live service, because
+it is the original read-only pilot installer and replaces runtime settings.
+Firebase Hosting rewrite and Firebase Authentication settings do not need
+changes for this code update. GitHub merges alone do not publish live code.
+
 ## Preserved operations
 
 The new server explicitly supports all 14 original backend operations:
