@@ -90,10 +90,49 @@ function expected_(sh, row, firstDataRow, expected) {
   }
   return row;
 }
+/** Cache only compact list projections, never the full JD or CV prompt.
+ * Chunking stays below Apps Script's 100-KB CacheService value limit.
+ * Direct edits made in a Sheet become visible after at most 30 seconds.
+ */
+function dashboardReadCache_(key, loader, seconds) {
+  const cache=typeof CacheService==='undefined'?null:CacheService.getScriptCache();
+  if(!cache||typeof cache.get!=='function')return loader();
+  try {
+    const n=Number(cache.get(key+'::n'));
+    if(Number.isInteger(n)&&n>0&&n<=25){
+      let raw='',complete=true;
+      for(let i=0;i<n;i++){
+        const chunk=cache.get(key+'::'+i);
+        if(chunk===null||chunk===undefined){complete=false;break;}
+        raw+=chunk;
+      }
+      if(complete)return JSON.parse(raw);
+    }
+  }catch(e){} // A missing/expired cache must never prevent a live read.
+  const value=loader();
+  try{
+    const raw=JSON.stringify(value),step=64000,n=Math.ceil(raw.length/step);
+    if(n>0&&n<=25&&typeof cache.put==='function'){
+      for(let i=0;i<n;i++)cache.put(key+'::'+i,raw.slice(i*step,(i+1)*step),seconds);
+      cache.put(key+'::n',String(n),seconds); // Publish metadata last.
+    }
+  }catch(e){} // Cache is an optimisation, not a dependency.
+  return value;
+}
+function invalidateDashboardReads_() {
+  if(typeof CacheService==='undefined')return;
+  const cache=CacheService.getScriptCache();
+  if(!cache||typeof cache.remove!=='function')return;
+  ['taaza-rows-v2','fresh-rows-v2','taaza-tabs-v2'].forEach(k=>cache.remove(k+'::n'));
+}
 function lockRun_(action) {
   const lock = LockService.getScriptLock();
   lock.waitLock(15000);
-  try { return action(); } finally { lock.releaseLock(); }
+  try {
+    const result=action();
+    invalidateDashboardReads_(); // Mutations must be visible immediately.
+    return result;
+  } finally { lock.releaseLock(); }
 }
 
 
@@ -110,6 +149,15 @@ function taazaJobTabs_(book){
     const head=sh.getRange(1,1,1,3).getValues()[0].map(x=>String(x||'').trim().toLowerCase());
     return a.includes(head[0])&&b.includes(head[1])&&c.includes(head[2]);
   }).map(sh=>({id:String(sh.getSheetId()),name:sh.getName(),sheet:sh}));
+}
+
+/** Read only tab metadata for filter chips. Master Jobs!P supplies membership.
+ * The independent GitHub sync updates Jobs!P every 20 minutes.
+ */
+function taazaCategoryTabs_() {
+  return dashboardReadCache_('taaza-tabs-v2',()=>taazaJobTabs_(
+    SpreadsheetApp.openById(SETTINGS.taazaId)
+  ).map(x=>({id:x.id,name:x.name})),240);
 }
 
 /** One-way regional-to-master mirror. No regional or existing master edits. */
@@ -181,27 +229,32 @@ function syncDiscoveryMaster(){authorise_();return syncTaazaMaster_(true)}
 function getBootstrap() {
   const email = authorise_();
   sheet_('taaza'); sheet_('fresh');
-  syncTaazaMaster_(false);
+  // Do not perform an expensive multi-tab sync on every browser startup.
+  // The independently scheduled GitHub sync maintains Jobs and Jobs!P.
   return {email, people:Object.keys(PEOPLE), sources:{taaza:'Taaza Videshi Maal',fresh:'Freshmaal'},
     links:{taaza:'https://docs.google.com/spreadsheets/d/'+SETTINGS.taazaId+'/edit',
            fresh:'https://docs.google.com/spreadsheets/d/'+SETTINGS.freshId+'/edit'}};
 }
 
 function taazaRows_() {
-  const sh = sheet_('taaza'), count = Math.max(0, sh.getLastRow() - 1);
-  if (!count) return [];
-  const left=sh.getRange(2,1,count,4).getValues();
-  const right=sh.getRange(2,5,count,9).getValues();
-  const reject=sh.getRange(2,14,count,2).getValues();
-  return left.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
-    url:String(a[2]||''),jd:String(a[3]||''),location:String(right[i][0]||''),
-    posted:String(right[i][1]||''),deadline:String(right[i][2]||''),start:String(right[i][3]||''),
-    added:String(right[i][4]||''),salary:String(right[i][5]||''),
-    sendFlag:truthy_(right[i][6]),transferStatus:String(right[i][7]||''),source:String(right[i][8]||''),
-    notInterested:{Abhishek:truthy_(reject[i][0]),Pooja:truthy_(reject[i][1])}}))
-    .filter(x=>x.company || x.role || x.url);
+  return dashboardReadCache_('taaza-rows-v2',()=>{
+    const sh=sheet_('taaza'),count=Math.max(0,sh.getLastRow()-1);
+    if(!count)return [];
+    // One Sheets read instead of three; discard full JD text after readiness
+    // check so the cache never retains large job descriptions.
+    const rows=sh.getRange(2,1,count,16).getValues();
+    return rows.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
+      url:String(a[2]||''),jdReady:jdReady_(a[3]),location:String(a[4]||''),
+      posted:String(a[5]||''),deadline:String(a[6]||''),start:String(a[7]||''),
+      added:String(a[8]||''),salary:String(a[9]||''),
+      sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
+      source:String(a[12]||''),categories:String(a[15]||''),
+      notInterested:{Abhishek:truthy_(a[13]),Pooja:truthy_(a[14])}}))
+      .filter(x=>x.company||x.role||x.url);
+  },30);
 }
 function freshRows_() {
+  return dashboardReadCache_('fresh-rows-v2',()=>{
   const sh = sheet_('fresh'), count = Math.max(0, Math.min(sh.getMaxRows(), SETTINGS.maxFreshRow) - 2);
   if (!count) return [];
   const first=sh.getRange(3,1,count,3).getValues();
@@ -225,6 +278,7 @@ function freshRows_() {
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
             location:String(last[i][0]||''),person};
   }).filter(x=>x.company || x.role || x.url);
+  },30);
 }
 
 /** Return the live Sheet validation values (list OR range) without inventing states. */
@@ -254,27 +308,24 @@ function listJobs(options) {
   const filter=String(options.filter||'all');
   const pageSize=Math.min(SETTINGS.maxPageSize, Math.max(1, Number(options.pageSize)||10));
   const page=Math.max(1, Math.floor(Number(options.page)||1));
-  if(source==='taaza')syncTaazaMaster_(false);
   let jobs=source==='taaza'?taazaRows_():freshRows_();
   let categoryTabs=[],activeTab='all';
   if(source==='taaza'){
     // Category selection is only a VIEW on the master Jobs rows.
     // Membership comes from the live specialist tabs, not stale M provenance.
-    const tabs=taazaJobTabs_(SpreadsheetApp.openById(SETTINGS.taazaId));
-    categoryTabs=tabs.map(x=>({id:x.id,name:x.name}));
-    const members=tabs.map(x=>{
-      const n=Math.max(0,x.sheet.getLastRow()-1);
-      const urls=n?x.sheet.getRange(2,3,n,1).getValues():[];
-      return {id:x.id,keys:new Set(urls.map(row=>canonical_(row[0])).filter(Boolean))};
-    });
+    const tabs=taazaCategoryTabs_();
+    categoryTabs=tabs;
     const requested=String(options.tabId||'all');
-    activeTab=requested==='common'||requested==='all'||members.some(m=>m.id===requested)?requested:'all';
+    const selected=tabs.find(t=>t.id===requested);
+    activeTab=requested==='common'||requested==='all'||selected?requested:'all';
     if(activeTab!=='all'){
+      // Jobs!P is refreshed by the independent scheduled mirror. Using its
+      // labels eliminates one full-column read per specialist tab per tap.
       jobs=jobs.filter(job=>{
-        const key=canonical_(job.url);
+        const groups=String(job.categories||'').split(' | ').filter(Boolean);
         return activeTab==='common'
-          ? !members.some(m=>m.keys.has(key))
-          : members.some(m=>m.id===activeTab&&m.keys.has(key));
+          ? !groups.length||groups.includes('Common')
+          : groups.includes(selected.name);
       });
     }
   }
@@ -286,10 +337,10 @@ function listJobs(options) {
     const hidden=new Set(other.filter(x=>x.person[candidate].notInterested)
       .map(x=>canonical_(x.url)).filter(Boolean));
     jobs=jobs.map(x=>Object.assign(x,{
-      transferred:transferred.has(canonical_(x.url)),jdReady:jdReady_(x.jd),
+      transferred:transferred.has(canonical_(x.url)),jdReady:x.jdReady,
       notInterested:!!x.notInterested[candidate]||hidden.has(canonical_(x.url))
     }));
-    jobs.forEach(x=>delete x.jd);
+    jobs.forEach(x=>delete x.categories);
   } else {
     const hidden=new Set(taazaRows_().filter(x=>x.notInterested[candidate])
       .map(x=>canonical_(x.url)).filter(Boolean));
@@ -568,13 +619,12 @@ function updateFreshControl(payload) {
 
 function getStats(candidate) {
   authorise_(); person_(candidate);
-  syncTaazaMaster_(false);
   const taaza=taazaRows_(), fresh=freshRows_(), own=fresh.map(x=>x.person[candidate]);
   return {discovered:taaza.length,applications:fresh.length,
     selected:own.filter(x=>x.selected).length,
     cvRequested:own.filter(x=>x.cv).length,
     applied:own.filter(x=>String(x.status).toLowerCase()==='applied').length,
-    missingJD:taaza.filter(x=>!jdReady_(x.jd)).length,
+    missingJD:taaza.filter(x=>!x.jdReady).length,
     notInterestedDiscovery:taaza.filter(x=>x.notInterested[candidate]).length,
     notInterestedFresh:own.filter(x=>x.notInterested).length};
 }
