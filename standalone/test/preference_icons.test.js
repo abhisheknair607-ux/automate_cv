@@ -50,9 +50,10 @@ test("Small card-side box has screenshot's average and rank; detail keeps all fo
   const job={score:52,rank:57,profileFit:68,careerFit:73};
   const compact=ctx.compactMetrics(job);
   assert.match(compact,/class="score-compact"/);
-  assert.match(compact,/>52<\/strong><span>Avg 55\/45<\/span>/);
-  assert.match(compact,/>#57<\/strong><span>Rank<\/span>/);
-  assert.doesNotMatch(compact,/Profile|Career/);
+  assert.match(compact,/<div class="score-avg"><strong[^>]*>52<\/strong>/);
+  assert.match(compact,/>P 68 – C 73<\/span>/);
+  assert.match(compact,/<div class="score-rank"><strong>#57<\/strong><span>Rank<\/span>/);
+  assert.match(compact,/Profile Fit 68, Career Fit 73/);
   const full=ctx.fitMetrics(job);
   assert.match(full,/Profile/);
   assert.match(full,/Career/);
@@ -61,5 +62,5 @@ test("Small card-side box has screenshot's average and rank; detail keeps all fo
   assert.match(js,/\$\{discovery\?'':compactMetrics\(job\)\}/);
   assert.match(js,/\$\{fitMetrics\(d\)\}/);
   assert.match(html,/\.jobtop\{flex-wrap:nowrap/);
-  assert.match(html,/\.score-compact\{flex:0 0 112px/);
+  assert.match(html,/\.score-compact\{flex:0 0 150px/);
 });
