@@ -319,14 +319,27 @@ function listJobs(options) {
     const selected=tabs.find(t=>t.id===requested);
     activeTab=requested==='common'||requested==='all'||selected?requested:'all';
     if(activeTab!=='all'){
-      // Jobs!P is refreshed by the independent scheduled mirror. Using its
-      // labels eliminates one full-column read per specialist tab per tap.
-      jobs=jobs.filter(job=>{
+      // Jobs!P eliminates a full-column read per specialist tab on every tap.
+      const matches=job=>{
         const groups=String(job.categories||'').split(' | ').filter(Boolean);
         return activeTab==='common'
           ? !groups.length||groups.includes('Common')
           : groups.includes(selected.name);
-      });
+      };
+      let filtered=jobs.filter(matches);
+      if(selected&&!filtered.length){
+        // Rare fallback: a tab was just renamed or added before the next
+        // scheduled Jobs!P refresh. Read ONLY that selected tab by stable ID.
+        const tab=SpreadsheetApp.openById(SETTINGS.taazaId).getSheets()
+          .find(sh=>String(sh.getSheetId())===selected.id);
+        if(tab){
+          const n=Math.max(0,tab.getLastRow()-1);
+          const links=n?tab.getRange(2,3,n,1).getValues():[];
+          const keys=new Set(links.map(row=>canonical_(row[0])).filter(Boolean));
+          filtered=jobs.filter(job=>keys.has(canonical_(job.url)));
+        }
+      }
+      jobs=filtered;
     }
   }
   // Treat a rejection recorded in either source as effective for this candidate.
