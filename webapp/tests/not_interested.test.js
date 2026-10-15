@@ -159,6 +159,23 @@ fresh.set(3,34,'Pooja secret pre-CV prompt');
 assert.equal(js(run('getJob({candidate:"Pooja",source:"fresh",row:3})')).promptReady,false);
 assert.throws(()=>run('getCopyPrompt({candidate:"Pooja",row:3,expected:{company:"Alpha",role:"Alpha Role",url:"https://www.jobs.test/open/1"}})'),/completed CV/);
 
+// Existing worker cost cells belong to their candidate, with four-decimal
+// precision, and blank cells must never be treated as a recorded zero.
+fresh.set(3,21,0.9573);fresh.set(3,31,1.2345);
+fresh.set(4,21,0.0007);fresh.set(5,21,0.5);
+fresh.set(3,15,'COMPLETE');fresh.set(3,25,'COMPLETE');
+const summary=js(run('getExpenses()'));
+assert.equal(summary.currency,'USD');
+assert.equal(summary.candidates.Abhishek.recordedUsd,1.458);
+assert.equal(summary.candidates.Pooja.recordedUsd,1.2345);
+assert.equal(summary.totalUsd,2.6925);
+assert.equal(summary.candidates.Abhishek.recordedJobs,3);
+assert.equal(summary.candidates.Pooja.recordedJobs,1);
+assert.equal(list('fresh','Abhishek','all',{pageSize:20}).rows.find(j=>j.row===3).costUsd,0.9573);
+assert.equal(list('fresh','Pooja','all',{pageSize:20}).rows.find(j=>j.row===3).costUsd,1.2345);
+assert.equal(js(run('getJob({source:"fresh",candidate:"Abhishek",row:3})')).costUsd,0.9573);
+assert.equal(js(run('getJob({source:"fresh",candidate:"Pooja",row:3})')).costUsd,1.2345);
+
 // Client-side syntax and presence of compact buttons.
 const html=fs.readFileSync(__dirname+'/../Index.html','utf8');
 const script=html.match(/<script>([\s\S]+?)<\/script>/);
