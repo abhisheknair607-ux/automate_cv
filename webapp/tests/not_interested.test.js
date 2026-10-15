@@ -167,4 +167,43 @@ new vm.Script(script[1],{filename:'Index.html'});
 assert.match(html,/Download CV/);assert.match(html,/Copy Prompt/);
 assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
 
+// Candidate preference states: Favorite stays visible in normal views, but can be
+// filtered independently of Not Interested for each person.
+let preferenceResult=js(run('setJobPreference({source:"taaza",candidate:"Abhishek",row:4,value:"Favorite",expected:{company:"Gamma",role:"Gamma Role",url:"https://jobs.test/open/3"}})'));
+assert.equal(preferenceResult.preference,'Favorite');
+assert.equal(taaza.get(4,14),'Favorite');
+assert.deepEqual(rows(list('taaza','Abhishek','favorites',{pageSize:30})),[4]);
+assert.equal(list('taaza','Pooja','favorites',{pageSize:30}).total,0);
+assert.ok(rows(list('taaza','Abhishek','all',{pageSize:80})).includes(4));
+run('setJobPreference({source:"taaza",candidate:"Abhishek",row:4,value:"",expected:{company:"Gamma",role:"Gamma Role",url:"https://jobs.test/open/3"}})');
+assert.equal(taaza.get(4,14),'');
+assert.equal(list('taaza','Abhishek','favorites').total,0);
+
+// Saving an adequately complete JD must create exactly one Make CV vacancy,
+// without checking CV or CL triggers and without overwriting another job.
+const goodJD='A full transfer pricing job description with extensive responsibilities, technical requirements, professional standards and client advisory duties.';
+const outcome=js(run('saveDiscovery('+JSON.stringify({row:27,expected:{company:'TPCo',role:'Transfer Pricing Senior',url:'https://eu.test/tp/one'},expectedJD:'Full Europe TP job description',updates:{jd:goodJD}})+')'));
+assert.equal(outcome.saved,true);
+assert.equal(outcome.autoTransferred,true);
+assert.ok(outcome.freshRow>=6);
+assert.equal(fresh.get(outcome.freshRow,1),'TPCo');
+assert.equal(fresh.get(outcome.freshRow,4),goodJD);
+assert.equal(fresh.get(outcome.freshRow,8),''); // No paid CV checkbox
+assert.equal(fresh.get(outcome.freshRow,9),''); // No paid CL checkbox
+assert.equal(js(run('transferJob({row:27,expected:{company:"TPCo",role:"Transfer Pricing Senior",url:"https://eu.test/tp/one"}})')).created,false);
+
+// Migrating old Boolean flags is lossless; preference dropdowns become available.
+taaza.set(28,14,true);
+const migration=js(run('migrateJobPreferences({confirm:true})'));
+assert.equal(migration.migrated,true);
+assert.equal(taaza.get(28,14),'Not Interested');
+assert.ok(taaza.validation&&taaza.validation.values.includes('Favorite'));
+assert.ok(fresh.validation&&fresh.validation.values.includes('Not Interested'));
+
+assert.match(html,/data-action="job-preference"/);
+assert.match(html,/data-action="sort-jobs"/);
+assert.match(html,/data-candidate="Pooja"/); // candidate-specific CSS
+assert.match(html,/class="score-four"/);
+assert.match(html,/joblink/);
+
 console.log('PASS: candidate isolation, cross-sheet linkage, duplicate canonical URLs, restoration, filtering, offset paging, validation and lock release');
