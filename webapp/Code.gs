@@ -525,6 +525,9 @@ function migrateJobPreferences(payload){
       for(let k=0;k<2;k++){
         const col=columns[k],range=sh.getRange(first,col,count,1);
         const old=range.getValues().map(a=>a[0]);
+        const unknown=old.filter(v=>v!=null&&String(v).trim()!==''&&
+          ![true,false,'true','false','Not Interested','Favorite','Favourite'].some(x=>String(x).toLowerCase()===String(v).trim().toLowerCase()));
+        if(unknown.length)throw new Error('Unexpected preference value in '+source+' column '+col+'. No values in this column were changed.');
         const next=old.map(v=>preference_(v));
         // Dropdown has explicit empty/neutral, Not Interested, Favorite entries.
         preferenceDropdown_(range);
