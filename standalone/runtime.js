@@ -27,7 +27,7 @@ function sourceWithSheetIds(ids) {
   return bound;
 }
 const METHODS = new Set([
-  "getBootstrap", "listJobs", "getJob", "setNotInterested", "setJobPreference", "migrateJobPreferences", "addDiscovery",
+  "getBootstrap", "listJobs", "getJob", "getExpenses", "setNotInterested", "setJobPreference", "migrateJobPreferences", "addDiscovery",
   "saveDiscovery", "transferJob", "bulkTransfer", "updateFreshJD",
   "getCopyPrompt", "updateFreshControl", "getStats", "runCvApiNow",
   "syncDiscoveryMaster"
@@ -92,7 +92,7 @@ function constructServices({token,email,ids,githubToken,allowedEmails}) {
   };
 }
 const READ_ONLY_METHODS = new Set([
-  "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats"
+  "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats", "getExpenses"
 ]);
 async function invoke(method,arg,options) {
   if(!METHODS.has(method))throw new Error("Unknown application operation");
