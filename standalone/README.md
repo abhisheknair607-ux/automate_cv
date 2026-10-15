@@ -8,6 +8,56 @@ The original webapp/Index.html and webapp/Code.gs stay untouched.
 The existing Python worker, GitHub schedules, old Apps Script deployment,
 Taaza spreadsheet and Freshmaal spreadsheet are untouched.
 
+## Garamaal candidate preferences, ranked cards and JD auto-transfer (October 2026)
+
+This change targets the **Firebase Hosting → Cloud Run** Garamaal site,
+not an Apps Script deployment.
+
+- Switching to **Pooja** applies a violet/lavender theme to Dashboard,
+  Discovery, Make CV and Add Job. Switching to Abhishek retains blue.
+- Designation and company name in every vacancy card link safely to the
+  original HTTPS/HTTP vacancy in a new browser tab.
+- Each Make CV card presents **Profile Fit**, **Career Fit**, **Avg 55/45**
+  and **Rank** in one compact strip. Avg is the existing candidate-specific
+  weighted score in AL/AN, and Rank is the existing AM/AO rank formula.
+  The new manual component-score columns AX/AY (Abhishek) and AZ/BA
+  (Pooja) stay blank until individually verified scores are supplied.
+  The app must show “—” rather than reconstruct component scores.
+- Discovery and Make CV offer **Favorites ★** alongside the current filters.
+  All filter and sort chips share a single horizontally scrollable row.
+- The candidate's preferences in Taaza Jobs!N/O and Freshmaal Sheet1!AT/AU
+  are **blank / Not Interested / Favorite**. Existing TRUE/FALSE flags
+  are interpreted safely until the new dropdown migration completes.
+  Each preference edit syncs all matching URL rows across both Sheets.
+  Favorites are visible in normal lists; Not Interested remains recoverable.
+- Saving a **complete JD through Garamaal** now automatically transfers
+  newly discovered jobs into Freshmaal (without selecting any paid
+  Make CV/CL controls). Already-existing Freshmaal JDs and generated
+  documents are preserved. Saving direct changes in Google Sheets is not
+  an instantaneous Garamaal Save event; its existing worker behaviour is
+  unchanged.
+
+### Safe live rollout
+
+1. Confirm the feature branch's full GitHub tests and standalone parity
+   suite succeed, then merge into the migration branch.
+2. In authenticated Google Cloud Shell, clone/pull
+   `migration/standalone-google-auth-no-appscript` and run
+   `bash standalone/deploy-live-update.sh`. The script preserves live
+   secrets, approved identities and production write settings.
+3. At `https://garamaal.web.app`, open the Dashboard and click
+   **Set up Sheets preference dropdowns** once. Confirm the conversion.
+   The migration preserves existing rejected jobs, changes old Boolean
+   flags to “Not Interested,” and configures blank / Not Interested /
+   Favorite choices without touching CV generation or ranking formulas.
+4. Check both candidates, mark/restore/favorite one test vacancy, and
+   save a new complete JD. Verify the vacancy appears only once in
+   Make CV, without Make CV/CL checkboxes being automatically enabled.
+
+Do not run `standalone/deploy.sh` on production: that pilot setup script
+resets live authentication and read/write configuration. GitHub merges
+alone do not update the Cloud Run service.
+
 ## Google Sheets 429 read-quota mitigation (15 October 2026)
 
 The Firebase Hosting URL `https://garamaal.web.app` forwards to the existing
