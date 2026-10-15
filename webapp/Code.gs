@@ -479,7 +479,14 @@ function setJobPreference(payload){
     add('fresh',freshRows_(),person.notInterested);
     if(!targets.some(x=>x.kind===source&&x.row===row))throw new Error('Source job not found. Refresh and try again.');
     targets.forEach(t=>expected_(sheet_(t.kind),t.row,t.kind==='taaza'?2:3,t.expected));
-    targets.forEach(t=>sheet_(t.kind).getRange(t.row,t.col).setValue(value));
+    // Migrate touched cells before writing text into a legacy TRUE/FALSE checkbox.
+    const validation=SpreadsheetApp.newDataValidation()
+      .requireValueInList(['','Not Interested','Favorite'],true).setAllowInvalid(false).build();
+    targets.forEach(t=>{
+      const cell=sheet_(t.kind).getRange(t.row,t.col);
+      if(typeof cell.setDataValidation==='function')cell.setDataValidation(validation);
+      cell.setValue(value);
+    });
     SpreadsheetApp.flush();
     for(const t of targets)
       if(preference_(sheet_(t.kind).getRange(t.row,t.col).getValue())!==value)
