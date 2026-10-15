@@ -8,6 +8,56 @@ The original webapp/Index.html and webapp/Code.gs stay untouched.
 The existing Python worker, GitHub schedules, old Apps Script deployment,
 Taaza spreadsheet and Freshmaal spreadsheet are untouched.
 
+## Compact per-job CV cost and two-candidate expense tracker
+
+No new page, sheet tab, cost model or automation is introduced.
+
+- Every Make CV job card shows a small **USD estimated cost** chip after
+  the worker has written a non-blank amount. This comes directly from
+  Freshmaal Sheet1 **U (Abhishek)** or **AE (Pooja)**; the two columns
+  remain independent.
+- A small **$** button in the existing header opens an on-demand compact
+  popover with Abhishek's recorded total, Pooja's recorded total, their
+  combined total, count of costed jobs, and a compact recent-cost list.
+  It works from either candidate view without adding more page height.
+- Tapping any recorded job cost asks the authenticated Cloud Run service to
+  find that candidate's **Token_Usage.json** in the exact saved application
+  output folder. Only then is Drive queried, and a **verified direct Drive
+  file link** is returned. The application ID, candidate, and estimated USD
+  amount are checked against Freshmaal; any mismatch is clearly reported.
+  Token model/stage estimates are included in the on-demand detail.
+- Aggregation is performed from previously stored worker estimates, not
+  by rereading hundreds of JSON files or guessing token use. Summation
+  uses integer USD ten-thousandths (Freshmaal rounds each saved amount to
+  four decimals).
+- **Accounting limitation:** The JSON file states that costs are
+  **estimates** from response token usage, the worker's configured model
+  prices and counted tool activity. Provider invoices are authoritative.
+  Historical jobs lacking stored costs, unsuccessful paid attempts, and
+  older overwritten reruns may be absent from the stored totals. The
+  interface must never label this as complete billing or silently treat
+  a blank cell as $0.00.
+- Expense summary requests use the cached Freshmaal list; no additional
+  scheduled polling or external billing API is added. The per-job
+  proof route validates Firebase sign-in and the same candidate/row before
+  inspecting Drive, and never exposes bearer tokens.
+
+Deploy once, **after** both this change and the prior violet/theme,
+Favorites, scrolling, ranking and JD-auto-transfer changes have been merged
+into `migration/standalone-google-auth-no-appscript`:
+
+```bash
+git clone --branch migration/standalone-google-auth-no-appscript --single-branch https://github.com/abhisheknair607-ux/automate_cv.git garamaal-release
+cd garamaal-release
+bash standalone/deploy-live-update.sh
+```
+
+After deployment, on the Garamaal Dashboard click **Set up Sheets
+preference dropdowns** once, then refresh and test each candidate's
+favorite, cost badge, $ tracker, and one on-demand usage-file link.
+Do not run `standalone/deploy.sh`, deploy Apps Script, or manually
+generate paid CVs just to test the tracker.
+
 ## Garamaal candidate preferences, ranked cards and JD auto-transfer (October 2026)
 
 This change targets the **Firebase Hosting → Cloud Run** Garamaal site,
