@@ -87,6 +87,18 @@ function effectivePreference_(left,right){
   const x=preference_(left),y=preference_(right);
   return x==='Not Interested'||y==='Not Interested'?'Not Interested':x==='Favorite'||y==='Favorite'?'Favorite':'';
 }
+function preferenceDropdown_(range){
+  if(typeof range.setDataValidation!=='function')return;
+  const build=values=>SpreadsheetApp.newDataValidation()
+    .requireValueInList(values,true).setAllowInvalid(false).build();
+  try{
+    range.setDataValidation(build(['','Not Interested','Favorite']));
+  }catch(e){
+    // Some Sheets validation implementations reject an empty list entry.
+    // In that case clearing the cell remains the neutral/blank selection.
+    range.setDataValidation(build(['Not Interested','Favorite']));
+  }
+}
 function scorePart_(value){
   if(value===''||value===null||value===undefined)return '';
   const n=Number(value);return Number.isFinite(n)&&n>=0&&n<=100?n:'';
@@ -480,11 +492,9 @@ function setJobPreference(payload){
     if(!targets.some(x=>x.kind===source&&x.row===row))throw new Error('Source job not found. Refresh and try again.');
     targets.forEach(t=>expected_(sheet_(t.kind),t.row,t.kind==='taaza'?2:3,t.expected));
     // Migrate touched cells before writing text into a legacy TRUE/FALSE checkbox.
-    const validation=SpreadsheetApp.newDataValidation()
-      .requireValueInList(['','Not Interested','Favorite'],true).setAllowInvalid(false).build();
     targets.forEach(t=>{
       const cell=sheet_(t.kind).getRange(t.row,t.col);
-      if(typeof cell.setDataValidation==='function')cell.setDataValidation(validation);
+      preferenceDropdown_(cell);
       cell.setValue(value);
     });
     SpreadsheetApp.flush();
@@ -517,8 +527,7 @@ function migrateJobPreferences(payload){
         const old=range.getValues().map(a=>a[0]);
         const next=old.map(v=>preference_(v));
         // Dropdown has explicit empty/neutral, Not Interested, Favorite entries.
-        const rule=SpreadsheetApp.newDataValidation().requireValueInList(['','Not Interested','Favorite'],true).setAllowInvalid(false).build();
-        range.setDataValidation(rule);
+        preferenceDropdown_(range);
         if(old.some((v,i)=>String(v==null?'':v)!==next[i]))range.setValues(next.map(v=>[v]));
         const hrow=source==='taaza'?1:2;
         sh.getRange(hrow,col).setValue((k===0?'Abhishek':'Pooja')+' · Job Preference');
