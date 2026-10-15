@@ -5,6 +5,7 @@ let sheetID=100;
 class MockSheet{
   constructor(name,rows,cols){this.id=++sheetID;this.name=name;this.rows=rows;this.cols=cols;this.cells=Array.from({length:rows},()=>Array(cols).fill(''));this.writes=[];}
   getName(){return this.name}
+  getMaxColumns(){return this.cols}
   getSheetId(){return this.id}
   getMaxRows(){return this.rows}
   getMaxColumns(){return this.cols}
@@ -20,10 +21,11 @@ class MockSheet{
       setValue(v){assert.equal(n*m,1);self.set(row,col,v);self.writes.push({row,col,v});return this},
       setValues(arr){for(let i=0;i<n;i++)for(let j=0;j<m;j++)self.set(row+i,col+j,arr[i][j]);self.writes.push({row,col,n,m,arr});return this},
       getDataValidation(){return null},
+      setDataValidation(rule){self.validation=rule;return this},
     }
   }
 }
-const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,49),regions={};
+const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,53),regions={};
 taaza.set(1,1,'Company Name');taaza.set(1,2,'Designation');taaza.set(1,3,'Link');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
@@ -35,7 +37,7 @@ for(let row=6;row<=26;row++)taazaRow(row,'Company '+row,`https://jobs.test/open/
 freshRow(3,'Alpha','https://www.jobs.test/open/1');freshRow(4,'Beta','https://jobs.test/open/2?utm_campaign=promo');freshRow(5,'Delta','https://jobs.test/open/4');
 let locks=0;
 const vmContext=vm.createContext({
- SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null},getSheets(){return id.startsWith('1jt3')?[taaza,...Object.values(regions)]:[fresh]}}},flush(){}},
+ SpreadsheetApp:{newDataValidation(){return {requireValueInList(values){this.values=values;return this},setAllowInvalid(){return this},build(){return {values:this.values}}}},openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null},getSheets(){return id.startsWith('1jt3')?[taaza,...Object.values(regions)]:[fresh]}}},flush(){}},
  Session:{getEffectiveUser(){return {getEmail(){return 'authorised@example.com'}}}},
  PropertiesService:{getScriptProperties(){return {getProperty(){return 'authorised@example.com'}}}},
  LockService:{getScriptLock(){return {waitLock(){locks++},releaseLock(){locks--}}}},
@@ -52,7 +54,7 @@ assert.ok(rows(list('taaza','Abhishek','all',{sort:'company'})).length===3);
 // Both links with only tracking differences should be rejected together.
 let out=interest('taaza','Abhishek',2,true,'Alpha','https://jobs.test/open/1?utm_source=social');
 assert.equal(out.updatedRows,3);
-assert.equal(taaza.get(2,14),true);assert.equal(taaza.get(5,14),true);assert.equal(fresh.get(3,46),true);
+assert.equal(taaza.get(2,14),'Not Interested');assert.equal(taaza.get(5,14),'Not Interested');assert.equal(fresh.get(3,46),'Not Interested');
 assert.equal(taaza.get(2,15),'');assert.equal(fresh.get(3,47),'');
 assert.equal(list('taaza','Abhishek').total,23);
 assert.equal(list('taaza','Pooja').total,25);
@@ -64,11 +66,11 @@ assert.equal(list('fresh','Pooja','not-interested').total,0);
 // Restore from Freshmaal must clear matching Taaza duplicates.
 out=interest('fresh','Abhishek',3,false,'Alpha','https://www.jobs.test/open/1');
 assert.equal(out.updatedRows,3);
-assert.equal(taaza.get(2,14),false);assert.equal(taaza.get(5,14),false);assert.equal(fresh.get(3,46),false);
+assert.equal(taaza.get(2,14),'');assert.equal(taaza.get(5,14),'');assert.equal(fresh.get(3,46),'');
 assert.equal(list('taaza','Abhishek','not-interested').total,0);
 // Pooja flags must never change Abhishek values.
 out=interest('fresh','Pooja',4,true,'Beta','https://jobs.test/open/2?utm_campaign=promo');
-assert.equal(taaza.get(3,15),true);assert.equal(fresh.get(4,47),true);
+assert.equal(taaza.get(3,15),'Not Interested');assert.equal(fresh.get(4,47),'Not Interested');
 assert.equal(taaza.get(3,14),'');assert.equal(fresh.get(4,46),'');
 assert.equal(list('taaza','Pooja').total,24);
 assert.equal(list('taaza','Abhishek').total,25);
@@ -164,5 +166,44 @@ assert.ok(script);
 new vm.Script(script[1],{filename:'Index.html'});
 assert.match(html,/Download CV/);assert.match(html,/Copy Prompt/);
 assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
+
+// Candidate preference states: Favorite stays visible in normal views, but can be
+// filtered independently of Not Interested for each person.
+let preferenceResult=js(run('setJobPreference({source:"taaza",candidate:"Abhishek",row:4,value:"Favorite",expected:{company:"Gamma",role:"Gamma Role",url:"https://jobs.test/open/3"}})'));
+assert.equal(preferenceResult.preference,'Favorite');
+assert.equal(taaza.get(4,14),'Favorite');
+assert.deepEqual(rows(list('taaza','Abhishek','favorites',{pageSize:30})),[4]);
+assert.equal(list('taaza','Pooja','favorites',{pageSize:30}).total,0);
+assert.ok(rows(list('taaza','Abhishek','all',{pageSize:80})).includes(4));
+run('setJobPreference({source:"taaza",candidate:"Abhishek",row:4,value:"",expected:{company:"Gamma",role:"Gamma Role",url:"https://jobs.test/open/3"}})');
+assert.equal(taaza.get(4,14),'');
+assert.equal(list('taaza','Abhishek','favorites').total,0);
+
+// Saving an adequately complete JD must create exactly one Make CV vacancy,
+// without checking CV or CL triggers and without overwriting another job.
+const goodJD='A full transfer pricing job description with extensive responsibilities, technical requirements, professional standards and client advisory duties.';
+const outcome=js(run('saveDiscovery('+JSON.stringify({row:27,expected:{company:'TPCo',role:'Transfer Pricing Senior',url:'https://eu.test/tp/one'},expectedJD:'Full Europe TP job description',updates:{jd:goodJD}})+')'));
+assert.equal(outcome.saved,true);
+assert.equal(outcome.autoTransferred,true);
+assert.ok(outcome.freshRow>=6);
+assert.equal(fresh.get(outcome.freshRow,1),'TPCo');
+assert.equal(fresh.get(outcome.freshRow,4),goodJD);
+assert.equal(fresh.get(outcome.freshRow,8),''); // No paid CV checkbox
+assert.equal(fresh.get(outcome.freshRow,9),''); // No paid CL checkbox
+assert.equal(js(run('transferJob({row:27,expected:{company:"TPCo",role:"Transfer Pricing Senior",url:"https://eu.test/tp/one"}})')).created,false);
+
+// Migrating old Boolean flags is lossless; preference dropdowns become available.
+taaza.set(28,14,true);
+const migration=js(run('migrateJobPreferences({confirm:true})'));
+assert.equal(migration.migrated,true);
+assert.equal(taaza.get(28,14),'Not Interested');
+assert.ok(taaza.validation&&taaza.validation.values.includes('Favorite'));
+assert.ok(fresh.validation&&fresh.validation.values.includes('Not Interested'));
+
+assert.match(html,/data-action="job-preference"/);
+assert.match(html,/data-action="sort-jobs"/);
+assert.match(html,/data-candidate="Pooja"/); // candidate-specific CSS
+assert.match(html,/class="score-four"/);
+assert.match(html,/joblink/);
 
 console.log('PASS: candidate isolation, cross-sheet linkage, duplicate canonical URLs, restoration, filtering, offset paging, validation and lock release');

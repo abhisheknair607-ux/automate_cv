@@ -20,9 +20,9 @@ const SETTINGS = Object.freeze({
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
-             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46},
+             workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46, profileFit:50, careerFit:51},
   Pooja: {cv:5, cl:6, web:7, status:11, score:40, rank:41, selected:43, prompt:34,
-          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, clTier:49, lock:26, notInterested:47}
+          workflow:25, cvLink:28, clLink:29, folder:36, error:32, tier:45, clTier:49, lock:26, notInterested:47, profileFit:52, careerFit:53}
 });
 
 function doGet() {
@@ -78,6 +78,31 @@ function jdReady_(text) {
   return s.length >= 80 && !/^(open original job description|click here|view job description|see original job description|job description missing)$/i.test(s);
 }
 function truthy_(value) { return value === true || String(value).toLowerCase() === 'true'; }
+function preference_(value) {
+  if(value===true||String(value).trim().toLowerCase()==='true')return 'Not Interested';
+  const text=String(value==null?'':value).trim().toLowerCase();
+  return text==='not interested'?'Not Interested':text==='favorite'||text==='favourite'?'Favorite':'';
+}
+function effectivePreference_(left,right){
+  const x=preference_(left),y=preference_(right);
+  return x==='Not Interested'||y==='Not Interested'?'Not Interested':x==='Favorite'||y==='Favorite'?'Favorite':'';
+}
+function preferenceDropdown_(range){
+  if(typeof range.setDataValidation!=='function')return;
+  const build=values=>SpreadsheetApp.newDataValidation()
+    .requireValueInList(values,true).setAllowInvalid(false).build();
+  try{
+    range.setDataValidation(build(['','Not Interested','Favorite']));
+  }catch(e){
+    // Some Sheets validation implementations reject an empty list entry.
+    // In that case clearing the cell remains the neutral/blank selection.
+    range.setDataValidation(build(['Not Interested','Favorite']));
+  }
+}
+function scorePart_(value){
+  if(value===''||value===null||value===undefined)return '';
+  const n=Number(value);return Number.isFinite(n)&&n>=0&&n<=100?n:'';
+}
 function expected_(sh, row, firstDataRow, expected) {
   row = Number(row);
   if (!Number.isInteger(row) || row < firstDataRow || row > sh.getMaxRows()) throw new Error('Invalid job row.');
@@ -249,7 +274,8 @@ function taazaRows_() {
       added:String(a[8]||''),salary:String(a[9]||''),
       sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
       source:String(a[12]||''),categories:String(a[15]||''),
-      notInterested:{Abhishek:truthy_(a[13]),Pooja:truthy_(a[14])}}))
+      preferences:{Abhishek:preference_(a[13]),Pooja:preference_(a[14])},
+      notInterested:{Abhishek:preference_(a[13])==='Not Interested',Pooja:preference_(a[14])==='Not Interested'}}))
       .filter(x=>x.company||x.role||x.url);
   },30);
 }
@@ -262,6 +288,7 @@ function freshRows_() {
   const stages=sh.getRange(3,13,count,20).getValues();
   const last=sh.getRange(3,33,count,15).getValues();
   const clTiers=sh.getRange(3,48,count,2).getValues();
+  const scoreParts=sh.getMaxColumns()>=53?sh.getRange(3,50,count,4).getValues():Array.from({length:count},()=>['','','','']);
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -270,12 +297,14 @@ function freshRows_() {
       person[name]={cv:truthy_(b[c.cv-5]),cl:truthy_(b[c.cl-5]),web:truthy_(b[c.web-5]),
         status:String(b[c.status-5]||''),score:e[c.score-33]===''?'':e[c.score-33],
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
+        profileFit:scorePart_(scoreParts[i][c.profileFit-50]),careerFit:scorePart_(scoreParts[i][c.careerFit-50]),
         workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
          clTier:String(clTiers[i][c.clTier-48]||e[c.tier-33]||'Premium'),
          clTierExplicit:!!String(clTiers[i][c.clTier-48]||'').trim(),
-        notInterested:truthy_(e[c.notInterested-33]),
+        preference:preference_(e[c.notInterested-33]),
+        notInterested:preference_(e[c.notInterested-33])==='Not Interested',
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
@@ -345,26 +374,30 @@ function listJobs(options) {
       jobs=filtered;
     }
   }
-  // Treat a rejection recorded in either source as effective for this candidate.
-  // Direct Sheet edits are reflected in both web lists without altering the other candidate.
-  if (source==='taaza') {
+  // Resolve per-candidate preference across both Sheets, including direct Sheet edits.
+  // "Not Interested" wins only if sources are temporarily inconsistent.
+  if(source==='taaza'){
     const other=freshRows_();
     const transferred=new Set(other.map(x=>canonical_(x.url)).filter(Boolean));
-    const hidden=new Set(other.filter(x=>x.person[candidate].notInterested)
-      .map(x=>canonical_(x.url)).filter(Boolean));
-    jobs=jobs.map(x=>Object.assign(x,{
-      transferred:transferred.has(canonical_(x.url)),jdReady:x.jdReady,
-      notInterested:!!x.notInterested[candidate]||hidden.has(canonical_(x.url))
-    }));
-    jobs.forEach(x=>delete x.categories);
+    const prefs=new Map(other.filter(x=>x.url).map(x=>[canonical_(x.url),x.person[candidate].preference]));
+    jobs=jobs.map(x=>{
+      const preference=effectivePreference_(x.preferences[candidate],prefs.get(canonical_(x.url)));
+      return {...x,transferred:transferred.has(canonical_(x.url)),preference,
+        favorite:preference==='Favorite',notInterested:preference==='Not Interested'};
+    });
+    jobs.forEach(x=>{delete x.categories;delete x.preferences;});
   } else {
-    const hidden=new Set(taazaRows_().filter(x=>x.notInterested[candidate])
-      .map(x=>canonical_(x.url)).filter(Boolean));
-    jobs=jobs.map(x=>Object.assign(x,{...x.person[candidate],
-      notInterested:!!x.person[candidate].notInterested||hidden.has(canonical_(x.url))}));
+    const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
+    jobs=jobs.map(x=>{
+      const item=x.person[candidate];
+      const preference=effectivePreference_(item.preference,prefs.get(canonical_(x.url)));
+      return {...x,...item,preference,favorite:preference==='Favorite',
+        notInterested:preference==='Not Interested'};
+    });
     jobs.forEach(x=>delete x.person);
   }
-  if (filter==='not-interested') jobs=jobs.filter(x=>x.notInterested);
+  if(filter==='not-interested')jobs=jobs.filter(x=>x.notInterested);
+  else if(filter==='favorites')jobs=jobs.filter(x=>x.favorite);
   else jobs=jobs.filter(x=>!x.notInterested);
   if(query)jobs=jobs.filter(x=>[x.company,x.role,x.location,x.url].some(z=>String(z||'').toLowerCase().includes(query)));
   if(filter==='missing'&&source==='taaza')jobs=jobs.filter(x=>!x.jdReady);
@@ -407,26 +440,30 @@ function getJob(options) {
   if(!Number.isInteger(row)||row<min||row>sh.getMaxRows())throw new Error('Invalid row.');
   if(source==='taaza'){
     const a=sh.getRange(row,1,1,15).getValues()[0];
-    return {source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
+    const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
       jd:String(a[3]||''),location:String(a[4]||''),posted:String(a[5]||''),deadline:String(a[6]||''),
       start:String(a[7]||''),added:String(a[8]||''),salary:String(a[9]||''),
       transferStatus:String(a[11]||''),jdReady:jdReady_(a[3]),
-      notInterested:truthy_(a[TAAZA_INTEREST[candidate]-1])||
-        freshRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.person[candidate].notInterested)};
+      preference:effectivePreference_(a[TAAZA_INTEREST[candidate]-1],
+        (freshRows_().find(x=>canonical_(x.url)===canonical_(a[2]))||{person:{[candidate]:{}}}).person[candidate].preference)};
+    data.notInterested=data.preference==='Not Interested';data.favorite=data.preference==='Favorite';
+    return data;
   }
-  const a=sh.getRange(row,1,1,49).getValues()[0];
+  const a=sh.getRange(row,1,1,53).getValues()[0];
   const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
     jd:String(a[3]||''),location:String(a[32]||''),cv:truthy_(a[conf.cv-1]),
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
     status:String(a[conf.status-1]||''),selected:truthy_(a[conf.selected-1]),
-    score:a[conf.score-1],rank:a[conf.rank-1],workflow:String(a[conf.workflow-1]||''),
+    score:a[conf.score-1],rank:a[conf.rank-1],
+    profileFit:scorePart_(a[conf.profileFit-1]),careerFit:scorePart_(a[conf.careerFit-1]),workflow:String(a[conf.workflow-1]||''),
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
      clTier:String(a[conf.clTier-1]||a[conf.tier-1]||'Premium'),
      clTierExplicit:!!String(a[conf.clTier-1]||'').trim(),
     promptReady:!!String(a[conf.cvLink-1]||'').trim()&&!!String(a[conf.prompt-1]||'').trim(),
-    notInterested:truthy_(a[conf.notInterested-1])||
-      taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
+    preference:effectivePreference_(a[conf.notInterested-1],
+      (taazaRows_().find(x=>canonical_(x.url)===canonical_(a[2]))||{preferences:{}}).preferences[candidate])};
+  data.notInterested=data.preference==='Not Interested';data.favorite=data.preference==='Favorite';
   data.statusOptions=statusOptions_(sh.getRange(row,conf.status).getDataValidation(),data.status);
   return data;
 }
@@ -435,38 +472,72 @@ function getJob(options) {
  * This is NOT an application status and DOES NOT modify Make CV/CL or GitHub.
  * All matching URL rows are included so duplicated discovery records do not resurface.
  */
-function setNotInterested(payload) {
-  authorise_(); payload=payload||{};
-  const source=String(payload.source||''),candidate=String(payload.candidate||'');
-  const person=person_(candidate);
-  if(source!=='taaza'&&source!=='fresh') throw new Error('Choose Taaza or Freshmaal.');
-  if(typeof payload.value!=='boolean') throw new Error('Not Interested must be true or false.');
-  const val=payload.value;
+/** Candidate-specific preference state, mirrored by matching vacancy URL. */
+function setJobPreference(payload){
+  authorise_();payload=payload||{};
+  const source=String(payload.source||''),candidate=String(payload.candidate||''),person=person_(candidate);
+  if(source!=='taaza'&&source!=='fresh')throw new Error('Choose Taaza or Freshmaal.');
+  const value=payload.value==null?'':String(payload.value);
+  if(!['','Not Interested','Favorite'].includes(value))throw new Error('Invalid job preference.');
   return lockRun_(()=>{
-    const primary=sheet_(source);
-    const row=expected_(primary,payload.row,source==='taaza'?2:3,payload.expected);
-    const live=primary.getRange(row,1,1,3).getValues()[0];
-    const key=canonical_(live[2]);
-    if(!key) throw new Error('This vacancy needs a valid link to synchronise Not Interested.');
-    // Build the target list before starting any write to avoid partial row discoveries.
+    const primary=sheet_(source),row=expected_(primary,payload.row,source==='taaza'?2:3,payload.expected);
+    const url=primary.getRange(row,3).getValue(),key=canonical_(url);
+    if(!key)throw new Error('A valid vacancy URL is required to synchronise the preference.');
     const targets=[];
-    const add=(kind,entries,col)=>{
-      entries.filter(x=>canonical_(x.url)===key).forEach(x=>targets.push({kind,row:x.row,col,
-        expected:{company:x.company,role:x.role,url:x.url}}));
-    };
+    const add=(kind,entries,col)=>entries.filter(x=>canonical_(x.url)===key).forEach(x=>targets.push({
+      kind,row:x.row,col,expected:{company:x.company,role:x.role,url:x.url}
+    }));
     add('taaza',taazaRows_(),TAAZA_INTEREST[candidate]);
     add('fresh',freshRows_(),person.notInterested);
-    if(!targets.some(x=>x.kind===source&&x.row===row))
-      throw new Error('The source job was not found. Refresh and try again.');
+    if(!targets.some(x=>x.kind===source&&x.row===row))throw new Error('Source job not found. Refresh and try again.');
     targets.forEach(t=>expected_(sheet_(t.kind),t.row,t.kind==='taaza'?2:3,t.expected));
-    targets.forEach(t=>sheet_(t.kind).getRange(t.row,t.col).setValue(val));
+    // Migrate touched cells before writing text into a legacy TRUE/FALSE checkbox.
+    targets.forEach(t=>{
+      const cell=sheet_(t.kind).getRange(t.row,t.col);
+      preferenceDropdown_(cell);
+      cell.setValue(value);
+    });
     SpreadsheetApp.flush();
-    for(const t of targets) {
-      if(truthy_(sheet_(t.kind).getRange(t.row,t.col).getValue())!==val)
-        throw new Error('The Not Interested write could not be verified. Refresh both sheets.');
+    for(const t of targets)
+      if(preference_(sheet_(t.kind).getRange(t.row,t.col).getValue())!==value)
+        throw new Error('Preference write verification failed. Check both Sheets.');
+    return {saved:true,candidate,row,preference:value,updatedRows:targets.length,
+      message:value==='Favorite'?'Added to '+candidate+' Favorites.':value==='Not Interested'?'Moved to Not Interested for '+candidate+'.':'Preference cleared for '+candidate+'.'};
+  });
+}
+/** Keep legacy read/write callers compatible during the deployment transition. */
+function setNotInterested(payload) {
+  if(typeof payload?.value!=='boolean')throw new Error('Not Interested must be true or false.');
+  return setJobPreference({...payload,value:payload.value?'Not Interested':''});
+}
+/** One-time schema migration, run after the updated Cloud Run app is deployed.
+ * No user-generated CV rows, ranking formulae, or model choices are touched.
+ */
+function migrateJobPreferences(payload){
+  authorise_();if(!payload||payload.confirm!==true)throw new Error('Confirm preference migration.');
+  return lockRun_(()=>{
+    const results=[];
+    for(const source of ['taaza','fresh']){
+      const sh=sheet_(source),first=source==='taaza'?2:3;
+      const count=Math.min(sh.getMaxRows(),source==='taaza'?sh.getMaxRows():SETTINGS.maxFreshRow)-first+1;
+      const columns=source==='taaza'?[14,15]:[46,47];
+      if(count<1)continue;
+      for(let k=0;k<2;k++){
+        const col=columns[k],range=sh.getRange(first,col,count,1);
+        const old=range.getValues().map(a=>a[0]);
+        const unknown=old.filter(v=>v!=null&&String(v).trim()!==''&&
+          ![true,false,'true','false','Not Interested','Favorite','Favourite'].some(x=>String(x).toLowerCase()===String(v).trim().toLowerCase()));
+        if(unknown.length)throw new Error('Unexpected preference value in '+source+' column '+col+'. No values in this column were changed.');
+        const next=old.map(v=>preference_(v));
+        // Dropdown has explicit empty/neutral, Not Interested, Favorite entries.
+        preferenceDropdown_(range);
+        if(old.some((v,i)=>String(v==null?'':v)!==next[i]))range.setValues(next.map(v=>[v]));
+        const hrow=source==='taaza'?1:2;
+        sh.getRange(hrow,col).setValue((k===0?'Abhishek':'Pooja')+' · Job Preference');
+        results.push({source,candidate:k===0?'Abhishek':'Pooja',converted:old.filter((v,i)=>String(v==null?'':v)!==next[i]).length});
+      }
     }
-    return {saved:true,candidate,notInterested:val,updatedRows:targets.length,
-      message:val?'Moved to Not Interested for '+candidate+'.':'Restored for '+candidate+'.'};
+    return {migrated:true,results,message:'Job preference dropdowns activated in Taaza and Freshmaal.'};
   });
 }
 
@@ -499,9 +570,17 @@ function addDiscovery(payload) {
       new Date(),clean_(payload.salary||'',500),false,'','Webapp'];
     sh.getRange(row,1,1,13).setValues([values]);
     // Reset candidate decisions when reusing a previously cleared discovery row.
-    sh.getRange(row,14,1,2).setValues([[false,false]]);
+    sh.getRange(row,14,1,2).setValues([['','']]);
     SpreadsheetApp.flush();
-    return {created:true,row,message:'Added to Taaza Videshi Maal.'};
+    const response={created:true,row,message:'Added to Taaza Videshi Maal.'};
+    if(jdReady_(jd)){
+      try{const transfer=transferJob_({row,expected:{company,role,url:link}});
+        return {...response,autoTransferred:true,freshRow:transfer.freshRow,
+          message:'Added to Taaza and available in Make CV (Freshmaal row '+transfer.freshRow+').'};
+      }catch(error){return {...response,autoTransferred:false,transferError:String(error.message||error),
+        message:'Added to Taaza, but Freshmaal transfer failed. Retry transfer from Discovery.'};}
+    }
+    return response;
   });
 }
 function saveDiscovery(payload) {
@@ -521,7 +600,17 @@ function saveDiscovery(payload) {
       sh.getRange(row,fields[key]).setValue(value);
     });
     SpreadsheetApp.flush();
-    return {saved:true,row,message:'Saved to Taaza. Freshmaal was not automatically modified.'};
+    const response={saved:true,row,message:'Saved to Taaza.'};
+    if(Object.prototype.hasOwnProperty.call(updates,'jd')&&jdReady_(updates.jd)){
+      const live=sh.getRange(row,1,1,3).getValues()[0];
+      try{
+        const transfer=transferJob_({row,expected:{company:String(live[0]),role:String(live[1]),url:String(live[2])}});
+        return {...response,autoTransferred:true,freshRow:transfer.freshRow,
+          message:'JD saved. Vacancy available in Make CV (Freshmaal row '+transfer.freshRow+').'};
+      }catch(error){return {...response,autoTransferred:false,transferError:String(error.message||error),
+          message:'JD saved to Taaza; transfer failed. You can retry from Discovery.'};}
+    }
+    return response;
   });
 }
 function findFresh_(url,company,role) {
@@ -530,9 +619,7 @@ function findFresh_(url,company,role) {
   if(!match&&!canon)match=rows.find(x=>x.company.toLowerCase()===company.toLowerCase()&&x.role.toLowerCase()===role.toLowerCase());
   return match;
 }
-function transferJob(payload) {
-  authorise_();payload=payload||{};
-  return lockRun_(()=>{
+function transferJob_(payload) {
     const taaza=sheet_('taaza'),row=expected_(taaza,payload.row,2,payload.expected);
     const a=taaza.getRange(row,1,1,5).getValues()[0];
     const company=String(a[0]||''),role=String(a[1]||''),url=String(a[2]||''),jd=String(a[3]||''),location=String(a[4]||'');
@@ -548,7 +635,7 @@ function transferJob(payload) {
     fresh.getRange(newRow,1,1,4).setValues([[company,role,url,jd]]);
     fresh.getRange(newRow,33).setValue(location);
     // Carry Taaza's candidate-specific exclusions to the newly created Freshmaal row.
-    const exclusions=taaza.getRange(row,14,1,2).getValues()[0].map(truthy_);
+    const exclusions=taaza.getRange(row,14,1,2).getValues()[0].map(preference_);
     fresh.getRange(newRow,46,1,2).setValues([exclusions]); // Also clears reused-row flags.
     SpreadsheetApp.flush();
     const verify=fresh.getRange(newRow,1,1,4).getValues()[0];
@@ -557,7 +644,10 @@ function transferJob(payload) {
     taaza.getRange(row,12).setValue('Sent to Freshmaal — row '+newRow);
     SpreadsheetApp.flush();
     return {created:true,freshRow:newRow,message:'Transferred and verified in Freshmaal.'};
-  });
+}
+function transferJob(payload){
+  authorise_();payload=payload||{};
+  return lockRun_(()=>transferJob_(payload));
 }
 function bulkTransfer(payload) {
   authorise_();payload=payload||{};
@@ -670,7 +760,7 @@ function runCvApiNow(payload) {
     if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
     if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
     if (status === 'applied') throw new Error('Applied applications cannot be regenerated.');
-    if (truthy_(a[p.notInterested - 1])) throw new Error('Restore this job from Not Interested first.');
+    if (preference_(a[p.notInterested - 1])==='Not Interested') throw new Error('Restore this job from Not Interested first.');
     if (String(a[p.lock - 1] || '').trim()) throw new Error('This candidate/job is already being processed.');
     if (String(a[p.cvLink - 1] || '').trim() || /^complete$/i.test(String(a[p.workflow - 1] || '').trim()))
       throw new Error('A completed CV already exists. Review the existing result before requesting another.');

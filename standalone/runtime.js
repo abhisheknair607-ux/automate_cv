@@ -27,7 +27,7 @@ function sourceWithSheetIds(ids) {
   return bound;
 }
 const METHODS = new Set([
-  "getBootstrap", "listJobs", "getJob", "setNotInterested", "addDiscovery",
+  "getBootstrap", "listJobs", "getJob", "setNotInterested", "setJobPreference", "migrateJobPreferences", "addDiscovery",
   "saveDiscovery", "transferJob", "bulkTransfer", "updateFreshJD",
   "getCopyPrompt", "updateFreshControl", "getStats", "runCvApiNow",
   "syncDiscoveryMaster"

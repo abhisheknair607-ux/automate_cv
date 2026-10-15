@@ -14,7 +14,7 @@ def test_manual_cv_dispatch_requires_server_side_secret_and_confirmed_exact_row(
     assert "getProperty('OPENAI_API_KEY')" not in SERVER
     assert 'controlled-cv-test.yml/dispatches' in SERVER
     assert "inputs: {row_number: String(row), candidate: candidate.toLowerCase()}" in SERVER
-    for guard in ['!jdReady_(a[3])', '!truthy_(a[p.cv - 1])', "status === 'applied'", 'truthy_(a[p.notInterested - 1])', "a[p.lock - 1]", "a[p.cvLink - 1]", "statusCode !== 204", "cache.put(key, 'submitted', 300)"]:
+    for guard in ['!jdReady_(a[3])', '!truthy_(a[p.cv - 1])', "status === 'applied'", "preference_(a[p.notInterested - 1])==='Not Interested'", "a[p.lock - 1]", "a[p.cvLink - 1]", "statusCode !== 204", "cache.put(key, 'submitted', 300)"]:
         assert guard in SERVER, guard
 
 def test_manual_cv_button_never_exposes_tokens_or_calls_openai_directly():
