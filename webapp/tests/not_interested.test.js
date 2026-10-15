@@ -37,7 +37,7 @@ for(let row=6;row<=26;row++)taazaRow(row,'Company '+row,`https://jobs.test/open/
 freshRow(3,'Alpha','https://www.jobs.test/open/1');freshRow(4,'Beta','https://jobs.test/open/2?utm_campaign=promo');freshRow(5,'Delta','https://jobs.test/open/4');
 let locks=0;
 const vmContext=vm.createContext({
- SpreadsheetApp:{openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null},getSheets(){return id.startsWith('1jt3')?[taaza,...Object.values(regions)]:[fresh]}}},flush(){}},
+ SpreadsheetApp:{newDataValidation(){return {requireValueInList(values){this.values=values;return this},setAllowInvalid(){return this},build(){return {values:this.values}}}},openById(id){return {getSheetByName(tab){const s=id.startsWith('1jt3')?(tab==='Jobs'?taaza:regions[tab]):fresh;return s&&s.name===tab?s:null},getSheets(){return id.startsWith('1jt3')?[taaza,...Object.values(regions)]:[fresh]}}},flush(){}},
  Session:{getEffectiveUser(){return {getEmail(){return 'authorised@example.com'}}}},
  PropertiesService:{getScriptProperties(){return {getProperty(){return 'authorised@example.com'}}}},
  LockService:{getScriptLock(){return {waitLock(){locks++},releaseLock(){locks--}}}},
