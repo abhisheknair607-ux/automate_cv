@@ -163,12 +163,16 @@ body[data-candidate="Pooja"] .mobilebar button.active{color:#7851d7}
 .filter-scroll .chip{flex:0 0 auto;white-space:nowrap}.filter-separator{height:22px;min-width:1px;background:var(--line);margin:0 6px}
 .joblink{text-decoration:none;color:inherit;border-radius:2px}.joblink:hover,.joblink:focus-visible{color:var(--blue);text-decoration:underline;text-underline-offset:2px}
 .jobtop{flex-wrap:nowrap;align-content:flex-start}
-.score-compact{flex:0 0 112px;width:112px;align-self:flex-start;display:grid;grid-template-columns:1fr 1fr;align-items:center;min-height:64px;padding:7px 3px;border-radius:10px;background:#eff5ff;border:1px solid #dce8fb}
-.score-compact .score-stat{padding:3px 1px;gap:2px}
-.score-compact .score-stat strong{font-size:17px;font-weight:850;line-height:1.1}
-.score-compact .score-stat span{font-size:9px;line-height:1.15}
+.score-compact{flex:0 0 150px;width:150px;align-self:flex-start;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:stretch;min-height:64px;padding:6px 3px;border-radius:10px;background:#eff5ff;border:1px solid #dce8fb;font-variant-numeric:tabular-nums}
+.score-avg,.score-rank{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;line-height:1.1}
+.score-avg{gap:4px;padding:1px 3px}
+.score-avg strong{font-size:23px;font-weight:850;line-height:1;color:var(--blue)}
+.score-components{white-space:nowrap;font-size:9px;font-weight:720;letter-spacing:-.12px;color:var(--muted)}
+.score-rank{gap:3px;padding:1px 3px;border-left:1px solid var(--line)}
+.score-rank strong{font-size:27px;font-weight:850;line-height:1;color:var(--blue)}
+.score-rank span{font-size:9px;font-weight:710;color:var(--muted)}
 body[data-candidate="Pooja"] .score-compact{background:#f2ecff;border-color:#dbcdf6}
-@media(max-width:720px){.score-compact{flex-basis:100px;width:100px;min-height:58px;padding:5px 2px}.score-compact .score-stat strong{font-size:15px}.score-compact .score-stat span{font-size:8px}}
+@media(max-width:720px){.score-compact{flex-basis:132px;width:132px;min-height:58px;padding:5px 2px}.score-avg strong{font-size:21px}.score-rank strong{font-size:25px}.score-components{font-size:8px}.score-rank span{font-size:8px}}
 .score-four{flex:0 0 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-top:7px;padding:5px;background:#f0f5ff;border:1px solid #dce8fb;border-radius:9px}
 .score-stat{text-align:center;min-width:0;padding:2px 3px;display:flex;flex-direction:column;align-items:center;gap:1px}
 .score-stat+.score-stat{border-left:1px solid var(--line)}
@@ -473,11 +477,14 @@ function fitMetrics(job){
        .map(([name,value])=>'<div class="score-stat"><strong>'+value+'</strong><span>'+name+'</span></div>').join('')+'</div>';
 }
 function compactMetrics(job){
-  const average=job.score===''||job.score==null?'—':h(job.score);
+  const number=value=>value===''||value==null?'—':h(value);
+  const average=number(job.score),profile=number(job.profileFit),career=number(job.careerFit);
   const rank=job.rank===''||job.rank==null?'—':'#'+h(job.rank);
-  return '<div class="score-compact" role="group" aria-label="Average fit and job rank">'
-    +[['Avg 55/45',average],['Rank',rank]]
-      .map(([label,value])=>'<div class="score-stat"><strong>'+value+'</strong><span>'+label+'</span></div>').join('')+'</div>';
+  return '<div class="score-compact" role="group" aria-label="Weighted average '+average+
+    ', Profile Fit '+profile+', Career Fit '+career+', Rank '+rank+'">'
+    +'<div class="score-avg"><strong title="Weighted average fit (55% profile, 45% career)">'+average+'</strong>'
+    +'<span class="score-components" title="Profile Fit – Career Fit">P '+profile+' – C '+career+'</span></div>'
+    +'<div class="score-rank"><strong>'+rank+'</strong><span>Rank</span></div></div>';
 }
 function preferenceMenu(job){
   const current=job.preference||'';
