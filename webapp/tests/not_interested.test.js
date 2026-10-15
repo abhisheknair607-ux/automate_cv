@@ -217,7 +217,8 @@ assert.equal(taaza.get(28,14),'Not Interested');
 assert.ok(taaza.validation&&taaza.validation.values.includes('Favorite'));
 assert.ok(fresh.validation&&fresh.validation.values.includes('Not Interested'));
 
-assert.match(html,/data-action="job-preference"/);
+assert.match(html,/data-action="preference-toggle"/);
+assert.doesNotMatch(html,/data-action="job-preference"/);
 assert.match(html,/data-action="sort-jobs"/);
 assert.match(html,/data-candidate="Pooja"/); // candidate-specific CSS
 assert.match(html,/class="score-four"/);
