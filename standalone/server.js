@@ -10,6 +10,7 @@ const {invoke,METHODS} = require("./runtime");
 const {getCvQueue} = require("./queue");
 const {Readable} = require("node:stream");
 const {DOCX,getDocument} = require("./download");
+const {tokenUsageForJob} = require("./cost_usage");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -148,6 +149,29 @@ app.post("/api/download",async (req,res)=>{
     const status=error.httpCode||500;
     console.error("[cv-download] status="+status,String(error.message||"Error").slice(0,200));
     res.status(status).json({error:String(error.message||"Download failed").slice(0,300)});
+  }
+});
+/* Only the authorised candidate and Freshmaal row can resolve a usage file.
+ * Listing cost totals never downloads Token_Usage.json: zero added Drive traffic.
+ */
+app.post("/api/usage",async(req,res)=>{
+  try{
+    const email=await authenticate(req);
+    const {candidate,row}=req.body||{};
+    const client=await auth.getClient();
+    const access=await client.getAccessToken();
+    const token=typeof access==="string"?access:access.token;
+    if(!token)throw new Error("Cloud Run cannot read Google Drive");
+    const data=await tokenUsageForJob({candidate,row,token,
+      lookup:(person,jobRow)=>invoke("getJob",{source:"fresh",candidate:person,row:jobRow},{
+        email,token,ids:IDS,readOnly:READ_ONLY,allowedEmails:ALLOWED.join(",")
+      })
+    });
+    res.json({data});
+  }catch(error){
+    const status=error.httpCode||500;
+    console.error("[usage-proof]",status,String(error.message||"Error").slice(0,160));
+    res.status(status).json({error:String(error.message||"Usage verification failed").slice(0,220)});
   }
 });
 app.post("/api/:method",async (req,res)=>{
