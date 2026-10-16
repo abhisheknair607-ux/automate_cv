@@ -16,11 +16,27 @@ function baseKey(job){return keyFor(job,"all-tiers")}
 function searches(job){const b=[job.company,job.role,job.location].map(v=>short(v,85)).filter(Boolean).join(" ");
  return [["Team managers",b+" Manager"],["Leadership",b+" Director Partner"],["Colleagues",b+" Associate Analyst"],["Recruiters",b+" Talent Acquisition"]]
  .map(([label,q])=>({label,url:linkedinSearch(q)}))}
-function note(job,name){
- const first=short(name,60).split(" ")[0]||"there",me=job.candidate==="Pooja"?"Pooja Tirupati":"Abhishek Nair";
- let msg="Hi "+first+",\n\nI'm "+me+". I'm exploring "+short(job.role,50)+" opportunities at "+short(job.company,65)+". I'd be grateful to connect and learn from your experience.\n\nThank you for your time.";
- if([...msg].length>300)msg="Hi "+first+",\n\nI'm "+me+". I'd appreciate connecting and learning about your experience at "+short(job.company,60)+".\n\nThank you.";
- return [...msg].slice(0,300).join("")
+function note(job,person){
+ const p=typeof person==="string"?{name:person}:(person||{});
+ const first=short(p.name||"there",55).split(/\s+/)[0].replace(/[^A-Za-zÀ-ÿ'-]/g,"").slice(0,32)||"there";
+ const company=short(job.company,65);
+ const team=short(p.team,64),title=short(p.title,64);
+ // Personalise ONLY with the recipient's verified function/title. Never make
+ // unsupported claims about a project, hiring authority or mutual connection.
+ const observed=team?"Your work in "+team+" at "+company:
+   title?"Your role as "+title+" at "+company:"Your experience at "+company;
+ const intro=job.candidate==="Abhishek"?
+   "I'm Abhishek Nair, an ACCA member with EY experience and a UCD MSc.":
+   "I'm Pooja Tirupati.";
+ const end="\n\nThank you — I'd be grateful to connect.";
+ const options=[
+   "Hi "+first+",\n\n"+intro+" "+observed+" caught my attention, and I'd value learning from your experience."+end,
+   "Hi "+first+",\n\n"+intro+" Your experience at "+company+" caught my attention. I'd value learning from you."+end,
+   "Hi "+first+",\n\n"+intro+" I'd value connecting and learning from your experience."+end
+ ];
+ const message=options.find(x=>[...x].length<=300);
+ if(!message)throw Error("Unable to fit a personalised LinkedIn invitation in 300 characters.");
+ return message;
 }
 function sources(response){return new Set((response.output||[]).filter(x=>x.type==="message").flatMap(x=>x.content||[]).flatMap(x=>x.annotations||[])
  .filter(x=>x.type==="url_citation").map(x=>safeProfile(x.url)).filter(Boolean))}
@@ -35,7 +51,7 @@ function validated(list,job,response,max){
   if(name.split(/\s+/).length<2||(!title&&!evidence)||seen.has(name.toLowerCase()))return [];
   seen.add(name.toLowerCase());const url=safeProfile(item?.profileUrl),profileUrl=url&&cited.has(url)?url:null;
   return [{name,title,team,evidence,profileUrl,searchUrl:linkedinSearch([name,job.company,title].join(" ")),
-   verification:profileUrl?"Direct profile cited in search":"Direct profile not verified",message:note(job,name)}];
+   verification:profileUrl?"Direct profile cited in search":"Direct profile not verified",message:note(job,{name,title,team})}];
  }).slice(0,max)
 }
 function cost(response,calls){const u=response.usage||{};
