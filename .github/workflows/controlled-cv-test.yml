@@ -9,6 +9,11 @@ on:
         description: Freshmal row number to process
         required: true
         default: '3'
+      web_search:
+        description: Web networking selection at Run CV Now click (blank uses Sheet)
+        required: false
+        default: ''
+        type: string
       candidate:
         description: Candidate profile
         required: true
@@ -47,6 +52,7 @@ jobs:
       - name: Run one controlled Freshmal candidate row
         env:
           PYTHONPATH: src
+          MANUAL_WEB_SEARCH: ${{ inputs.web_search }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           OPENAI_MODEL: ${{ vars.OPENAI_MODEL || 'gpt-5.6-sol' }}
           OPENAI_REASONING_EFFORT: ${{ vars.OPENAI_REASONING_EFFORT || 'medium' }}
@@ -104,4 +110,4 @@ jobs:
           MAX_ROW_ATTEMPTS: ${{ vars.MAX_ROW_ATTEMPTS || '3' }}
           STALE_LOCK_MINUTES: ${{ vars.STALE_LOCK_MINUTES || '180' }}
           COST_HARD_STOP_USD: ${{ vars.COST_HARD_STOP_USD || '1.75' }}
-        run: python -m automate_cv.controlled --row "${{ inputs.row_number }}" --candidate "${{ inputs.candidate }}"
+        run: python -m automate_cv.controlled --row "${{ inputs.row_number }}" --candidate "${{ inputs.candidate }}" --web-search "$MANUAL_WEB_SEARCH"
