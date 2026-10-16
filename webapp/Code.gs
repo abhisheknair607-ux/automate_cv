@@ -18,6 +18,12 @@ const SETTINGS = Object.freeze({
 // Persistent per-candidate rejection flags in the existing sheet tabs.
 // Taaza N/O (no extra tab); Freshmaal AT/AU (after model tier AR/AS).
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
+const APPLICATION_PROGRESS = Object.freeze(['Unapplied','Applied','Applied + Connected','Rejected','Accepted']);
+const PROGRESS_COL = Object.freeze({Abhishek:57,Pooja:58});
+function progress_(value,legacy) {
+ const p=String(value||'').trim();
+ return APPLICATION_PROGRESS.includes(p)?p:(String(legacy||'').trim().toLowerCase()==='applied'?'Applied':'Unapplied');
+}
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
              workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, clTier:48, lock:16, notInterested:46, profileFit:50, careerFit:51, cost:21, applicationId:13},
@@ -329,6 +335,7 @@ function freshRows_() {
   const scoreParts=sh.getMaxColumns()>=53?sh.getRange(3,50,count,4).getValues():Array.from({length:count},()=>['','','','']);
   // JD evidence comes from compact BB:BD cells saved during ranking, not a
   // bulk reread of every full JD: avoids 429 read-quota regression.
+  const progressParts=sh.getMaxColumns()>=58?sh.getRange(3,57,count,2).getDisplayValues():Array.from({length:count},()=>['','']);
   const clueParts=sh.getMaxColumns()>=56?sh.getRange(3,54,count,3).getValues():
     Array.from({length:count},()=>['','','']);
   return first.map((a,i)=>{
@@ -337,7 +344,7 @@ function freshRows_() {
       const c=PEOPLE[name], b=checks[i], m=stages[i], e=last[i];
       const shifted=col=> m[col-13];
       person[name]={cv:truthy_(b[c.cv-5]),cl:truthy_(b[c.cl-5]),web:truthy_(b[c.web-5]),
-        status:String(b[c.status-5]||''),score:e[c.score-33]===''?'':e[c.score-33],
+        status:String(b[c.status-5]||''),progress:progress_(progressParts[i][PROGRESS_COL[name]-57],b[c.status-5]),score:e[c.score-33]===''?'':e[c.score-33],
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
         profileFit:scorePart_(scoreParts[i][c.profileFit-50]),careerFit:scorePart_(scoreParts[i][c.careerFit-50]),
         workflow:String(shifted(c.workflow)||''),
@@ -456,8 +463,8 @@ function listJobs(options) {
   if(filter==='transferred'&&source==='taaza')jobs=jobs.filter(x=>x.transferred);
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
-  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
-  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&String(x.status||'').trim().toLowerCase()!=='applied');
+  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>['Applied','Applied + Connected'].includes(x.progress));
+  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&x.progress==='Unapplied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
   const sort=String(options.sort||'newest');
   if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
@@ -504,7 +511,7 @@ function getJob(options) {
   const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
     jd:String(a[3]||''),location:String(a[32]||''),jdClue:jdClueFlag_(a[3]),cv:truthy_(a[conf.cv-1]),
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
-    status:String(a[conf.status-1]||''),selected:truthy_(a[conf.selected-1]),
+    status:String(a[conf.status-1]||''),progress:progress_(sh.getRange(row,PROGRESS_COL[candidate]).getDisplayValue(),a[conf.status-1]),selected:truthy_(a[conf.selected-1]),
     score:a[conf.score-1],rank:a[conf.rank-1],
     profileFit:scorePart_(a[conf.profileFit-1]),careerFit:scorePart_(a[conf.careerFit-1]),
     costUsd:recordedCost_(a[conf.cost-1]),applicationId:String(a[conf.applicationId-1]||''),
@@ -517,7 +524,7 @@ function getJob(options) {
     preference:effectivePreference_(a[conf.notInterested-1],
       (taazaRows_().find(x=>canonical_(x.url)===canonical_(a[2]))||{preferences:{}}).preferences[candidate])};
   data.notInterested=data.preference==='Not Interested';data.favorite=data.preference==='Favorite';
-  data.statusOptions=statusOptions_(sh.getRange(row,conf.status).getDataValidation(),data.status);
+  data.statusOptions=APPLICATION_PROGRESS.slice();
   return data;
 }
 /**
@@ -785,6 +792,20 @@ function getCopyPrompt(payload){
   if(!prompt)throw new Error('The post-CV prompt is not ready in Freshmaal.');
   return {candidate,row,prompt};
 }
+function updateApplicationProgress(payload){
+ authorise_();payload=payload||{};
+ return lockRun_(()=>{
+  const candidate=String(payload.candidate||'');person_(candidate);
+  const progress=String(payload.progress||'').trim();
+  if(!APPLICATION_PROGRESS.includes(progress))throw Error('Invalid application status.');
+  const sh=sheet_('fresh'),row=expected_(sh,payload.row,3,payload.expected);
+  const cell=sh.getRange(row,PROGRESS_COL[candidate]);
+  cell.setValue(progress);SpreadsheetApp.flush();
+  if(String(cell.getDisplayValue()).trim()!==progress)throw Error('Application status write failed verification.');
+  invalidateDashboardReads_();
+  return {saved:true,candidate,row,progress,message:'Application status saved.'};
+ });
+}
 function updateFreshControl(payload) {
   authorise_();payload=payload||{};
   return lockRun_(()=>{
@@ -849,7 +870,7 @@ function getStats(candidate) {
   return {discovered:taaza.length,applications:fresh.length,
     selected:own.filter(x=>x.selected).length,
     cvRequested:own.filter(x=>x.cv).length,
-    applied:own.filter(x=>String(x.status).toLowerCase()==='applied').length,
+    applied:own.filter(x=>['Applied','Applied + Connected'].includes(x.progress)).length,
     missingJD:taaza.filter(x=>!x.jdReady).length,
     notInterestedDiscovery:taaza.filter(x=>x.notInterested[candidate]).length,
     notInterestedFresh:own.filter(x=>x.notInterested).length};
@@ -877,7 +898,8 @@ function runCvApiNow(payload) {
     if (truthy_(a[p.cl - 1]) && !['Economy', 'Balanced', 'Premium'].includes(clTier)) throw new Error('Select a valid CL model first.');
     if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
     if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
-    if (status === 'applied') throw new Error('Applied applications cannot be regenerated.');
+    if (status === 'applied' || progress_(sh.getRange(row,PROGRESS_COL[candidate]).getDisplayValue(),status)!=='Unapplied')
+      throw new Error('Application Status must be Unapplied before running a CV.');
     if (preference_(a[p.notInterested - 1])==='Not Interested') throw new Error('Restore this job from Not Interested first.');
     if (String(a[p.lock - 1] || '').trim()) throw new Error('This candidate/job is already being processed.');
     if (String(a[p.cvLink - 1] || '').trim() || /^complete$/i.test(String(a[p.workflow - 1] || '').trim()))
