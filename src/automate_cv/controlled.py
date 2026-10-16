@@ -8,6 +8,15 @@ from .runner import (
     verify_drive_writer,
 )
 
+def resolve_web_search(sheet_setting: bool, click_snapshot: str) -> bool:
+    """Preserve the Web preference chosen when Run CV Now was clicked.
+
+    Blank keeps the checked Freshmaal Web value for legacy/manual Actions runs.
+    """
+    if click_snapshot not in ('', 'true', 'false'):
+        raise ValueError('Invalid Web research snapshot')
+    return sheet_setting if click_snapshot == '' else click_snapshot == 'true'
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -15,6 +24,8 @@ def main():
     )
     parser.add_argument('--row', type=int, required=True)
     parser.add_argument('--candidate', choices=['abhishek', 'pooja'], default='abhishek')
+    parser.add_argument('--web-search', choices=['', 'true', 'false'], default='',
+                        help='Optional opt-in networking selection captured by Garamaal at dispatch')
     args = parser.parse_args()
 
     sheet, workflow = build()
@@ -29,6 +40,9 @@ def main():
         )
 
     app = matches[0]
+    # The website's checkbox is snapshotted when Run CV Now is clicked.
+    # Without an explicit snapshot, honour the live Sheet checkbox as before.
+    app.web_search = resolve_web_search(app.web_search, args.web_search)
     if not sheet.eligible(app):
         raise SystemExit(
             f'Freshmal row {args.row}/{args.candidate} is not eligible. '
@@ -45,7 +59,7 @@ def main():
 
     print(
         f'CONTROLLED TEST: {app.candidate_key} row {app.row_number}: '
-        f'{app.company} | {app.designation}'
+        f'{app.company} | {app.designation} | Web networking={app.web_search}'
     )
     workflow.run(app)
     annotate_source_telemetry(workflow, app)
