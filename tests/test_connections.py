@@ -110,3 +110,57 @@ def test_existing_networking_contacts_never_restart_paid_research():
         AssertionError("Existing contacts should be reused without research"))
     result = connection.run(None,job,"")
     assert result == {"status":"already_saved","count":7,"added":0}
+
+
+def test_web_networking_automatically_saves_verified_contacts_into_scoped_sheet(monkeypatch):
+    """A Web-enabled completed CV produces Google Sheets records, no UI step."""
+    from automate_cv.connections import Connections
+    import automate_cv.connections as module
+
+    job = example()
+    memory = []
+    contact = Connections.__new__(Connections)
+    contact._ensure = lambda: None
+    contact._rows = lambda: memory
+    contact.settings = SimpleNamespace(freshmal_spreadsheet_id="test-sheet")
+    seen = []
+    contact.research = lambda *_args, **_kw: [
+        {"name": "Kevin Doyle", "position": "Partner", "team": "International Tax",
+         "location": "Dublin, Ireland",
+         "confidence": "High",
+         "evidence_urls": ["https://www.bdo.ie/en-gb/our-people/kevin-doyle"]}
+    ]
+    class SafeHttp:
+        def __init__(self, **kwargs):pass
+        def __enter__(self):return self
+        def __exit__(self,*args):return False
+    monkeypatch.setattr(module.httpx, "Client", SafeHttp)
+    monkeypatch.setattr(module, "confirmed_bios", lambda name, urls, client, *rest: urls)
+    class Append:
+        def __init__(self, data):self.data=data
+        def execute(self):
+            memory.extend(self.data)
+            return {"updates":{"updatedRows":len(self.data)}}
+    class Sheets:
+        def values(self):return self
+        def append(self,**kw):
+            assert kw["range"] == "'Connections'!A:L"
+            assert kw["spreadsheetId"] == "test-sheet"
+            seen.append(kw)
+            return Append(kw["body"]["values"])
+    contact.sheets=Sheets()
+    result = contact.run(None,job,"Verified professional summary")
+    assert result["status"]=="saved"
+    assert result["count"]==1
+    assert result["added"]==1
+    assert result["research_calls"]==1
+    assert len(seen)==1
+    saved=memory[0]
+    assert saved[0]=="BDO" and saved[1]=="Kevin Doyle"
+    assert saved[5]=="Abhishek Nair" and saved[6]=="68"
+    assert saved[7]==job.application_link
+    assert saved[2]==""  # Direct LinkedIn URL is never invented
+    assert saved[3].startswith("https://www.linkedin.com/search/results/people/")
+    assert "https://www.bdo.ie/" in saved[9]
+    assert saved[10].startswith("Hi Kevin,\n\n")
+    assert "\n\nThank you" in saved[10]
