@@ -19,7 +19,7 @@ const SETTINGS = Object.freeze({
 // Taaza N/O (no extra tab); Freshmaal AT/AU (after model tier AR/AS).
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
 const APPLICATION_PROGRESS = Object.freeze(['Unapplied','Applied','Applied + Connected','Rejected','Accepted']);
-const PROGRESS_COL = Object.freeze({Abhishek:54,Pooja:55});
+const PROGRESS_COL = Object.freeze({Abhishek:57,Pooja:58});
 function progress_(value, workflowStatus) {
   const v=String(value||'').trim();
   return APPLICATION_PROGRESS.includes(v)?v:(String(workflowStatus||'').trim().toLowerCase()==='applied'?'Applied':'Unapplied');
@@ -269,7 +269,7 @@ function freshRows_() {
   const checks=sh.getRange(3,5,count,8).getValues();
   const stages=sh.getRange(3,13,count,20).getValues();
   const last=sh.getRange(3,33,count,15).getValues();
-  const progress=sh.getRange(3,54,count,2).getDisplayValues();
+  const progress=sh.getRange(3,57,count,2).getDisplayValues();
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -278,7 +278,7 @@ function freshRows_() {
       person[name]={cv:truthy_(b[c.cv-5]),cl:truthy_(b[c.cl-5]),web:truthy_(b[c.web-5]),
         status:String(b[c.status-5]||''),score:e[c.score-33]===''?'':e[c.score-33],
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
-        workflow:String(shifted(c.workflow)||''),progress:progress_(progress[i][PROGRESS_COL[name]-54],b[c.status-5]),cvLink:String(shifted(c.cvLink)||''),
+        workflow:String(shifted(c.workflow)||''),progress:progress_(progress[i][PROGRESS_COL[name]-57],b[c.status-5]),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
         notInterested:truthy_(e[c.notInterested-33]),
