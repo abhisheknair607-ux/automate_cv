@@ -1,5 +1,6 @@
 import json
 import re
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -291,6 +292,14 @@ class AI:
     def _dict(self, obj):
         return obj.model_dump() if hasattr(obj, 'model_dump') else json.loads(obj.json())
 
+    @staticmethod
+    def _missing_container_artifact(error):
+        """Only absent/expired OpenAI container artifacts may be regenerated."""
+        return (
+            isinstance(error, httpx.HTTPStatusError)
+            and error.response.status_code in (404, 410)
+        )
+
     def _generated_files(self, response):
         """Recover Word files from citations OR the Code Interpreter container.
 
@@ -350,8 +359,14 @@ class AI:
                     if not after:
                         break
             except Exception as error:
-                # A listing problem must not discard already-cited Word files.
-                if not any(Path(name).suffix.lower() == '.docx' for _, _, name in found):
+                # Expired containers are recoverable: the Stage 3 caller can
+                # request a fresh Word artifact. Other errors still propagate
+                # unless we already have a DOCX citation to try.
+                if (
+                    not self._missing_container_artifact(error)
+                    and not any(Path(name).suffix.lower() == '.docx'
+                                for _, _, name in found)
+                ):
                     raise
                 print(
                     f'[openai] WARNING: container file listing unavailable: '
@@ -370,6 +385,47 @@ class AI:
             ):
                 unique[key] = (container_id, file_id, name)
         return list(unique.values())
+
+    def _download_generated_files(self, response, output_dir):
+        """Download only generated DOCX files; ignore expired file references.
+
+        OpenAI sometimes cites a container file that immediately returns
+        HTTP 404/410. Retry the file fetch once before discarding that
+        reference. If no DOCX survives, stage3's existing artifact retry
+        requests a *new* document rather than failing the entire workflow.
+        Never swallow permission, rate-limit or server errors.
+        """
+        artifacts = []
+        for container_id, file_id, filename in self._generated_files(response):
+            if Path(filename).suffix.lower() != '.docx':
+                continue
+            url = f'/containers/{container_id}/files/{file_id}/content'
+            result = None
+            for attempt in range(2):
+                try:
+                    candidate = self.http.get(url)
+                    candidate.raise_for_status()
+                    result = candidate
+                    break
+                except httpx.HTTPStatusError as error:
+                    if not self._missing_container_artifact(error):
+                        raise
+                    if attempt == 0:
+                        # A freshly created file may not yet be retrievable.
+                        time.sleep(1)
+                    else:
+                        print(
+                            f'[openai] WARNING: missing generated DOCX '
+                            f'{filename} (HTTP {error.response.status_code}); '
+                            f'attempting remaining files or regeneration.',
+                            flush=True,
+                        )
+            if result is None:
+                continue
+            target = output_dir / Path(filename).name
+            target.write_bytes(result.content)
+            artifacts.append(target)
+        return artifacts
 
     def stage3(
         self,
@@ -420,15 +476,7 @@ class AI:
                     )
                 response = self.client.responses.create(**kwargs)
                 responses.append(response)
-                artifacts = []
-                for container_id, file_id, filename in self._generated_files(response):
-                    result = self.http.get(
-                        f'/containers/{container_id}/files/{file_id}/content'
-                    )
-                    result.raise_for_status()
-                    target = output_dir / Path(filename).name
-                    target.write_bytes(result.content)
-                    artifacts.append(target)
+                artifacts = self._download_generated_files(response, output_dir)
                 if any(path.suffix.lower() == '.docx' for path in artifacts):
                     break
                 if attempt == 0:
@@ -458,15 +506,7 @@ class AI:
                 )
                 response = self.client.responses.create(**kwargs)
                 responses.append(response)
-                artifacts = []
-                for container_id, file_id, filename in self._generated_files(response):
-                    result = self.http.get(
-                        f'/containers/{container_id}/files/{file_id}/content'
-                    )
-                    result.raise_for_status()
-                    target = output_dir / Path(filename).name
-                    target.write_bytes(result.content)
-                    artifacts.append(target)
+                artifacts = self._download_generated_files(response, output_dir)
             combined = self._combined_text_response(responses, response.output_text)
             if len(responses) > 1:
                 # Keep all tool calls in cost telemetry, including the first

@@ -210,3 +210,118 @@ def test_mixed_model_usage_is_priced_separately(tmp_path):
     assert priced['model_api_cost'] > sum(
         _usage(x, 'gpt-6-luna')['model_api_cost'] for x in [first, second, last]
     )
+
+
+# Regressions for production ERROR_RETRYABLE_1:
+# OpenAI may return a container_file_citation whose download returns 404.
+import httpx
+import pytest
+
+
+def cited_docx(file_id, name='tailored_CV.docx'):
+    return ci_output() + [{
+        'type': 'message',
+        'content': [{'annotations': [{
+            'type': 'container_file_citation',
+            'container_id': 'cntr_1',
+            'file_id': file_id,
+            'filename': name,
+        }]}],
+    }]
+
+
+class ArtifactHTTP(HTTP):
+    def __init__(self, pages, statuses=None, listing_statuses=None):
+        super().__init__(pages)
+        self.statuses = statuses or {}
+        self.listing_statuses = iter(listing_statuses or [])
+
+    def get(self, path, params=None):
+        if path.endswith('/files'):
+            try:
+                status = next(self.listing_statuses)
+            except StopIteration:
+                status = None
+            if status:
+                self.calls.append((path, params))
+                response = httpx.Response(
+                    status,
+                    request=httpx.Request('GET', 'https://api.openai.com/v1' + path),
+                )
+                return response
+        for file_id, status in self.statuses.items():
+            if path.endswith(f'/files/{file_id}/content'):
+                self.calls.append((path, params))
+                return httpx.Response(
+                    status,
+                    request=httpx.Request('GET', 'https://api.openai.com/v1' + path),
+                )
+        return super().get(path, params)
+
+
+@pytest.mark.parametrize('status', [404, 410])
+def test_missing_cited_docx_regenerates_instead_of_aborting(tmp_path, monkeypatch, status):
+    monkeypatch.setattr('automate_cv.openai_client.time.sleep', lambda _: None)
+    ai, calls = build_ai(
+        [Response(cited_docx('expired')), Response(cited_docx('fresh'))],
+        {None: {'data': [], 'has_more': False}},
+    )
+    ai.http = ArtifactHTTP(ai.http.pages, statuses={'expired': status})
+    text, combined, artifacts = ai.stage3(
+        'keep all rules', 'original JD', [], tmp_path / 'out',
+    )
+    assert text == 'Stage 3 complete'
+    assert len(calls) == 2
+    assert calls[0]['instructions'] == calls[1]['instructions']
+    assert calls[1]['input'].startswith('original JD')
+    assert [p.name for p in artifacts] == ['tailored_CV.docx']
+    assert artifacts[0].read_bytes() == b'generated-word-file-bytes'
+    assert combined.usage.input_tokens == 200
+    expired_fetches = [
+        path for path, _ in ai.http.calls
+        if path.endswith('/files/expired/content')
+    ]
+    assert len(expired_fetches) == 2
+
+
+def test_missing_one_of_two_citations_keeps_valid_docx_without_paid_retry(
+    tmp_path, monkeypatch,
+):
+    monkeypatch.setattr('automate_cv.openai_client.time.sleep', lambda _: None)
+    output = cited_docx('expired') + cited_docx('working')[1:]
+    ai, calls = build_ai(
+        [Response(output)],
+        {None: {'data': [], 'has_more': False}},
+    )
+    ai.http = ArtifactHTTP(ai.http.pages, statuses={'expired': 404})
+    _, _, artifacts = ai.stage3('rules', 'JD', [], tmp_path / 'out')
+    assert len(calls) == 1
+    assert [p.name for p in artifacts] == ['tailored_CV.docx']
+
+
+def test_missing_container_listing_can_trigger_new_document(tmp_path, monkeypatch):
+    monkeypatch.setattr('automate_cv.openai_client.time.sleep', lambda _: None)
+    ai, calls = build_ai(
+        [Response(ci_output()), Response(cited_docx('fresh'))],
+        {None: {'data': [], 'has_more': False}},
+    )
+    ai.http = ArtifactHTTP(ai.http.pages, listing_statuses=[404, None])
+    _, _, artifacts = ai.stage3('rules', 'JD', [], tmp_path / 'out')
+    assert len(calls) == 2
+    assert [p.name for p in artifacts] == ['tailored_CV.docx']
+
+
+@pytest.mark.parametrize('status', [403, 429, 500])
+def test_non_missing_artifact_http_errors_are_not_silenced(
+    tmp_path, monkeypatch, status,
+):
+    monkeypatch.setattr('automate_cv.openai_client.time.sleep', lambda _: None)
+    ai, calls = build_ai(
+        [Response(cited_docx('forbidden'))],
+        {None: {'data': [], 'has_more': False}},
+    )
+    ai.http = ArtifactHTTP(ai.http.pages, statuses={'forbidden': status})
+    with pytest.raises(httpx.HTTPStatusError) as exc:
+        ai.stage3('rules', 'JD', [], tmp_path / 'out')
+    assert exc.value.response.status_code == status
+    assert len(calls) == 1
