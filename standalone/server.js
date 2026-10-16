@@ -63,6 +63,8 @@ app.get("/config",(req,res)=>res.json({
   appId:process.env.FIREBASE_WEB_APP_ID||"",
   readOnly:READ_ONLY,
 }));
+app.get("/dashboard-ranking.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_ranking.js")));
+app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_connections.js")));
 app.get("/bridge.js",(req,res)=>{
   res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js"));
 });
@@ -107,6 +109,7 @@ app.get("/",(req,res)=>{
   // Installable PWA assets never cache authenticated Google Sheets responses.
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
+  html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
   res.type("html").send(html);
 });
 
