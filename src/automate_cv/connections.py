@@ -155,7 +155,7 @@ class Connections:
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
             range="'Connections'!A2:L").execute()).get("values",[])
 
-    def research(self,ai,app,summary):
+    def research(self,ai,app,summary,focused=False):
         instruction=(
             "Use web_search to verify 5-10 REAL people near the hiring team at the exact "
             "company/office. Seek managers, senior managers, directors, partners and recruiters "
@@ -168,62 +168,109 @@ class Connections:
             "Connection invitations are generated locally from verified candidate facts and "
             "the recipient's verified team/title, with blank lines before the body and closing; "
             "do not make unsupported claims about the recipient or request a referral. "
-            "Only use facts from the candidate Summary Doc. If fewer people can be verified return fewer."
+            "Only use facts from the candidate Summary Doc. If fewer people can be verified return fewer. "
+            "Prioritise verifiable official company press releases, current service-team contact pages "
+            "and public management announcements, which can confirm multiple people and roles; "
+            "do not rely exclusively on LinkedIn biographies, which can block direct verification. "
+            "Accept actual valuation leaders, relevant Deals Advisory senior people, and team recruiters. "
+            "Each person must have at least one full publicly accessible HTTPS company news or bio "
+            "URL that names them, identifies their Interpath/employer affiliation and their team or role. "
+            + ("FOCUSED SECOND SEARCH: the first search produced zero independently verifiable contacts. "
+               "Search ONLY recent official company people/news pages for names and workgroups. "
+               "Return 3-8 high-confidence names with precise working company evidence links, "
+               "even when direct LinkedIn profiles are unavailable. " if focused else "")
         )
         payload=json.dumps({"company":app.company,"role":app.designation,"vacancy":app.application_link,
                             "location":app.location,"candidate":app.candidate_name,
-                            "summary_doc":summary[:13000]})
+                            "summary_doc":summary[:13000],
+                            "research_strategy":"Find current official employer service team and news people for the exact team; include adjacent local deals leaders and local recruiters. Do not fabricate."})
         response=ai.client.responses.create(model=self.settings.stage2_model,
             instructions=instruction,input=payload,tools=[{"type":"web_search"}],
             reasoning={"effort":"low"},max_output_tokens=5000)
         return parse_contacts(response.output_text)
 
     def run(self,ai,app,summary):
+        """Opt-in post-CV research. At most two bounded searches if none verify.
+
+        A zero-contact outcome is explicit and diagnostic. It never reverses a
+        completed CV or silently accepts invented people or dead source URLs.
+        """
         self._ensure()
         before=matching_rows(self._rows(),app)
         if len(before)>=5:
             return {"status":"already_saved","count":len(before),"added":0}
-        contacts=self.research(ai,app,summary)
         names={str(r[1]).strip().casefold() for r in before}
         new=[]
+        stats={"candidates":0,"invalid_candidates":0,"unverifiable_sources":0,"research_calls":0}
         date=datetime.now(timezone.utc).isoformat()
-        with httpx.Client(headers={"User-Agent":"Mozilla/5.0"}) as client:
+
+        def collect(contacts,client):
             for c in contacts[:15]:
+                stats["candidates"]+=1
                 if not isinstance(c,dict):
+                    stats["invalid_candidates"]+=1
                     continue
                 name=str(c.get("name") or "").strip()
                 title=str(c.get("position") or "").strip()
                 team=str(c.get("team") or "").strip()
                 loc=str(c.get("location") or "").strip()
-                note=linkedin_invitation(app.candidate_name,name,app.company,title,team)
                 urls=c.get("evidence_urls") or []
-                if (not name or not title or not team or not isinstance(urls,list)
-                    or not (0<len(note)<300) or app.candidate_name.casefold() not in note.casefold()
-                    or name.casefold() in names):
+                if not name or not title or not team or not isinstance(urls,list) or name.casefold() in names:
+                    stats["invalid_candidates"]+=1
                     continue
+                # Reject invented titles and non-public URLs, but allow a source
+                # to be a current official corporate announcement rather than
+                # requiring a dedicated one-person biography.
                 verified=confirmed_bios(name,urls,client,app.company,title,team)
                 if not verified:
+                    stats["unverifiable_sources"]+=1
                     continue
+                note=linkedin_invitation(app.candidate_name,name,app.company,title,team)
                 names.add(name.casefold())
-                search="https://www.linkedin.com/search/results/people/?keywords="+quote(name+" "+app.company+" "+title,safe="")
+                search="https://www.linkedin.com/search/results/people/?keywords="+quote(
+                    name+" "+app.company+" "+title,safe="")
                 evidence=("Confidence: "+str(c.get("confidence") or "Medium")+
                           "; Team: "+team+"; Location: "+loc+
                           "; Hiring authority not confirmed. Sources: "+" | ".join(verified))
-                # Public LinkedIn people-search only. Never guess a direct slug.
                 new.append([app.company,name,"",search,app.designation,app.candidate_name,
                             str(app.row_number),app.application_link,title,evidence,note,date])
                 if len(new)+len(before)>=10:
                     break
+
+        with httpx.Client(headers={"User-Agent":"Mozilla/5.0"}) as client:
+            first=self.research(ai,app,summary)
+            stats["research_calls"]+=1
+            collect(first,client)
+            if not new and not before:
+                # Exactly ONE focused fallback call, only on total failure.
+                print(f"[connections] zero verified on first search for row {app.row_number}; "
+                      f"candidates={stats['candidates']} source_rejections={stats['unverifiable_sources']}. "
+                      "Trying one bounded official-source search.",flush=True)
+                focused=self.research(ai,app,summary,focused=True)
+                stats["research_calls"]+=1
+                collect(focused,client)
+
+        # Independently reread before appending to protect concurrent ChatGPT
+        # and web research writers from duplicates.
         latest=matching_rows(self._rows(),app)
-        existing_names={str(r[1]).strip().casefold() for r in latest}
-        new=[r for r in new if r[1].casefold() not in existing_names]
-        if new:
+        current_names={str(r[1]).strip().casefold() for r in latest}
+        to_insert=[r for r in new if r[1].casefold() not in current_names]
+        if to_insert:
             retry_google(lambda:self.sheets.values().append(
                 spreadsheetId=self.settings.freshmal_spreadsheet_id,
                 range="'Connections'!A:L",valueInputOption="RAW",
-                insertDataOption="INSERT_ROWS",body={"values":new}).execute())
+                insertDataOption="INSERT_ROWS",body={"values":to_insert}).execute())
         after=matching_rows(self._rows(),app)
         after_names={str(r[1]).strip().casefold() for r in after}
-        if any(r[1].casefold() not in after_names for r in new):
+        if any(r[1].casefold() not in after_names for r in to_insert):
             raise RuntimeError("Networking write did not pass read-back verification")
-        return {"status":"saved" if new else "no_new_verified_people","count":len(after),"added":len(new)}
+        status=("saved" if to_insert else
+                "existing" if after else
+                "no_verified_contacts")
+        result={"status":status,"count":len(after),"added":len(to_insert),**stats}
+        print(f"[connections] verification summary row {app.row_number}: "
+              f"candidate_names={stats['candidates']}, "
+              f"unverifiable_sources={stats['unverifiable_sources']}, "
+              f"invalid={stats['invalid_candidates']}, "
+              f"saved={len(to_insert)}, total={len(after)}",flush=True)
+        return result
