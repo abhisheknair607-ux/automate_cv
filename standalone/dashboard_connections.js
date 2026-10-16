@@ -19,26 +19,45 @@ function suggestedSearches(results){
  return '<p class="connection-note">Free LinkedIn people searches:</p><div class="row">'+
  (results||[]).map(x=>link(x.url,x.label)).join("")+'</div>';
 }
+function savedPeopleMarkup(items){
+ const list=Array.isArray(items)?items:[];
+ if(!list.length)return '<p class="connection-note">No verified contacts are saved for this candidate and vacancy yet.</p>';
+ return list.map(c=>'<section class="connection-person"><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+'</small>'+
+   '<div class="row">'+(c.profileUrl?link(c.profileUrl,"Direct LinkedIn"):'<span class="meta">Direct LinkedIn unverified</span>')+
+   link(c.searchUrl,"LinkedIn people search")+'</div>'+
+   '<details><summary class="meta">Verification / evidence</summary><p class="connection-note">'+esc(c.evidence)+'</p></details>'+
+   '<div class="connection-message">'+esc(c.message)+'</div>'+
+   (c.message?'<button class="btn btn-xs" data-action="copy-message" data-message="'+esc(c.message)+'">Copy introduction</button>':'')+
+   '</section>').join("");
+}
 async function contacts(row,tier="1-5"){
  const j=currentJob(row);
- if(!j||!j.web){toast("Tick Web first to enable Connections.",true);return}
+ if(!j)return;
  activeJob={row,candidate:state.candidate};
- show("Connections · "+j.company,'<p class="connection-note">Checking cached research and budget…</p>');
- if(DEMO){show("Connections · "+j.company,rangeSelector(row,tier)+'<p class="connection-note">Demo: no API charges.</p>');return}
- try{
-  const p=await window.__cvStandalone.requestSpecial("connections/preview",{candidate:state.candidate,row,tier});
-  if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
-  const box='<p class="connection-note">'+esc(j.company)+' · '+esc(j.role)+'</p>'+rangeSelector(row,tier)+
-   '<p class="connection-note">Estimated research cost: <b>$'+Number(p.estimateUsd||0).toFixed(2)+'</b>. Target $0.15, maximum planned $0.20 per job. A provider-level hard spending cap cannot be guaranteed. Free when cached.</p>'+
-   '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+((p.configured&&p.permitted)||p.cached?'':'disabled')+'>'+(p.cached?"View cached research":p.configured&&p.permitted?"Research and confirm cost":"Research unavailable")+'</button>'+
-   '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT prompt (no API charge)</button></div>'+
-   '<p class="connection-note">'+esc(!p.configured?"Paid research is not configured; the free ChatGPT prompt and LinkedIn searches still work.":!p.permitted?"This tier exceeds the remaining planned $0.20 per-job budget; use a lower tier or free search.":"")+'</p>'+
-   '<p class="connection-note">'+esc(p.disclaimer)+'</p>'+
-   (p.existingContacts?.length?'<p class="connection-note"><strong>'+p.existingContacts.length+' existing contacts saved</strong> in Freshmaal.'+
-     (p.sheetUrl?' '+link(p.sheetUrl,"Open Connections sheet"):'')+'</p>':'')+
-   suggestedSearches(p.searches);
-  show("Connections · "+j.company,box);
- }catch(e){show("Connections · "+j.company,'<p class="connection-note">'+esc(e.message||"Could not load the preview.")+'</p>')}
+ show("Connections · "+j.company,'<p class="connection-note">Loading saved contacts for this vacancy…</p>');
+ if(DEMO){show("Connections · "+j.company,'<p class="connection-note">Preview: no live Sheets connection.</p>');return}
+ try {
+   // Always show existing ChatGPT or API research before offering any paid action.
+   const saved=await window.__cvStandalone.requestSpecial("connections/saved",{candidate:state.candidate,row});
+   if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
+   let body='<p class="connection-note">'+esc(j.role)+' · '+esc(state.candidate)+' · Freshmaal #'+row+'</p>'+
+     '<h4>'+saved.contacts.length+' saved contacts</h4>'+savedPeopleMarkup(saved.contacts)+
+     (saved.sheetUrl?'<div class="row">'+link(saved.sheetUrl,"View all contacts in Freshmaal")+'</div>':'');
+   if(j.web){
+     const p=await window.__cvStandalone.requestSpecial("connections/preview",{candidate:state.candidate,row,tier});
+     if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
+     body+='<hr class="divider"/><h4>Optional new research</h4>'+rangeSelector(row,tier)+
+       '<p class="connection-note">Estimated additional cost: $'+Number(p.estimateUsd||0).toFixed(2)+
+       '. Provider costs may vary. Existing saved contacts are free to view.</p>'+
+       '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+
+       ((p.configured&&p.permitted)||p.cached?'':'disabled')+'>Research / view cached</button>'+
+       '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT research prompt</button></div>'+
+       suggestedSearches(p.searches);
+   }else{
+     body+='<p class="connection-note">Web is not checked. Saved contacts remain visible; tick Web only to request new research.</p>';
+   }
+   show("Connections · "+j.company,body);
+ }catch(e){show("Connections unavailable",'<p class="connection-note">'+esc(e.message||"Could not load saved contacts")+'</p>')}
 }
 function researchPrompt(job,tier){
  const c=window.__cvRanking?.configs?.[state.candidate];
