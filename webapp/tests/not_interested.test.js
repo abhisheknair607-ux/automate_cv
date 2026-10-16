@@ -17,13 +17,15 @@ class MockSheet{
     return{
       getValues(){return Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>self.get(row+i,col+j)))},
       getValue(){return self.get(row,col)},
+      getDisplayValue(){return String(self.get(row,col)||'')},
+      getDisplayValues(){return Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>String(self.get(row+i,col+j)||'')))},
       setValue(v){assert.equal(n*m,1);self.set(row,col,v);self.writes.push({row,col,v});return this},
       setValues(arr){for(let i=0;i<n;i++)for(let j=0;j<m;j++)self.set(row+i,col+j,arr[i][j]);self.writes.push({row,col,n,m,arr});return this},
       getDataValidation(){return null},
     }
   }
 }
-const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,49),regions={};
+const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,55),regions={};
 taaza.set(1,1,'Company Name');taaza.set(1,2,'Designation');taaza.set(1,3,'Link');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
@@ -156,6 +158,19 @@ assert.equal(js(run('getCopyPrompt({candidate:"Abhishek",row:3,expected:{company
 fresh.set(3,34,'Pooja secret pre-CV prompt');
 assert.equal(js(run('getJob({candidate:"Pooja",source:"fresh",row:3})')).promptReady,false);
 assert.throws(()=>run('getCopyPrompt({candidate:"Pooja",row:3,expected:{company:"Alpha",role:"Alpha Role",url:"https://www.jobs.test/open/1"}})'),/completed CV/);
+
+
+// New human application tracking is distinct from the legacy workflow status.
+const alpha={company:'Alpha',role:'Alpha Role',url:'https://www.jobs.test/open/1'};
+let tracking=js(run('updateApplicationProgress('+JSON.stringify({candidate:'Abhishek',row:3,expected:alpha,progress:'Applied + Connected'})+')'));
+assert.equal(tracking.progress,'Applied + Connected');
+assert.equal(fresh.get(3,54),'Applied + Connected');
+assert.equal(fresh.get(3,12),'CV'); // Worker-owned CV code was not changed.
+assert.equal(fresh.get(3,55),''); // Pooja status untouched.
+assert.equal(list('fresh','Abhishek','unapplied',{pageSize:15}).rows.some(x=>x.row===3),false);
+assert.equal(js(run('getJob({candidate:"Abhishek",source:"fresh",row:3})')).progress,'Applied + Connected');
+assert.equal(js(run('getJob({candidate:"Pooja",source:"fresh",row:3})')).progress,'Unapplied');
+assert.throws(()=>run('updateApplicationProgress('+JSON.stringify({candidate:'Pooja',row:3,expected:alpha,progress:'CV+CL'})+')'),/Invalid application status/);
 
 // Client-side syntax and presence of compact buttons.
 const html=fs.readFileSync(__dirname+'/../Index.html','utf8');
