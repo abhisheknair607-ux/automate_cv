@@ -51,6 +51,12 @@ async function ensureTab({token,spreadsheetId,fetcher=fetch}){
   if(String(row[i]||"").trim()&&String(row[i]).trim()!==HEADER[i])
    throw Error("An existing Connections tab uses an incompatible header; no contacts were written.");
  }
+ if(!created&&!row.length){
+  // A headerless but populated unrelated tab must never be adopted silently.
+  const sample=await api(base+"/values/"+encodeURIComponent(quote(TAB)+"!A2:L3"),token,{fetcher});
+  if((sample.values||[]).some(r=>r.some(v=>String(v||"").trim())))
+   throw Error("An existing Connections tab has data but no recognised headers; no contacts were written.");
+ }
  if(!row.length||row.some((x,i)=>String(x||"").trim()!==HEADER[i])){
   await api(base+"/values/"+encodeURIComponent(headerRange),token,{method:"PUT",fetcher,
    body:{range:headerRange,majorDimension:"ROWS",values:[HEADER]}});
