@@ -646,7 +646,7 @@ function getStats(candidate) {
   return {discovered:taaza.length,applications:fresh.length,
     selected:own.filter(x=>x.selected).length,
     cvRequested:own.filter(x=>x.cv).length,
-    applied:own.filter(x=>String(x.status).toLowerCase()==='applied').length,
+    applied:own.filter(x=>x.progress==='Applied'||x.progress==='Applied + Connected').length,
     missingJD:taaza.filter(x=>!x.jdReady).length,
     notInterestedDiscovery:taaza.filter(x=>x.notInterested[candidate]).length,
     notInterestedFresh:own.filter(x=>x.notInterested).length};
