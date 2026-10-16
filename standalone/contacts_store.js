@@ -13,9 +13,14 @@ const HEADER=Object.freeze([
  "Person's Position","Verification / Evidence","Outreach Message","Research Date (UTC)"
 ]);
 const escapeKey=s=>String(s||"").trim().toLowerCase();
+function candidateKey(name){
+ const value=escapeKey(name);
+ return value==="abhishek nair"||value==="abhishek"?"abhishek":
+        value==="pooja tirupati"||value==="pooja"?"pooja":value;
+}
 const asCell=(s,n=600)=>String(s==null?"":s).slice(0,n);
 function identity(candidate,row,url,name){
- return [candidate,String(row),escapeKey(url),escapeKey(name)].join("|");
+ return [candidateKey(candidate),String(row),escapeKey(url),escapeKey(name)].join("|");
 }
 function quote(s){return "'"+String(s).replace(/'/g,"''")+"'";}
 function bookUrl(id){return "https://sheets.googleapis.com/v4/spreadsheets/"+encodeURIComponent(id);}
@@ -89,7 +94,10 @@ async function read({token,spreadsheetId,job,fetcher=fetch}){
  const body=await api(base+"/values/"+encodeURIComponent(range),token,{fetcher});
  const vals=body.values||[];
  const contacts=vals.flatMap((row,i)=>{
-  if(String(row[5]||"")!==job.candidate||Number(row[6])!==job.row||escapeKey(row[7])!==escapeKey(job.url))return[];
+  if(candidateKey(row[5])!==candidateKey(job.candidate)||
+     Number(row[6])!==job.row||
+     escapeKey(row[7])!==escapeKey(job.url)||
+     escapeKey(row[0])!==escapeKey(job.company))return[];
   return [{row:i+2,name:row[1]||"",title:row[8]||"",profileUrl:row[2]||null,
    searchUrl:row[3]||"",verification:row[2]?"Direct profile cited in search":"Direct profile not verified",
    evidence:row[9]||"",message:row[10]||"",date:row[11]||""}];
