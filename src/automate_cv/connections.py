@@ -1,0 +1,176 @@
+"""Opt-in verified networking research and scoped Google Sheets persistence."""
+import json
+import re
+from datetime import datetime, timezone
+from urllib.parse import quote, urlsplit, urlunsplit, urlencode, parse_qsl
+
+import httpx
+from googleapiclient.discovery import build
+from .google_retry import retry_google
+
+TAB = "Connections"
+HEADERS = ["Company","Contact Name","Direct LinkedIn Profile","LinkedIn Search",
+           "Applied-for Role","Candidate","Freshmaal Row","Vacancy Link",
+           "Person's Position","Verification / Evidence","Outreach Message","Research Date (UTC)"]
+
+def canonical_url(value):
+    try:
+        p = urlsplit(str(value or "").strip())
+        if p.scheme.lower() not in ("https", "http") or not p.hostname:
+            return ""
+        path = p.path.rstrip("/") or "/"
+        ignore = ("utm_", "fbclid", "gclid", "msclkid", "igshid", "ref_src", "source", "trk", "tracking")
+        query = urlencode(sorted((k,v) for k,v in parse_qsl(p.query)
+                                  if not any(k.lower().startswith(i) for i in ignore)))
+        return urlunsplit(("https",p.hostname.lower().removeprefix("www."),path,query,""))
+    except ValueError:
+        return ""
+
+def matching_rows(rows, app):
+    result, seen = [], set()
+    for r in rows:
+        a = list(r) + [""] * max(0,12-len(r))
+        if (str(a[0]).strip().casefold()!=app.company.strip().casefold()
+            or str(a[5]).strip().casefold()!=app.candidate_name.strip().casefold()
+            or str(a[6]).strip()!=str(app.row_number)
+            or canonical_url(a[7])!=canonical_url(app.application_link)):
+            continue
+        name=str(a[1]).strip().casefold()
+        if name and name not in seen:
+            seen.add(name)
+            result.append(a)
+    return result
+
+def parse_contacts(text):
+    text=str(text or "").strip()
+    text=re.sub(r"^\x60{3}(?:json)?\s*", "", text, flags=re.I)
+    text=re.sub(r"\s*\x60{3}\s*$", "", text)
+    try:
+        obj=json.loads(text)
+    except json.JSONDecodeError:
+        a,b=text.find("{"),text.rfind("}")
+        if a<0 or b<a:
+            raise ValueError("No valid networking JSON returned")
+        obj=json.loads(text[a:b+1])
+    if not isinstance(obj,dict) or not isinstance(obj.get("contacts"),list):
+        raise ValueError("Networking response has no contacts list")
+    return obj["contacts"]
+
+def confirmed_bios(name, urls, client):
+    """Require an HTTP 200 public bio explicitly naming the person."""
+    words=name.casefold().split()
+    if len(words)<2:
+        return []
+    found=[]
+    for url in urls[:5]:
+        if not isinstance(url,str):
+            continue
+        p=urlsplit(url.strip())
+        if p.scheme!="https" or not p.hostname or p.username or "linkedin.com" in p.hostname:
+            continue
+        try:
+            res=client.get(url,follow_redirects=True,timeout=10)
+            if res.status_code!=200:
+                continue
+            content=re.sub(r"<[^>]*>", " ",res.text[:600000]).casefold()
+            if words[0] in content and words[-1] in content:
+                found.append(url.strip())
+        except (httpx.HTTPError, ValueError):
+            continue
+    return found
+
+class Connections:
+    def __init__(self,credentials,settings):
+        self.settings=settings
+        self.sheets=build("sheets","v4",credentials=credentials,cache_discovery=False).spreadsheets()
+
+    def _ensure(self):
+        ident=self.settings.freshmal_spreadsheet_id
+        meta=retry_google(lambda:self.sheets.get(spreadsheetId=ident,fields="sheets(properties(title))").execute())
+        if not any(s.get("properties",{}).get("title")==TAB for s in meta.get("sheets",[])):
+            retry_google(lambda:self.sheets.batchUpdate(spreadsheetId=ident,body={"requests":[{"addSheet":{"properties":{
+                "title":TAB,"gridProperties":{"columnCount":12,"frozenRowCount":1}
+            }}}]}).execute())
+            retry_google(lambda:self.sheets.values().update(spreadsheetId=ident,
+                range="'Connections'!A1:L1",valueInputOption="RAW",body={"values":[HEADERS]}).execute())
+        headers=retry_google(lambda:self.sheets.values().get(spreadsheetId=ident,
+            range="'Connections'!A1:L1").execute()).get("values",[[]])[0]
+        if headers!=HEADERS:
+            raise RuntimeError("Connections A:L headers conflict; refusing to write")
+
+    def _rows(self):
+        return retry_google(lambda:self.sheets.values().get(
+            spreadsheetId=self.settings.freshmal_spreadsheet_id,
+            range="'Connections'!A2:L").execute()).get("values",[])
+
+    def research(self,ai,app,summary):
+        instruction=(
+            "Use web_search to verify 5-10 REAL people near the hiring team at the exact "
+            "company/office. Seek managers, senior managers, directors, partners and recruiters "
+            "for the actual vacancy function, excluding irrelevant executives. Return JSON only: "
+            '{"contacts":[{"name":"","position":"","team":"","location":"",'
+            '"confidence":"High","evidence_urls":["https://..."],"message":""}]}. '
+            "Do not invent people, team, office, responsibility, role or URLs. "
+            "For every person give at least one CURRENT public official firm/team biography "
+            "or reputable published personnel bio that identifies their current job and location. "
+            "Every note must be 299 characters or fewer, mention applicant full name, be polite, "
+            "refer to the relevant team, and not claim a submitted application or request a referral. "
+            "Only use facts from the candidate Summary Doc. If fewer people can be verified return fewer."
+        )
+        payload=json.dumps({"company":app.company,"role":app.designation,"vacancy":app.application_link,
+                            "location":app.location,"candidate":app.candidate_name,
+                            "summary_doc":summary[:13000]})
+        response=ai.client.responses.create(model=self.settings.stage2_model,
+            instructions=instruction,input=payload,tools=[{"type":"web_search"}],
+            reasoning={"effort":"low"},max_output_tokens=5000)
+        return parse_contacts(response.output_text)
+
+    def run(self,ai,app,summary):
+        self._ensure()
+        before=matching_rows(self._rows(),app)
+        if len(before)>=5:
+            return {"status":"already_saved","count":len(before),"added":0}
+        contacts=self.research(ai,app,summary)
+        names={str(r[1]).strip().casefold() for r in before}
+        new=[]
+        date=datetime.now(timezone.utc).isoformat()
+        with httpx.Client(headers={"User-Agent":"Mozilla/5.0"}) as client:
+            for c in contacts[:15]:
+                if not isinstance(c,dict):
+                    continue
+                name=str(c.get("name") or "").strip()
+                title=str(c.get("position") or "").strip()
+                team=str(c.get("team") or "").strip()
+                loc=str(c.get("location") or "").strip()
+                note=re.sub(r"\s+"," ",str(c.get("message") or "")).strip()
+                urls=c.get("evidence_urls") or []
+                if (not name or not title or not team or not isinstance(urls,list)
+                    or not (0<len(note)<300) or app.candidate_name.casefold() not in note.casefold()
+                    or name.casefold() in names):
+                    continue
+                verified=confirmed_bios(name,urls,client)
+                if not verified:
+                    continue
+                names.add(name.casefold())
+                search="https://www.linkedin.com/search/results/people/?keywords="+quote(name+" "+app.company+" "+title,safe="")
+                evidence=("Confidence: "+str(c.get("confidence") or "Medium")+
+                          "; Team: "+team+"; Location: "+loc+
+                          "; Hiring authority not confirmed. Sources: "+" | ".join(verified))
+                # Public LinkedIn people-search only. Never guess a direct slug.
+                new.append([app.company,name,"",search,app.designation,app.candidate_name,
+                            str(app.row_number),app.application_link,title,evidence,note,date])
+                if len(new)+len(before)>=10:
+                    break
+        latest=matching_rows(self._rows(),app)
+        existing_names={str(r[1]).strip().casefold() for r in latest}
+        new=[r for r in new if r[1].casefold() not in existing_names]
+        if new:
+            retry_google(lambda:self.sheets.values().append(
+                spreadsheetId=self.settings.freshmal_spreadsheet_id,
+                range="'Connections'!A:L",valueInputOption="RAW",
+                insertDataOption="INSERT_ROWS",body={"values":new}).execute())
+        after=matching_rows(self._rows(),app)
+        after_names={str(r[1]).strip().casefold() for r in after}
+        if any(r[1].casefold() not in after_names for r in new):
+            raise RuntimeError("Networking write did not pass read-back verification")
+        return {"status":"saved" if new else "no_new_verified_people","count":len(after),"added":len(new)}
