@@ -25,7 +25,7 @@ class MockSheet{
     }
   }
 }
-const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,55),regions={};
+const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,60),regions={};
 taaza.set(1,1,'Company Name');taaza.set(1,2,'Designation');taaza.set(1,3,'Link');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
