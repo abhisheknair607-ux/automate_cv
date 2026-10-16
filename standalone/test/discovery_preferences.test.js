@@ -34,8 +34,8 @@ test("Discovery hides all transferred vacancies, including in favorite and rejec
     const all=c.listJobs({source:"taaza",candidate,filter:"all"});
     assert.equal(all.total,candidate==="Abhishek"?1:2);
     assert.ok(all.rows.every(x=>x.company!=="Alpha"));
-    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,all.total,
-      "Legacy transferred filter must not expose already-transferred jobs");
+    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,0,
+      "Legacy transferred filter cannot expose jobs managed in Freshmaal");
     const favorites=c.listJobs({source:"taaza",candidate,filter:"favorites"});
     assert.deepEqual(Array.from(favorites.rows,x=>x.company),["Gamma"]);
     const excluded=c.listJobs({source:"taaza",candidate,filter:"not-interested"});
