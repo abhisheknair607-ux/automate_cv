@@ -15,7 +15,7 @@ test("legacy source unchanged and all exposed operations wrapped",()=>{
   const names=[...source.matchAll(/^function\s+([a-zA-Z_][a-zA-Z_0-9]*)\(/gm)].map(x=>x[1]);
   const operations=["getBootstrap","listJobs","getJob","setNotInterested","addDiscovery",
     "saveDiscovery","transferJob","bulkTransfer","updateFreshJD","getCopyPrompt",
-    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
+    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","updateApplicationProgress","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
   assert.deepEqual([...METHODS].sort(),operations.sort());
   for(const name of METHODS)assert.ok(names.includes(name),name+" missing");
   // The migration must not fork candidate-specific sheet mappings or logic.
