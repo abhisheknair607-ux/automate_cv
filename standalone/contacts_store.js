@@ -85,7 +85,8 @@ async function read({token,spreadsheetId,job,fetcher=fetch}){
  const contacts=vals.flatMap((row,i)=>{
   if(String(row[5]||"")!==job.candidate||Number(row[6])!==job.row||escapeKey(row[7])!==escapeKey(job.url))return[];
   return [{row:i+2,name:row[1]||"",title:row[8]||"",profileUrl:row[2]||null,
-   searchUrl:row[3]||"",verification:row[9]||"",message:row[10]||"",date:row[11]||""}];
+   searchUrl:row[3]||"",verification:row[2]?"Direct profile cited in search":"Direct profile not verified",
+   evidence:row[9]||"",message:row[10]||"",date:row[11]||""}];
  });
  return {tabFound:true,contacts,url:"https://docs.google.com/spreadsheets/d/"+encodeURIComponent(spreadsheetId)+"/edit#gid="+tab.sheetId};
 }
