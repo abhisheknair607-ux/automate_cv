@@ -181,7 +181,7 @@ const html=fs.readFileSync(__dirname+'/../Index.html','utf8');
 const script=html.match(/<script>([\s\S]+?)<\/script>/);
 assert.ok(script);
 new vm.Script(script[1],{filename:'Index.html'});
-assert.match(html,/Download CV/);assert.match(html,/Copy Prompt/);
+assert.match(html,/Download CV/);assert.match(html,/Copy post-CV prompt/);
 assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
 
 // Candidate preference states: Favorite stays visible in normal views, but can be
