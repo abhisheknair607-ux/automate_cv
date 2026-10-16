@@ -18,6 +18,14 @@ const SETTINGS = Object.freeze({
 // Persistent per-candidate rejection flags in the existing sheet tabs.
 // Taaza N/O (no extra tab); Freshmaal AT/AU (after model tier AR/AS).
 const TAAZA_INTEREST = Object.freeze({Abhishek:14, Pooja:15});
+const APPLICATION_PROGRESS = Object.freeze(['Unapplied','Applied','Applied + Connected','Rejected','Accepted']);
+const PROGRESS_COL = Object.freeze({Abhishek:54,Pooja:55});
+function progress_(value, workflowStatus) {
+  const v=String(value||'').trim();
+  return APPLICATION_PROGRESS.includes(v)?v:(String(workflowStatus||'').trim().toLowerCase()==='applied'?'Applied':'Unapplied');
+}
+function progressTerminal_(value){return value!=='Unapplied';}
+
 const PEOPLE = Object.freeze({
   Abhishek: {cv:8, cl:9, web:10, status:12, score:38, rank:39, selected:42, prompt:35,
              workflow:15, cvLink:18, clLink:19, folder:37, error:22, tier:44, lock:16, notInterested:46},
@@ -261,6 +269,7 @@ function freshRows_() {
   const checks=sh.getRange(3,5,count,8).getValues();
   const stages=sh.getRange(3,13,count,20).getValues();
   const last=sh.getRange(3,33,count,15).getValues();
+  const progress=sh.getRange(3,54,count,2).getDisplayValues();
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -269,7 +278,7 @@ function freshRows_() {
       person[name]={cv:truthy_(b[c.cv-5]),cl:truthy_(b[c.cl-5]),web:truthy_(b[c.web-5]),
         status:String(b[c.status-5]||''),score:e[c.score-33]===''?'':e[c.score-33],
         rank:e[c.rank-33]===''?'':e[c.rank-33], selected:truthy_(e[c.selected-33]),
-        workflow:String(shifted(c.workflow)||''),cvLink:String(shifted(c.cvLink)||''),
+        workflow:String(shifted(c.workflow)||''),progress:progress_(progress[i][PROGRESS_COL[name]-54],b[c.status-5]),cvLink:String(shifted(c.cvLink)||''),
         clLink:String(shifted(c.clLink)||''),folder:String(e[c.folder-33]||''),
         error:String(shifted(c.error)||''),tier:String(e[c.tier-33]||'Premium'),
         notInterested:truthy_(e[c.notInterested-33]),
@@ -369,8 +378,8 @@ function listJobs(options) {
   if(filter==='transferred'&&source==='taaza')jobs=jobs.filter(x=>x.transferred);
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
-  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
-  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&String(x.status||'').trim().toLowerCase()!=='applied');
+  if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>['Applied','Applied + Connected'].includes(x.progress));
+  if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&x.progress==='Unapplied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
   const sort=String(options.sort||'newest');
   if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
@@ -420,9 +429,10 @@ function getJob(options) {
     cvLink:String(a[conf.cvLink-1]||''),clLink:String(a[conf.clLink-1]||''),
     folder:String(a[conf.folder-1]||''),error:String(a[conf.error-1]||''),tier:String(a[conf.tier-1]||'Premium'),
     promptReady:!!String(a[conf.cvLink-1]||'').trim()&&!!String(a[conf.prompt-1]||'').trim(),
+    progress:progress_(sh.getRange(row,PROGRESS_COL[candidate]).getDisplayValue(),a[conf.status-1]),
     notInterested:truthy_(a[conf.notInterested-1])||
       taazaRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.notInterested[candidate])};
-  data.statusOptions=statusOptions_(sh.getRange(row,conf.status).getDataValidation(),data.status);
+  data.statusOptions=APPLICATION_PROGRESS.slice();
   return data;
 }
 /**
@@ -662,7 +672,8 @@ function runCvApiNow(payload) {
     if (!['Economy', 'Balanced', 'Premium'].includes(tier)) throw new Error('Select a valid CV model first.');
     if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
     if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
-    if (status === 'applied') throw new Error('Applied applications cannot be regenerated.');
+    if (status === 'applied' || progressTerminal_(progress_(sh.getRange(row,PROGRESS_COL[candidate]).getDisplayValue(),status)))
+      throw new Error('Application Status must be Unapplied before running CV generation.');
     if (truthy_(a[p.notInterested - 1])) throw new Error('Restore this job from Not Interested first.');
     if (String(a[p.lock - 1] || '').trim()) throw new Error('This candidate/job is already being processed.');
     if (String(a[p.cvLink - 1] || '').trim() || /^complete$/i.test(String(a[p.workflow - 1] || '').trim()))
@@ -745,4 +756,21 @@ function getJobConnections(payload) {
     });
   });
   return {candidate,row,items,count:items.length,tabMissing:false};
+}
+
+
+/** Five-choice candidate-specific application progress, independent of CV worker status. */
+function updateApplicationProgress(payload){
+  authorise_();payload=payload||{};
+  return lockRun_(()=>{
+    const candidate=String(payload.candidate||'');person_(candidate);
+    const progress=String(payload.progress||'').trim();
+    if(!APPLICATION_PROGRESS.includes(progress))throw new Error('Invalid application status.');
+    const sh=sheet_('fresh'),row=expected_(sh,payload.row,3,payload.expected);
+    const cell=sh.getRange(row,PROGRESS_COL[candidate]);
+    cell.setValue(progress);SpreadsheetApp.flush();
+    if(String(cell.getDisplayValue()).trim()!==progress)throw new Error('Could not verify application status write.');
+    invalidateDashboardReads_();
+    return {saved:true,candidate,row,progress,message:'Application status saved to Freshmaal.'};
+  });
 }
