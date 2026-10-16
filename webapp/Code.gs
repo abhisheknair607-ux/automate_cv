@@ -312,7 +312,7 @@ function jdClueFlag_(text){
     const money=/(?:€|£|\bEUR\b|\bGBP\b)\s*([\d][\d,.]*)(\s*k\b)?/gi;
     for(const m of line.matchAll(money)){
       const amount=Number(m[1].replace(/,/g,''))*(m[2]?1000:1);
-      if(amount>=50000&&amount<=1000000)return true;
+      if(amount>50000&&amount<=1000000&&!/(?:signing bonus|sign-on bonus|per day|hourly rate)/i.test(line))return true;
     }
   }
   return false;
