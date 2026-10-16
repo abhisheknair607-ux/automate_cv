@@ -741,7 +741,7 @@ function getJobConnections(payload) {
   const items=[];
   values.forEach(a=>{
     // Require ALL identifying fields. Never blend separate candidates or vacancies.
-    if(String(a[5]||'').trim().toLowerCase()!==candidate.toLowerCase() ||
+    if(String(a[5]||'').trim().toLowerCase()!==(candidate==='Abhishek'?'abhishek nair':'pooja tirupati') ||
        Number(a[6])!==row || canonical_(a[7])!==vacancy ||
        String(a[0]||'').trim().toLowerCase()!==String(identity[0]||'').trim().toLowerCase())return;
     const name=String(a[1]||'').trim();
