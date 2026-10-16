@@ -241,7 +241,9 @@ app.post("/api/connections/preview",async(req,res)=>{
   const access=await (await auth.getClient()).getAccessToken();
   const token=typeof access==="string"?access:access.token;
   const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
-  res.json({data:{...view,existingContacts:saved.contacts,sheetUrl:saved.url}});
+  const enough=saved.contacts.length>=(connections.tiers[tier]?.min||Infinity);
+  res.json({data:{...view,existingContacts:saved.contacts,sheetUrl:saved.url,
+    cached:view.cached||enough,estimateUsd:enough?0:view.estimateUsd,permitted:view.permitted||enough}});
  }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Preview unavailable").slice(0,220)})}
 });
 app.post("/api/connections/research",async(req,res)=>{
