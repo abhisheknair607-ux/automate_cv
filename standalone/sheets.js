@@ -56,6 +56,8 @@ class Range {
   }
   getDisplayValues() {return this.getValues().map(r=>r.map(x=>String(x==null?"":x)));}
   getValue() {return this.getValues()[0][0];}
+  // Apps Script Range parity: needed by candidate-specific BE/BF status reads.
+  getDisplayValue() {return this.getDisplayValues()[0][0];}
   setValues(rows) {
     if (!Array.isArray(rows)||rows.length!==this.count||
         rows.some(r=>!Array.isArray(r)||r.length!==this.width))
@@ -200,4 +202,4 @@ function createSpreadsheetApp(token, ids) {
     flush(){ /* All REST mutations are sent synchronously before returning. */ }
   };
 }
-module.exports={createSpreadsheetApp,colLetters,toSheetValue,api};
+module.exports={createSpreadsheetApp,colLetters,toSheetValue,api,Range};
