@@ -839,9 +839,9 @@ async function runCvNow(row) {
   if(!job.cv){toast('Tick Make CV first and save it.',true);return}
   if(activityFor(job)){toast('This CV is already queued or running.',true);return}
   const candidate=state.candidate,tier=getPreviewTier(row),clTier=getPreviewClTier(row);
-  if(!confirm('Start a PAID OpenAI API run for '+candidate+' at '+job.company+' — '+job.role+' (row '+row+', CV: '+tier+', CL: '+(job.cl?clTier:'off')+')? Only this job will be requested.'))return;
+  if(!confirm('Start a PAID OpenAI API run for '+candidate+' at '+job.company+' — '+job.role+' (row '+row+', CV: '+tier+', CL: '+(job.cl?clTier:'off')+', Web contacts: '+(job.web?'ON':'OFF')+')? Only this job will be requested.'))return;
   try{
-    const result=await run('runCvApiNow',{candidate,row,expected:expected(job),confirm:true});
+    const result=await run('runCvApiNow',{candidate,row,expected:expected(job),expectedWeb:!!job.web,confirm:true});
     state.pendingCv[candidate.toLowerCase()+':'+row]=Date.now();
     toast(result.message);
     refreshQueueWidgets();
