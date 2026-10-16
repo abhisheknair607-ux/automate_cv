@@ -27,6 +27,7 @@ class ApplicationRow:
     error: str = ''
     model_tier: str = 'Premium'  # Blank Excel cells resolve to Premium; resolved per candidate/job.
     cl_model_tier: str = ''  # Blank inherits the CV tier for backwards compatibility.
+    application_progress: str = ''  # Independent BB/BC human application status.
 
     def validate(self):
         errors=[]
