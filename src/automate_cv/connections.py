@@ -174,7 +174,7 @@ class Connections:
             "do not rely exclusively on LinkedIn biographies, which can block direct verification. "
             "Accept actual valuation leaders, relevant Deals Advisory senior people, and team recruiters. "
             "Each person must have at least one full publicly accessible HTTPS company news or bio "
-            "URL that names them, identifies their Interpath/employer affiliation and their team or role. "
+            "URL that names them, identifies their current employer affiliation and team or role. "
             + ("FOCUSED SECOND SEARCH: the first search produced zero independently verifiable contacts. "
                "Search ONLY recent official company people/news pages for names and workgroups. "
                "Return 3-8 high-confidence names with precise working company evidence links, "
