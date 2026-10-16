@@ -60,3 +60,42 @@ test("dashboard downloads use the authenticated same-origin bridge",()=>{
   assert.match(bridge,/fetch\("\/api\/download"/);
   assert.match(bridge,/anchor\.download=name/);
 });
+
+
+test("job-card download icon opens a modal with Word and Drive actions for each available file",()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ assert.match(ui,/id="downloadMount"/);
+ assert.match(ui,/\.download-shade\s*\{\s*position\s*:\s*fixed/);
+ assert.match(script,/data-action="download-options"/);
+ assert.match(script,/section\('cv','Tailored CV',job\.cvLink\)/);
+ assert.match(script,/section\('cl','Cover letter',job\.clLink\)/);
+ assert.match(script,/data-action="download-word"/);
+ assert.match(script,/data-action="view-word-drive"/);
+ assert.match(script,/downloadChoice\(row,x\.dataset\.kind,'word'\)/);
+ assert.match(script,/downloadChoice\(row,x\.dataset\.kind,'drive'\)/);
+ assert.match(script,/await downloadDoc\(row,kind\)/);
+ assert.match(script,/window\.open\(safe,'_blank','noopener,noreferrer'\)/);
+ assert.match(script,/function closeDownloadOptions\(\)/);
+ assert.ok(!script.includes("drive.google.com/uc?export=download"));
+});
+
+test("Google Drive viewer only accepts saved document links on official Google domains",()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ const start=script.indexOf("function verifiedDriveLink(");
+ const end=script.indexOf("let downloadContext=null;",start);
+ assert.ok(start>=0&&end>start);
+ const safeUrl=s=>{try{const v=new URL(String(s));return /^https?:$/.test(v.protocol)?v.href:null}catch{return null}};
+ const verify=new Function("safeUrl","URL",script.slice(start,end)+"return verifiedDriveLink;")(safeUrl,URL);
+ const file="https://drive.google.com/file/d/"+id+"/view";
+ const doc="https://docs.google.com/document/d/"+id+"/edit";
+ assert.equal(verify(file),file);
+ assert.equal(verify(doc),doc);
+ assert.equal(verify("https://drive.google.com/open?id="+id),"https://drive.google.com/open?id="+id);
+ for(const invalid of [
+    "https://evil.example.com/file/d/"+id+"/view",
+    "https://drive.google.com.evil.example/file/d/"+id+"/view",
+    "javascript:alert(1)", "https://docs.google.com/spreadsheets/d/"+id+"/edit", ""
+ ])assert.equal(verify(invalid),null);
+});
