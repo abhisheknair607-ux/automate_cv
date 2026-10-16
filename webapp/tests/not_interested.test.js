@@ -184,7 +184,7 @@ const script=html.match(/<script>([\s\S]+?)<\/script>/);
 assert.ok(script);
 new vm.Script(script[1],{filename:'Index.html'});
 assert.match(html,/CV and cover letter files/);assert.match(html,/Copy post-CV prompt/);
-assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
+assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-options"/);
 
 // Candidate preference states: Favorite stays visible in normal views, but can be
 // filtered independently of Not Interested for each person.
