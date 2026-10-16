@@ -352,7 +352,11 @@ function freshRows_() {
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
-            location:String(last[i][0]||''),jdClue:clueParts[i].some(Boolean),person};
+            location:String(last[i][0]||''),jdClue:(
+              /^CONTACT:\s*\S/i.test(String(clueParts[i][0]||''))||
+              /^YES:\s*\S/i.test(String(clueParts[i][1]||''))||
+              /^(?:ABOVE|PARTIAL ABOVE) 50K:/i.test(String(clueParts[i][2]||''))
+            ),person};
   }).filter(x=>x.company || x.role || x.url);
   },30);
 }
