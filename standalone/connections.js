@@ -4,7 +4,7 @@ const MODEL="gpt-6.1-sol",TARGET=.15,LIMIT=.20;
 const tiers=Object.freeze({"1-5":{min:1,max:5,output:1300,estimate:.06},
  "5-10":{min:5,max:10,output:2400,estimate:.11},
  "10-15":{min:10,max:15,output:3600,estimate:.15}});
-const cache=new Map(),pending=new Set();
+const cache=new Map(),pending=new Set(),spent=new Map();
 const short=(s,n=100)=>String(s||"").replace(/\s+/g," ").trim().slice(0,n);
 function linkedinSearch(q){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(q)}
 function safeProfile(raw){
@@ -12,6 +12,7 @@ function safeProfile(raw){
  return "https://www.linkedin.com"+u.pathname.replace(/\/+$/,"/")}catch{return null}
 }
 function keyFor(job,tier){return crypto.createHash("sha256").update([job.candidate,job.row,job.url,job.role,job.company,tier].join("|")).digest("hex")}
+function baseKey(job){return keyFor(job,"all-tiers")}
 function searches(job){const b=[job.company,job.role,job.location].map(v=>short(v,85)).filter(Boolean).join(" ");
  return [["Team managers",b+" Manager"],["Leadership",b+" Director Partner"],["Colleagues",b+" Associate Analyst"],["Recruiters",b+" Talent Acquisition"]]
  .map(([label,q])=>({label,url:linkedinSearch(q)}))}
@@ -45,12 +46,16 @@ function check(job,tier){if(!job||!["Abhishek","Pooja"].includes(job.candidate)|
  return tiers[tier]}
 function preview(job,tier,configured=false){
  const t=check(job,tier),prior=cache.get(keyFor(job,tier)),cached=!!prior&&Date.now()-prior.at<7*86400000;
+ const previouslySpent=spent.get(baseKey(job))||0;
+ const permitted=cached||previouslySpent+t.estimate<=LIMIT;
  return {tier,min:t.min,max:t.max,estimateUsd:cached?0:t.estimate,targetUsd:TARGET,ceilingUsd:LIMIT,cached,configured,
+  previouslySpentUsd:previouslySpent,remainingUsd:Math.max(0,+(LIMIT-previouslySpent).toFixed(4)),permitted,
   searches:searches(job),disclaimer:"Estimate only. One API request and at most one search tool call; no retries. Provider charges are not an absolute hard cap."}
 }
 async function research(job,tier,apiKey,fetcher=fetch){
  const t=check(job,tier),id=keyFor(job,tier),old=cache.get(id),p=preview(job,tier,!!apiKey);
  if(p.cached)return {...old.value,cached:true,costUsd:0};
+ if(!p.permitted)throw Object.assign(Error("This contact tier would exceed the planned $0.20 total research budget for this job. Use cached results or free LinkedIn searches."),{httpCode:409});
  if(!apiKey)return {...p,status:"unconfigured",contacts:[],costUsd:0,
   message:"Connect an OpenAI API key to Cloud Run to enable paid research; free LinkedIn search links are available."};
  if(pending.has(id))throw Object.assign(Error("Search already running for this vacancy."),{httpCode:409});
@@ -74,7 +79,9 @@ async function research(job,tier,apiKey,fetcher=fetch){
   if(!resp.ok)throw Object.assign(Error("Research API unavailable (HTTP "+resp.status+")."),{httpCode:502});
   const calls=(result.output||[]).filter(x=>x.type==="web_search_call").length;
   if(calls>1)throw Error("Search-call policy exceeded.");
-  const c=cost(result,calls),raw=decodeJSON(text(result)),contacts=validated(raw.contacts,job,result,t.max);
+  const c=cost(result,calls);
+  spent.set(baseKey(job),+(Number(spent.get(baseKey(job))||0)+c).toFixed(4));
+  const raw=decodeJSON(text(result)),contacts=validated(raw.contacts,job,result,t.max);
   const value={status:"ready",tier,contacts,searches:searches(job),costUsd:c,model:MODEL,
    requestedMin:t.min,requestedMax:t.max,budgetExceeded:c>LIMIT,
    warning:c>LIMIT?"Actual provider usage exceeded the planned $0.20 ceiling. Do not start further paid research until costs are reviewed.":
