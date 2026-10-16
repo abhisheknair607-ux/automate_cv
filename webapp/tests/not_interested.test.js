@@ -164,9 +164,9 @@ assert.throws(()=>run('getCopyPrompt({candidate:"Pooja",row:3,expected:{company:
 const alpha={company:'Alpha',role:'Alpha Role',url:'https://www.jobs.test/open/1'};
 let tracking=js(run('updateApplicationProgress('+JSON.stringify({candidate:'Abhishek',row:3,expected:alpha,progress:'Applied + Connected'})+')'));
 assert.equal(tracking.progress,'Applied + Connected');
-assert.equal(fresh.get(3,54),'Applied + Connected');
+assert.equal(fresh.get(3,57),'Applied + Connected');
 assert.equal(fresh.get(3,12),'CV'); // Worker-owned CV code was not changed.
-assert.equal(fresh.get(3,55),''); // Pooja status untouched.
+assert.equal(fresh.get(3,58),''); // Pooja status untouched.
 assert.equal(list('fresh','Abhishek','unapplied',{pageSize:15}).rows.some(x=>x.row===3),false);
 assert.equal(js(run('getJob({candidate:"Abhishek",source:"fresh",row:3})')).progress,'Applied + Connected');
 assert.equal(js(run('getJob({candidate:"Pooja",source:"fresh",row:3})')).progress,'Unapplied');
