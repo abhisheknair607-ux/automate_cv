@@ -233,6 +233,19 @@ app.post("/api/clues/save",async(req,res)=>{
   res.json({data:result});
  }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Unable to save JD clues").slice(0,260)})}
 });
+// Read saved contacts without payment or requiring Web to remain checked.
+app.post("/api/connections/saved",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  res.json({data:{contacts:saved.contacts,sheetUrl:saved.url,count:saved.contacts.length,
+    candidate:job.candidate,row:job.row}});
+ }catch(error){
+  res.status(error.httpCode||500).json({error:String(error.message||"Contacts unavailable").slice(0,230)});
+ }
+});
 app.post("/api/connections/preview",async(req,res)=>{
  try{
   const job=await authorisedJob(req),tier=String(req.body?.tier||"1-5");
