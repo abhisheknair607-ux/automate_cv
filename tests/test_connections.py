@@ -72,3 +72,41 @@ def test_pooja_never_inherits_abhishek_credentials():
     assert all(word not in message for word in ("Abhishek", "ACCA", "EY experience", "UCD MSc"))
     assert "Tax Advisory" in message
     assert len(message) < 300
+
+
+def test_zero_contacts_attempts_one_bounded_official_fallback(monkeypatch):
+    """Web selected: a failed broad search gets exactly one targeted retry."""
+    from automate_cv.connections import Connections
+
+    job = example()
+    connection = Connections.__new__(Connections)
+    connection._ensure = lambda: None
+    connection._rows = lambda: []
+    attempts = []
+    def research(_ai, _job, _summary, focused=False):
+        attempts.append(focused)
+        return []
+    connection.research = research
+    result = connection.run(None, job, "ACCA member; EY experience; UCD MSc.")
+    assert attempts == [False, True]
+    assert result["status"] == "no_verified_contacts"
+    assert result["count"] == 0
+    assert result["added"] == 0
+    assert result["research_calls"] == 2
+    assert result["candidates"] == 0
+
+
+def test_existing_networking_contacts_never_restart_paid_research():
+    from automate_cv.connections import Connections
+    job = example()
+    connection = Connections.__new__(Connections)
+    connection._ensure = lambda: None
+    connection._rows = lambda: [
+        record("Simon Clarke"), record("Paul Hough"), record("Jack Troak"),
+        record("Kirstie O'Flanagan"), record("Liam Booth"), record("Megan Smythe"),
+        record("John Doddy")
+    ]
+    connection.research = lambda *_args, **_kw: (_ for _ in ()).throw(
+        AssertionError("Existing contacts should be reused without research"))
+    result = connection.run(None,job,"")
+    assert result == {"status":"already_saved","count":7,"added":0}
