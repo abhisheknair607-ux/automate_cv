@@ -56,7 +56,7 @@ def parse_contacts(text):
         raise ValueError("Networking response has no contacts list")
     return obj["contacts"]
 
-def confirmed_bios(name, urls, client):
+def confirmed_bios(name, urls, client, company, position, team):
     """Require an HTTP 200 public bio explicitly naming the person."""
     words=name.casefold().split()
     if len(words)<2:
@@ -66,14 +66,24 @@ def confirmed_bios(name, urls, client):
         if not isinstance(url,str):
             continue
         p=urlsplit(url.strip())
-        if p.scheme!="https" or not p.hostname or p.username or "linkedin.com" in p.hostname:
+        if (p.scheme!="https" or not p.hostname or p.username
+            or p.hostname.lower() in ("localhost","127.0.0.1","0.0.0.0")
+            or p.hostname.lower().endswith((".local",".internal"))
+            or "linkedin.com" in p.hostname):
             continue
         try:
             res=client.get(url,follow_redirects=True,timeout=10)
             if res.status_code!=200:
                 continue
             content=re.sub(r"<[^>]*>", " ",res.text[:600000]).casefold()
-            if words[0] in content and words[-1] in content:
+            # The page must identify the PERSON and the EMPLOYER and describe
+            # either their relevant function or a key title word. Failing these
+            # checks results in no saved row, not an invented verification.
+            firm = company.casefold().split()[0]
+            technical = [x.casefold() for x in re.findall(r"[A-Za-z]{4,}", team+" "+position)
+                         if x.casefold() not in ("head","director","manager","senior","partner","associate")]
+            if (words[0] in content and words[-1] in content and firm in content
+                and (not technical or any(word in content for word in technical))):
                 found.append(url.strip())
         except (httpx.HTTPError, ValueError):
             continue
@@ -148,7 +158,7 @@ class Connections:
                     or not (0<len(note)<300) or app.candidate_name.casefold() not in note.casefold()
                     or name.casefold() in names):
                     continue
-                verified=confirmed_bios(name,urls,client)
+                verified=confirmed_bios(name,urls,client,app.company,title,team)
                 if not verified:
                     continue
                 names.add(name.casefold())
