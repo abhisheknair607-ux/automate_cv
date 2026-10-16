@@ -121,7 +121,7 @@
     return json.data;
   }
   async function requestSpecial(endpoint,body){
-    if(!["connections/preview","connections/research","repair-ranks"].includes(endpoint))
+    if(!["connections/saved","connections/preview","connections/research","clues/preview","clues/save","repair-ranks"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){

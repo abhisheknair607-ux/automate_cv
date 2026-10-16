@@ -4,7 +4,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
-const {colLetters,toSheetValue,createSpreadsheetApp}=require("../sheets");
+const {colLetters,toSheetValue,createSpreadsheetApp,Range}=require("../sheets");
 const {invoke,METHODS,READ_ONLY_METHODS,sourceWithSheetIds}=require("../runtime");
 
 const root=path.resolve(__dirname,"../..");
@@ -15,7 +15,7 @@ test("legacy source unchanged and all exposed operations wrapped",()=>{
   const names=[...source.matchAll(/^function\s+([a-zA-Z_][a-zA-Z_0-9]*)\(/gm)].map(x=>x[1]);
   const operations=["getBootstrap","listJobs","getJob","setNotInterested","addDiscovery",
     "saveDiscovery","transferJob","bulkTransfer","updateFreshJD","getCopyPrompt",
-    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
+    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","updateApplicationProgress","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
   assert.deepEqual([...METHODS].sort(),operations.sort());
   for(const name of METHODS)assert.ok(names.includes(name),name+" missing");
   // The migration must not fork candidate-specific sheet mappings or logic.
@@ -35,7 +35,7 @@ test("original dashboard remains syntactically valid and transport is injectable
   assert.match(originalHTML,/function call\(name,arg\)/);
   assert.match(originalHTML,/window\.google && google\.script && google\.script\.run/);
   assert.match(originalHTML,/Unapplied · CV ready/);
-  assert.match(originalHTML,/Download CV/);
+  assert.match(originalHTML,/CV and cover letter files/);
   assert.match(originalHTML,/Copy post-CV prompt/);
   assert.match(originalHTML,/data-action="category"/);
   const bridge=fs.readFileSync(path.join(root,"standalone/bridge.js"),"utf8");
@@ -47,6 +47,38 @@ test("original dashboard remains syntactically valid and transport is injectable
   assert.match(bridge,/not authorised for Garamaal/);
   const server=fs.readFileSync(path.join(root,"standalone/server.js"),"utf8");
   assert.match(server,/"<script src=\\"\/bridge\.js\\"><\/script>\\n<script>\\n'use strict';"/);
+});
+
+test("Firebase Sheets Range supports getDisplayValue for candidate application status",()=>{
+  const sample=[["Application Status · Abhishek","Application Status · Pooja"],["", "Applied + Connected"]];
+  const sheet={
+    getMaxRows:()=>2,
+    getMaxColumns:()=>2,
+    grid:()=>sample,
+  };
+  const cell=new Range(sheet,2,2);
+  assert.equal(cell.getDisplayValue(),"Applied + Connected");
+  assert.deepEqual(cell.getDisplayValues(),[["Applied + Connected"]]);
+  assert.equal(new Range(sheet,2,1).getDisplayValue(),"");
+  assert.deepEqual(new Range(sheet,2,1,1,2).getDisplayValues(),[["","Applied + Connected"]]);
+});
+
+test("Garamaal application dropdown contains only five human statuses; legacy CV codes stay internal",()=>{
+  const ui=originalHTML.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+  const permitted=["Unapplied","Applied","Applied + Connected","Rejected","Accepted"];
+  const values=vm.runInNewContext(
+    ui.match(/const APPLICATION_PROGRESS=\[([^\]]+)\]/)?.[0]+"; APPLICATION_PROGRESS"
+  );
+  assert.deepEqual(Array.from(values),permitted);
+  assert.match(ui,/function statusChoices\(job\)/);
+  assert.match(ui,/APPLICATION_PROGRESS\.map/);
+  assert.match(ui,/data-action="inline-status"/);
+  assert.match(ui,/updateProgress\(Number\(e\.target\.dataset\.row\),e\.target\.value,e\.target\)/);
+  assert.match(source,/PROGRESS_COL\s*=\s*Object\.freeze\(\{Abhishek:57,Pooja:58\}\)/);
+  assert.match(source,/function updateApplicationProgress\(payload\)/);
+  assert.match(source,/getRange\(3,54,count,3\)/); // JD clues BB:BD remain reserved
+  assert.match(source,/getRange\(3,57,count,2\)/); // human statuses BE:BF
+  assert.doesNotMatch(ui,/function statusChoices\(job\)[\s\S]{0,300}jobStatusOptions/);
 });
 
 test("Google Sheets compatibility uses standard column addresses and typed cells",()=>{

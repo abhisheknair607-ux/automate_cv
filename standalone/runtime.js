@@ -29,7 +29,7 @@ function sourceWithSheetIds(ids) {
 const METHODS = new Set([
   "getBootstrap", "listJobs", "getJob", "getExpenses", "setNotInterested", "setJobPreference", "bulkSetJobPreferences", "migrateJobPreferences", "addDiscovery",
   "saveDiscovery", "transferJob", "bulkTransfer", "updateFreshJD",
-  "getCopyPrompt", "updateFreshControl", "getStats", "runCvApiNow",
+  "getCopyPrompt", "updateFreshControl", "updateApplicationProgress", "getStats", "runCvApiNow",
   "syncDiscoveryMaster"
 ]);
 const CACHE = new Map();

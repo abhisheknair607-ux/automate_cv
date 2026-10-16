@@ -60,3 +60,80 @@ test("dashboard downloads use the authenticated same-origin bridge",()=>{
   assert.match(bridge,/fetch\("\/api\/download"/);
   assert.match(bridge,/anchor\.download=name/);
 });
+
+
+test("job-card download icon opens a modal with Word and Drive actions for each available file",()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ assert.match(ui,/id="downloadMount"/);
+ assert.match(ui,/\.download-shade\s*\{\s*position\s*:\s*fixed/);
+ assert.match(script,/data-action="download-options"/);
+ assert.match(script,/section\('cv','Tailored CV',job\.cvLink\)/);
+ assert.match(script,/section\('cl','Cover letter',job\.clLink\)/);
+ assert.match(script,/data-action="download-word"/);
+ assert.match(script,/data-action="view-word-drive"/);
+ assert.match(script,/downloadChoice\(row,x\.dataset\.kind,'word'\)/);
+ assert.match(script,/downloadChoice\(row,x\.dataset\.kind,'drive'\)/);
+ assert.match(script,/await downloadDoc\(row,kind\)/);
+ assert.match(script,/window\.open\(safe,'_blank','noopener,noreferrer'\)/);
+ assert.match(script,/function closeDownloadOptions\(\)/);
+ assert.ok(!script.includes("drive.google.com/uc?export=download"));
+});
+
+test("Google Drive viewer only accepts saved document links on official Google domains",()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ const start=script.indexOf("function verifiedDriveLink(");
+ const end=script.indexOf("let downloadContext=null;",start);
+ assert.ok(start>=0&&end>start);
+ const safeUrl=s=>{try{const v=new URL(String(s));return /^https?:$/.test(v.protocol)?v.href:null}catch{return null}};
+ const verify=new Function("safeUrl","URL",script.slice(start,end)+"return verifiedDriveLink;")(safeUrl,URL);
+ const file="https://drive.google.com/file/d/"+id+"/view";
+ const doc="https://docs.google.com/document/d/"+id+"/edit";
+ assert.equal(verify(file),file);
+ assert.equal(verify(doc),doc);
+ assert.equal(verify("https://drive.google.com/open?id="+id),"https://drive.google.com/open?id="+id);
+ for(const invalid of [
+    "https://evil.example.com/file/d/"+id+"/view",
+    "https://drive.google.com.evil.example/file/d/"+id+"/view",
+    "javascript:alert(1)", "https://docs.google.com/spreadsheets/d/"+id+"/edit", ""
+ ])assert.equal(verify(invalid),null);
+});
+
+
+test("document popup offers two options per available file and isolates candidate on action",async()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ const start=script.indexOf("function verifiedDriveLink(");
+ const end=script.indexOf("function downloadCv(row)",start);
+ assert.ok(start>=0&&end>start);
+ const mount={innerHTML:""};
+ const cv="https://drive.google.com/file/d/"+id+"/view";
+ const cl="https://docs.google.com/document/d/"+id+"/edit";
+ const state={candidate:"Abhishek",detail:null,data:{rows:[{row:8,company:"BDO",role:"International Tax",cvLink:cv,clLink:cl}]}};
+ const calls=[],opened=[],errors=[];
+ const app=new Function("state","document","toast","safeUrl","h","icon","window","downloadDoc",
+   script.slice(start,end)+"return {showDownloadOptions,closeDownloadOptions,downloadChoice};")(
+   state,{getElementById:()=>mount},(m)=>errors.push(m),
+   s=>{try{const u=new URL(s);return u.protocol==="https:"?u.href:null}catch{return null}},
+   String,()=>"<svg/>",{open:(...args)=>opened.push(args)},async(...args)=>calls.push(args)
+ );
+ app.showDownloadOptions(8);
+ assert.match(mount.innerHTML,/Application documents/);
+ assert.match(mount.innerHTML,/Tailored CV/);
+ assert.match(mount.innerHTML,/Cover letter/);
+ assert.equal((mount.innerHTML.match(/Download Word/g)||[]).length,2);
+ assert.equal((mount.innerHTML.match(/Open in Google Drive/g)||[]).length,2);
+ await app.downloadChoice(8,"cl","word");
+ assert.deepEqual(calls,[[8,"cl"]]);
+ assert.equal(mount.innerHTML,"");
+ app.showDownloadOptions(8);
+ await app.downloadChoice(8,"cv","drive");
+ assert.deepEqual(opened,[[cv,"_blank","noopener,noreferrer"]]);
+ assert.equal(mount.innerHTML,"");
+ app.showDownloadOptions(8);
+ state.candidate="Pooja";
+ await app.downloadChoice(8,"cl","word");
+ assert.equal(calls.length,1);
+ assert.ok(errors.some(x=>x.includes("reopen")));
+});

@@ -127,3 +127,19 @@ test("Selection controls show only bulk Not Interested and Favourite, never Fres
   assert.match(html,/async function bulkSetPreferences/);
   assert.doesNotMatch(html,/data-action="bulk-transfer"/);
 });
+
+
+test("Selected Discovery jobs show floating bulk actions above mobile navigation",()=>{
+  // Regression: actions previously existed but .selectionbar had no base position,
+  // leaving the toolbar *after* the full job list and invisible on phones.
+  const css=html.match(/<style>([\s\S]*?)<\/style>/)?.[1]||"";
+  const bar=[...css.matchAll(/\.selectionbar\s*\{([^}]+)\}/g)].map(m=>m[1]).find(x=>/position\s*:\s*fixed/.test(x))||"";
+  assert.match(bar,/position\s*:\s*fixed\s*;/);
+  assert.match(bar,/z-index\s*:\s*(?:1[1-9]|[2-9]\d)\s*;/);
+  assert.match(bar,/bottom\s*:/);
+  assert.match(bar,/display\s*:\s*flex/);
+  assert.match(css,/\.selectionbar\s*\{\s*bottom\s*:\s*calc\(74px \+ env\(safe-area-inset-bottom\)\)/);
+  assert.match(html,/data-action="bulk-select"/);
+  assert.match(html,/function syncSelectionBar\(\)/);
+  assert.match(html,/if\(a==='bulk-preference'\)\{bulkSetPreferences\(value\);return\}/);
+});
