@@ -90,3 +90,27 @@ test("Malformed jobs and read-only mode block writes",async()=>{
  await assert.rejects(store.save({token:"x",spreadsheetId:"mockbook",job:{...job,source:"taaza"},contacts:[{}],fetcher:fake.fetcher}),/Invalid/);
  assert.equal(fake.state.requests.length,0);
 });
+
+
+test("Previously saved full-name BDO contacts appear only for matching candidate, row and vacancy",async()=>{
+ const fake=fakeSheets();
+ const vacancy="https://bdoireland.pinpointhq.com/en/postings/391e7aaf-2db7-45e7-b7e9-9fbc3963f994";
+ const job={source:"fresh",candidate:"Abhishek",row:68,company:"BDO",
+   role:"International Corporate Tax Opportunities - Register Your Interest",url:vacancy};
+ fake.state.tab={sheetId:2299,title:"Connections",gridProperties:{rowCount:1000,columnCount:12}};
+ fake.state.headers=[...store.HEADER];
+ fake.state.rows=[
+   ["BDO","Kevin Doyle","","https://www.linkedin.com/search/results/people/?keywords=Kevin",
+     job.role,"Abhishek Nair","68",vacancy,"Partner, International Tax","Firm source","Hi","2026-10-16"],
+   ["BDO","Pooja Contact","","https://www.linkedin.com/search/results/people/?keywords=Pooja",
+     job.role,"Pooja Tirupati","68",vacancy,"Tax Director","Firm source","Hi","2026-10-16"],
+   ["BDO","Another row","","https://www.linkedin.com/search/results/people/?keywords=Other",
+     job.role,"Abhishek Nair","69",vacancy,"Tax Director","Firm source","Hi","2026-10-16"],
+   ["Elsewhere","Not BDO","","https://www.linkedin.com/search/results/people/?keywords=Other",
+     job.role,"Abhishek Nair","68",vacancy,"Tax Director","Firm source","Hi","2026-10-16"],
+ ];
+ const view=await store.read({token:"x",spreadsheetId:"mockbook",job,fetcher:fake.fetcher});
+ assert.deepEqual(view.contacts.map(c=>c.name),["Kevin Doyle"]);
+ assert.equal(store.identity("Abhishek Nair",68,vacancy,"Kevin Doyle"),
+              store.identity("Abhishek",68,vacancy,"Kevin Doyle"));
+});
