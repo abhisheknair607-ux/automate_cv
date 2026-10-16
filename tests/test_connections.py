@@ -165,3 +165,24 @@ def test_web_networking_automatically_saves_verified_contacts_into_scoped_sheet(
     assert "https://www.bdo.ie/" in saved[9]
     assert saved[10].startswith("Hi Kevin,\n\n")
     assert "\n\nThank you" in saved[10]
+
+
+def test_manual_run_snapshot_preserves_web_opt_in_when_checkbox_changes():
+    from automate_cv.controlled import resolve_web_search
+    assert resolve_web_search(False, 'true') is True
+    assert resolve_web_search(True, 'true') is True
+    assert resolve_web_search(True, 'false') is False
+    assert resolve_web_search(True, '') is True
+    assert resolve_web_search(False, '') is False
+    import pytest
+    with pytest.raises(ValueError):
+        resolve_web_search(True, 'untrusted')
+
+
+def test_manual_dispatch_workflow_accepts_web_snapshot_input():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    workflow = (root / '.github/workflows/controlled-cv-test.yml').read_text()
+    assert 'web_search:' in workflow
+    assert 'MANUAL_WEB_SEARCH:' in workflow
+    assert '--web-search "$MANUAL_WEB_SEARCH"' in workflow
