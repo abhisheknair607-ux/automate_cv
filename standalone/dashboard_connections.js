@@ -30,8 +30,9 @@ async function contacts(row,tier="1-5"){
   if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
   const box='<p class="connection-note">'+esc(j.company)+' · '+esc(j.role)+'</p>'+rangeSelector(row,tier)+
    '<p class="connection-note">Estimated research cost: <b>$'+Number(p.estimateUsd||0).toFixed(2)+'</b>. Target $0.15, maximum planned $0.20 per job. A provider-level hard spending cap cannot be guaranteed. Free when cached.</p>'+
-   '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'">'+(p.cached?"View cached research":"Research and confirm cost")+'</button>'+
+   '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+((p.configured&&p.permitted)||p.cached?'':'disabled')+'>'+(p.cached?"View cached research":p.configured&&p.permitted?"Research and confirm cost":"Research unavailable")+'</button>'+
    '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT prompt (no API charge)</button></div>'+
+   '<p class="connection-note">'+esc(!p.configured?"Paid research is not configured; the free ChatGPT prompt and LinkedIn searches still work.":!p.permitted?"This tier exceeds the remaining planned $0.20 per-job budget; use a lower tier or free search.":"")+'</p>'+
    '<p class="connection-note">'+esc(p.disclaimer)+'</p>'+suggestedSearches(p.searches);
   show("Connections · "+j.company,box);
  }catch(e){show("Connections · "+j.company,'<p class="connection-note">'+esc(e.message||"Could not load the preview.")+'</p>')}
