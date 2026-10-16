@@ -76,7 +76,7 @@ test("missing API key cannot incur charge or trigger web call",async()=>{
 test("Cloud Run installs authenticated research and formula routes; card actions are icons only",()=>{
  new vm.Script(ranking);new vm.Script(frontend);
  for(const word of ["/api/connections/preview","/api/connections/research","/api/repair-ranks","/api/clues/save","await authenticate(req)","dashboard-ranking.js","dashboard-connections.js"])assert.ok(server.includes(word),word);
- for(const word of ['data-action="copy-ranking"','data-action="repair-ranks"','data-action="connections"','data-action="jd-clues"','aria-label="Download CV"','aria-label="Copy post-CV prompt"','__cvConnectOnWebSaved'])assert.ok(html.includes(word),word);
+ for(const word of ['data-action="copy-ranking"','data-action="repair-ranks"','data-action="connections"','data-action="jd-clues"','aria-label="CV and cover letter files"','aria-label="Copy post-CV prompt"','__cvConnectOnWebSaved'])assert.ok(html.includes(word),word);
  assert.ok(!html.includes('Download CV</button>'));
 });
 
