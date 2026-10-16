@@ -403,6 +403,9 @@ function listJobs(options) {
       return {...x,transferred:transferred.has(canonical_(x.url)),preference,
         favorite:preference==='Favorite',notInterested:preference==='Not Interested'};
     });
+    // Discovery is an intake queue, not a duplicate of Make CV. Match by
+    // canonical vacancy URL, regardless of which candidate transferred it.
+    jobs=jobs.filter(x=>!x.transferred);
     jobs.forEach(x=>{delete x.categories;delete x.preferences;});
   } else {
     const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
@@ -493,13 +496,13 @@ function getJob(options) {
  * All matching URL rows are included so duplicated discovery records do not resurface.
  */
 /** Candidate-specific preference state, mirrored by matching vacancy URL. */
-function setJobPreference(payload){
-  authorise_();payload=payload||{};
+function setJobPreference_(payload){
+  payload=payload||{};
   const source=String(payload.source||''),candidate=String(payload.candidate||''),person=person_(candidate);
   if(source!=='taaza'&&source!=='fresh')throw new Error('Choose Taaza or Freshmaal.');
   const value=payload.value==null?'':String(payload.value);
   if(!['','Not Interested','Favorite'].includes(value))throw new Error('Invalid job preference.');
-  return lockRun_(()=>{
+  {
     const primary=sheet_(source),row=expected_(primary,payload.row,source==='taaza'?2:3,payload.expected);
     const url=primary.getRange(row,3).getValue(),key=canonical_(url);
     if(!key)throw new Error('A valid vacancy URL is required to synchronise the preference.');
@@ -523,6 +526,46 @@ function setJobPreference(payload){
         throw new Error('Preference write verification failed. Check both Sheets.');
     return {saved:true,candidate,row,preference:value,updatedRows:targets.length,
       message:value==='Favorite'?'Added to '+candidate+' Favorites.':value==='Not Interested'?'Moved to Not Interested for '+candidate+'.':'Preference cleared for '+candidate+'.'};
+  }
+}
+function setJobPreference(payload){
+  authorise_();
+  return lockRun_(()=>setJobPreference_(payload));
+}
+/** One authenticated call for a bounded selection, with independent row results.
+ * Keep the script lock for the batch so reads can be reused and other edits
+ * cannot interleave. It never deletes jobs or triggers transfer.
+ */
+function bulkSetJobPreferences(payload){
+  authorise_();payload=payload||{};
+  const candidate=String(payload.candidate||'');person_(candidate);
+  const value=String(payload.value||'');
+  if(!['Not Interested','Favorite'].includes(value))throw new Error('Choose Not Interested or Favorite.');
+  if(payload.source!=='taaza')throw new Error('Bulk preferences are only available in Discovery.');
+  const jobs=payload.jobs;
+  if(!Array.isArray(jobs)||jobs.length<1||jobs.length>20)
+    throw new Error('Select 1–20 discovery jobs.');
+  const seen=new Set();
+  const validated=jobs.map(item=>{
+    const row=Number(item&&item.row);
+    if(!Number.isInteger(row)||row<2||seen.has(row))
+      throw new Error('Each selected job must have a unique valid Taaza row.');
+    seen.add(row);
+    const expected=item&&item.expected;
+    if(!expected||!String(expected.company||'').trim()||
+        !String(expected.role||'').trim()||!String(expected.url||'').trim())
+      throw new Error('Refresh your selection; a job is missing its verification details.');
+    return {row,expected};
+  });
+  return lockRun_(()=>{
+    const results=validated.map(item=>{
+      try{
+        const saved=setJobPreference_({source:'taaza',candidate,value,...item});
+        return {row:item.row,ok:true,updatedRows:saved.updatedRows};
+      }catch(error){return {row:item.row,ok:false,error:String(error.message||error)};}
+    });
+    return {value,candidate,results,completed:results.filter(x=>x.ok).length,
+      failed:results.filter(x=>!x.ok).length};
   });
 }
 /** Keep legacy read/write callers compatible during the deployment transition. */
