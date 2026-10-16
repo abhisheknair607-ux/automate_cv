@@ -56,7 +56,8 @@ test("Make CV title opens vacancy, badges share one row, overflow opens details"
   assert.match(output,/class="joblink" href="https:\/\/example.org\/jobs\/investment-analyst"/);
   assert.match(output,/Garam CV Ready/);
   assert.match(output,/COMPLETE/);
-  assert.match(output,/aria-label="Download CV"/);
+  assert.match(output,/aria-label="CV and cover letter files"/);
+  assert.match(output,/data-action="download-options"/);
   assert.match(output,/aria-label="Copy post-CV prompt"/);
   assert.match(output,/data-action="detail"[^>]*title="More options and job details"/);
   assert.match(output,/data-icon='more'/);
