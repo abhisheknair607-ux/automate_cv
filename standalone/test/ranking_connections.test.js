@@ -79,3 +79,19 @@ test("Cloud Run installs authenticated research and formula routes; card actions
  for(const word of ['data-action="copy-ranking"','data-action="repair-ranks"','data-action="connections"','data-action="jd-clues"','aria-label="Download CV"','aria-label="Copy post-CV prompt"','__cvConnectOnWebSaved'])assert.ok(html.includes(word),word);
  assert.ok(!html.includes('Download CV</button>'));
 });
+
+test("JD opportunities eye routes are recognised by the authenticated Firebase transport",()=>{
+ const bridge=read("standalone/bridge.js");
+ // Evaluate the ACTUAL endpoint allowlist array rather than duplicating the
+ // permitted list in tests; prevent future 'Unsupported operation' regressions.
+ const whitelist=bridge.match(/if\(!(\[[^\]]+\])\.includes\(endpoint\)\)/);
+ assert.ok(whitelist,"No requestSpecial endpoint allowlist found");
+ const endpoints=JSON.parse(whitelist[1]);
+ for(const route of ["clues/preview","clues/save","connections/saved","connections/preview","connections/research","repair-ranks"]){
+   assert.ok(endpoints.includes(route),"Bridge disallows "+route);
+   assert.ok(server.includes('app.post("/api/'+route+'"'),"Cloud Run is missing /api/"+route);
+ }
+ assert.ok(!endpoints.includes("arbitrary/delete"),"Unexpected API operation allowed");
+ assert.match(frontend,/requestSpecial\("clues\/preview"/);
+ assert.match(frontend,/requestSpecial\("clues\/save"/);
+});
