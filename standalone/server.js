@@ -14,6 +14,7 @@ const {tokenUsageForJob} = require("./cost_usage");
 const connections=require("./connections");
 const {jdClues}=require("./job_clues");
 const clueStore=require("./clue_store");
+const contactsStore=require("./contacts_store");
 const {repairRankFormulas}=require("./rank_formulas");
 
 const BASE = path.resolve(__dirname,"..");
@@ -234,8 +235,13 @@ app.post("/api/clues/save",async(req,res)=>{
 });
 app.post("/api/connections/preview",async(req,res)=>{
  try{
-  const job=await authorisedJob(req);
-  res.json({data:connections.preview(job,String(req.body?.tier||"1-5"),!!process.env.OPENAI_API_KEY)});
+  const job=await authorisedJob(req),tier=String(req.body?.tier||"1-5");
+  const view=connections.preview(job,tier,!!process.env.OPENAI_API_KEY);
+  // Existing saved contacts are read on demand (never during listing/refresh).
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  res.json({data:{...view,existingContacts:saved.contacts,sheetUrl:saved.url}});
  }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Preview unavailable").slice(0,220)})}
 });
 app.post("/api/connections/research",async(req,res)=>{
@@ -243,10 +249,33 @@ app.post("/api/connections/research",async(req,res)=>{
   const job=await authorisedJob(req);
   const tier=String(req.body?.tier||"");
   if(req.body?.confirm!==true)throw Object.assign(Error("Confirm the estimated API charge before continuing."),{httpCode:400});
+  // Prefer previously saved contacts when sufficient for this chosen tier.
+  // Reopening a completed job never requires a paid search for the same count.
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  const plan=connections.tiers[tier];
+  if(plan&&saved.contacts.length>=plan.min&&req.body?.refresh!==true){
+    return res.json({data:{status:"ready",tier,contacts:saved.contacts,searches:connections.preview(job,tier,false).searches,
+      costUsd:0,cached:true,persisted:true,sheetUrl:saved.url,
+      warning:"Using existing Freshmaal Connections contacts at no additional model cost."}});
+  }
   const data=await connections.research(job,tier,process.env.OPENAI_API_KEY||"");
+  let persistence={saved:0,updated:0,skipped:0,url:saved.url};
+  let persistenceError="";
+  if(data.status==="ready"&&data.contacts.length){
+    try{
+      persistence=await contactsStore.save({token,spreadsheetId:IDS.fresh,job,contacts:data.contacts,readOnly:READ_ONLY});
+    }catch(error){
+      persistenceError="Research succeeded but contacts could not be saved to Freshmaal: "+String(error.message||error).slice(0,160);
+      console.error("[connections-save]",String(error.message||"").slice(0,170));
+    }
+  }
   if(data.status==="ready"&&!data.cached)
     console.log("[connections] tier="+tier+" usedUsd="+data.costUsd+" people="+data.contacts.length);
-  res.json({data});
+  res.json({data:{...data,persisted:!persistenceError&&data.status==="ready",
+    savedContacts:persistence.saved,updatedContacts:persistence.updated,sheetUrl:persistence.url,
+    saveWarning:persistenceError}});
  }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
    res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
 });
