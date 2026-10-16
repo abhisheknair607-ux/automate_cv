@@ -50,9 +50,15 @@ def linkedin_invitation(candidate, recipient, company, position, team):
     """
     first = re.split(r"\s+", str(recipient or "").strip())[0][:32]
     first = re.sub(r"[^\w'-]", "", first, flags=re.UNICODE) or "there"
-    firm = re.sub(r"\s+", " ", str(company or "").strip())[:65]
-    function = re.sub(r"\s+", " ", str(team or "").strip())[:65]
-    role = re.sub(r"\s+", " ", str(position or "").strip())[:65]
+    def words(value, limit):
+        value = re.sub(r"\s+", " ", str(value or "").strip())
+        if len(value) <= limit:
+            return value
+        return value[:limit].rsplit(" ", 1)[0] or value[:limit]
+
+    firm = words(company, 48)
+    function = words(team, 54)
+    role = words(position, 54)
     person = str(candidate or "").strip()
     intro = (
         "I'm Abhishek Nair, an ACCA member with EY experience and a UCD MSc."
