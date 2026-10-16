@@ -120,6 +120,22 @@
     }
     return json.data;
   }
+  async function requestSpecial(endpoint,body){
+    if(!["connections/preview","connections/research","repair-ranks"].includes(endpoint))
+      throw Error("Unsupported operation.");
+    const user=await waitForUser();
+    async function send(force=false){
+      return fetch("/api/"+endpoint,{method:"POST",credentials:"same-origin",cache:"no-store",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        body:JSON.stringify(body||{})
+      });
+    }
+    let response=await send();
+    if(response.status===401)response=await send(true);
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok)throw Error(data.error||"Operation failed.");
+    return data.data;
+  }
   async function loadTokenUsage(candidate,row){
     const user=await waitForUser();
     async function send(force=false){
@@ -198,7 +214,7 @@
   window.google=window.google||{};
   window.google.script=window.google.script||{};
   window.google.script.run=chain(null,null);
-  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage};
+  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage,requestSpecial};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initAuth,{once:true});
   else initAuth();
 })();
