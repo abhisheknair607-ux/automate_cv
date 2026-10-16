@@ -99,3 +99,41 @@ test("Google Drive viewer only accepts saved document links on official Google d
     "javascript:alert(1)", "https://docs.google.com/spreadsheets/d/"+id+"/edit", ""
  ])assert.equal(verify(invalid),null);
 });
+
+
+test("document popup offers two options per available file and isolates candidate on action",async()=>{
+ const ui=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const script=ui.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+ const start=script.indexOf("function verifiedDriveLink(");
+ const end=script.indexOf("function downloadCv(row)",start);
+ assert.ok(start>=0&&end>start);
+ const mount={innerHTML:""};
+ const cv="https://drive.google.com/file/d/"+id+"/view";
+ const cl="https://docs.google.com/document/d/"+id+"/edit";
+ const state={candidate:"Abhishek",detail:null,data:{rows:[{row:8,company:"BDO",role:"International Tax",cvLink:cv,clLink:cl}]}};
+ const calls=[],opened=[],errors=[];
+ const app=new Function("state","document","toast","safeUrl","h","icon","window","downloadDoc",
+   script.slice(start,end)+"return {showDownloadOptions,closeDownloadOptions,downloadChoice};")(
+   state,{getElementById:()=>mount},(m)=>errors.push(m),
+   s=>{try{const u=new URL(s);return u.protocol==="https:"?u.href:null}catch{return null}},
+   String,()=>"<svg/>",{open:(...args)=>opened.push(args)},async(...args)=>calls.push(args)
+ );
+ app.showDownloadOptions(8);
+ assert.match(mount.innerHTML,/Application documents/);
+ assert.match(mount.innerHTML,/Tailored CV/);
+ assert.match(mount.innerHTML,/Cover letter/);
+ assert.equal((mount.innerHTML.match(/Download Word/g)||[]).length,2);
+ assert.equal((mount.innerHTML.match(/Open in Google Drive/g)||[]).length,2);
+ await app.downloadChoice(8,"cl","word");
+ assert.deepEqual(calls,[[8,"cl"]]);
+ assert.equal(mount.innerHTML,"");
+ app.showDownloadOptions(8);
+ await app.downloadChoice(8,"cv","drive");
+ assert.deepEqual(opened,[[cv,"_blank","noopener,noreferrer"]]);
+ assert.equal(mount.innerHTML,"");
+ app.showDownloadOptions(8);
+ state.candidate="Pooja";
+ await app.downloadChoice(8,"cl","word");
+ assert.equal(calls.length,1);
+ assert.ok(errors.some(x=>x.includes("reopen")));
+});
