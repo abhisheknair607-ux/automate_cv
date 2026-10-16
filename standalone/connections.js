@@ -19,8 +19,13 @@ function searches(job){const b=[job.company,job.role,job.location].map(v=>short(
 function note(job,person){
  const p=typeof person==="string"?{name:person}:(person||{});
  const first=short(p.name||"there",55).split(/\s+/)[0].replace(/[^A-Za-zÀ-ÿ'-]/g,"").slice(0,32)||"there";
- const company=short(job.company,65);
- const team=short(p.team,64),title=short(p.title,64);
+ const phrase=(v,n)=>{
+   const text=String(v||"").replace(/\s+/g," ").trim();
+   if(text.length<=n)return text;
+   return text.slice(0,n).replace(/\s+\S*$/,"")||text.slice(0,n);
+ };
+ const company=phrase(job.company,48);
+ const team=phrase(p.team,54),title=phrase(p.title,54);
  // Personalise ONLY with the recipient's verified function/title. Never make
  // unsupported claims about a project, hiring authority or mutual connection.
  const observed=team?"Your work in "+team+" at "+company:
