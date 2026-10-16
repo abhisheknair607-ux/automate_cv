@@ -135,6 +135,30 @@
 .connection-note{font-size:11px;color:var(--muted);line-height:1.5;margin:9px 0}
 .connections-pop select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px}
 @media(max-width:720px){.job-card-actions{gap:4px}.job-card-actions .action-icon,.job-card-actions .preference-icon,.job-card-actions .job-more{width:30px;min-width:30px;height:30px;min-height:30px;padding:5px}.job-card-actions .action-icon svg{width:15px;height:15px}}
+/* Bulk actions must stay visible above Garamaal's fixed mobile navigation,
+ * regardless of how many discovery cards are loaded or where the user scrolls.
+ * Existing JS mounts this inside the job list; position:fixed anchors it to
+ * the viewport instead of leaving it after the full pagination list. */
+.selectionbar{
+ position:fixed;
+ left:50%;
+ transform:translateX(-50%);
+ bottom:20px;
+ z-index:25;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px;
+ width:min(720px,calc(100% - 24px));
+ box-sizing:border-box;
+ padding:10px 13px;
+ border:1px solid #bed3ed;
+ border-radius:14px;
+ background:#fff;
+ box-shadow:0 8px 32px #15274638;
+ color:var(--ink);
+}
+.selectionbar .bulk-preference-actions{display:flex;align-items:center}
 /* Bulk selection offers only preference updates, never deletion or transfer. */
 .bulk-preference-actions{gap:6px;flex-wrap:wrap}
 .bulk-preference-actions .btn{padding:6px 8px;min-height:34px;font-size:11px}
