@@ -1,6 +1,6 @@
 from types import SimpleNamespace
 
-from automate_cv.connections import canonical_url, matching_rows, parse_contacts
+from automate_cv.connections import canonical_url, matching_rows, parse_contacts, linkedin_invitation
 
 
 def example(candidate="Abhishek Nair", row=68):
@@ -43,3 +43,32 @@ def test_invalid_model_research_output_is_rejected():
     with pytest.raises(ValueError):
         parse_contacts("not a JSON document")
     assert parse_contacts('{"contacts": []}') == []
+
+
+def test_linkedin_invitation_is_warm_personal_and_formatted():
+    message = linkedin_invitation("Abhishek Nair", "Kevin Doyle", "BDO",
+                                  "Partner", "International Tax")
+    assert message.startswith("Hi Kevin,\n\n")
+    assert message.endswith("\n\nThank you — I'd be grateful to connect.")
+    assert len(message.split("\n\n")) == 3
+    assert all(fact in message for fact in ("ACCA member", "EY", "UCD", "International Tax"))
+    assert len(message) < 300
+
+
+def test_long_recipients_preserve_blank_lines_and_character_limit():
+    note = linkedin_invitation(
+        "Abhishek Nair", "Alexandrianna Reallylongsurname",
+        "Extraordinary International Financial Services Partnership and Management Company",
+        "Senior Director", "International Transfer Pricing and Financial Services Tax")
+    assert len(note) < 300
+    assert note.startswith("Hi Alexandrianna,\n\n")
+    assert note.count("\n\n") == 2
+
+
+def test_pooja_never_inherits_abhishek_credentials():
+    message = linkedin_invitation("Pooja Tirupati", "Rachel Green", "BDO",
+                                  "Director", "Tax Advisory")
+    assert message.startswith("Hi Rachel,\n\nI'm Pooja Tirupati.")
+    assert all(word not in message for word in ("Abhishek", "ACCA", "EY experience", "UCD MSc"))
+    assert "Tax Advisory" in message
+    assert len(message) < 300
