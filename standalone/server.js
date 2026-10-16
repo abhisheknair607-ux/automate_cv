@@ -11,6 +11,8 @@ const {getCvQueue} = require("./queue");
 const {Readable} = require("node:stream");
 const {DOCX,getDocument} = require("./download");
 const {tokenUsageForJob} = require("./cost_usage");
+const connections=require("./connections");
+const {repairRankFormulas}=require("./rank_formulas");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -173,6 +175,56 @@ app.post("/api/usage",async(req,res)=>{
     console.error("[usage-proof]",status,String(error.message||"Error").slice(0,160));
     res.status(status).json({error:String(error.message||"Usage verification failed").slice(0,220)});
   }
+});
+// The ranking prompt itself is client-side and incurs no API charge.
+// Formula repair is explicit, candidate-independent, and only touches AM/AO.
+app.post("/api/repair-ranks",async(req,res)=>{
+ try{
+  const email=await authenticate(req);
+  if(READ_ONLY)throw Object.assign(Error("Ranking repair requires live edit access."),{httpCode:403});
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  if(!token)throw Error("Google spreadsheet permissions unavailable.");
+  const result=await repairRankFormulas({token,spreadsheetId:IDS.fresh,
+    confirm:req.body?.confirm===true,readOnly:READ_ONLY});
+  console.log("[rank-formulas] repaired by authorised account; cells="+result.updatedCells);
+  res.json({data:result});
+ }catch(error){res.status(error.httpCode||500).json({error:String(error.message||"Rank repair failed").slice(0,250)})}
+});
+async function authorisedJob(req){
+ const email=await authenticate(req);
+ const candidate=String(req.body?.candidate||"");
+ const row=Number(req.body?.row);
+ if(!["Abhishek","Pooja"].includes(candidate)||!Number.isInteger(row)||row<3)
+  throw Object.assign(Error("Invalid job."),{httpCode:400});
+ const access=await (await auth.getClient()).getAccessToken();
+ const token=typeof access==="string"?access:access.token;
+ if(!token)throw Error("Google Sheets access unavailable.");
+ const job=await invoke("getJob",{source:"fresh",candidate,row},{
+   email,token,ids:IDS,readOnly:READ_ONLY,allowedEmails:ALLOWED.join(",")
+ });
+ if(!job||job.source!=="fresh"||job.row!==row)throw Object.assign(Error("Job row not found."),{httpCode:404});
+ return {...job,candidate};
+}
+// Preview is free; a separate explicit click triggers one paid request.
+// A long-lived key MUST be stored in a Cloud Run Secret Manager binding, never in the browser.
+app.post("/api/connections/preview",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  res.json({data:connections.preview(job,String(req.body?.tier||"1-5"),!!process.env.OPENAI_API_KEY)});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Preview unavailable").slice(0,220)})}
+});
+app.post("/api/connections/research",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  const tier=String(req.body?.tier||"");
+  if(req.body?.confirm!==true)throw Object.assign(Error("Confirm the estimated API charge before continuing."),{httpCode:400});
+  const data=await connections.research(job,tier,process.env.OPENAI_API_KEY||"");
+  if(data.status==="ready"&&!data.cached)
+    console.log("[connections] tier="+tier+" usedUsd="+data.costUsd+" people="+data.contacts.length);
+  res.json({data});
+ }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
+   res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
 });
 app.post("/api/:method",async (req,res)=>{
   try {
