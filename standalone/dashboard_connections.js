@@ -41,12 +41,17 @@ async function contacts(row,tier="1-5"){
  }catch(e){show("Connections · "+j.company,'<p class="connection-note">'+esc(e.message||"Could not load the preview.")+'</p>')}
 }
 function researchPrompt(job,tier){
- return ["RESEARCH VERIFIED JOB NETWORKING CONTACTS FOR "+state.candidate,"Company: "+job.company,
- "Job title: "+job.role,"Location: "+job.location,"Exact vacancy link: "+job.url,
+ const c=window.__cvRanking?.configs?.[state.candidate];
+ return ["RESEARCH VERIFIED JOB NETWORKING CONTACTS FOR "+state.candidate,
+ "Candidate's factual Summary Doc: "+(c?.summary||"Unavailable — request factual context"),
+ "Current career goal: "+(c?.goal||"Unavailable — do not invent goals"),
+ "Company: "+job.company,"Job title: "+job.role,"Location: "+job.location,
+ "Exact vacancy link: "+job.url,"Exact Freshmaal row: "+job.row,
  "Requested: "+tier+" contacts relevant to this job. Find managers, team leaders, department heads, recruiters, and 1–2 levels above; exclude unrelated executives.",
  "For each real person verify company, exact relevant team, up-to-date role, location and confidence. A direct LinkedIn profile only if the exact URL can be sourced and verified. Otherwise provide a LinkedIn people-search link with name, company and designation; label it unverified.",
- "Provide a personal, polite LinkedIn introduction under 300 characters including the candidate's name and a brief, accurate role-relevant introduction. Do not fabricate experience, claim someone is the hiring manager without evidence, or send messages.",
- "Use freely accessible public sources. Show profile URL, fallback search URL and source evidence separately."
+ "Provide a personal, polite LinkedIn introduction under 300 characters based solely on the candidate's verified Summary Doc, including their name. Do not fabricate experience, claim someone is the hiring manager without evidence, or send messages.",
+ "SAVE FINDINGS in Freshmaal spreadsheet https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit, tab 'Connections', not Sheet1, with exact A:L headers: Company, Contact Name, Direct LinkedIn Profile, LinkedIn Search, Applied-for Role, Candidate, Freshmaal Row, Vacancy Link, Person's Position, Verification / Evidence, Outreach Message, Research Date (UTC). Create the tab only after verifying no conflicting tab exists. Save only verified direct links; leave blank when unknown. Include fallback search for every named person. De-duplicate by candidate + exact row + vacancy URL + name. Never overwrite existing CV data, scores, application status or another candidate's rows.",
+ "If ChatGPT cannot edit the Google Sheet with its connected apps, clearly explain and provide an import-ready contacts table. Do not claim saved unless each write is verified. List public source URLs for all personnel claims."
  ].join("\n\n");
 }
 async function copyPrompt(row){
