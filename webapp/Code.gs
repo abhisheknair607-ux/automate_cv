@@ -605,7 +605,18 @@ function getCopyPrompt(payload){
   if(!/^https:\/\/(?:docs|drive)\.google\.com\//i.test(link))
     throw new Error('A completed CV is required before copying the prompt.');
   if(!prompt)throw new Error('The post-CV prompt is not ready in Freshmaal.');
-  return {candidate,row,prompt};
+  let copyText=prompt;
+  if(truthy_(data[p.web-1])){
+    const candidateName=candidate==='Abhishek'?'Abhishek Nair':'Pooja Tirupati';
+    const job=sh.getRange(row,1,1,3).getDisplayValues()[0];
+    const addendum=["ADDITIONAL TASK — VERIFIED NETWORKING (Web checked only)","After reviewing the existing CV/ATS findings, research 5–10 real current people in the exact role's team and location. Prioritise team leads, managers, partners and relevant local recruiters; exclude unrelated leaders.","Verify each person's present company, relevant team, title, location and publicly accessible source URLs. Label hiring influence inferred unless proved. Only provide a direct LinkedIn URL if its exact profile is verified; otherwise leave it blank and supply a LinkedIn people-search URL.","Write a separate friendly LinkedIn introduction for each person under 300 characters, using only verified information from this candidate's actual Summary Doc. Do not send messages.","Before writing, inspect Connections for records with the same candidate, Freshmaal row, exact vacancy URL and name. Avoid duplicates. Do not overwrite any CV/workflow scores, application status or another candidate's rows.","Save verified contacts in the existing Freshmaal spreadsheet, tab Connections only (not Sheet1), keeping these A:L headers exactly: Company, Contact Name, Direct LinkedIn Profile, LinkedIn Search, Applied-for Role, Candidate, Freshmaal Row, Vacancy Link, Person's Position, Verification / Evidence, Outreach Message, Research Date (UTC).","Re-read and verify the saved rows. If the connected ChatGPT app cannot edit the Sheet, provide an import-ready 12-column table and say clearly it was not saved.","Once saved in Connections, the exact job's website drawer displays only contacts matching candidate + Freshmaal row + vacancy URL."].join('\n');
+    copyText+='\n\n---\n'+addendum+'\n\nExact job identity: candidate '+candidateName
+      +'; Freshmaal row '+row+'; Company '+String(job[0]||'')
+      +'; Applied-for role '+String(job[1]||'')
+      +'; Vacancy URL '+String(job[2]||'')
+      +'; Freshmaal sheet https://docs.google.com/spreadsheets/d/'+SETTINGS.freshId+'/edit';
+  }
+  return {candidate,row,prompt:copyText};
 }
 function updateFreshControl(payload) {
   authorise_();payload=payload||{};
