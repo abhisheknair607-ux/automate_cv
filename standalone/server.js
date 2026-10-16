@@ -11,6 +11,11 @@ const {getCvQueue} = require("./queue");
 const {Readable} = require("node:stream");
 const {DOCX,getDocument} = require("./download");
 const {tokenUsageForJob} = require("./cost_usage");
+const connections=require("./connections");
+const {jdClues}=require("./job_clues");
+const clueStore=require("./clue_store");
+const contactsStore=require("./contacts_store");
+const {repairRankFormulas}=require("./rank_formulas");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -59,6 +64,8 @@ app.get("/config",(req,res)=>res.json({
   appId:process.env.FIREBASE_WEB_APP_ID||"",
   readOnly:READ_ONLY,
 }));
+app.get("/dashboard-ranking.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_ranking.js")));
+app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_connections.js")));
 app.get("/bridge.js",(req,res)=>{
   res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js"));
 });
@@ -103,6 +110,7 @@ app.get("/",(req,res)=>{
   // Installable PWA assets never cache authenticated Google Sheets responses.
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
+  html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
   res.type("html").send(html);
 });
 
@@ -173,6 +181,105 @@ app.post("/api/usage",async(req,res)=>{
     console.error("[usage-proof]",status,String(error.message||"Error").slice(0,160));
     res.status(status).json({error:String(error.message||"Usage verification failed").slice(0,220)});
   }
+});
+// The ranking prompt itself is client-side and incurs no API charge.
+// Formula repair is explicit, candidate-independent, and only touches AM/AO.
+app.post("/api/repair-ranks",async(req,res)=>{
+ try{
+  const email=await authenticate(req);
+  if(READ_ONLY)throw Object.assign(Error("Ranking repair requires live edit access."),{httpCode:403});
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  if(!token)throw Error("Google spreadsheet permissions unavailable.");
+  const result=await repairRankFormulas({token,spreadsheetId:IDS.fresh,
+    confirm:req.body?.confirm===true,readOnly:READ_ONLY});
+  console.log("[rank-formulas] repaired by authorised account; cells="+result.updatedCells);
+  res.json({data:result});
+ }catch(error){res.status(error.httpCode||500).json({error:String(error.message||"Rank repair failed").slice(0,250)})}
+});
+async function authorisedJob(req){
+ const email=await authenticate(req);
+ const candidate=String(req.body?.candidate||"");
+ const row=Number(req.body?.row);
+ if(!["Abhishek","Pooja"].includes(candidate)||!Number.isInteger(row)||row<3)
+  throw Object.assign(Error("Invalid job."),{httpCode:400});
+ const access=await (await auth.getClient()).getAccessToken();
+ const token=typeof access==="string"?access:access.token;
+ if(!token)throw Error("Google Sheets access unavailable.");
+ const job=await invoke("getJob",{source:"fresh",candidate,row},{
+   email,token,ids:IDS,readOnly:READ_ONLY,allowedEmails:ALLOWED.join(",")
+ });
+ if(!job||job.source!=="fresh"||job.row!==row)throw Object.assign(Error("Job row not found."),{httpCode:404});
+ return {...job,candidate};
+}
+// Preview is free; a separate explicit click triggers one paid request.
+// A long-lived key MUST be stored in a Cloud Run Secret Manager binding, never in the browser.
+app.post("/api/clues/preview",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  if(!job.cvLink)throw Object.assign(Error("This insight is available after the CV is generated."),{httpCode:409});
+  res.json({data:{job:{row:job.row,company:job.company,role:job.role,candidate:job.candidate},
+    ...jdClues(job.jd),saved:false}});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"JD clues unavailable").slice(0,260)})}
+});
+app.post("/api/clues/save",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  if(!job.cvLink)throw Object.assign(Error("Save job insights after CV generation."),{httpCode:409});
+  const access=await(await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const result=await clueStore.save({token,spreadsheetId:IDS.fresh,job,
+    clues:jdClues(job.jd),confirm:req.body?.confirm,readOnly:READ_ONLY});
+  res.json({data:result});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Unable to save JD clues").slice(0,260)})}
+});
+app.post("/api/connections/preview",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req),tier=String(req.body?.tier||"1-5");
+  const view=connections.preview(job,tier,!!process.env.OPENAI_API_KEY);
+  // Existing saved contacts are read on demand (never during listing/refresh).
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  const enough=saved.contacts.length>=(connections.tiers[tier]?.min||Infinity);
+  res.json({data:{...view,existingContacts:saved.contacts,sheetUrl:saved.url,
+    cached:view.cached||enough,estimateUsd:enough?0:view.estimateUsd,permitted:view.permitted||enough}});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Preview unavailable").slice(0,220)})}
+});
+app.post("/api/connections/research",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  const tier=String(req.body?.tier||"");
+  if(req.body?.confirm!==true)throw Object.assign(Error("Confirm the estimated API charge before continuing."),{httpCode:400});
+  // Prefer previously saved contacts when sufficient for this chosen tier.
+  // Reopening a completed job never requires a paid search for the same count.
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  const plan=connections.tiers[tier];
+  if(plan&&saved.contacts.length>=plan.min&&req.body?.refresh!==true){
+    return res.json({data:{status:"ready",tier,contacts:saved.contacts,searches:connections.preview(job,tier,false).searches,
+      costUsd:0,cached:true,persisted:true,sheetUrl:saved.url,
+      warning:"Using existing Freshmaal Connections contacts at no additional model cost."}});
+  }
+  const data=await connections.research(job,tier,process.env.OPENAI_API_KEY||"");
+  let persistence={saved:0,updated:0,skipped:0,url:saved.url};
+  let persistenceError="";
+  if(data.status==="ready"&&data.contacts.length){
+    try{
+      persistence=await contactsStore.save({token,spreadsheetId:IDS.fresh,job,contacts:data.contacts,readOnly:READ_ONLY});
+    }catch(error){
+      persistenceError="Research succeeded but contacts could not be saved to Freshmaal: "+String(error.message||error).slice(0,160);
+      console.error("[connections-save]",String(error.message||"").slice(0,170));
+    }
+  }
+  if(data.status==="ready"&&!data.cached)
+    console.log("[connections] tier="+tier+" usedUsd="+data.costUsd+" people="+data.contacts.length);
+  res.json({data:{...data,persisted:!persistenceError&&data.status==="ready",
+    savedContacts:persistence.saved,updatedContacts:persistence.updated,sheetUrl:persistence.url,
+    saveWarning:persistenceError}});
+ }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
+   res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
 });
 app.post("/api/:method",async (req,res)=>{
   try {

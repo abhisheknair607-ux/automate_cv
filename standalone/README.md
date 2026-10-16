@@ -249,3 +249,94 @@ operational until BOTH candidates finish live acceptance tests.
 To roll back, stop using the new Cloud Run URL. Nothing in the old
 Python workflow, Google Sheets or original Apps Script needs rebuilding.
 Do not merge this branch into main until live parity is demonstrated.
+
+
+## Consolidated Garamaal release: ranking, insights, Connections (October 2026)
+
+This release **builds on** all previously merged changes in
+`migration/standalone-google-auth-no-appscript`, including the Google
+Sheets 429 mitigation, compact cards, click-to-open vacancy job titles,
+Discovery pagination/scroll preservation, hiding already-transferred jobs,
+and Discovery bulk Favourite / Not Interested (no bulk transfer).
+
+### Dashboard: Ranking prompt (no ranking API calls)
+
+- **Copy ranking prompt** uses candidate-specific *exact* URLs for the
+  relevant Summary Doc, Ultimate Career Goal and Rank - Job scoring guide.
+  It instructs ChatGPT with connected Google Drive/Sheets access to score
+  only previously-unscored Freshmaal jobs, retaining all historical combined
+  scores and recalculating rank across *all* scored jobs using the existing
+  55% Profile Fit / 45% Career Fit calculation. Keyword coverage is separate.
+- During that same JD pass, extract JD-stated named contacts, visa sponsorship
+  (YES/NO/NOT STATED) and salary thresholds (EUR/GBP, annual base only).
+  Store row-verified supporting excerpts in **Sheet1 BB–BD**. It may backfill
+  *missing clues* on old scored jobs without rescoring them.
+- For any named person explicitly present in the JD, the ranking prompt
+  also instructs ChatGPT to create/upsert an entry in the *separate*
+  Freshmaal `Connections` tab, with a LinkedIn people search and
+  no invented direct-profile link. Such external ChatGPT edits require
+  connected Sheets write permission; no background claim of success.
+- The optional **Fix rank formulas** button is a separately confirmed
+  Sheets API `USER_ENTERED` write to `AM3:AM1000` and `AO3:AO1000`,
+  **not** the combined-score columns. Do not use until reviewing historical
+  formula repair implications. This action does not run automatically.
+
+### Make CV card, Contacts, and JD clue eye
+
+- Completed CV cards use **icons only**, with accessible labels/tooltips:
+  download CV, copy prompt, reject, favourite, chain-link Connections, more.
+  Cover letter download remains in the job's detail view.
+- The chain-link button requires that job's **Web checkbox** be saved.
+  Checking Web opens the Connections popup to select **1–5 / 5–10 / 10–15**
+  contacts. It **does not** automatically make a paid API call.
+- Popup displays cost *estimates*: roughly $0.06 / $0.11 / $0.15 for the
+  three tiers, $0.15 target and $0.20 *planned* cumulative per-job ceiling.
+  Actual provider billing is not guaranteed: varying tool/search token usage
+  and Cloud Run restarts can change totals. The Node worker performs at most
+  **one** OpenAI Responses API request with **one** web-search call and **no
+  automatic retries** per click; cached or sheet-saved findings are reused.
+  No API key means paid research is unavailable; free LinkedIn category
+  searches and a candidate-specific Copy ChatGPT research prompt remain.
+- After successful opted-in paid research, named people are written
+  *idempotently* to a separate Freshmaal **`Connections` tab** (created
+  on first successful save, never by modifying Sheet1) with exactly:
+  `Company`, `Contact Name`, `Direct LinkedIn Profile`,
+  `LinkedIn Search`, `Applied-for Role`, `Candidate`,
+  `Freshmaal Row`, `Vacancy Link`, `Person's Position`,
+  `Verification / Evidence`, `Outreach Message`,
+  `Research Date (UTC)`.
+  Each saved person is keyed by candidate + row + vacancy URL + name.
+  Direct profile URLs require an actual cited LinkedIn profile, otherwise
+  remain blank; search links and outreach messages (≤300 characters) are
+  retained. A stored shortlist satisfying the chosen count is returned
+  without a second paid research call.
+- The small golden eye appears **after CV generation** when BB–BD contains
+  a qualifying contact, affirmative sponsorship or annual salary strictly
+  above €50,000/£50,000. Clicking it shows JD evidence rather than guessing;
+  the user may explicitly save rule-based extracts where ranking has not
+  yet populated the columns. Additional BB–BD columns are created only
+  after checking for conflicts, and unrelated Sheet1 data is preserved.
+
+### One cumulative deployment
+
+Do **not** deploy the older Apps Script version. After GitHub CI has passed
+and the final release PR is merged into
+`migration/standalone-google-auth-no-appscript`, run **once** in
+Google Cloud Shell (project `abhishek-cv-automation`):
+
+```bash
+cd ~
+git clone --branch migration/standalone-google-auth-no-appscript --single-branch https://github.com/abhisheknair607-ux/automate_cv.git garamaal-final-release
+cd garamaal-final-release
+bash standalone/deploy-live-update.sh
+```
+
+The script verifies and preserves the existing Cloud Run production
+configuration; Firebase Hosting remains `https://garamaal.web.app`.
+Do not run `standalone/deploy.sh`. To **enable paid** networking research
+later, configure a Google Secret Manager-backed `OPENAI_API_KEY` environment
+secret for the same Cloud Run service separately. Never paste an API key into
+GitHub source, the public website, or this README.
+
+The code can be deployed with no paid networking key; the cost-free prompt
+and LinkedIn search functions remain operational.

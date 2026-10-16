@@ -36,7 +36,7 @@ test("original dashboard remains syntactically valid and transport is injectable
   assert.match(originalHTML,/window\.google && google\.script && google\.script\.run/);
   assert.match(originalHTML,/Unapplied · CV ready/);
   assert.match(originalHTML,/Download CV/);
-  assert.match(originalHTML,/Copy Prompt/);
+  assert.match(originalHTML,/Copy post-CV prompt/);
   assert.match(originalHTML,/data-action="category"/);
   const bridge=fs.readFileSync(path.join(root,"standalone/bridge.js"),"utf8");
   new vm.Script(bridge);

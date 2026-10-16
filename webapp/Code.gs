@@ -295,6 +295,28 @@ function taazaRows_() {
       .filter(x=>x.company||x.role||x.url);
   },30);
 }
+
+/* Lightweight positive JD indicators, derived from the existing A:D read.
+ * Detailed verified evidence is extracted on demand by standalone/job_clues.js.
+ * These flags alone never imply a company sponsors a visa.
+ */
+function jdClueFlag_(text){
+  const lines=String(text||'').split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  for(const line of lines){
+    if(line.length>450)continue;
+    if(/(?:visa sponsorship|sponsor(?:ing|ship)?\s+(?:work\s+)?visas?|work permit sponsorship|employment permit sponsorship|critical skills permit)/i.test(line) &&
+       /(?:provide|offer|available|eligible|support|will sponsor|can sponsor|sponsorship provided)/i.test(line) &&
+       !/(?:no |not |don't |do not |unable |cannot |without |does not |won't )/i.test(line))return true;
+    if(/(?:contact|reach out to|reporting to|hiring manager|recruiter|for enquiries)/i.test(line) &&
+       /(?:[A-Z][a-z'-]+\s+[A-Z][a-z'-]+|@[A-Za-z0-9.-]+\.[A-Za-z]{2,})/.test(line))return true;
+    const money=/(?:€|£|\bEUR\b|\bGBP\b)\s*([\d][\d,.]*)(\s*k\b)?/gi;
+    for(const m of line.matchAll(money)){
+      const amount=Number(m[1].replace(/,/g,''))*(m[2]?1000:1);
+      if(amount>50000&&amount<=1000000&&!/(?:signing bonus|sign-on bonus|per day|hourly rate)/i.test(line))return true;
+    }
+  }
+  return false;
+}
 function freshRows_() {
   return dashboardReadCache_('fresh-rows-v2',()=>{
   const sh = sheet_('fresh'), count = Math.max(0, Math.min(sh.getMaxRows(), SETTINGS.maxFreshRow) - 2);
@@ -305,6 +327,10 @@ function freshRows_() {
   const last=sh.getRange(3,33,count,15).getValues();
   const clTiers=sh.getRange(3,48,count,2).getValues();
   const scoreParts=sh.getMaxColumns()>=53?sh.getRange(3,50,count,4).getValues():Array.from({length:count},()=>['','','','']);
+  // JD evidence comes from compact BB:BD cells saved during ranking, not a
+  // bulk reread of every full JD: avoids 429 read-quota regression.
+  const clueParts=sh.getMaxColumns()>=56?sh.getRange(3,54,count,3).getValues():
+    Array.from({length:count},()=>['','','']);
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -326,7 +352,11 @@ function freshRows_() {
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
-            location:String(last[i][0]||''),person};
+            location:String(last[i][0]||''),jdClue:(
+              /^CONTACT:\s*\S/i.test(String(clueParts[i][0]||''))||
+              /^YES:\s*\S/i.test(String(clueParts[i][1]||''))||
+              /^(?:ABOVE|PARTIAL ABOVE) 50K:/i.test(String(clueParts[i][2]||''))
+            ),person};
   }).filter(x=>x.company || x.role || x.url);
   },30);
 }
@@ -472,7 +502,7 @@ function getJob(options) {
   }
   const a=sh.getRange(row,1,1,53).getValues()[0];
   const data={source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
-    jd:String(a[3]||''),location:String(a[32]||''),cv:truthy_(a[conf.cv-1]),
+    jd:String(a[3]||''),location:String(a[32]||''),jdClue:jdClueFlag_(a[3]),cv:truthy_(a[conf.cv-1]),
     cl:truthy_(a[conf.cl-1]),web:truthy_(a[conf.web-1]),
     status:String(a[conf.status-1]||''),selected:truthy_(a[conf.selected-1]),
     score:a[conf.score-1],rank:a[conf.rank-1],
