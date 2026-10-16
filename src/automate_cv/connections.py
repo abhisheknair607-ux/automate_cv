@@ -41,6 +41,42 @@ def matching_rows(rows, app):
             result.append(a)
     return result
 
+def linkedin_invitation(candidate, recipient, company, position, team):
+    """Warm candidate-specific three-paragraph invitation, strictly below 300 chars.
+
+    Personalisation is restricted to the researched person's verified team/title.
+    Abhishek's EY, UCD and ACCA facts come from his professional Summary Doc.
+    Another applicant never inherits those credentials.
+    """
+    first = re.split(r"\s+", str(recipient or "").strip())[0][:32]
+    first = re.sub(r"[^\w'-]", "", first, flags=re.UNICODE) or "there"
+    firm = re.sub(r"\s+", " ", str(company or "").strip())[:65]
+    function = re.sub(r"\s+", " ", str(team or "").strip())[:65]
+    role = re.sub(r"\s+", " ", str(position or "").strip())[:65]
+    person = str(candidate or "").strip()
+    intro = (
+        "I'm Abhishek Nair, an ACCA member with EY experience and a UCD MSc."
+        if person == "Abhishek Nair" else f"I'm {person}."
+    )
+    observed = (
+        f"Your work in {function} at {firm}" if function else
+        f"Your role as {role} at {firm}" if role else
+        f"Your experience at {firm}"
+    )
+    ending = "\n\nThank you — I'd be grateful to connect."
+    messages = [
+        f"Hi {first},\n\n{intro} {observed} caught my attention, "
+        f"and I'd value learning from your experience.{ending}",
+        f"Hi {first},\n\n{intro} Your experience at {firm} caught my attention. "
+        f"I'd value learning from you.{ending}",
+        f"Hi {first},\n\n{intro} I'd value connecting and learning from your experience.{ending}",
+    ]
+    for message in messages:
+        if len(message) < 300:
+            return message
+    raise ValueError("LinkedIn invitation exceeds the 300-character limit")
+
+
 def parse_contacts(text):
     text=str(text or "").strip()
     text=re.sub(r"^\x60{3}(?:json)?\s*", "", text, flags=re.I)
@@ -123,8 +159,9 @@ class Connections:
             "Do not invent people, team, office, responsibility, role or URLs. "
             "For every person give at least one CURRENT public official firm/team biography "
             "or reputable published personnel bio that identifies their current job and location. "
-            "Every note must be 299 characters or fewer, mention applicant full name, be polite, "
-            "refer to the relevant team, and not claim a submitted application or request a referral. "
+            "Connection invitations are generated locally from verified candidate facts and "
+            "the recipient's verified team/title, with blank lines before the body and closing; "
+            "do not make unsupported claims about the recipient or request a referral. "
             "Only use facts from the candidate Summary Doc. If fewer people can be verified return fewer."
         )
         payload=json.dumps({"company":app.company,"role":app.designation,"vacancy":app.application_link,
@@ -152,7 +189,7 @@ class Connections:
                 title=str(c.get("position") or "").strip()
                 team=str(c.get("team") or "").strip()
                 loc=str(c.get("location") or "").strip()
-                note=re.sub(r"\s+"," ",str(c.get("message") or "")).strip()
+                note=linkedin_invitation(app.candidate_name,name,app.company,title,team)
                 urls=c.get("evidence_urls") or []
                 if (not name or not title or not team or not isinstance(urls,list)
                     or not (0<len(note)<300) or app.candidate_name.casefold() not in note.casefold()
