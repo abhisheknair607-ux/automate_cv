@@ -63,6 +63,24 @@ test("Firebase Sheets Range supports getDisplayValue for candidate application s
   assert.deepEqual(new Range(sheet,2,1,1,2).getDisplayValues(),[["","Applied + Connected"]]);
 });
 
+test("Garamaal application dropdown contains only five human statuses; legacy CV codes stay internal",()=>{
+  const ui=originalHTML.match(/<script>([\s\S]+?)<\/script>/)?.[1]||"";
+  const permitted=["Unapplied","Applied","Applied + Connected","Rejected","Accepted"];
+  const values=vm.runInNewContext(
+    ui.match(/const APPLICATION_PROGRESS=\[([^\]]+)\]/)?.[0]+"; APPLICATION_PROGRESS"
+  );
+  assert.deepEqual(Array.from(values),permitted);
+  assert.match(ui,/function statusChoices\(job\)/);
+  assert.match(ui,/APPLICATION_PROGRESS\.map/);
+  assert.match(ui,/data-action="inline-status"/);
+  assert.match(ui,/updateProgress\(Number\(e\.target\.dataset\.row\),e\.target\.value,e\.target\)/);
+  assert.match(source,/PROGRESS_COL\s*=\s*Object\.freeze\(\{Abhishek:57,Pooja:58\}\)/);
+  assert.match(source,/function updateApplicationProgress\(payload\)/);
+  assert.match(source,/getRange\(3,54,count,3\)/); // JD clues BB:BD remain reserved
+  assert.match(source,/getRange\(3,57,count,2\)/); // human statuses BE:BF
+  assert.doesNotMatch(ui,/function statusChoices\(job\)[\s\S]{0,300}jobStatusOptions/);
+});
+
 test("Google Sheets compatibility uses standard column addresses and typed cells",()=>{
   assert.equal(colLetters(1),"A");
   assert.equal(colLetters(26),"Z");
