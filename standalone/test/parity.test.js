@@ -4,7 +4,7 @@ const assert=require("node:assert/strict");
 const fs=require("node:fs");
 const path=require("node:path");
 const vm=require("node:vm");
-const {colLetters,toSheetValue,createSpreadsheetApp}=require("../sheets");
+const {colLetters,toSheetValue,createSpreadsheetApp,Range}=require("../sheets");
 const {invoke,METHODS,READ_ONLY_METHODS,sourceWithSheetIds}=require("../runtime");
 
 const root=path.resolve(__dirname,"../..");
@@ -47,6 +47,20 @@ test("original dashboard remains syntactically valid and transport is injectable
   assert.match(bridge,/not authorised for Garamaal/);
   const server=fs.readFileSync(path.join(root,"standalone/server.js"),"utf8");
   assert.match(server,/"<script src=\\"\/bridge\.js\\"><\/script>\\n<script>\\n'use strict';"/);
+});
+
+test("Firebase Sheets Range supports getDisplayValue for candidate application status",()=>{
+  const sample=[["Application Status · Abhishek","Application Status · Pooja"],["", "Applied + Connected"]];
+  const sheet={
+    getMaxRows:()=>2,
+    getMaxColumns:()=>2,
+    grid:()=>sample,
+  };
+  const cell=new Range(sheet,2,2);
+  assert.equal(cell.getDisplayValue(),"Applied + Connected");
+  assert.deepEqual(cell.getDisplayValues(),[["Applied + Connected"]]);
+  assert.equal(new Range(sheet,2,1).getDisplayValue(),"");
+  assert.deepEqual(new Range(sheet,2,1,1,2).getDisplayValues(),[["","Applied + Connected"]]);
 });
 
 test("Google Sheets compatibility uses standard column addresses and typed cells",()=>{
