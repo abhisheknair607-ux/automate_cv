@@ -6,6 +6,7 @@ from automate_cv.connections import canonical_url, matching_rows, parse_contacts
 def example(candidate="Abhishek Nair", row=68):
     return SimpleNamespace(
         company="BDO",
+        designation="International Corporate Tax Opportunities",
         candidate_name=candidate,
         row_number=row,
         application_link="https://bdoireland.pinpointhq.com/en/postings/391e7aaf-2db7-45e7-b7e9-9fbc3963f994"
