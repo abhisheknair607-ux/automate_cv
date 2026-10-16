@@ -33,7 +33,10 @@ async function contacts(row,tier="1-5"){
    '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+((p.configured&&p.permitted)||p.cached?'':'disabled')+'>'+(p.cached?"View cached research":p.configured&&p.permitted?"Research and confirm cost":"Research unavailable")+'</button>'+
    '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT prompt (no API charge)</button></div>'+
    '<p class="connection-note">'+esc(!p.configured?"Paid research is not configured; the free ChatGPT prompt and LinkedIn searches still work.":!p.permitted?"This tier exceeds the remaining planned $0.20 per-job budget; use a lower tier or free search.":"")+'</p>'+
-   '<p class="connection-note">'+esc(p.disclaimer)+'</p>'+suggestedSearches(p.searches);
+   '<p class="connection-note">'+esc(p.disclaimer)+'</p>'+
+   (p.existingContacts?.length?'<p class="connection-note"><strong>'+p.existingContacts.length+' existing contacts saved</strong> in Freshmaal.'+
+     (p.sheetUrl?' '+link(p.sheetUrl,"Open Connections sheet"):'')+'</p>':'')+
+   suggestedSearches(p.searches);
   show("Connections · "+j.company,box);
  }catch(e){show("Connections · "+j.company,'<p class="connection-note">'+esc(e.message||"Could not load the preview.")+'</p>')}
 }
@@ -70,6 +73,8 @@ async function startResearch(row){
   }).join("");
   show("Connections · "+job.company,'<p class="connection-note">'+esc(result.message||result.warning||"")+'</p>'+
    '<p class="connection-note">Estimated charged usage: $'+Number(result.costUsd||0).toFixed(4)+(result.cached?" · cached":"")+'</p>'+
+   (result.saveWarning?'<p class="connection-note" role="alert">'+esc(result.saveWarning)+'</p>':'')+
+   (result.sheetUrl?'<p class="connection-note">Saved in Freshmaal · '+link(result.sheetUrl,"Open Connections sheet")+'</p>':'')+
    (people||'<p class="connection-note">No individual contacts verified. Use the searches below.</p>')+
    suggestedSearches(result.searches));
  }catch(e){show("Connections unavailable",'<p class="connection-note">'+esc(e.message||"Search failed.")+'</p><p class="connection-note">No automatic paid retry was made.</p>')}
