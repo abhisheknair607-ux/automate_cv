@@ -53,7 +53,7 @@ class Freshmal:
     def rows(self):
         result = self.values.get(
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
-            range=f'{self.settings.freshmal_sheet_name}!A3:AW1000',
+            range=f'{self.settings.freshmal_sheet_name}!A3:BC1000',
             valueRenderOption='UNFORMATTED_VALUE',
         ).execute()
         apps = []
@@ -79,6 +79,7 @@ class Freshmal:
                     make_cv=make_cv,
                     make_cl=make_cl,
                     web_search=ws,
+                    application_progress=str(_v(row, 53 if p.key == 'abhishek' else 54)),
                     status=str(_v(row, p.status_col)),
                     candidate_key=p.key,
                     candidate_name=p.display_name,
@@ -118,6 +119,8 @@ class Freshmal:
         # Applied is a deliberate terminal status for either candidate, even if
         # Make CV is still ticked or the saved output/checkpoint is missing.
         if a.status.strip().casefold() == 'applied':
+            return False
+        if a.application_progress.strip() in {'Applied', 'Applied + Connected', 'Rejected', 'Accepted'}:
             return False
         if not a.make_cv or a.complete():
             return False
