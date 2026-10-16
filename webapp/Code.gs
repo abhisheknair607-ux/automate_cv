@@ -321,12 +321,16 @@ function freshRows_() {
   return dashboardReadCache_('fresh-rows-v2',()=>{
   const sh = sheet_('fresh'), count = Math.max(0, Math.min(sh.getMaxRows(), SETTINGS.maxFreshRow) - 2);
   if (!count) return [];
-  const first=sh.getRange(3,1,count,4).getValues();
+  const first=sh.getRange(3,1,count,3).getValues();
   const checks=sh.getRange(3,5,count,8).getValues();
   const stages=sh.getRange(3,13,count,20).getValues();
   const last=sh.getRange(3,33,count,15).getValues();
   const clTiers=sh.getRange(3,48,count,2).getValues();
   const scoreParts=sh.getMaxColumns()>=53?sh.getRange(3,50,count,4).getValues():Array.from({length:count},()=>['','','','']);
+  // JD evidence comes from compact BB:BD cells saved during ranking, not a
+  // bulk reread of every full JD: avoids 429 read-quota regression.
+  const clueParts=sh.getMaxColumns()>=56?sh.getRange(3,54,count,3).getValues():
+    Array.from({length:count},()=>['','','']);
   return first.map((a,i)=>{
     const person={};
     Object.keys(PEOPLE).forEach(name=>{
@@ -348,7 +352,7 @@ function freshRows_() {
         promptReady:!!String(shifted(c.cvLink)||'').trim()&&!!String(e[c.prompt-33]||'').trim()};
     });
     return {row:i+3,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
-            location:String(last[i][0]||''),jdClue:jdClueFlag_(a[3]),person};
+            location:String(last[i][0]||''),jdClue:clueParts[i].some(Boolean),person};
   }).filter(x=>x.company || x.role || x.url);
   },30);
 }
