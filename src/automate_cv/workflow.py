@@ -1022,6 +1022,33 @@ class Workflow:
                 flush=True,
             )
 
+            # Optional post-CV networking: Web checked ONLY. This is deliberately
+            # isolated from CV completion and never downgrades a completed CV.
+            if app.web_search and getattr(self, "connections", None):
+                try:
+                    from .sources import docx_text
+                    summary_for_outreach = docx_text(summary_path)
+                    networking = self.connections.run(self.ai, app, summary_for_outreach)
+                    manifest["networking"] = networking
+                    manifest["networking_attempted_at_utc"] = _now()
+                    self._save_manifest(manifest, manifest_path, folder)
+                    print(f"[connections] {app.application_id}: {networking}", flush=True)
+                except Exception as networking_error:
+                    print(
+                        f"[connections] WARNING {app.application_id}: "
+                        f"{type(networking_error).__name__}: {networking_error}. "
+                        "The completed CV remains intact.", flush=True
+                    )
+                    try:
+                        manifest["networking"] = {
+                            "status": "research_error",
+                            "error": str(networking_error)[:300],
+                        }
+                        manifest["networking_attempted_at_utc"] = _now()
+                        self._save_manifest(manifest, manifest_path, folder)
+                    except Exception:
+                        pass
+
         except CostLimitError as error:
             self.sheet.fail(app, f'{current_stage}: {error}', 'ERROR_MANUAL')
             raise
