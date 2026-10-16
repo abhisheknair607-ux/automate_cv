@@ -11,6 +11,7 @@ from .drive import Drive
 from .prompts import Prompts
 from .openai_client import AI
 from .workflow import Workflow
+from .connections import Connections
 
 
 def build():
@@ -18,7 +19,9 @@ def build():
     sheet = Freshmal(creds, settings)
     drive = Drive(drive_credentials(settings) or creds)
     root = Path(__file__).resolve().parents[2]
-    return sheet, Workflow(settings, sheet, drive, AI(settings), Prompts(drive, settings, root))
+    workflow = Workflow(settings, sheet, drive, AI(settings), Prompts(drive, settings, root))
+    workflow.connections = Connections(creds, settings)
+    return sheet, workflow
 
 
 def configure_batch(workflow, apps):
