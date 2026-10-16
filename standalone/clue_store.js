@@ -39,9 +39,11 @@ async function save({token,spreadsheetId,job,clues,confirm,readOnly}){
  }
  const header=columns.map(x=>x.title);
  const evidence=[
-  clues.contact?.evidence||"",
-  clues.visa?.status==="yes"?"YES: "+clues.visa.evidence:clues.visa?.status==="no"?"NO: "+clues.visa.evidence:clues.visa?.evidence||"",
-  clues.salary?(clues.salary.currency+" "+clues.salary.annualValue+": "+clues.salary.evidence):""
+  clues.contact?"CONTACT: "+clues.contact.evidence:"NOT STATED",
+  clues.visa?.status==="yes"?"YES: "+clues.visa.evidence:
+    clues.visa?.status==="no"?"NO: "+clues.visa.evidence:"NOT STATED",
+  clues.salary&&Number(clues.salary.annualValue)>50000?
+    "ABOVE 50K: "+clues.salary.currency+" "+clues.salary.annualValue+" · "+clues.salary.evidence:"NOT STATED"
  ].map(x=>String(x).slice(0,480));
  await google(url+"/values:batchUpdate",token,"POST",{valueInputOption:"RAW",data:[
   {range:"'Sheet1'!BB1:BD1",values:[header]},
