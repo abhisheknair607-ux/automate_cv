@@ -699,3 +699,50 @@ function runCvApiNow(payload) {
     };
   });
 }
+
+
+/**
+ * Read-only, candidate- and vacancy-scoped networking results.
+ * All personnel data lives in Fresh Maal's Connections!A:L; no CV columns are modified.
+ * Identity is (candidate, exact Freshmaal row, canonical vacancy URL).
+ * A name must also match this triple before it can be shown for a job.
+ */
+function getJobConnections(payload) {
+  authorise_();
+  payload=payload||{};
+  const candidate=String(payload.candidate||'');
+  person_(candidate);
+  const fresh=sheet_('fresh');
+  const row=expected_(fresh,payload.row,3,payload.expected);
+  const identity=fresh.getRange(row,1,1,3).getValues()[0];
+  const vacancy=canonical_(identity[2]);
+  if(!vacancy)throw new Error('This application has no vacancy URL.');
+  const book=SpreadsheetApp.openById(SETTINGS.freshId);
+  const tab=book.getSheetByName('Connections');
+  if(!tab)return {candidate,row,items:[],count:0,tabMissing:true};
+  const headers=['Company','Contact Name','Direct LinkedIn Profile','LinkedIn Search','Applied-for Role','Candidate','Freshmaal Row','Vacancy Link',"Person's Position",'Verification / Evidence','Outreach Message','Research Date (UTC)'];
+  const actual=tab.getRange(1,1,1,12).getDisplayValues()[0];
+  if(actual.some((x,i)=>String(x||'').trim()!==headers[i]))
+    throw new Error('Connections tab has conflicting A:L headers; refusing to display potentially mismatched records.');
+  const last=tab.getLastRow();
+  if(last<2)return {candidate,row,items:[],count:0,tabMissing:false};
+  const values=tab.getRange(2,1,last-1,12).getDisplayValues(), seen={};
+  const items=[];
+  values.forEach(a=>{
+    // Require ALL identifying fields. Never blend separate candidates or vacancies.
+    if(String(a[5]||'').trim().toLowerCase()!==candidate.toLowerCase() ||
+       Number(a[6])!==row || canonical_(a[7])!==vacancy ||
+       String(a[0]||'').trim().toLowerCase()!==String(identity[0]||'').trim().toLowerCase())return;
+    const name=String(a[1]||'').trim();
+    const key=name.toLowerCase();
+    if(!name || seen[key])return;
+    seen[key]=true;
+    items.push({
+      name:name, directLinkedIn:String(a[2]||'').trim(),
+      linkedinSearch:String(a[3]||'').trim(),
+      role:String(a[8]||'').trim(), evidence:String(a[9]||'').trim(),
+      message:String(a[10]||'').trim(), researchDate:String(a[11]||'').trim()
+    });
+  });
+  return {candidate,row,items,count:items.length,tabMissing:false};
+}
