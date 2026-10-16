@@ -53,7 +53,7 @@ class Freshmal:
     def rows(self):
         result = self.values.get(
             spreadsheetId=self.settings.freshmal_spreadsheet_id,
-            range=f'{self.settings.freshmal_sheet_name}!A3:BC1000',
+            range=f'{self.settings.freshmal_sheet_name}!A3:BF1000',
             valueRenderOption='UNFORMATTED_VALUE',
         ).execute()
         apps = []
@@ -79,7 +79,7 @@ class Freshmal:
                     make_cv=make_cv,
                     make_cl=make_cl,
                     web_search=ws,
-                    application_progress=str(_v(row, 53 if p.key == 'abhishek' else 54)),
+                    application_progress=str(_v(row, 56 if p.key == 'abhishek' else 57)),
                     status=str(_v(row, p.status_col)),
                     candidate_key=p.key,
                     candidate_name=p.display_name,
