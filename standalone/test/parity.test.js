@@ -15,7 +15,7 @@ test("legacy source unchanged and all exposed operations wrapped",()=>{
   const names=[...source.matchAll(/^function\s+([a-zA-Z_][a-zA-Z_0-9]*)\(/gm)].map(x=>x[1]);
   const operations=["getBootstrap","listJobs","getJob","setNotInterested","addDiscovery",
     "saveDiscovery","transferJob","bulkTransfer","updateFreshJD","getCopyPrompt",
-    "setJobPreference","migrateJobPreferences","updateFreshControl","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
+    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
   assert.deepEqual([...METHODS].sort(),operations.sort());
   for(const name of METHODS)assert.ok(names.includes(name),name+" missing");
   // The migration must not fork candidate-specific sheet mappings or logic.
@@ -112,7 +112,7 @@ test("pilot prevents all mutations including paid GitHub dispatch",async()=>{
   const options={readOnly:true};
   for(const name of ["setNotInterested","addDiscovery","saveDiscovery","transferJob",
     "bulkTransfer","updateFreshJD","updateFreshControl","runCvApiNow",
-    "setJobPreference","migrateJobPreferences",
+    "setJobPreference","bulkSetJobPreferences","migrateJobPreferences",
     "syncDiscoveryMaster"]) {
     assert.equal(READ_ONLY_METHODS.has(name),false,name+" must not be callable in pilot");
     await assert.rejects(invoke(name,{},options),/Read-only pilot/);
