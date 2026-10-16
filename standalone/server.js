@@ -12,6 +12,8 @@ const {Readable} = require("node:stream");
 const {DOCX,getDocument} = require("./download");
 const {tokenUsageForJob} = require("./cost_usage");
 const connections=require("./connections");
+const {jdClues}=require("./job_clues");
+const clueStore=require("./clue_store");
 const {repairRankFormulas}=require("./rank_formulas");
 
 const BASE = path.resolve(__dirname,"..");
@@ -208,6 +210,25 @@ async function authorisedJob(req){
 }
 // Preview is free; a separate explicit click triggers one paid request.
 // A long-lived key MUST be stored in a Cloud Run Secret Manager binding, never in the browser.
+app.post("/api/clues/preview",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  if(!job.cvLink)throw Object.assign(Error("This insight is available after the CV is generated."),{httpCode:409});
+  res.json({data:{job:{row:job.row,company:job.company,role:job.role,candidate:job.candidate},
+    ...jdClues(job.jd),saved:false}});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"JD clues unavailable").slice(0,260)})}
+});
+app.post("/api/clues/save",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  if(!job.cvLink)throw Object.assign(Error("Save job insights after CV generation."),{httpCode:409});
+  const access=await(await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const result=await clueStore.save({token,spreadsheetId:IDS.fresh,job,
+    clues:jdClues(job.jd),confirm:req.body?.confirm,readOnly:READ_ONLY});
+  res.json({data:result});
+ }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Unable to save JD clues").slice(0,260)})}
+});
 app.post("/api/connections/preview",async(req,res)=>{
  try{
   const job=await authorisedJob(req);
