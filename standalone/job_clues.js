@@ -9,7 +9,7 @@ function jdClues(jd){
  const salary=[],sponsor=[],people=[];
  const money=/(?:€|£|\bEUR\b|\bGBP\b)\s*([\d][\d,.]*)(\s*k\b)?/gi;
  const explicitVisa=/(?:visa sponsorship|sponsor(?:ing|ship)?\s+(?:work\s+)?visas?|work permit sponsorship|employment permit sponsorship|critical skills permit)/i;
- const positive=/(?:provide|offer|available|eligible|support|will sponsor|can sponsor|sponsorship provided)/i;
+ const positive=/(?:we\s+(?:provide|offer|support|can sponsor|will sponsor)|(?:visa|work permit|employment permit)\s+sponsorship\s+(?:is\s+)?(?:available|provided|offered)|sponsorship\s+(?:provided|offered|available))/i;
  const negative=/(?:no |not |don't |do not |unable |cannot |without |does not |won't )/i;
  for(const line of lines){
    if(line.length>450)continue;
@@ -22,7 +22,8 @@ function jdClues(jd){
      let n=Number(match[1].replace(/,/g,""));
      if(match[2])n*=1000;
      const currency=/^\s*€|EUR/i.test(match[0])?"EUR":"GBP";
-     if(n>=50000&&n<=1000000)salary.push({currency,annualValue:n,evidence:line.slice(0,300)});
+     if(n>50000&&n<=1000000&&!/(?:signing bonus|sign-on bonus|annual bonus only|per day|daily rate|per hour|hourly rate)/i.test(line))
+       salary.push({currency,annualValue:n,evidence:line.slice(0,300)});
    }
    // A named person's involvement is only a clue if explicitly described
    // as a job contact. A generic HR team is not an identified individual.
