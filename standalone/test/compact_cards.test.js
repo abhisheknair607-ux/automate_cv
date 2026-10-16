@@ -16,7 +16,7 @@ function setup(section){
     h:s=>String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;"),
     safeUrl:s=>String(s||"").startsWith("https://")?String(s):null,
     icon:name=>"<svg data-icon='"+name+"'></svg>",
-    preferenceMenu:()=>'<div class="preference-actions"><button>trash</button><button>heart</button></div>',
+    preferenceMenu:()=>'<div class="preference-actions"><button data-icon='trash'></button><button data-icon='heart'></button></div>',
     activityFor:()=>null,
     activityMarkup:()=>"",
     compactMetrics:()=>'<div class="score-compact">79 #9</div>',
