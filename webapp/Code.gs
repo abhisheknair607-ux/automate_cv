@@ -896,6 +896,9 @@ function runCvApiNow(payload) {
     const clTier = String(a[p.clTier - 1] || tier).trim();
     if (!['Economy', 'Balanced', 'Premium'].includes(tier)) throw new Error('Select a valid CV model first.');
     if (truthy_(a[p.cl - 1]) && !['Economy', 'Balanced', 'Premium'].includes(clTier)) throw new Error('Select a valid CL model first.');
+    const webEnabled=truthy_(a[p.web - 1]);
+    if (typeof payload.expectedWeb==='boolean' && webEnabled!==payload.expectedWeb)
+      throw new Error('Web preference is still being saved. Wait briefly and retry the CV run.');
     if (!jdReady_(a[3])) throw new Error('This job does not have a complete JD.');
     if (!truthy_(a[p.cv - 1])) throw new Error('Tick Make CV and save it before running the API.');
     if (status === 'applied' || progress_(sh.getRange(row,PROGRESS_COL[candidate]).getDisplayValue(),status)!=='Unapplied')
@@ -915,7 +918,7 @@ function runCvApiNow(payload) {
       contentType: 'application/json',
       payload: JSON.stringify({
         ref: 'main',
-        inputs: {row_number: String(row), candidate: candidate.toLowerCase()}
+        inputs: {row_number: String(row), candidate: candidate.toLowerCase(), web_search: webEnabled ? 'true' : 'false'}
       }),
       headers: {
         Authorization: 'Bearer ' + token,
@@ -930,9 +933,9 @@ function runCvApiNow(payload) {
       throw new Error('GitHub did not accept the CV run (HTTP ' + statusCode + '). Check token Actions:write permission, expiry and repository access.');
     cache.put(key, 'submitted', 300);
     return {
-      queued: true, candidate: candidate, row: row, tier: tier, clTier: clTier,
+      queued: true, candidate: candidate, row: row, tier: tier, clTier: clTier, webSearch: webEnabled,
       actionsUrl: 'https://github.com/abhisheknair607-ux/automate_cv/actions/workflows/controlled-cv-test.yml',
-      message: 'GitHub accepted the ' + tier + ' CV request (CL: ' + (truthy_(a[p.cl-1]) ? clTier : 'off') + ') for ' + candidate + ', row ' + row + '. Check Actions for completion.'
+      message: 'GitHub accepted the ' + tier + ' CV request (CL: ' + (truthy_(a[p.cl-1]) ? clTier : 'off') + ', Web contacts: ' + (webEnabled ? 'ON — automatic after CV' : 'OFF') + ') for ' + candidate + ', row ' + row + '. Check Actions for completion.'
     };
   });
 }
