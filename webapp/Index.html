@@ -636,6 +636,32 @@ function sameJobUrl(a,b){
  };return norm(x)===norm(y)}catch(e){return String(a).trim()===String(b).trim()}
 }
 const preferencePending=new Set();
+
+/* Preference changes modify only the touched DOM card. Loaded pages and
+ * the mobile scroll viewport are preserved, with no list fetch or re-render. */
+function applyPreferenceLocally(row,value){
+ const data=state.data,job=data?.rows.find(x=>x.row===row);
+ if(!data||!job)return;
+ job.preference=value;job.favorite=value==='Favorite';job.notInterested=value==='Not Interested';
+ const keep=state.filter==='not-interested'?job.notInterested:
+   state.filter==='favorites'?job.favorite:!job.notInterested;
+ const node=document.querySelector('.job[data-job-row="'+row+'"]');
+ if(!keep){
+   data.rows=data.rows.filter(x=>x.row!==row);
+   data.total=Math.max(0,data.total-1);
+   data.pages=Math.max(1,Math.ceil(data.total/state.pageSize));
+   state.bulk.delete(row);
+   if(node)node.remove();
+ }else{
+   if(state.bulk.has(row))state.bulk.set(row,job);
+   if(node)node.outerHTML=card(job);
+ }
+ const count=document.getElementById('jobCount');
+ if(count)count.textContent=data.rows.length+' of '+data.total+' shown';
+ const pager=document.querySelector('.pagination');
+ if(pager)pager.outerHTML=pagination();
+ syncSelectionBar();
+}
 async function setPreference(row,value,element){
  const section=state.section,candidate=state.candidate,source=section==='discovery'?'taaza':'fresh';
  const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);if(!job)return;
@@ -647,13 +673,43 @@ async function setPreference(row,value,element){
    const res=await run('setJobPreference',{source,candidate,row,value,expected:expected(job)});
    toast(res.message);
    if(section!==state.section||candidate!==state.candidate)return;
-   job.preference=value;job.favorite=value==='Favorite';job.notInterested=value==='Not Interested';
-   if(state.detail?.row===row){Object.assign(state.detail,{preference:value,favorite:job.favorite,notInterested:job.notInterested});drawDetail();}
-   await fetchList();
- }catch(e){toast(e.message||'Could not save preference.',true);}
+   if(state.detail?.row===row){
+     Object.assign(state.detail,{preference:value,favorite:value==='Favorite',notInterested:value==='Not Interested'});
+     drawDetail();
+   }
+   applyPreferenceLocally(row,value);
+ }catch(e){toast(e.message||'Could not save preference.',true)}
  finally{preferencePending.delete(key);if(element&&element.isConnected)element.disabled=false;}
 }
-
+async function bulkSetPreferences(value){
+ if(state.section!=='discovery'||!['Not Interested','Favorite'].includes(value)||!state.bulk.size)return;
+ const section=state.section,candidate=state.candidate,selected=[...state.bulk.values()];
+ if(selected.length>20){toast('Select at most 20 vacancies at a time.',true);return}
+ if(selected.some(j=>preferencePending.has('taaza|'+candidate+'|'+j.row))){
+   toast('Wait for the current job update to finish.',true);return
+ }
+ const buttons=[...document.querySelectorAll('.bulk-preference-actions button')];
+ buttons.forEach(n=>n.disabled=true);
+ try{
+   const result=await run('bulkSetJobPreferences',{
+     source:'taaza',candidate,value,
+     jobs:selected.map(job=>({row:job.row,expected:expected(job)}))
+   });
+   if(state.section!==section||state.candidate!==candidate)return;
+   const succeeded=new Set((result.results||[]).filter(x=>x.ok).map(x=>x.row));
+   selected.forEach(job=>{
+     if(!succeeded.has(job.row))return;
+     applyPreferenceLocally(job.row,value);
+     state.bulk.delete(job.row);
+     const checkbox=document.querySelector('.job[data-job-row="'+job.row+'"] [data-action="bulk-select"]');
+     if(checkbox)checkbox.checked=false;
+   });
+   syncSelectionBar();
+   toast(result.completed+' preference'+(result.completed===1?'':'s')+' saved'+
+     (result.failed?' · '+result.failed+' failed; retry remaining selections.':'.'),!!result.failed);
+ }catch(e){toast(e.message||'Could not update selected jobs.',true)}
+ finally{buttons.forEach(n=>{if(n.isConnected)n.disabled=false})}
+}
 async function runCvNow(row) {
   const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);
   if(!job){toast('Refresh this job before running CV.',true);return}
