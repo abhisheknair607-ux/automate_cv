@@ -41,6 +41,35 @@ aside{display:none}.subtle{color:#6d7d90;font-size:11px;margin:4px 0 10px}.empty
 dialog{border:1px solid #dce4f0;border-radius:20px;width:min(520px,95vw);padding:20px;box-shadow:0 20px 70px #092a4950}dialog::backdrop{background:#091e3599}
 @media(max-width:700px){.logo{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.stat{padding:10px 12px}.stat strong{font-size:23px}.split{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.card{padding:13px;margin-bottom:9px}main{padding:12px 12px 91px}.heading{margin-bottom:9px}.heading h1{font-size:18px}.swipe-card{min-height:65vh}.small-mobile{font-size:11px}}
 @media(min-width:900px){.bottom{display:none}.topview{display:flex;background:var(--navy);padding:6px max(14px,calc((100vw - 1080px)/2));gap:8px}main{padding-bottom:35px}.swipe-card{max-width:610px;margin:0 auto}}
+
+/* Compact Social dashboard and staged, manually reviewed outreach research */
+body{background:#f5f7fb}
+.heading{margin-bottom:8px}.heading h1{font-size:18px}
+.stats{gap:7px;margin-bottom:9px}
+.stat{padding:9px 12px;border-radius:13px;min-height:68px}
+.stat label{font-size:11px}.stat strong{font-size:23px}
+.org-compact .section-head{margin-bottom:7px}
+.org-summary{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.org-summary .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.org-options{margin-top:8px;max-height:190px;overflow-y:auto;border-top:1px solid #edf1f6;padding-top:8px}
+.org-options .btnrow{margin-top:6px}
+.org-compact{padding-bottom:12px}
+.dashboard-search .section-head{margin-bottom:6px}
+.dashboard-search .person{padding:7px 0}
+.campaign-current{border:1px solid #bfd5f7;border-radius:14px;background:#f1f6ff;padding:12px}
+.campaign-current strong{font-size:17px}
+.campaign-headline{font-size:11px;color:#607695;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+.campaign-tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.campaign-steps{margin-top:9px;max-height:220px;overflow-y:auto}
+.campaign-step{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;border:0;border-bottom:1px solid #edf1f7;background:white;text-align:left;padding:9px 7px;color:#23405d;font-size:12px}
+.campaign-step.active{background:#eaf2ff;color:#1c58af;font-weight:760;border-radius:9px}
+.research-compact .section-head{margin-bottom:8px}
+@media(max-width:700px){
+ header{padding:8px 10px}.pill,.mini{padding:7px 8px}.pair{padding:3px}.pair button{padding:7px 9px}
+ main{padding:10px 12px 85px}.stats{gap:6px}.stat{padding:8px 11px;min-height:65px}
+ .stat label{font-size:10px}.stat strong{font-size:22px}.card{margin-bottom:8px;padding:11px}
+ .org-options{max-height:160px}.swipe-card{min-height:67vh}
+}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -62,8 +91,13 @@ const depts={
  consulting:["Corporate Finance","Valuations","Transaction Services","Deals","Financial Due Diligence","Transfer Pricing","Tax Technology"],
  wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
 };
+const campaignFirms=["EY","Deloitte","KPMG","PwC","Grant Thornton","BDO","Forvis Mazars"];
+const campaignTeams=["Deals","Transaction Services","Valuations"];
+const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=>({company,department})));
+function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
+function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false,loadError:""};
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false,loadError:""};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -109,8 +143,14 @@ function filterHTML(){return '<div class="filter-panel"><div class="grid3"><labe
 function filterBar(){return '<div class="search"><input id="search" aria-label="Search people, organisations and departments" placeholder="⌕ Search people or company" value="'+esc(state.query)+'"><button class="btn '+(state.filterVisible?"soft":"")+'" id="filterButton" title="Search filters">☷ '+(state.filterVisible?"Hide":"Filter")+'</button></div>'+(state.filterVisible?filterHTML():"")}
 function heading(title){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button></div></div>'}
 function statGrid(){const m=stats();return '<div class="stats"><div class="stat"><label>People</label><strong>'+m.total+'</strong></div><div class="stat"><label>Requests ↗</label><strong>'+m.sent+'</strong></div><div class="stat"><label>Accepted ✓</label><strong>'+m.accepted+'</strong></div><div class="stat"><label>Follow-ups ↗</label><strong>'+m.due+'</strong></div></div>'}
-function organizationCard(){return '<section class="card"><div class="section-head"><b>Target organisations</b><span class="small muted">Ireland</span></div><div class="btnrow"><button data-industry="all" class="chip '+(state.industry==="all"?"selected":"")+'">All</button><button data-industry="consulting" class="chip '+(state.industry==="consulting"?"selected":"")+'">🏢 Deals & Tax</button><button data-industry="wealth" class="chip '+(state.industry==="wealth"?"selected":"")+'">💼 Wealth & Planning</button></div><div class="btnrow" style="margin-top:9px">'+(state.industry==="wealth"?firms.wealth:state.industry==="consulting"?firms.consulting:companies()).map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></section>'}
-function peopleList(){const v=activeItems();return '<section class="card"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
+function organizationCard(){
+ const focus=state.company||"All firms",team=state.department||"All teams";
+ const shown=state.industry==="wealth"?firms.wealth:state.industry==="consulting"?firms.consulting:companies();
+ return '<section class="card org-compact"><div class="section-head"><b>Target organisations</b><button class="btn small" id="toggleOrgs" aria-expanded="'+state.orgOpen+'">☷ '+(state.orgOpen?"Close":"Select")+'</button></div>'+
+ '<div class="org-summary"><span class="chip selected">'+esc(focus)+'</span><span class="chip">'+esc(team)+'</span><span class="small muted">'+activeItems().length+' people</span></div>'+
+ (state.orgOpen?'<div class="org-options"><div class="btnrow"><button data-industry="all" class="chip '+(state.industry==="all"?"selected":"")+'">All</button><button data-industry="consulting" class="chip '+(state.industry==="consulting"?"selected":"")+'">Deals & Tax</button><button data-industry="wealth" class="chip '+(state.industry==="wealth"?"selected":"")+'">Wealth & Planning</button></div><div class="btnrow">'+shown.map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></div>':"")+'</section>';
+}
+function peopleList(){const v=activeItems();return '<section class="card dashboard-search"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
 function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
 function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"identified")==="identified")}
 function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
@@ -193,9 +233,10 @@ document.addEventListener("click",async e=>{
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
  if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox")loadInbox();return}
  if(v.industry){state.industry=v.industry;state.company="";state.department="";render();return}
- if(v.company){state.company=state.company===v.company?"":v.company;render();return}
+ if(v.company){state.company=state.company===v.company?"":v.company;state.orgOpen=false;render();return}
  if(v.person){state.selected=v.person;render();return}
  if(v.copy!==undefined){copyText(v.copy);return}
+ if(b.id==="toggleOrgs"){state.orgOpen=!state.orgOpen;render();return}
  if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
  if(b.id==="refresh"){refresh();return}
  if(b.id==="closeDetail"){state.selected="";render();return}
