@@ -89,3 +89,16 @@ test("Social standalone HTML contains one syntax-valid inline UI script, no seed
  assert.ok(markup.includes("Research Inbox"),"Research fourth section missing");
  assert.ok(!markup.includes("makeSeed"),"Must not show fictional contacts in live Social");
 });
+
+test("Existing Jobs navigation and controls remain while Social links are additive",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const jobs=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
+ const server=fs.readFileSync(path.resolve(__dirname,"../server.js"),"utf8");
+ for(const marker of ['id="deskNav"','id="candidateToggle"','id="expenseToggle"','id="modeBadge"','id="crumbTitle"']){
+   assert.ok(jobs.includes(marker),marker+" absent from Jobs baseline");
+ }
+ assert.ok(server.includes("socialSideLink"),"Social desktop sidebar link not added");
+ assert.ok(server.includes("socialTopLink"),"Social mobile shortcut not added");
+ assert.ok(server.includes('html=html.replace(\'<nav id="deskNav"></nav>\''),"Expected additive sidebar insertion");
+ assert.ok(!server.includes('href="/social" class="btn btn-xs"'),"Avoid crowding existing topbar");
+});
