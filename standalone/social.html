@@ -171,8 +171,7 @@ document.addEventListener("click",async e=>{
   const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
   if(!items.length)return alertUser("Paste some names first.");
   if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
-  try{const result=await request("import",{items,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present.");
-   if(source&&result.saved>0&&result.verified){try{await request("inbox/used",{fileId:source,verifiedCount:result.saved,confirm:true})}catch(err){alertUser("Contacts saved, but TXT rename failed: "+err.message)}}
+  try{const result=await request("import",{items,sourceFileId:source,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
    document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
   }catch(err){alertUser(err.message)}return
  }
