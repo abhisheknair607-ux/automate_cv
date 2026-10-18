@@ -67,8 +67,10 @@ test("Mobile Garamaal content scrolls vertically and install is available on das
 test("Garamaal Hosting proxies to existing authenticated Cloud Run service",()=>{
   const h=JSON.parse(fs.readFileSync(path.join(ROOT,"firebase.json"),"utf8")).hosting;
   assert.equal(h.site,"garamaal");
-  assert.equal(h.rewrites[0].run.serviceId,"automate-cv-dashboard");
-  assert.equal(h.rewrites[0].run.region,"europe-west1");
+  const jobsFallback=h.rewrites.at(-1);
+  assert.equal(jobsFallback.source,"**");
+  assert.equal(jobsFallback.run.serviceId,"automate-cv-dashboard");
+  assert.equal(jobsFallback.run.region,"europe-west1");
   const server=fs.readFileSync(path.join(ROOT,"standalone/server.js"),"utf8");
   assert.match(server,/app\.get\(route/);
   assert.match(server,/PWA_ASSETS/);

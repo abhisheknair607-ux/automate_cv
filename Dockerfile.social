@@ -1,0 +1,13 @@
+# Standalone Social service — intentionally excludes Jobs HTML, CV runtime and worker.
+FROM node:22-bookworm-slim
+WORKDIR /app
+COPY package.json /app/package.json
+RUN npm install --omit=dev --no-audit --no-fund
+COPY standalone/social_server.js /app/standalone/social_server.js
+COPY standalone/social_store.js /app/standalone/social_store.js
+COPY standalone/social.html /app/standalone/social.html
+COPY standalone/bridge.js /app/standalone/bridge.js
+USER node
+ENV PORT=8080
+EXPOSE 8080
+CMD ["node","standalone/social_server.js"]
