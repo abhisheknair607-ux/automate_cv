@@ -109,25 +109,25 @@ async function setFollowup({token,id,candidate,key,confirm}){
  await api(sheetUrl(id)+"/values/"+range("SocialTracking","F"+track.row+":G"+track.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[[now,""]]}});
  return {saved:true,followupSent:now};
 }
-async function importContacts({token,id,candidate,items,confirm}){
+async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId}){
  if(confirm!==true)throw bad("Approve the contact import first.");
  if(!Array.isArray(items)||items.length<1||items.length>MAX_BATCH)throw bad("Import between 1 and "+MAX_BATCH+" contacts.");
- const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));
+ const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));\n const names=new Set(existing.filter(c=>c.candidate===candidate).map(c=>norm(c.company)+"|"+norm(c.name)));
  const now=new Date().toISOString(),rows=[],added=[];
  for(const p of items){
   const name=clean(p.name,100),company=clean(p.company,120),title=clean(p.title,140);
   if(!name||!company)throw bad("Name and company are required for every contact.");
   const profile=p.profile?validProfile(p.profile):"";
   if(p.profile&&!profile)throw bad("A supplied LinkedIn profile is invalid");
-  const c={company,name,title,profile};const key=contactKey(c);
-  if(keys.has(key))continue;keys.add(key);
+  const c={company,name,title,profile};const key=contactKey({...c,profile:p.profileVerified===true?profile:""});
+  const nk=norm(company)+"|"+norm(name);if(keys.has(key)||names.has(nk))continue;keys.add(key);names.add(nk);
   const evidence=clean(p.evidence||"User-submitted contact; role and LinkedIn identity not independently verified",400);
   const direct=profile&&p.profileVerified===true?profile:"";
   const message=clean(p.message||"",300);
   rows.push([company,name,direct,searchLink(c),"Networking",fullName(candidate),"","",title,evidence,message,now]);
   added.push({name,company,key});
  }
- if(!rows.length)return {saved:0,skipped:items.length,verified:true};
+ if(!rows.length)return {saved:0,skipped:items.length,verified:true,sourceMarkedUsed:false};
  await api(sheetUrl(id)+"/values/"+range("Connections","A1:L")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:rows}});
  const after=uniqueContacts(await allContacts(token,id),candidate);
  const allSaved=added.every(x=>after.some(c=>contactKey(c)===x.key));
