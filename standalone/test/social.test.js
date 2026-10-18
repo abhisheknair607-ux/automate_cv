@@ -3,14 +3,14 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 const social=require("../social_store");
 
-test("Social identity is tied to verified email mapping, never selected by client",()=>{
- const env={SOCIAL_ABHISHEK_EMAIL:"alpha@example.test",SOCIAL_POOJA_EMAIL:"beta@example.test"};
- assert.equal(social.candidateFromEmail("ALPHA@example.test",env),"Abhishek");
- assert.equal(social.candidateFromEmail("beta@example.test",env),"Pooja");
- assert.throws(()=>social.candidateFromEmail("third@example.test",env),/not authorised/i);
- assert.throws(()=>social.candidateFromEmail("alpha@example.test",{}),/not configured/i);
+test("Social workspace is selected by A/P, independent of the user's Google email",()=>{
+ assert.equal(social.selectedCandidate("Abhishek"),"Abhishek");
+ assert.equal(social.selectedCandidate("Pooja"),"Pooja");
+ assert.equal(social.selectedCandidate("Pooja Krishna Tirupati"),"Pooja");
  assert.equal(social.canonicalCandidate("Pooja Krishna Tirupati"),"Pooja");
  assert.equal(social.canonicalCandidate("Abhishek Nair"),"Abhishek");
+ assert.throws(()=>social.selectedCandidate("any third user"),/Select Abhishek or Pooja/i);
+ assert.throws(()=>social.selectedCandidate(undefined),/Select Abhishek or Pooja/i);
 });
 test("URL-only LinkedIn searches are never labelled verified profiles",()=>{
  assert.equal(social.validProfile("https://www.linkedin.com/company/ey"),"");
@@ -101,4 +101,18 @@ test("Existing Jobs navigation and controls remain while Social links are additi
  assert.ok(server.includes("socialTopLink"),"Social mobile shortcut not added");
  assert.ok(server.includes('html=html.replace(\'<nav id="deskNav"></nav>\''),"Expected additive sidebar insertion");
  assert.ok(!server.includes('href="/social" class="btn btn-xs"'),"Avoid crowding existing topbar");
+});
+
+test("A/P selector is interactive and persists the same candidate as the Jobs application",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const html=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
+ const server=fs.readFileSync(path.resolve(__dirname,"../server.js"),"utf8");
+ assert.match(html, /getItem\("freshmaal-candidate"\)/);
+ assert.match(html, /setItem\("freshmaal-candidate",candidate\)/);
+ assert.match(html, /candA"\)\.onclick=\(\)=>switchCandidate\("Abhishek"\)/);
+ assert.match(html, /candP"\)\.onclick=\(\)=>switchCandidate\("Pooja"\)/);
+ assert.match(html, /state\.items=\[\];state\.query="";state\.company="";/);
+ assert.match(server,/await authenticate\(req\);/);
+ assert.match(server,/selectedCandidate\(req\.body\?\.candidate\)/);
+ assert.ok(!server.includes("socialStore.candidateFromEmail"));
 });
