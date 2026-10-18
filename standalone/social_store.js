@@ -31,13 +31,13 @@ function sheetUrl(id){return "https://sheets.googleapis.com/v4/spreadsheets/"+en
 async function api(url,token,options={}){
  const r=await (options.fetcher||fetch)(url,{method:options.method||"GET",headers:{Authorization:"Bearer "+token,...(options.body?{"Content-Type":"application/json"}:{})},...(options.body?{body:JSON.stringify(options.body)}:{})});
  const data=await r.json().catch(()=>({}));
- if(!r.ok)throw bad("Google storage request failed (HTTP "+r.status+").",r.status===403?403:502);
+ if(!r.ok)throw bad("Google storage request failed (HTTP "+r.status+").",r.status===400?400:r.status===403?403:r.status===429?429:502);
  return data;
 }
 function range(tab,r){return encodeURIComponent("'"+tab.replace(/'/g,"''")+"'!"+r)}
 async function values(token,id,tab,r){
  try{return (await api(sheetUrl(id)+"/values/"+range(tab,r),token)).values||[]}
- catch(e){if(tab==="SocialTracking"&&e.httpCode===502)return [];throw e}
+ catch(e){if(tab==="SocialTracking"&&e.httpCode===400)return [];throw e}
 }
 async function ensureTracking(token,id){
  const info=await api(sheetUrl(id)+"?fields=sheets(properties(title))",token);
