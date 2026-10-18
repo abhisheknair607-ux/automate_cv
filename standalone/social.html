@@ -283,7 +283,7 @@ async function switchCandidate(candidate){
  if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
  state.candidate=candidate;
  try{localStorage.setItem("freshmaal-candidate",candidate)}catch{}
- state.items=[];state.templates={};state.query="";state.company="";state.department="";state.industry="all";
+ state.items=[];state.query="";state.company="";state.templates={};state.department="";state.industry="all";
  state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.targets=[];state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
