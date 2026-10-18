@@ -16,7 +16,7 @@ if [[ "${GARAMAAL_SOCIAL_CONFIRM:-}" != "DEPLOY_SOCIAL_READONLY" ]]; then
   exit 2
 fi
 for name in gcloud python3 git curl; do command -v "$name" >/dev/null || exit 2; done
-for name in package.json Dockerfile.social standalone/social_server.js standalone/social_store.js standalone/social.html standalone/bridge.js; do
+for name in package.json Dockerfile.social standalone/social_server.js standalone/social_store.js standalone/social_research.js standalone/social.html standalone/bridge.js; do
   [[ -f "$ROOT/$name" ]] || { echo "Missing $name"; exit 2; }
 done
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo "SAFE STOP: uncommitted changes"; exit 2; }
@@ -43,7 +43,7 @@ chmod 700 "$BUILD"
 mkdir -p "$BUILD/standalone"
 cp "$ROOT/package.json" "$BUILD/"
 cp "$ROOT/Dockerfile.social" "$BUILD/Dockerfile"
-for name in social_server.js social_store.js social.html bridge.js; do
+for name in social_server.js social_store.js social_research.js social.html bridge.js; do
   cp "$ROOT/standalone/$name" "$BUILD/standalone/"
 done
 SA="$(gcloud run services describe "$JOBS" --project="$PROJECT" --region="$REGION" --format='value(spec.template.spec.serviceAccountName)')"
