@@ -144,11 +144,15 @@ function filterBar(){return '<div class="search"><input id="search" aria-label="
 function heading(title){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button></div></div>'}
 function statGrid(){const m=stats();return '<div class="stats"><div class="stat"><label>People</label><strong>'+m.total+'</strong></div><div class="stat"><label>Requests ↗</label><strong>'+m.sent+'</strong></div><div class="stat"><label>Accepted ✓</label><strong>'+m.accepted+'</strong></div><div class="stat"><label>Follow-ups ↗</label><strong>'+m.due+'</strong></div></div>'}
 function organizationCard(){
- const focus=state.company||"All firms",team=state.department||"All teams";
- const shown=state.industry==="wealth"?firms.wealth:state.industry==="consulting"?firms.consulting:companies();
- return '<section class="card org-compact"><div class="section-head"><b>Target organisations</b><button class="btn small" id="toggleOrgs" aria-expanded="'+state.orgOpen+'">☷ '+(state.orgOpen?"Close":"Select")+'</button></div>'+
- '<div class="org-summary"><span class="chip selected">'+esc(focus)+'</span><span class="chip">'+esc(team)+'</span><span class="small muted">'+activeItems().length+' people</span></div>'+
- (state.orgOpen?'<div class="org-options"><div class="btnrow"><button data-industry="all" class="chip '+(state.industry==="all"?"selected":"")+'">All</button><button data-industry="consulting" class="chip '+(state.industry==="consulting"?"selected":"")+'">Deals & Tax</button><button data-industry="wealth" class="chip '+(state.industry==="wealth"?"selected":"")+'">Wealth & Planning</button></div><div class="btnrow">'+shown.map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></div>':"")+'</section>';
+ const active=state.industry==="wealth"?"wealth":state.industry==="consulting"?"consulting":"";
+ const list=active==="wealth"?firms.wealth:firms.consulting;
+ return '<section class="card org-compact"><div class="section-head"><b>Target organisations</b><span class="small muted">Dublin</span></div>'+
+ '<div class="compact-grid"><button class="btn '+(active==="consulting"?"soft":"")+'" data-industry="consulting">▦ Corporate Finance</button>'+
+ '<button class="btn '+(active==="wealth"?"soft":"")+'" data-industry="wealth">◈ Wealth Management</button></div>'+
+ (state.orgOpen&&active?'<div class="org-options"><div class="section-head"><b>'+esc(active==="wealth"?"Wealth & Planning":"Corporate Finance, Deals & Tax")+'</b><button id="closeOrgs" class="btn small">✕</button></div>'+
+ '<div class="btnrow"><button data-company="" class="chip '+(!state.company?"selected":"")+'">All firms</button>'+
+ list.map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></div>':"")+
+ '</section>';
 }
 function peopleList(){const v=activeItems();return '<section class="card dashboard-search"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
 function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
@@ -256,11 +260,11 @@ document.addEventListener("change",e=>{
 document.addEventListener("click",async e=>{
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
  if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox")loadInbox();return}
- if(v.industry){state.industry=v.industry;state.company="";state.department="";render();return}
- if(v.company){state.company=state.company===v.company?"":v.company;state.orgOpen=false;render();return}
+ if(v.industry){state.orgOpen=!(state.orgOpen&&state.industry===v.industry);state.industry=v.industry;state.company="";state.department="";render();return}
+ if(v.company!==undefined){state.company=state.company===v.company?"":v.company;state.orgOpen=false;render();return}
  if(v.person){state.selected=v.person;render();return}
  if(v.copy!==undefined){copyText(v.copy);return}
- if(b.id==="toggleOrgs"){state.orgOpen=!state.orgOpen;render();return}
+ if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
  if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
  if(b.id==="refresh"){refresh();return}
  if(b.id==="closeDetail"){state.selected="";render();return}
