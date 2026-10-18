@@ -71,7 +71,7 @@ app.post("/api/social/*",async(req,res)=>{
     const token=await accessToken();
     const base={token,id:spreadsheetId,candidate};
     let data;
-    if(action==="data")data={candidate,...await social.list(base)};
+    if(action==="data")data={candidate,readOnly,...await social.list(base)};
     else if(action==="status")data=await social.writeStatus({...base,key:payload.key,status:payload.status,
       next:payload.next,department:payload.department,city:payload.city,type:payload.type,confirm:payload.confirm});
     else if(action==="followup")data=await social.setFollowup({...base,key:payload.key,confirm:payload.confirm});
