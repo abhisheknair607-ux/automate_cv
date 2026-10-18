@@ -62,7 +62,8 @@ const depts={
  consulting:["Corporate Finance","Valuations","Transaction Services","Deals","Financial Due Diligence","Transfer Pricing","Tax Technology"],
  wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
 };
-const state={view:"dashboard",candidate:"Abhishek",items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
+const initialCandidate=(()=>{try{return localStorage.getItem("freshmaal-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -130,8 +131,42 @@ function render(){document.getElementById("app").innerHTML=(state.view==="swipe"
  document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",state.candidate==="Pooja");
 }
-async function refresh(){if(state.busy)return;state.busy=true;try{const data=await request("data");if(data.candidate)state.candidate=data.candidate;state.items=data.items||[];render()}catch(e){alertUser(e.message);document.getElementById("app").innerHTML='<div class="card">Social data unavailable: '+esc(e.message)+'</div>'}finally{state.busy=false}}
-async function loadInbox(){try{const v=await request("inbox/list");state.inbox=v.files||[];state.inboxLoad=true;render()}catch(e){alertUser(e.message)}}
+let viewRequest=0;
+async function refresh(){
+ const candidate=state.candidate,requestId=++viewRequest;
+ state.busy=true;
+ try{
+  const data=await request("data");
+  if(state.candidate!==candidate||viewRequest!==requestId)return;
+  if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
+  state.items=data.items||[];
+  render();
+ }catch(e){
+  if(state.candidate!==candidate||viewRequest!==requestId)return;
+  alertUser(e.message);
+  document.getElementById("app").innerHTML='<div class="card">Social data unavailable: '+esc(e.message)+'</div>';
+ }finally{if(viewRequest===requestId)state.busy=false}
+}
+async function switchCandidate(candidate){
+ if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
+ state.candidate=candidate;
+ try{localStorage.setItem("freshmaal-candidate",candidate)}catch{}
+ state.items=[];state.query="";state.company="";state.department="";state.industry="all";
+ state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;
+ document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
+ document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
+ document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
+ await refresh();
+ if(state.view==="inbox"&&state.candidate===candidate)await loadInbox();
+}
+async function loadInbox(){
+ const candidate=state.candidate;
+ try{
+  const v=await request("inbox/list");
+  if(state.candidate!==candidate)return;
+  state.inbox=v.files||[];state.inboxLoad=true;render();
+ }catch(e){if(state.candidate===candidate)alertUser(e.message)}
+}
 async function updateStatus(key,status,next){if(!confirm("Record "+status+" for this person? LinkedIn is not connected."))return;
  try{await request("status",{key,status,next:next||"",confirm:true});state.selected="";state.swipeIndex=0;await refresh();alertUser("Status saved to Freshmaal.")}catch(e){alertUser(e.message)}}
 async function markFollow(key){if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
@@ -177,7 +212,7 @@ document.addEventListener("click",async e=>{
   }catch(err){alertUser(err.message)}return
  }
 });
-document.getElementById("candA").onclick=()=>{if(state.candidate!=="Abhishek")alertUser("Candidate access follows your authenticated Google account.")};
-document.getElementById("candP").onclick=()=>{if(state.candidate!=="Pooja")alertUser("Candidate access follows your authenticated Google account.")};
+document.getElementById("candA").onclick=()=>switchCandidate("Abhishek");
+document.getElementById("candP").onclick=()=>switchCandidate("Pooja");
 refresh();
 </script></body></html>
