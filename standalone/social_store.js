@@ -58,7 +58,7 @@ function parseContact(row,index){
  date:String(row[11]||"")};
 }
 async function allContacts(token,id){
- const rows=await values(token,id,"Connections","A1:L5000");
+ const rows=await values(token,id,"Connections","A1:L");
  if(rows.length&&CONTACT_HEADERS.some((h,i)=>String(rows[0][i]||"")!==h))throw bad("Freshmaal Connections A:L headers changed. No data was modified.",409);
  return rows.slice(1).map((r,i)=>parseContact(r,i+1)).filter(c=>c.name&&c.company&&c.candidate);
 }
@@ -67,7 +67,7 @@ function trackingRow(r,candidate){return {row:r.row||0,candidate,key:String(r.ce
  next:String(r.cells?.[6]||""),department:String(r.cells?.[7]||""),city:String(r.cells?.[8]||"Dublin"),
  type:String(r.cells?.[9]||"Employee"),updated:String(r.cells?.[10]||"")}}
 async function allTracking(token,id,candidate){
- const rows=await values(token,id,"SocialTracking","A1:K5000");
+ const rows=await values(token,id,"SocialTracking","A1:K");
  if(rows.length&&TRACK_HEADERS.some((h,i)=>String(rows[0][i]||"")!==h))throw bad("SocialTracking headers changed.",409);
  return rows.slice(1).map((cells,i)=>trackingRow({cells,row:i+2},candidate))
  .filter(x=>canonicalCandidate(rows[x.row-1][0])===candidate);
