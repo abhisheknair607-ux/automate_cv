@@ -52,6 +52,16 @@ dialog{border:1px solid #dce4f0;border-radius:20px;width:min(520px,95vw);padding
 <textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
 <div class="field"><label>Source Research Inbox TXT (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
 <div class="btnrow"><button class="btn primary" id="importConfirm">Import to Freshmaal</button><button class="btn" id="importCancel">Cancel</button></div></dialog>
+<dialog id="templateDialog" aria-label="Edit department outreach template">
+ <div class="section-head"><b>✎ Department master template</b><button class="btn small" id="templateClose">✕</button></div>
+ <div class="subtle" id="templateCandidate">Candidate</div>
+ <label class="field">Department<select id="templateDepartment"></select></label>
+ <label class="field">1. Introduction<textarea id="templateIntro" rows="3" style="min-height:75px"></textarea></label>
+ <div class="field"><label>2. GPT personalised line</label><div class="note" style="border-style:dashed;color:var(--muted)">[Left blank in the master template — research prompt fills one verified detail for each person]</div></div>
+ <label class="field">3. Closing<textarea id="templateClosing" rows="2" style="min-height:60px"></textarea></label>
+ <div class="subtle">Use {{first_name}}, {{company}} or {{department}}. The three lines together must fit LinkedIn's 300-character invitation limit after GPT fills the middle.</div>
+ <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
+</dialog>
 <script src="/bridge.js"></script><script>
 "use strict";
 const firms={
@@ -63,7 +73,7 @@ const depts={
  wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
 };
 const initialCandidate=(()=>{try{return localStorage.getItem("freshmaal-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
+const state={view:"dashboard",candidate:initialCandidate,templates:{},templateDepartment:"Deals",items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -75,21 +85,35 @@ function department(c){if(c.relation?.department)return c.relation.department;co
  for(const x of [...depts.consulting,...depts.wealth])if(t.includes(norm(x)))return x;
  return "Uncategorised"}
 function contactKind(c){let t=norm(c.title);if(/recruit(ment|er)|head.?hunt|talent acquisition|sourc/.test(t))return /ey|pwc|kpmg|deloitte/.test(norm(c.company))?"In-house recruiter":"Recruiter";if(/partner|director|head of|manager/.test(t))return "Senior professional";return "Employee"}
+function suggestedTemplate(dept){
+ const d=dept||"General";
+ const intro=state.candidate==="Abhishek"
+  ?"Hi {{first_name}}, I'm an ACCA member with an MSc in Finance from UCD and I'm exploring "+d+" opportunities."
+  :"Hi {{first_name}}, I have a UCD master's background, CSP and QFA and I'm exploring "+d+" opportunities.";
+ return {department:d,introduction:intro,closing:"I'd appreciate connecting. Thank you."};
+}
+function deptTemplate(dept){return state.templates[dept]||state.templates["General"]||suggestedTemplate(dept)}
+function templateText(text,c){return String(text||"").replace(/{{(first_name|company|department)}}/g,(_,token)=>
+ token==="first_name"?String(c.name||"there").trim().split(/\s+/)[0]:
+ token==="company"?c.company||"":department(c))}
+function draftIntroClosing(c){
+ const template=deptTemplate(department(c));
+ return [templateText(template.introduction,c),"",templateText(template.closing,c)].join("\n");
+}
 function makeMessage(c,variation=0,followup=false){
- const first=String(c.name||"there").split(" ")[0],type=contactKind(c),dept=department(c),company=c.company;
+ const first=String(c.name||"there").split(" ")[0],dept=department(c),company=c.company;
  if(followup){
  const base=["Thanks for connecting, "+first+". I appreciate it and would be glad to stay in touch.",
  "Thanks for connecting, "+first+". I’m exploring opportunities in "+dept+" and would value any general guidance you might share.",
  "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+"."][variation]||"Thanks for connecting.";
  return base;
  }
- if(c.message)return c.message;
- const about=state.candidate==="Abhishek"?"I'm an ACCA member with experience in finance and advisory.":"I'm interested in opportunities in finance and advisory.";
- if(type==="In-house recruiter")return ("Hi "+first+", "+about+" I’m exploring "+dept+" opportunities at "+company+" and would value connecting.").slice(0,300);
- if(type==="Recruiter")return ("Hi "+first+", "+about+" I’m exploring roles in "+dept+" across Ireland and would be pleased to connect.").slice(0,300);
- if(type==="Senior professional")return ("Hi "+first+", "+about+" Your role in "+dept+" at "+company+" caught my interest. I’d value connecting and learning from your perspective.").slice(0,300);
- return ("Hi "+first+", "+about+" I came across your profile at "+company+" and would value connecting with someone working in "+dept+".").slice(0,300)
+ // Existing researched messages retain the exact approved text in Connections!K;
+ // editing an overall template must never silently overwrite old outreach.
+ return c.message||draftIntroClosing(c);
 }
+function templateSummary(c){return c.message?"Researched message saved in Freshmaal":"Template draft · GPT research line not yet available"}
+
 function stats(){const total=state.items.length,sent=state.items.filter(x=>x.relation?.sent).length,accepted=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status)).length,due=state.items.filter(x=>due(x)).length;
  return {total,sent,accepted,due}}
 function due(x){return ["accepted","replied"].includes(x.relation?.status)&&!x.relation?.followupSent&&!!x.relation?.next&&x.relation.next<=dateNow()}
@@ -112,19 +136,59 @@ function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIn
  const top=heading("Discover & swipe")+filterBar();
  if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
  const href=c.profile||safeLinkedInSearch(c.search);
- return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
+ return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:8px">'+esc(templateSummary(c))+' · Only mark Sent after actually sending the request.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
 function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
  return heading("Follow-ups")+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
-function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
+function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction · '+esc(templateSummary(c))+'</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" id="editTemplate" data-department="'+esc(department(c)) +'">✎ Edit department template</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
 function researchPrompt(){
- return "GARAMAAL LINKEDIN RESEARCH / FRESHMAAL IMPORT\nCandidate: "+state.candidate+
- "\nTarget: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Selected department")+
- "\nFreshmaal Connections: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit\n"+
- "Find NEW_ .txt files in my connected Research Inbox Drive folder, read them as user-supplied leads, NOT proof of titles. Independently verify named professionals against accessible official/public sources. LinkedIn pages behind login are NOT accessible unless copied text is provided. Never invent profiles, title, emails, claims of hiring or source links. Do not scrape LinkedIn.\n"+
- "For each verified person prepare the exact Connections A:L columns: Company, Contact Name, Direct LinkedIn Profile (blank unless independently verified), LinkedIn Search, Applied-for Role='Networking', Candidate full name, Freshmaal Row blank, Vacancy Link blank, Person's Position, Verification/Evidence with source URL, personalised Outreach Message <=300 characters, Research Date UTC. Check for duplicates for this candidate and company, preserve all existing job-related rows. Use distinct approaches for colleagues, internal recruiters and agency recruiters.\n"+
- "Write only verified rows using my authorised Google Sheets connector. Read back and confirm each saved row. ONLY AFTER a successful import, rename its NEW_ .txt source file to USED_ keeping the rest of the filename unchanged. If no records verified, save fails, or access is unavailable, leave file NEW_ and provide a review table without claiming success.";
+ const chosen=Object.values(state.templates);
+ const configurations=(chosen.length?chosen:["Deals","Corporate Finance","Valuations","Transfer Pricing","Wealth Management","Financial Planning"].map(suggestedTemplate))
+   .filter(t=>!state.department||t.department===state.department);
+ return [
+ "GARAMAAL LINKEDIN RESEARCH / DEPARTMENT TEMPLATES / FRESHMAAL IMPORT",
+ "Candidate: "+state.candidate,
+ "Target: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Any department"),
+ "Freshmaal spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+ "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
+ "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
+ "Read NEW_ .txt sources in the candidate's connected Drive Research Inbox. These are leads, not proof of people's roles. Verify names, positions and a specific detail using accessible official/public sources. Never invent a profile URL, mutual connection, project, hiring status or achievement. Do not scrape LinkedIn or use accounts to bypass access.",
+ "For each recipient, choose the appropriate department template and preserve the exact user-written INTRODUCTION with {{first_name}}, {{company}}, {{department}} replaced using VERIFIED facts. Compose the MIDDLE line separately with one short, specific, verifiable observation about the recipient's role/work, grounded in a cited URL. If you cannot verify a personalised detail, leave the middle line blank, mark the item for review and do not pretend it is researched.",
+ "Append the exact template CLOSING unchanged. Introduction + verified middle + closing must together be no more than 300 characters. If they cannot fit without modifying user-owned template text, flag for manual review; never quietly truncate credentials. Never describe CFA or another qualification as completed/in progress unless supported by the candidate's verified evidence.",
+ "Differentiate colleagues, internal recruiters and independent agency recruiters in the MIDDLE line, without changing the user's department intro or closing.",
+ "For each verified contact save the full composed 3-line message to Connections column K (Outreach Message), evidence/source links to column J; keep existing A:L header order and candidate identity, vacancy-linked existing rows intact. De-duplicate by candidate + company + recipient. Do not overwrite existing messages without explicit approval; surface conflicts for review.",
+ "Read back and verify every write. Only after successful import and verification rename each processed NEW_ TXT to USED_. If no verified people or save unavailable, leave the TXT NEW_, show a reviewable table, and do not report a successful import."
+ ].join("\n\n");
 }
-function inboxView(){return heading("Research Inbox")+'<section class="card"><div class="section-head"><b>Save LinkedIn research to Drive</b><span class="tag">NEW → USED</span></div><div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(state.department)+'" placeholder="e.g. Valuations"></label></div><label class="field">LinkedIn company or search page<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label><label class="field">Optional copied profiles / names<textarea id="inboxText" placeholder="Paste LinkedIn text or individual names and positions. Do not enter private messages."></textarea></label><div class="btnrow"><button class="btn primary" id="saveInbox">＋ Save .txt to Drive</button><button class="btn soft" id="copyResearch">▣ Copy AI import prompt</button></div><p class="subtle">A page URL alone cannot reveal members behind LinkedIn login. The prompt requires verified public evidence before adding names to Freshmaal.</p></section><section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+(!state.inboxLoad?'<div class="subtle">Open this section to load your Drive queue.</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files yet.</div>')+'<div class="btnrow"><button class="btn" id="addContact">＋ Import reviewed names</button></div></section>'}
+function inboxView(){return heading("Research Inbox")+'<section class="card"><div class="section-head"><b>Save LinkedIn research to Drive</b><span class="tag">NEW → USED</span></div><div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(state.department)+'" placeholder="e.g. Valuations"></label></div><label class="field">LinkedIn company or search page<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label><label class="field">Optional copied profiles / names<textarea id="inboxText" placeholder="Paste LinkedIn text or individual names and positions. Do not enter private messages."></textarea></label><div class="btnrow"><button class="btn primary" id="saveInbox">＋ Save .txt to Drive</button><button class="btn soft" id="copyResearch">▣ Copy AI import prompt</button><button class="btn" id="editTemplate">✎ Master templates</button></div><p class="subtle">A page URL alone cannot reveal members behind LinkedIn login. The prompt requires verified public evidence before adding names to Freshmaal.</p></section><section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+(!state.inboxLoad?'<div class="subtle">Open this section to load your Drive queue.</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files yet.</div>')+'<div class="btnrow"><button class="btn" id="addContact">＋ Import reviewed names</button></div></section>'}
+function openTemplateEditor(dept){
+ state.templateDepartment=dept||state.department||state.templateDepartment||"Deals";
+ const sel=document.getElementById("templateDepartment");
+ const names=[...new Set([...depts.consulting,...depts.wealth,"General","Deals","Financial Planning","Recruiter",...Object.keys(state.templates)])];
+ sel.innerHTML=names.sort().map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");
+ if(!names.includes(state.templateDepartment))state.templateDepartment="General";
+ sel.value=state.templateDepartment;
+ document.getElementById("templateCandidate").textContent=state.candidate+" · separate editable departmental introduction & closing";
+ populateTemplateEditor();
+ document.getElementById("templateDialog").showModal();
+}
+function populateTemplateEditor(){
+ const dept=document.getElementById("templateDepartment").value;
+ state.templateDepartment=dept;
+ const t=state.templates[dept]||suggestedTemplate(dept);
+ document.getElementById("templateIntro").value=t.introduction;
+ document.getElementById("templateClosing").value=t.closing;
+}
+async function saveTemplateEditor(){
+ const candidate=state.candidate,department=document.getElementById("templateDepartment").value,
+ introduction=document.getElementById("templateIntro").value,closing=document.getElementById("templateClosing").value;
+ if(!introduction.trim()||!closing.trim())return alertUser("Both editable template lines are required.");
+ if(!confirm("Save this "+department+" template for "+candidate+"? Existing saved LinkedIn notes will not change."))return;
+ try{const saved=await request("templates/save",{department,introduction,closing,confirm:true});
+ if(state.candidate!==candidate)return;
+ state.templates[department]=saved;document.getElementById("templateDialog").close();
+ render();alertUser("Master template saved to Freshmaal for "+candidate+".");
+ }catch(e){alertUser(e.message)}
+}
 function render(){document.getElementById("app").innerHTML=(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
  const nav=[["dashboard","⌂","Dashboard"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"],["inbox","▣","Research"]];
  for(const area of ["bottomNav","desktopNav"])document.getElementById(area).innerHTML=nav.map(([id,ic,label])=>'<button data-view="'+id+'" class="'+(id===state.view?"active":"")+'">'+(area==="bottomNav"?'<span class="sym">'+ic+'</span>':ic+" ")+label+'</button>').join("");
@@ -136,10 +200,11 @@ async function refresh(){
  const candidate=state.candidate,requestId=++viewRequest;
  state.busy=true;
  try{
-  const data=await request("data");
+  const [data,templateData]=await Promise.all([request("data"),request("templates/get")]);
   if(state.candidate!==candidate||viewRequest!==requestId)return;
   if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
   state.items=data.items||[];
+  state.templates=Object.fromEntries((templateData.templates||[]).map(t=>[t.department,t]));
   render();
  }catch(e){
   if(state.candidate!==candidate||viewRequest!==requestId)return;
@@ -151,7 +216,7 @@ async function switchCandidate(candidate){
  if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
  state.candidate=candidate;
  try{localStorage.setItem("freshmaal-candidate",candidate)}catch{}
- state.items=[];state.query="";state.company="";state.department="";state.industry="all";
+ state.items=[];state.templates={};state.query="";state.company="";state.department="";state.industry="all";
  state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
@@ -180,6 +245,7 @@ document.addEventListener("change",e=>{
  if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
  if(e.target.id==="companyFilter"){state.company=e.target.value;render()}
  if(e.target.id==="departmentFilter"){state.department=e.target.value;render()}
+ if(e.target.id==="templateDepartment"){populateTemplateEditor();return}
  if(e.target.id==="followVariant"){const c=state.items.find(x=>x.key===state.selected);if(c)document.getElementById("followText").textContent=makeMessage(c,Number(e.target.value),true)}
 });
 document.addEventListener("click",async e=>{
@@ -189,6 +255,11 @@ document.addEventListener("click",async e=>{
  if(v.company){state.company=state.company===v.company?"":v.company;render();return}
  if(v.person){state.selected=v.person;render();return}
  if(v.copy!==undefined){copyText(v.copy);return}
+ if(b.id==="editTemplate"){openTemplateEditor(v.department);return}
+ if(b.id==="templateClose"){document.getElementById("templateDialog").close();return}
+ if(b.id==="templateReset"){const p=suggestedTemplate(document.getElementById("templateDepartment").value);
+ document.getElementById("templateIntro").value=p.introduction;document.getElementById("templateClosing").value=p.closing;return}
+ if(b.id==="templateSave"){await saveTemplateEditor();return}
  if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
  if(b.id==="refresh"){refresh();return}
  if(b.id==="closeDetail"){state.selected="";render();return}
