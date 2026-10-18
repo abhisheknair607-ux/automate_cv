@@ -40,6 +40,7 @@ jobs:
           node --check standalone/server.js
           node --check standalone/queue.js
           node --check standalone/bridge.js
+          node --check standalone/social_store.js
       - name: Test existing and migrated app logic (no API calls)
         run: |
           npm test
