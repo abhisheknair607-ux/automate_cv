@@ -90,29 +90,39 @@ test("Social standalone HTML contains one syntax-valid inline UI script, no seed
  assert.ok(!markup.includes("makeSeed"),"Must not show fictional contacts in live Social");
 });
 
-test("Existing Jobs navigation and controls remain while Social links are additive",()=>{
+test("Jobs HTML, navigation and header remain untouched by the Social feature",()=>{
  const fs=require("node:fs"),path=require("node:path");
  const jobs=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
  const server=fs.readFileSync(path.resolve(__dirname,"../server.js"),"utf8");
  for(const marker of ['id="deskNav"','id="candidateToggle"','id="expenseToggle"','id="modeBadge"','id="crumbTitle"']){
    assert.ok(jobs.includes(marker),marker+" absent from Jobs baseline");
  }
- assert.ok(server.includes("socialSideLink"),"Social desktop sidebar link not added");
- assert.ok(server.includes("socialTopLink"),"Social mobile shortcut not added");
- assert.ok(server.includes('html=html.replace(\'<nav id="deskNav"></nav>\''),"Expected additive sidebar insertion");
- assert.ok(!server.includes('href="/social" class="btn btn-xs"'),"Avoid crowding existing topbar");
+ assert.ok(server.includes('app.get("/social"'),"Social must remain on its own route");
+ assert.ok(!server.includes("socialSideLink"),"Jobs sidebar cannot be modified for Social");
+ assert.ok(!server.includes("socialTopLink"),"Jobs topbar cannot be modified for Social");
+ assert.ok(!server.includes('href="/social" class="btn btn-xs"'),"No Social links injected into Jobs");
+ assert.ok(!server.includes('html=html.replace(\'<nav id="deskNav"></nav>\''),"Jobs navigation must stay intact");
+ assert.ok(!server.includes('html=html.replace(\'Workspace /'),"Jobs breadcrumb must stay intact");
 });
+
 
 test("A/P selector is interactive and persists the same candidate as the Jobs application",()=>{
  const fs=require("node:fs"),path=require("node:path");
  const html=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
  const server=fs.readFileSync(path.resolve(__dirname,"../server.js"),"utf8");
- assert.match(html, /getItem\("freshmaal-candidate"\)/);
- assert.match(html, /setItem\("freshmaal-candidate",candidate\)/);
+ assert.match(html, /getItem\("garamaal-social-candidate"\)/);
+ assert.match(html, /setItem\("garamaal-social-candidate",candidate\)/);
  assert.match(html, /candA"\)\.onclick=\(\)=>switchCandidate\("Abhishek"\)/);
  assert.match(html, /candP"\)\.onclick=\(\)=>switchCandidate\("Pooja"\)/);
  assert.match(html, /state\.items=\[\];state\.query="";state\.company="";/);
  assert.match(server,/await authenticate\(req\);/);
  assert.match(server,/selectedCandidate\(req\.body\?\.candidate\)/);
  assert.ok(!server.includes("socialStore.candidateFromEmail"));
+});
+
+test("Social candidate storage does not modify Jobs candidate choice",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const social=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
+ assert.match(social,/garamaal-social-candidate/);
+ assert.ok(!social.includes("freshmaal-candidate"),"Social must not overwrite the Jobs candidate preference");
 });
