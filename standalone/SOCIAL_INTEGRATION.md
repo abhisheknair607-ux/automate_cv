@@ -12,12 +12,12 @@ Status: **feature branch; NOT deployed**. Keep the CV automation and original Ap
 - ChatGPT research prompt copies instructions to process the user's **connected Drive** folder `NEW_` text files, verify public evidence, append only verified people to `Connections`, then rename source after successful verification. This is a user-driven workflow, not an invisible background agent.
 
 ## Required Cloud Run environment and permissions
-- `SOCIAL_ABHISHEK_EMAIL`: exact Google sign-in email for Abhishek
-- `SOCIAL_POOJA_EMAIL`: exact Google sign-in email for Pooja
+- Both candidates use the EXISTING Garamaal Firebase Google sign-in. No candidate-specific email mapping is required. A/P is a manual workspace selector, matching the Jobs interface; the browser persists the choice using `freshmaal-candidate`.
+- Workspace selection is not a privacy permission boundary: any currently authorised Garamaal account can select A or P. The candidate tag separates data in Sheets and Drive, not access to it.
 - `SOCIAL_INBOX_ABHISHEK_FOLDER_ID`: a private dedicated Drive folder ID for Abhishek's TXT files
 - `SOCIAL_INBOX_POOJA_FOLDER_ID`: a different private dedicated Drive folder ID for Pooja's TXT files
 - The Cloud Run service account needs editor access to Freshmaal and editor/content-manager access to each appropriate private Drive folder. Do **not** make research folders public.
-- Preserve the existing `APP_READ_ONLY`, `APP_ALLOW_PRODUCTION_WRITES`, `ALLOW_MANUAL_CV_DISPATCH`, `ALLOWED_EMAILS`, existing Sheets IDs, Firebase auth, and the GitHub workflow secret; do not reset any of them. Social writes obey the existing read-only gate. The app fails closed if the candidate-email identity mapping is missing or an unauthorised account opens Social.
+- Preserve the existing `APP_READ_ONLY`, `APP_ALLOW_PRODUCTION_WRITES`, `ALLOW_MANUAL_CV_DISPATCH`, `ALLOWED_EMAILS`, existing Sheets IDs, Firebase auth, and the GitHub workflow secret; do not reset any of them. Social writes obey the existing read-only gate. The app continues to reject unauthorised Google accounts and invalid A/P workspace values.
 - Added Google OAuth service-account scope: `drive.file` for creating/managing app-created TXT files. Existing `drive.readonly` and `spreadsheets` scopes remain unchanged.
 - The generic account's ability to edit the entire Freshmaal sheet remains governed by Google Sheets sharing; the Social HTTP interface itself enforces candidate mapping. Do not launch publicly with a shared unrestricted sheet.
 
@@ -25,7 +25,7 @@ Status: **feature branch; NOT deployed**. Keep the CV automation and original Ap
 The GitHub default `main` branch as inspected on 18 October 2026 **does not contain the Firebase/Cloud Run `standalone/` directory or `firebase.json`**. It exists on separate migration/feature branches. The Social branch was created from `fix/firebase-garamaal-status-contacts-20261016`. Merge it into the appropriate current Firebase release branch first, *not blindly into `main`*, until the source of the deployed Cloud Run revision is independently verified.
 
 ## Acceptance checks
-1. Run `npm test`, the standalone parity workflow and `node --check standalone/social_store.js`; smoke test the container, unauthenticated `/api/social/data` (401), and authenticated candidate mismatch (403).
+1. Run `npm test`, the standalone parity workflow and `node --check standalone/social_store.js`; smoke test the container, unauthenticated `/api/social/data` (401), and an invalid candidate selection (400), while both A and P are selectable for authorised accounts.
 2. On **staging copies** of Freshmaal and private test Drive folders, load existing A:L contacts and confirm the candidate counts and correct Pooja name matching. Test that reading creates no tabs or writes.
 3. Swipe right only after a real request was sent; inspect `SocialTracking` row, reload and ensure persistence. Swipe left moves to Later, no repeat in queue. Test status accepted, copy and record follow-up, and candidate isolation.
 4. Import a test contact, verify its A:L row, check its department saved in `SocialTracking` (not `Sheet1`), repeat import to confirm no duplicate.
@@ -36,4 +36,4 @@ The GitHub default `main` branch as inspected on 18 October 2026 **does not cont
 ## Notes
 - Contact messages from existing Freshmaal data display unchanged. New imports with no saved message receive simple role-aware draft templates in the browser; AI enrichment is through user-controlled ChatGPT prompts.
 - Status and sender detection are manual. Gmail forwarding and LinkedIn messaging integration are not part of this deployment.
-- One email maps to one candidate. Other registered accounts and public SaaS access require a future Firebase/Google Sheets privacy redesign.
+- A/P is a shared-account workspace selector, not per-user private access. All accounts permitted through the current Garamaal `ALLOWED_EMAILS` can open both workspaces. Public SaaS rollout requires true per-user authorisation and separate storage.
