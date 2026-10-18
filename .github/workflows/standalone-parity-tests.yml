@@ -41,6 +41,7 @@ jobs:
           node --check standalone/queue.js
           node --check standalone/bridge.js
           node --check standalone/social_store.js
+          node --check standalone/social_server.js
       - name: Test existing and migrated app logic (no API calls)
         run: |
           npm test
@@ -64,6 +65,33 @@ jobs:
           JS
       - name: Build isolated Cloud Run container (no cloud credentials, no API costs)
         run: docker build -f Dockerfile.standalone -t cv-standalone-test:ci .
+      - name: Build independent Social-only container (Jobs files excluded)
+        run: docker build -f Dockerfile.social -t garamaal-social-test:ci .
+      - name: Smoke test Social service routes and verify Jobs endpoints are absent
+        run: |
+          set -euo pipefail
+          docker run -d --rm --name garamaal-social-smoke -p 127.0.0.1:18082:8080             -e GOOGLE_CLOUD_PROJECT=abhishek-cv-automation             garamaal-social-test:ci
+          trap 'docker logs garamaal-social-smoke || true; docker rm -f garamaal-social-smoke || true' EXIT
+          for attempt in {1..25}; do
+            if curl -fsS http://127.0.0.1:18082/health > /tmp/social-health.json; then break; fi
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json
+          x=json.load(open("/tmp/social-health.json",encoding="utf-8"))
+          assert x["ok"] is True
+          assert x["service"]=="garamaal-social"
+          assert x["readOnly"] is True,"Social must start read-only"
+          PY
+          curl -fsS http://127.0.0.1:18082/social -o /tmp/social-ui.html
+          curl -fsS http://127.0.0.1:18082/social/bridge.js -o /tmp/social-bridge.js
+          grep -q 'Research Inbox' /tmp/social-ui.html
+          for url in / /api/listJobs /api/getCvQueue /api/download; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:18082${url}")"
+            test "$code" = 404 || { echo "Unexpected Jobs route: $url -> $code"; exit 1; }
+          done
+          code="$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"candidate":"Abhishek"}' http://127.0.0.1:18082/api/social/data)"
+          test "$code" = 401 || { echo "Social API must reject unsigned requests: $code"; exit 1; }
       - name: Smoke test container health and block unauthenticated API access
         run: |
           set -euo pipefail
