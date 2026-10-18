@@ -84,7 +84,7 @@ test("Social standalone HTML contains one syntax-valid inline UI script, no seed
  const inline=[...markup.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
  assert.equal(inline.length,1);
  assert.doesNotThrow(()=>new vm.Script(inline[0],{filename:"social.html"}));
- assert.ok(markup.includes('src="/bridge.js"'),"Must use existing Firebase bridge");
+ assert.ok(markup.includes('src="/social/bridge.js"'),"Social must use isolated Firebase bridge route");
  assert.ok(markup.includes('id="swipeCard"'),"Swipe card missing");
  assert.ok(markup.includes("Research Inbox"),"Research fourth section missing");
  assert.ok(!markup.includes("makeSeed"),"Must not show fictional contacts in live Social");
