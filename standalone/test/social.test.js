@@ -116,3 +116,17 @@ test("A/P selector is interactive and persists the same candidate as the Jobs ap
  assert.match(server,/selectedCandidate\(req\.body\?\.candidate\)/);
  assert.ok(!server.includes("socialStore.candidateFromEmail"));
 });
+
+test("Research Now uses only company, department and city in LinkedIn People keywords",()=>{
+ const {researchUrl}=require("../social_research");
+ const url=new URL(researchUrl({company:"EY",department:"Valuations",city:"Dublin",searchUrl:"https://www.linkedin.com/search/results/people/?filters=not-requested"}));
+ assert.equal(url.hostname,"www.linkedin.com");
+ assert.equal(url.pathname,"/search/results/people/");
+ assert.equal(url.searchParams.get("keywords"),"EY Valuations Dublin");
+ assert.equal(url.searchParams.has("filters"),false);
+ const fs=require("node:fs"),path=require("node:path");
+ const html=fs.readFileSync(path.join(__dirname,"../social.html"),"utf8");
+ assert.ok(html.includes("function linkedInPeopleUrl("));
+ assert.ok(html.includes('id="researchNow"'));
+ assert.ok(!html.includes('id="targetLink"'));
+});
