@@ -97,9 +97,9 @@ async function uploadDrive({token,candidate,filename,content,mimeType,fetcher=fe
 }
 function safeImage({imageData,mimeType}){
  if(!["image/jpeg","image/png","image/webp"].includes(mimeType))throw err("Only JPEG, PNG and WebP screenshots are accepted.");
- if(typeof imageData!=="string"||imageData.length>1400000||!/^[A-Za-z0-9+/]+={0,2}$/.test(imageData))throw err("Screenshot must be under 1 MB.");
+ if(typeof imageData!=="string"||imageData.length>4200000||!/^[A-Za-z0-9+/]+={0,2}$/.test(imageData))throw err("Screenshot must be under 1 MB.");
  const buffer=Buffer.from(imageData,"base64");
- if(buffer.length<100||buffer.length>1024*1024)throw err("Screenshot must be between 100 bytes and 1 MB.");
+ if(buffer.length<100||buffer.length>3*1024*1024)throw err("Screenshot must be between 100 bytes and 1 MB.");
  const png=buffer.length>8&&buffer.subarray(0,8).equals(Buffer.from("89504e470d0a1a0a","hex"));
  const jpg=buffer.length>3&&buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff;
  const webp=buffer.length>12&&buffer.toString("ascii",0,4)==="RIFF"&&buffer.toString("ascii",8,12)==="WEBP";
@@ -119,6 +119,7 @@ async function saveConversation({token,id,candidate,contact,company,chatText,ima
  contact=value(contact,100);company=value(company,120);chatText=value(chatText,45000);
  if(!contact||!company)throw err("Contact and company are required.");
  if(!chatText&&!imageData)throw err("Paste a conversation or add a screenshot.");
+ if(chatText&&imageData)throw err("Choose pasted chat or screenshot for each source record.");
  // Screenshots and text are stored separately, not sent to an LLM.
  const idSuffix=crypto.randomBytes(5).toString("hex"),stamp=new Date().toISOString().replace(/[:.]/g,"-");
  let contents,mime,filename;
