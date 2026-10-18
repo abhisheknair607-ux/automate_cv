@@ -49,3 +49,15 @@ test("Social writes require two independent opt-in environment flags",()=>{
  assert.ok(!social.includes("APP_READ_ONLY"));
  assert.ok(!social.includes("APP_ALLOW_PRODUCTION_WRITES"));
 });
+
+test("Read-only Social release command protects exact Jobs revision and never deploys Jobs",()=>{
+ const sh=read("standalone/deploy-social-readonly.sh");
+ assert.ok(sh.includes("automate-cv-dashboard-00027-rrv"));
+ assert.ok(sh.includes("153c09ef575d89e93923956be0bdd2fe42f843047a93cf3d0d90b5ebe7b644f0"));
+ assert.ok(sh.includes("verify_jobs"));
+ assert.ok(sh.includes('gcloud run deploy "$SOCIAL"'));
+ assert.ok(!sh.includes('gcloud run deploy "$JOBS"'));
+ assert.ok(sh.includes('"SOCIAL_READ_ONLY":"true"'));
+ assert.ok(sh.includes('"SOCIAL_ALLOW_LIVE_WRITES":"false"'));
+ assert.ok(sh.includes("NEXT: Firebase Hosting preview"));
+});
