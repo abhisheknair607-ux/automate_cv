@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#132a49"><title>Garamaal · Social Networking</title>
+<style>
+:root{--navy:#132a49;--blue:#2563eb;--line:#dce4ef;--muted:#728096;--text:#192b40;--bg:#f5f7fb;--lavender:#7a4eea}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;color:var(--text);background:var(--bg)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
+a{color:#1f5bc9;text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:10;background:white;border-bottom:1px solid var(--line);padding:12px max(14px,calc((100vw - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:8px}
+.row{display:flex;align-items:center;gap:8px}.tight{gap:4px}.pill,.mini{border:1px solid #dde6f1;border-radius:12px;background:#eff3f9;color:#445877;padding:8px 10px;font-size:12px;font-weight:750}
+.pill.active,.mini.active{background:#fff;color:#1754a8;box-shadow:0 1px 6px #1a3f6420}
+.pair{display:flex;border-radius:13px;background:#edf2fa;gap:2px;padding:4px}.pair button{border:0;background:transparent;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:750;color:#68778d}.pair button.active{background:#fff;color:#254776;box-shadow:0 2px 5px #1a3f6420}
+.logo{font-weight:850;color:#1a426e}.preview{font-size:10px;border-radius:7px;padding:5px;background:#fff5d9;color:#795f20}
+main{max-width:1080px;padding:16px 16px 96px;margin:auto}.heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}.heading h1{font-size:20px;letter-spacing:-.55px;margin:0}.muted{color:var(--muted)}.small{font-size:11px}
+.card{border-radius:17px;border:1px solid var(--line);background:#fff;box-shadow:0 5px 18px #2946670a;padding:15px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.stat{padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff}.stat label{display:block;color:var(--muted);font-size:12px;font-weight:650}.stat strong{font-size:26px;letter-spacing:-.5px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.section-head b{font-size:14px}
+.btn{background:white;border:1px solid var(--line);border-radius:11px;padding:10px 13px;color:#23405d;font-weight:740}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:white}.btn.soft{background:#eaf2ff;color:#2158aa;border-color:#d4e3fc}.btn.good{background:#eaf8f0;color:#157347;border-color:#cce9d7}
+.btn.small{padding:7px 10px;font-size:11px}.btnrow{display:flex;gap:7px;flex-wrap:wrap}.chip{padding:7px 10px;background:#f4f6fa;border:1px solid #dde6ef;border-radius:20px;font-size:11px;font-weight:720}.chip.selected{background:#e5f0ff;color:#205bb2;border-color:#a7c7f7}
+input,textarea,select{background:#fff;border:1px solid #d5dfeb;border-radius:12px;padding:10px 12px;width:100%;color:var(--text);min-width:0}input:focus,textarea:focus,select:focus{outline:2px solid #bed7ff}textarea{resize:vertical;min-height:80px}label{font-weight:650}
+.search{display:flex;gap:7px;margin-bottom:10px}.search input{background:#f7f9fc;flex:1}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.field{display:grid;gap:5px;margin-bottom:10px}
+.hidden{display:none!important}.count{border-radius:20px;background:#e9f0fc;padding:3px 7px;color:#2b5a95;font-size:10px}
+.person{padding:10px 0;border-bottom:1px solid #edf1f5;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.person:last-child{border:0}.person strong{display:block;font-size:13px}.person small{display:block;color:var(--muted);font-size:11px}
+.tag{border-radius:20px;background:#f1f4f8;color:#526579;font-size:10px;font-weight:740;padding:5px 8px;white-space:nowrap}.tag.accepted,.tag.replied{background:#e3f5eb;color:#13754c}.tag.sent{background:#e7efff;color:#285caf}.tag.later{background:#fff5df;color:#8d6a1d}
+.swipe-card{min-height:min(58vh,530px);display:flex;flex-direction:column;padding:21px;border:1px solid #c8d9ef;border-radius:22px;background:linear-gradient(140deg,#fff,#f3f7ff);box-shadow:0 12px 32px #243d6616;touch-action:pan-y}
+.swipe-card h2{font-size:24px;margin:10px 0 2px}.swipe-card p{margin:3px 0}.spacer{flex:1}.note{background:#fff;border:1px solid #e3eaf5;border-radius:12px;padding:12px;white-space:pre-line;line-height:1.5;margin:12px 0}
+.swipe-actions{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:8px}.swipe-actions .btn{padding:13px 5px}
+.filter-panel{background:#fff;border:1px solid #dce7f5;border-radius:13px;padding:11px;margin:8px 0}
+.preview-note{color:#8b6425;background:#fff8e5;padding:9px 12px;border-radius:10px;font-size:11px;margin-bottom:12px}
+.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e1e8f3;z-index:9;justify-content:space-around;padding:9px 3px max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 18px #182c4410}
+.bottom button{background:none;border:0;color:#78849a;font-size:10px;font-weight:720;min-width:21%;padding:2px 0}.bottom button.active{color:#2664b8}.bottom .sym{display:block;font-size:21px;margin-bottom:4px}
+.topview{display:none}.topview button{border:none;color:#a9c6df;background:transparent;padding:10px 12px;border-radius:9px;font-weight:700}.topview button.active{color:white;background:#314a69}
+aside{display:none}.subtle{color:#6d7d90;font-size:11px;margin:4px 0 10px}.empty{text-align:center;padding:24px 8px;color:#77869d}
+.inline{display:flex;gap:7px;align-items:center}.inline label{min-width:76px}.max{width:100%}.source{overflow-wrap:anywhere}
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:99;background:#142a43;color:white;padding:10px 18px;border-radius:12px;max-width:90%;display:none;box-shadow:0 9px 30px #22384933;font-size:12px}
+dialog{border:1px solid #dce4f0;border-radius:20px;width:min(520px,95vw);padding:20px;box-shadow:0 20px 70px #092a4950}dialog::backdrop{background:#091e3599}
+@media(max-width:700px){.logo{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.stat{padding:10px 12px}.stat strong{font-size:23px}.split{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.card{padding:13px;margin-bottom:9px}main{padding:12px 12px 91px}.heading{margin-bottom:9px}.heading h1{font-size:18px}.swipe-card{min-height:65vh}.small-mobile{font-size:11px}}
+@media(min-width:900px){.bottom{display:none}.topview{display:flex;background:var(--navy);padding:6px max(14px,calc((100vw - 1080px)/2));gap:8px}main{padding-bottom:35px}.swipe-card{max-width:610px;margin:0 auto}}
+</style></head>
+<body>
+<header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
+<div class="row tight"><span class="mini" title="Costs remain in the Jobs dashboard">$</span><div class="pair" id="candidatePair"><button id="candA" class="active">A</button><button id="candP">P</button></div><span class="preview">LIVE SHEET</span></div></header>
+<div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
+<nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
+<dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
+<p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional). Review before saving.</p>
+<textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
+<div class="field"><label>Source Research Inbox TXT (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
+<div class="btnrow"><button class="btn primary" id="importConfirm">Import to Freshmaal</button><button class="btn" id="importCancel">Cancel</button></div></dialog>
+<script src="/bridge.js"></script><script>
+"use strict";
+const firms={
+ consulting:["EY","PwC","Deloitte","KPMG","Grant Thornton","BDO","Forvis Mazars"],
+ wealth:["Davy","Goodbody","Cantor Fitzgerald Ireland","Unio Wealth Management","Irish Life","AIB Private Banking","Bank of Ireland Private Banking","RBC Brewin Dolphin","Mercer"]
+};
+const depts={
+ consulting:["Corporate Finance","Valuations","Transaction Services","Deals","Financial Due Diligence","Transfer Pricing","Tax Technology"],
+ wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
+};
+const state={view:"dashboard",candidate:"Abhishek",items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dateNow=()=>new Date().toISOString().slice(0,10);
+const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
+async function request(p,data={}){return await window.__cvStandalone.requestSpecial("social/"+p,{candidate:state.candidate,...data})}
+function norm(s){return String(s||"").toLowerCase()}
+function orgGroup(company){return firms.wealth.some(f=>norm(f)===norm(company))?"wealth":"consulting"}
+function department(c){if(c.relation?.department)return c.relation.department;const t=norm(c.title);
+ for(const x of [...depts.consulting,...depts.wealth])if(t.includes(norm(x)))return x;
+ return "Uncategorised"}
+function contactKind(c){let t=norm(c.title);if(/recruit(ment|er)|head.?hunt|talent acquisition|sourc/.test(t))return /ey|pwc|kpmg|deloitte/.test(norm(c.company))?"In-house recruiter":"Recruiter";if(/partner|director|head of|manager/.test(t))return "Senior professional";return "Employee"}
+function makeMessage(c,variation=0,followup=false){
+ const first=String(c.name||"there").split(" ")[0],type=contactKind(c),dept=department(c),company=c.company;
+ if(followup){
+ const base=["Thanks for connecting, "+first+". I appreciate it and would be glad to stay in touch.",
+ "Thanks for connecting, "+first+". I’m exploring opportunities in "+dept+" and would value any general guidance you might share.",
+ "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+"."][variation]||"Thanks for connecting.";
+ return base;
+ }
+ if(c.message)return c.message;
+ const about=state.candidate==="Abhishek"?"I'm an ACCA member with experience in finance and advisory.":"I'm interested in opportunities in finance and advisory.";
+ if(type==="In-house recruiter")return ("Hi "+first+", "+about+" I’m exploring "+dept+" opportunities at "+company+" and would value connecting.").slice(0,300);
+ if(type==="Recruiter")return ("Hi "+first+", "+about+" I’m exploring roles in "+dept+" across Ireland and would be pleased to connect.").slice(0,300);
+ if(type==="Senior professional")return ("Hi "+first+", "+about+" Your role in "+dept+" at "+company+" caught my interest. I’d value connecting and learning from your perspective.").slice(0,300);
+ return ("Hi "+first+", "+about+" I came across your profile at "+company+" and would value connecting with someone working in "+dept+".").slice(0,300)
+}
+function stats(){const total=state.items.length,sent=state.items.filter(x=>x.relation?.sent).length,accepted=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status)).length,due=state.items.filter(x=>due(x)).length;
+ return {total,sent,accepted,due}}
+function due(x){return ["accepted","replied"].includes(x.relation?.status)&&!x.relation?.followupSent&&!!x.relation?.next&&x.relation.next<=dateNow()}
+function activeItems(){
+ return state.items.filter(c=>(!state.query||norm([c.name,c.company,c.title,department(c)].join(" ")).includes(norm(state.query)))
+ &&(!state.company||c.company===state.company)&&(!state.department||department(c)===state.department)&&
+ (state.industry==="all"||orgGroup(c.company)===state.industry))}
+function options(items,val){return '<option value="">All</option>'+items.map(x=>'<option '+(x===val?'selected':'')+'>'+esc(x)+'</option>').join("")}
+function companies(){return [...new Set([...firms.consulting,...firms.wealth,...state.items.map(c=>c.company)])].sort()}
+function departments(){return [...new Set([...depts.consulting,...depts.wealth,...state.items.map(c=>department(c))])].sort()}
+function filterHTML(){return '<div class="filter-panel"><div class="grid3"><label class="field">Industry<select id="groupFilter"><option value="all">All industries</option><option value="consulting" '+(state.industry==="consulting"?"selected":"")+'>Consulting & Deals</option><option value="wealth" '+(state.industry==="wealth"?"selected":"")+'>Wealth & Planning</option></select></label><label class="field">Company<select id="companyFilter">'+options(companies(),state.company)+'</select></label><label class="field">Department<select id="departmentFilter">'+options(departments(),state.department)+'</select></label></div></div>'}
+function filterBar(){return '<div class="search"><input id="search" aria-label="Search people, organisations and departments" placeholder="⌕ Search people or company" value="'+esc(state.query)+'"><button class="btn '+(state.filterVisible?"soft":"")+'" id="filterButton" title="Search filters">☷ '+(state.filterVisible?"Hide":"Filter")+'</button></div>'+(state.filterVisible?filterHTML():"")}
+function heading(title){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button></div></div>'}
+function statGrid(){const m=stats();return '<div class="stats"><div class="stat"><label>People</label><strong>'+m.total+'</strong></div><div class="stat"><label>Requests ↗</label><strong>'+m.sent+'</strong></div><div class="stat"><label>Accepted ✓</label><strong>'+m.accepted+'</strong></div><div class="stat"><label>Follow-ups ↗</label><strong>'+m.due+'</strong></div></div>'}
+function organizationCard(){return '<section class="card"><div class="section-head"><b>Target organisations</b><span class="small muted">Ireland</span></div><div class="btnrow"><button data-industry="all" class="chip '+(state.industry==="all"?"selected":"")+'">All</button><button data-industry="consulting" class="chip '+(state.industry==="consulting"?"selected":"")+'">🏢 Deals & Tax</button><button data-industry="wealth" class="chip '+(state.industry==="wealth"?"selected":"")+'">💼 Wealth & Planning</button></div><div class="btnrow" style="margin-top:9px">'+(state.industry==="wealth"?firms.wealth:state.industry==="consulting"?firms.consulting:companies()).map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></section>'}
+function peopleList(){const v=activeItems();return '<section class="card"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
+function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
+function swipeQueue(){return activeItems().filter(c=>!["sent","accepted","replied"].includes(c.relation?.status))}
+function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
+ const top=heading("Discover & swipe")+filterBar();
+ if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
+ const href=c.profile||c.search;
+ return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
+function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
+ return heading("Follow-ups")+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
+function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
+function researchPrompt(){
+ return "GARAMAAL LINKEDIN RESEARCH / FRESHMAAL IMPORT\nCandidate: "+state.candidate+
+ "\nTarget: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Selected department")+
+ "\nFreshmaal Connections: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit\n"+
+ "Find NEW_ .txt files in my connected Research Inbox Drive folder, read them as user-supplied leads, NOT proof of titles. Independently verify named professionals against accessible official/public sources. LinkedIn pages behind login are NOT accessible unless copied text is provided. Never invent profiles, title, emails, claims of hiring or source links. Do not scrape LinkedIn.\n"+
+ "For each verified person prepare the exact Connections A:L columns: Company, Contact Name, Direct LinkedIn Profile (blank unless independently verified), LinkedIn Search, Applied-for Role='Networking', Candidate full name, Freshmaal Row blank, Vacancy Link blank, Person's Position, Verification/Evidence with source URL, personalised Outreach Message <=300 characters, Research Date UTC. Check for duplicates for this candidate and company, preserve all existing job-related rows. Use distinct approaches for colleagues, internal recruiters and agency recruiters.\n"+
+ "Write only verified rows using my authorised Google Sheets connector. Read back and confirm each saved row. ONLY AFTER a successful import, rename its NEW_ .txt source file to USED_ keeping the rest of the filename unchanged. If no records verified, save fails, or access is unavailable, leave file NEW_ and provide a review table without claiming success.";
+}
+function inboxView(){return heading("Research Inbox")+'<section class="card"><div class="section-head"><b>Save LinkedIn research to Drive</b><span class="tag">NEW → USED</span></div><div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(state.department)+'" placeholder="e.g. Valuations"></label></div><label class="field">LinkedIn company or search page<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label><label class="field">Optional copied profiles / names<textarea id="inboxText" placeholder="Paste LinkedIn text or individual names and positions. Do not enter private messages."></textarea></label><div class="btnrow"><button class="btn primary" id="saveInbox">＋ Save .txt to Drive</button><button class="btn soft" id="copyResearch">▣ Copy AI import prompt</button></div><p class="subtle">A page URL alone cannot reveal members behind LinkedIn login. The prompt requires verified public evidence before adding names to Freshmaal.</p></section><section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+(!state.inboxLoad?'<div class="subtle">Open this section to load your Drive queue.</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files yet.</div>')+'<div class="btnrow"><button class="btn" id="addContact">＋ Import reviewed names</button></div></section>'}
+function render(){document.getElementById("app").innerHTML=(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
+ const nav=[["dashboard","⌂","Dashboard"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"],["inbox","▣","Research"]];
+ for(const area of ["bottomNav","desktopNav"])document.getElementById(area).innerHTML=nav.map(([id,ic,label])=>'<button data-view="'+id+'" class="'+(id===state.view?"active":"")+'">'+(area==="bottomNav"?'<span class="sym">'+ic+'</span>':ic+" ")+label+'</button>').join("");
+ document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
+ document.getElementById("candP").classList.toggle("active",state.candidate==="Pooja");
+}
+async function refresh(){if(state.busy)return;state.busy=true;try{const data=await request("data");if(data.candidate)state.candidate=data.candidate;state.items=data.items||[];render()}catch(e){alertUser(e.message);document.getElementById("app").innerHTML='<div class="card">Social data unavailable: '+esc(e.message)+'</div>'}finally{state.busy=false}}
+async function loadInbox(){try{const v=await request("inbox/list");state.inbox=v.files||[];state.inboxLoad=true;render()}catch(e){alertUser(e.message)}}
+async function updateStatus(key,status,next){if(!confirm("Record "+status+" for this person? LinkedIn is not connected."))return;
+ try{await request("status",{key,status,next:next||"",confirm:true});state.selected="";state.swipeIndex=0;await refresh();alertUser("Status saved to Freshmaal.")}catch(e){alertUser(e.message)}}
+async function markFollow(key){if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
+ try{await request("followup",{key,confirm:true});state.selected="";await refresh();alertUser("Follow-up saved.")}catch(e){alertUser(e.message)}}
+function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(s).then(()=>alertUser("Copied."),()=>prompt("Copy text",s));else prompt("Copy text",s)}
+let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
+document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
+ updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
+document.addEventListener("input",e=>{if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("change",e=>{
+ if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
+ if(e.target.id==="companyFilter"){state.company=e.target.value;render()}
+ if(e.target.id==="departmentFilter"){state.department=e.target.value;render()}
+ if(e.target.id==="followVariant"){const c=state.items.find(x=>x.key===state.selected);if(c)document.getElementById("followText").textContent=makeMessage(c,Number(e.target.value),true)}
+});
+document.addEventListener("click",async e=>{
+ const b=e.target.closest("button");if(!b)return;const v=b.dataset;
+ if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox")loadInbox();return}
+ if(v.industry){state.industry=v.industry;state.company="";state.department="";render();return}
+ if(v.company){state.company=state.company===v.company?"":v.company;render();return}
+ if(v.person){state.selected=v.person;render();return}
+ if(v.copy!==undefined){copyText(v.copy);return}
+ if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
+ if(b.id==="refresh"){refresh();return}
+ if(b.id==="closeDetail"){state.selected="";render();return}
+ if(b.id==="addContact"){document.getElementById("importDialog").showModal();const s=document.getElementById("importSource");s.innerHTML='<option value="">No source file</option>'+state.inbox.filter(f=>f.status==="new").map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+'</option>').join("");return}
+ if(["importCancel","importClose"].includes(b.id)){document.getElementById("importDialog").close();return}
+ if(b.id==="saveStatus"){await updateStatus(state.selected,document.getElementById("statusPick").value,document.getElementById("nextDate").value);return}
+ if(b.id==="copyFollow"){const c=state.items.find(x=>x.key===state.selected);if(c)copyText(makeMessage(c,Number(document.getElementById("followVariant").value),true));return}
+ if(b.id==="markFollow"){await markFollow(state.selected);return}
+ if(b.id==="later"||b.id==="sent"){const x=swipeQueue()[state.swipeIndex];if(x){state.lastSwipe={key:x.key,before:x.relation?.status||"identified"};await updateStatus(x.key,b.id==="later"?"later":"sent","")}return}
+ if(b.id==="undo"&&state.lastSwipe){const {key,before}=state.lastSwipe;state.lastSwipe=null;await updateStatus(key,before,"");return}
+ if(b.id==="saveInbox"){try{const data=await request("inbox/save",{company:document.getElementById("inboxCompany").value,department:document.getElementById("inboxDepartment").value,pageUrl:document.getElementById("inboxUrl").value,pastedText:document.getElementById("inboxText").value});alertUser("Saved "+data.name);await loadInbox()}catch(err){alertUser(err.message)}return}
+ if(b.id==="copyResearch"){copyText(researchPrompt());return}
+ if(b.id==="reloadInbox"){await loadInbox();return}
+ if(b.id==="importConfirm"){
+  const source=document.getElementById("importSource").value;
+  const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
+  if(!items.length)return alertUser("Paste some names first.");
+  if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
+  try{const result=await request("import",{items,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present.");
+   if(source&&result.saved>0&&result.verified){try{await request("inbox/used",{fileId:source,verifiedCount:result.saved,confirm:true})}catch(err){alertUser("Contacts saved, but TXT rename failed: "+err.message)}}
+   document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
+  }catch(err){alertUser(err.message)}return
+ }
+});
+document.getElementById("candA").onclick=()=>{if(state.candidate!=="Abhishek")alertUser("Candidate access follows your authenticated Google account.")};
+document.getElementById("candP").onclick=()=>{if(state.candidate!=="Pooja")alertUser("Candidate access follows your authenticated Google account.")};
+refresh();
+</script></body></html>
