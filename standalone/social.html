@@ -62,7 +62,7 @@ const depts={
  consulting:["Corporate Finance","Valuations","Transaction Services","Deals","Financial Due Diligence","Transfer Pricing","Tax Technology"],
  wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
 };
-const initialCandidate=(()=>{try{return localStorage.getItem("freshmaal-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
+const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
 const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
@@ -150,7 +150,7 @@ async function refresh(){
 async function switchCandidate(candidate){
  if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
  state.candidate=candidate;
- try{localStorage.setItem("freshmaal-candidate",candidate)}catch{}
+ try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
  state.items=[];state.query="";state.company="";state.department="";state.industry="all";
  state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
