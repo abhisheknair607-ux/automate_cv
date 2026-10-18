@@ -36,7 +36,7 @@ async function api(url,token,options={}){
 function range(tab,r){return encodeURIComponent("'"+tab.replace(/'/g,"''")+"'!"+r)}
 async function values(token,id,tab,r){
  try{return (await api(sheetUrl(id)+"/values/"+range(tab,r),token)).values||[]}
- catch(e){if(tab==="SocialTracking"&&e.httpCode===400)return [];throw e}
+ catch(e){if(["SocialTracking","SocialTemplates"].includes(tab)&&e.httpCode===400)return [];throw e}
 }
 async function ensureTracking(token,id){
  const info=await api(sheetUrl(id)+"?fields=sheets(properties(title))",token);
