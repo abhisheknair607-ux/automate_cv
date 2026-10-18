@@ -68,6 +68,7 @@ const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
 async function request(p,data={}){return await window.__cvStandalone.requestSpecial("social/"+p,{candidate:state.candidate,...data})}
 function norm(s){return String(s||"").toLowerCase()}
+function safeLinkedInSearch(raw){try{const u=new URL(String(raw||""));return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)?u.href:""}catch{return ""}}
 function orgGroup(company){return firms.wealth.some(f=>norm(f)===norm(company))?"wealth":"consulting"}
 function department(c){if(c.relation?.department)return c.relation.department;const t=norm(c.title);
  for(const x of [...depts.consulting,...depts.wealth])if(t.includes(norm(x)))return x;
@@ -109,7 +110,7 @@ function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"ident
 function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
  const top=heading("Discover & swipe")+filterBar();
  if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
- const href=c.profile||c.search;
+ const href=c.profile||safeLinkedInSearch(c.search);
  return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
 function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
  return heading("Follow-ups")+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
