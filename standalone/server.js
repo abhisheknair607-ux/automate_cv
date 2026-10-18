@@ -318,9 +318,9 @@ app.post("/api/social/*",async(req,res)=>{
   // A/P is a workspace selector, not an email-based permission boundary.
   const candidate=socialStore.selectedCandidate(req.body?.candidate);
   const action=req.params[0],body=req.body||{};
-  if(!["data","status","followup","import","inbox/save","inbox/list"].includes(action))
+  if(!["data","status","followup","import","inbox/save","inbox/list","templates/get","templates/save"].includes(action))
     return res.status(404).json({error:"Unknown Social operation"});
-  const write=["status","followup","import","inbox/save"].includes(action);
+  const write=["status","followup","import","inbox/save","templates/save"].includes(action);
   if(write&&READ_ONLY)throw Object.assign(Error("Social writes are disabled by the server's read-only gate."),{httpCode:403});
   const access=await(await auth.getClient()).getAccessToken();
   const token=typeof access==="string"?access:access.token;
@@ -328,6 +328,8 @@ app.post("/api/social/*",async(req,res)=>{
   const base={token,candidate,id:IDS.fresh};
   let data;
   if(action==="data")data={candidate,...await socialStore.list(base)};
+  else if(action==="templates/get")data=await socialStore.getTemplates(base);
+  else if(action==="templates/save")data=await socialStore.saveTemplate({...base,department:body.department,introduction:body.introduction,closing:body.closing,confirm:body.confirm});
   else if(action==="status")data=await socialStore.writeStatus({...base,key:body.key,status:body.status,next:body.next,
      department:body.department,city:body.city,type:body.type,confirm:body.confirm});
   else if(action==="followup")data=await socialStore.setFollowup({...base,key:body.key,confirm:body.confirm});
