@@ -1,0 +1,97 @@
+name: Firebase live revision verification (read-only)
+
+on:
+  push:
+    branches: ['diagnostics/firebase-live-revision-20261018']
+    paths: ['.github/workflows/firebase-live-revision-diagnostic.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  public-site:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Fingerprint public Firebase URLs (no login or writes)
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, urllib.error, urllib.request
+          from urllib.parse import urljoin
+          root="https://garamaal.web.app"
+          for path in ["/", "/social", "/health"]:
+              url=urljoin(root,path)
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={"User-Agent":"Garamaal-revision-readonly/1.0"}),timeout=15) as r:
+                      data=r.read(2_000_000)
+                      print("LIVE_PATH",path,"STATUS",r.status,"SHA256",hashlib.sha256(data).hexdigest())
+                      if path=="/health":
+                          try:
+                              meta=json.loads(data)
+                              print("HEALTH",json.dumps({k:meta.get(k) for k in ["ok","readOnly","migrations"]}))
+                          except ValueError:print("HEALTH invalid JSON")
+              except urllib.error.HTTPError as e:
+                  print("LIVE_PATH",path,"STATUS",e.code)
+              except Exception as e:
+                  print("LIVE_PATH",path,"ERROR",type(e).__name__)
+          PY
+
+  cloudrun-revision:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - name: Authenticate read-only Google Cloud identity
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Read live Cloud Run service and revision metadata (no environment values)
+        shell: bash
+        run: |
+          set -euo pipefail
+          project="abhishek-cv-automation"
+          region="europe-west1"
+          service="automate-cv-dashboard"
+          gcloud run services describe "$service" --project="$project" --region="$region" --format=json > /tmp/garamaal-live-service.json
+          python3 - <<'PY'
+          import json, os
+          s=json.load(open("/tmp/garamaal-live-service.json",encoding="utf-8"))
+          metadata=s.get("metadata") or {}
+          status=s.get("status") or {}
+          traffic=status.get("traffic") or []
+          template=s.get("spec",{}).get("template",{})
+          print("SERVICE_NAME",metadata.get("name","unknown"))
+          print("LATEST_READY_REVISION",status.get("latestReadyRevisionName","unknown"))
+          print("LATEST_CREATED_REVISION",status.get("latestCreatedRevisionName","unknown"))
+          print("LIVE_TRAFFIC",json.dumps([{"revision":t.get("revisionName"),"percent":t.get("percent"),"latestRevision":t.get("latestRevision")} for t in traffic]))
+          print("TEMPLATE_LABELS",json.dumps({k:v for k,v in template.get("metadata",{}).get("labels",{}).items() if "commit" in k.lower() or "sha" in k.lower() or "git" in k.lower()}))
+          print("TEMPLATE_ANNOTATION_COMMIT",json.dumps({k:v for k,v in template.get("metadata",{}).get("annotations",{}).items() if "commit" in k.lower() or "sha" in k.lower() or "git" in k.lower()}))
+          print("CANDIDATE_GIT_BRANCH_COMMIT","0b58a581517c33088484da1d3f9d28e863b7c6eb")
+          print("NOTE","Cloud Run revision name alone cannot prove exact git commit unless provenance metadata was recorded.")
+          PY
+          rev="$(python3 -c 'import json; s=json.load(open("/tmp/garamaal-live-service.json")); print(s.get("status",{}).get("latestReadyRevisionName",""))')"
+          if [[ -n "$rev" ]]; then
+            if gcloud run revisions describe "$rev" --project="$project" --region="$region" --format=json > /tmp/garamaal-live-revision.json; then
+              python3 - <<'PY'
+          import json
+          x=json.load(open("/tmp/garamaal-live-revision.json",encoding="utf-8"))
+          m=x.get("metadata") or {}
+          status=x.get("status") or {}
+          containers=(x.get("spec") or {}).get("containers") or []
+          print("REVISION_NAME",m.get("name"))
+          print("REVISION_CREATED",m.get("creationTimestamp"))
+          print("REVISION_IMAGE",str(containers[0].get("image",""))[:220] if containers else "")
+          print("REVISION_DIGEST",status.get("imageDigest",""))
+          print("REVISION_COMMIT_LABELS",json.dumps({k:v for k,v in m.get("labels",{}).items() if "git" in k.lower() or "sha" in k.lower() or "commit" in k.lower()}))
+          PY
+            else
+              echo "REVISION_DETAILS_UNAVAILABLE: access blocked, or revision missing."
+            fi
+          fi
+          echo "DIAGNOSTIC_ONLY: no deployments, writes, or service configuration changes occurred."
