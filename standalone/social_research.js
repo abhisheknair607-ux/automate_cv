@@ -21,8 +21,7 @@ function safeLink(link,kind="people"){
    throw err("Enter a LinkedIn company or People search page.");
  return u.href;
 }
-function researchUrl({company,department,city,searchUrl}){
- if(searchUrl)return safeLink(searchUrl);
+function researchUrl({company,department,city}){
  const words=[company,department,city].map(x=>value(x,120)).filter(Boolean).join(" ");
  if(!words)throw err("Select a company, department or city.");
  return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(words);
@@ -54,12 +53,12 @@ async function listTargets({token,id,candidate,fetcher}){
  return {targets:rows.slice(1).map((r,i)=>({row:i+2,candidate:r[0],company:r[1],department:r[2],city:r[3],searchUrl:r[4]||"",updated:r[5]}))
    .filter(x=>x.candidate===candidateName(candidate))};
 }
-async function saveTarget({token,id,candidate,company,department,city,searchUrl,confirm,fetcher}){
+async function saveTarget({token,id,candidate,company,department,city,confirm,fetcher}){
  candidateCheck(candidate);
  if(confirm!==true)throw err("Confirm saving the target.");
  company=value(company,120);department=value(department,120);city=value(city||"Dublin",100);
  if(!company||!department)throw err("Company and department are required.");
- const search=researchUrl({company,department,city,searchUrl});
+ const search=researchUrl({company,department,city});
  await ensure({token,id,tab:TARGET_TAB,head:TARGET_HEAD,fetcher});
  const entries=(await listTargets({token,id,candidate,fetcher})).targets;
  const prior=entries.find(t=>t.company.toLowerCase()===company.toLowerCase()&&t.department.toLowerCase()===department.toLowerCase()&&t.city.toLowerCase()===city.toLowerCase());
