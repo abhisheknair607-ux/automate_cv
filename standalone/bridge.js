@@ -121,7 +121,7 @@
     return json.data;
   }
   async function requestSpecial(endpoint,body){
-    if(!["connections/saved","connections/preview","connections/research","clues/preview","clues/save","repair-ranks","social/data","social/status","social/followup","social/import","social/inbox/save","social/inbox/list","social/templates/get","social/templates/save"].includes(endpoint))
+    if(!["connections/saved","connections/preview","connections/research","clues/preview","clues/save","repair-ranks","social/data","social/status","social/followup","social/import","social/inbox/save","social/inbox/list","social/templates/get","social/templates/save","social/targets/list","social/targets/save","social/conversations/list","social/conversations/save","social/conversations/draft"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
