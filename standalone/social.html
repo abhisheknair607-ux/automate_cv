@@ -63,7 +63,7 @@ const depts={
  wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
 };
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false};
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false,loadError:""};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -90,9 +90,14 @@ function makeMessage(c,variation=0,followup=false){
  if(type==="Senior professional")return ("Hi "+first+", "+about+" Your role in "+dept+" at "+company+" caught my interest. I’d value connecting and learning from your perspective.").slice(0,300);
  return ("Hi "+first+", "+about+" I came across your profile at "+company+" and would value connecting with someone working in "+dept+".").slice(0,300)
 }
-function stats(){const total=state.items.length,sent=state.items.filter(x=>x.relation?.sent).length,accepted=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status)).length,due=state.items.filter(x=>due(x)).length;
- return {total,sent,accepted,due}}
-function due(x){return ["accepted","replied"].includes(x.relation?.status)&&!x.relation?.followupSent&&!!x.relation?.next&&x.relation.next<=dateNow()}
+function stats(){
+ const total=state.items.length;
+ const sent=state.items.filter(x=>x.relation?.sent).length;
+ const accepted=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status)).length;
+ const followupsDue=state.items.filter(isFollowupDue).length;
+ return {total,sent,accepted,due:followupsDue};
+}
+function isFollowupDue(x){return ["accepted","replied"].includes(x.relation?.status)&&!x.relation?.followupSent&&!!x.relation?.next&&x.relation.next<=dateNow()}
 function activeItems(){
  return state.items.filter(c=>(!state.query||norm([c.name,c.company,c.title,department(c)].join(" ")).includes(norm(state.query)))
  &&(!state.company||c.company===state.company)&&(!state.department||department(c)===state.department)&&
@@ -125,7 +130,7 @@ function researchPrompt(){
  "Write only verified rows using my authorised Google Sheets connector. Read back and confirm each saved row. ONLY AFTER a successful import, rename its NEW_ .txt source file to USED_ keeping the rest of the filename unchanged. If no records verified, save fails, or access is unavailable, leave file NEW_ and provide a review table without claiming success.";
 }
 function inboxView(){return heading("Research Inbox")+'<section class="card"><div class="section-head"><b>Save LinkedIn research to Drive</b><span class="tag">NEW → USED</span></div><div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(state.department)+'" placeholder="e.g. Valuations"></label></div><label class="field">LinkedIn company or search page<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label><label class="field">Optional copied profiles / names<textarea id="inboxText" placeholder="Paste LinkedIn text or individual names and positions. Do not enter private messages."></textarea></label><div class="btnrow"><button class="btn primary" id="saveInbox">＋ Save .txt to Drive</button><button class="btn soft" id="copyResearch">▣ Copy AI import prompt</button></div><p class="subtle">A page URL alone cannot reveal members behind LinkedIn login. The prompt requires verified public evidence before adding names to Freshmaal.</p></section><section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+(!state.inboxLoad?'<div class="subtle">Open this section to load your Drive queue.</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files yet.</div>')+'<div class="btnrow"><button class="btn" id="addContact">＋ Import reviewed names</button></div></section>'}
-function render(){document.getElementById("app").innerHTML=(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
+function render(){document.getElementById("app").innerHTML=(state.loadError?'<div class="preview-note" role="alert">Social data unavailable: '+esc(state.loadError)+'</div>':"")+(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
  const nav=[["dashboard","⌂","Dashboard"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"],["inbox","▣","Research"]];
  for(const area of ["bottomNav","desktopNav"])document.getElementById(area).innerHTML=nav.map(([id,ic,label])=>'<button data-view="'+id+'" class="'+(id===state.view?"active":"")+'">'+(area==="bottomNav"?'<span class="sym">'+ic+'</span>':ic+" ")+label+'</button>').join("");
  document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
@@ -140,11 +145,13 @@ async function refresh(){
   if(state.candidate!==candidate||viewRequest!==requestId)return;
   if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
   state.items=data.items||[];
+  state.loadError="";
   render();
  }catch(e){
   if(state.candidate!==candidate||viewRequest!==requestId)return;
-  alertUser(e.message);
-  document.getElementById("app").innerHTML='<div class="card">Social data unavailable: '+esc(e.message)+'</div>';
+  state.items=[];
+  state.loadError=String(e.message||"Unknown network error");
+  render();
  }finally{if(viewRequest===requestId)state.busy=false}
 }
 async function switchCandidate(candidate){
@@ -152,7 +159,7 @@ async function switchCandidate(candidate){
  state.candidate=candidate;
  try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
  state.items=[];state.query="";state.company="";state.department="";state.industry="all";
- state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;
+ state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.loadError="";
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
