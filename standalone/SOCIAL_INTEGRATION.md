@@ -3,7 +3,7 @@
 Status: **feature branch; NOT deployed**. Keep the CV automation and original Apps Script compatibility source unchanged.
 
 ## App architecture
-- Existing Firebase Hosting site `garamaal.web.app` proxies to Cloud Run service `automate-cv-dashboard`. Social is a new `/social` route in the **standalone Firebase/Cloud Run app**. The Jobs page gets a small `👥 Social` link.
+- Existing Firebase Hosting site `garamaal.web.app` proxies to Cloud Run service `automate-cv-dashboard`. Social is a standalone `/social` route in the **Firebase/Cloud Run app**. The Jobs page receives **no added links or UI modifications**; Social is opened directly at `/social`.
 - `standalone/social.html`: compact Dashboard, Swipe, Follow-ups, Research Inbox; authenticated by existing Firebase `bridge.js`.
 - `standalone/social_store.js`: Google Sheets/Drive API storage. **No LinkedIn scraping or automatic messaging**. No OpenAI API generation or cost.
 - `Connections!A:L`: existing 12 columns retained EXACTLY. Includes existing vacancy-related contacts. Social reads relevant candidate records including the existing `Pooja Krishna Tirupati` spelling. New manual imports append rows using `Applied-for Role=Networking` with the job row and vacancy blank.
@@ -12,7 +12,7 @@ Status: **feature branch; NOT deployed**. Keep the CV automation and original Ap
 - ChatGPT research prompt copies instructions to process the user's **connected Drive** folder `NEW_` text files, verify public evidence, append only verified people to `Connections`, then rename source after successful verification. This is a user-driven workflow, not an invisible background agent.
 
 ## Required Cloud Run environment and permissions
-- Both candidates use the EXISTING Garamaal Firebase Google sign-in. No candidate-specific email mapping is required. A/P is a manual workspace selector, matching the Jobs interface; the browser persists the choice using `freshmaal-candidate`.
+- Both candidates use the EXISTING Garamaal Firebase Google sign-in. No candidate-specific email mapping is required. A/P is a manual workspace selector, matching the Jobs interface; the browser persists the choice in separate `garamaal-social-candidate` storage, without changing Jobs state.
 - Workspace selection is not a privacy permission boundary: any currently authorised Garamaal account can select A or P. The candidate tag separates data in Sheets and Drive, not access to it.
 - `SOCIAL_INBOX_ABHISHEK_FOLDER_ID`: a private dedicated Drive folder ID for Abhishek's TXT files
 - `SOCIAL_INBOX_POOJA_FOLDER_ID`: a different private dedicated Drive folder ID for Pooja's TXT files
