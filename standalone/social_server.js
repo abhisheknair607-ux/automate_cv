@@ -11,6 +11,7 @@ const {GoogleAuth}=require("google-auth-library");
 const {initializeApp,getApps}=require("firebase-admin/app");
 const {getAuth}=require("firebase-admin/auth");
 const social=require("./social_store");
+const research=require("./social_research");
 
 const project=process.env.GOOGLE_CLOUD_PROJECT||process.env.FIREBASE_PROJECT_ID||"";
 const allowed=new Set(String(process.env.ALLOWED_EMAILS||"").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean));
@@ -26,6 +27,7 @@ const sheetsAuth=new GoogleAuth({scopes:[
 const app=express();
 app.disable("x-powered-by");
 app.set("trust proxy",1);
+app.use("/api/social/conversations/save",express.json({limit:"5mb"}));
 app.use(express.json({limit:"120kb"}));
 app.use((_req,res,next)=>{
   res.set("X-Content-Type-Options","nosniff");
@@ -64,9 +66,9 @@ app.post("/api/social/*",async(req,res)=>{
       throw bad("Freshmaal sheet is not configured for Social.",503);
     const candidate=social.selectedCandidate(req.body?.candidate);
     const action=req.params[0]||"",payload=req.body||{};
-    const supported=["data","status","followup","import","inbox/save","inbox/list"];
+    const supported=["data","status","followup","import","inbox/save","inbox/list","templates/get","templates/save","targets/list","targets/save","conversations/list","conversations/save","conversations/draft"];
     if(!supported.includes(action))return res.status(404).json({error:"Unknown Social operation."});
-    const write=["status","followup","import","inbox/save"].includes(action);
+    const write=["status","followup","import","inbox/save","templates/save","targets/save","conversations/save","conversations/draft"].includes(action);
     if(write&&readOnly)throw bad("Social writes are disabled until release approval.",403);
     const token=await accessToken();
     const base={token,id:spreadsheetId,candidate};
@@ -80,6 +82,13 @@ app.post("/api/social/*",async(req,res)=>{
     else if(action==="inbox/save")data=await social.submitResearch({
       token,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
     else if(action==="inbox/list")data=await social.listResearch({token,candidate});
+    else if(action==="templates/get")data=await social.getTemplates(base);
+    else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
+    else if(action==="targets/list")data=await research.listTargets(base);
+    else if(action==="targets/save")data=await research.saveTarget({...base,company:payload.company,department:payload.department,city:payload.city,confirm:payload.confirm});
+    else if(action==="conversations/list")data=await research.listConversations(base);
+    else if(action==="conversations/save")data=await research.saveConversation({...base,contact:payload.contact,company:payload.company,chatText:payload.chatText,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
+    else if(action==="conversations/draft")data=await research.saveDraft({...base,conversationId:payload.id,draft:payload.draft,next:payload.next,status:payload.status,confirm:payload.confirm});
     res.json({data});
   }catch(e){
     console.error("[garamaal-social]",String(req.params[0]||""),e.httpCode||500,
