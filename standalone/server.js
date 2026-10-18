@@ -114,7 +114,19 @@ app.get("/",(req,res)=>{
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
   // Expose Social as a separate route; do not alter the existing Jobs controls.
-  html=html.replace('<div id="candidateToggle" class="switch"></div>','<a href="/social" class="btn btn-xs" aria-label="Open Social Networking">👥 Social</a><div id="candidateToggle" class="switch"></div>');
+  // Keep the established Jobs header controls intact. Social is an extra
+  // desktop sidebar entry plus a compact mobile shortcut beside the breadcrumb.
+  html=html.replace('<nav id="deskNav"></nav>',
+    '<nav id="deskNav"></nav><a id="socialSideLink" href="/social" aria-label="Social Networking">👥 <span>Social</span></a>');
+  html=html.replace('Workspace / <strong id="crumbTitle">Overview</strong></div>',
+    'Workspace / <strong id="crumbTitle">Overview</strong><a id="socialTopLink" href="/social" aria-label="Open Social Networking" title="Social Networking">👥</a></div>');
+  html=html.replace('</style>', `
+#socialSideLink{display:flex;align-items:center;gap:10px;margin:6px 10px;padding:11px 15px;border-radius:10px;color:#c4d9f7;font-weight:720;text-decoration:none}
+#socialSideLink:hover{color:white;background:#294968}
+#socialTopLink{display:none;margin-left:8px;padding:4px 6px;border:1px solid #dce6f3;border-radius:8px;font-size:17px;text-decoration:none}
+@media(max-width:720px){#socialTopLink{display:inline-flex;vertical-align:middle}#socialSideLink{display:none}.crumb{white-space:nowrap}}
+@media(max-width:385px){.crumb{font-size:11px}#socialTopLink{margin-left:4px}}
+</style>`);
   res.type("html").send(html);
 });
 
