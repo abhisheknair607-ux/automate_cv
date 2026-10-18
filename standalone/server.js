@@ -310,12 +310,13 @@ app.post("/api/connections/research",async(req,res)=>{
  }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
    res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
 });
-// Scoped Social/Research operations; always derive candidate from the verified
-// Firebase account, never a candidate switch submitted by the browser.
+// Scoped Social/Research operations: require authenticated Garamaal user and
+// an explicit A/P workspace selection. Candidate records stay separated in storage.
 app.post("/api/social/*",async(req,res)=>{
  try{
-  const email=await authenticate(req);
-  const candidate=socialStore.candidateFromEmail(email);
+  await authenticate(req); // Existing Garamaal Google sign-in still governs platform access.
+  // A/P is a workspace selector, not an email-based permission boundary.
+  const candidate=socialStore.selectedCandidate(req.body?.candidate);
   const action=req.params[0],body=req.body||{};
   if(!["data","status","followup","import","inbox/save","inbox/list"].includes(action))
     return res.status(404).json({error:"Unknown Social operation"});
