@@ -73,7 +73,7 @@ body{background:#f5f7fb}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
-<div class="row tight"><span class="mini" title="Costs remain in the Jobs dashboard">$</span><div class="pair" id="candidatePair"><button id="candA" class="active">A</button><button id="candP">P</button></div><span class="preview">LIVE SHEET</span></div></header>
+<div class="row tight"><span class="mini" title="Costs remain in the Jobs dashboard">$</span><div class="pair" id="candidatePair"><button id="candA" class="active">A</button><button id="candP">P</button></div><span class="preview" id="socialModeBadge">READ ONLY</span></div></header>
 <div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
 <nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
 <dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
@@ -222,6 +222,7 @@ async function refresh(){
   if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
   state.items=data.items||[];
   state.readOnly=data.readOnly!==false;
+  document.getElementById("socialModeBadge").textContent=state.readOnly?"READ ONLY":"LIVE SHEET";
   state.loadError="";
   render();
  }catch(e){
