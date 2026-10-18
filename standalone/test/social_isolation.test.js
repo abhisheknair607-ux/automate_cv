@@ -61,3 +61,16 @@ test("Read-only Social release command protects exact Jobs revision and never de
  assert.ok(sh.includes('"SOCIAL_ALLOW_LIVE_WRITES":"false"'));
  assert.ok(sh.includes("NEXT: Firebase Hosting preview"));
 });
+
+test("Hosting-only publisher cannot deploy or update Jobs Cloud Run",()=>{
+ const shell=read("standalone/deploy-social-hosting-only.sh");
+ assert.ok(shell.includes("automate-cv-dashboard-00027-rrv"));
+ assert.ok(shell.includes("153c09ef575d89e93923956be0bdd2fe42f843047a93cf3d0d90b5ebe7b644f0"));
+ assert.ok(shell.includes("PREVIEW_OK"));
+ assert.ok(shell.includes("JOBS_ROOT_UNCHANGED"));
+ assert.ok(shell.includes('firebase deploy --only hosting --project "$PROJECT" --non-interactive'));
+ assert.ok(!shell.includes("gcloud run deploy"));
+ assert.ok(!shell.includes("gcloud run services update"));
+ assert.ok(!shell.includes("firebase deploy --only functions"));
+ assert.ok(!shell.includes("APP_READ_ONLY="));
+});
