@@ -41,7 +41,12 @@ async function values(token,id,tab,r){
 }
 async function ensureTracking(token,id){
  const info=await api(sheetUrl(id)+"?fields=sheets(properties(title))",token);
- if((info.sheets||[]).some(s=>s.properties?.title==="SocialTracking"))return;
+ if((info.sheets||[]).some(s=>s.properties?.title==="SocialTracking")){
+  const first=await values(token,id,"SocialTracking","A1:K1");
+  if(first.length&&TRACK_HEADERS.some((h,i)=>String(first[0][i]||"")!==h))throw bad("SocialTracking A:K headers changed.",409);
+  if(!first.length)await api(sheetUrl(id)+"/values/"+range("SocialTracking","A1:K1")+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[TRACK_HEADERS]}});
+  return;
+ }
  await api(sheetUrl(id)+":batchUpdate",token,{method:"POST",body:{requests:[{addSheet:{properties:{title:"SocialTracking"}}}]}});
  await api(sheetUrl(id)+"/values/"+range("SocialTracking","A1:K1")+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[TRACK_HEADERS]}});
 }
@@ -112,8 +117,9 @@ async function setFollowup({token,id,candidate,key,confirm}){
 async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId}){
  if(confirm!==true)throw bad("Approve the contact import first.");
  if(!Array.isArray(items)||items.length<1||items.length>MAX_BATCH)throw bad("Import between 1 and "+MAX_BATCH+" contacts.");
- const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));\n const names=new Set(existing.filter(c=>c.candidate===candidate).map(c=>norm(c.company)+"|"+norm(c.name)));
- const now=new Date().toISOString(),rows=[],added=[];
+ const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));
+ const names=new Set(existing.filter(c=>c.candidate===candidate).map(c=>norm(c.company)+"|"+norm(c.name)));
+ const now=new Date().toISOString(),rows=[],added=[],tracked=[];
  for(const p of items){
   const name=clean(p.name,100),company=clean(p.company,120),title=clean(p.title,140);
   if(!name||!company)throw bad("Name and company are required for every contact.");
@@ -126,13 +132,20 @@ async function importContacts({token,driveAccess,id,candidate,items,confirm,sour
   const message=clean(p.message||"",300);
   rows.push([company,name,direct,searchLink(c),"Networking",fullName(candidate),"","",title,evidence,message,now]);
   added.push({name,company,key});
+  tracked.push([fullName(candidate),key,"identified","","","","",clean(p.department||"",100),clean(p.city||"Dublin",80),clean(p.contactType||"Employee",45),now]);
  }
  if(!rows.length)return {saved:0,skipped:items.length,verified:true,sourceMarkedUsed:false};
  await api(sheetUrl(id)+"/values/"+range("Connections","A1:L")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:rows}});
  const after=uniqueContacts(await allContacts(token,id),candidate);
  const allSaved=added.every(x=>after.some(c=>contactKey(c)===x.key));
  if(!allSaved)throw bad("Contacts may have been written but verification failed. Do not mark the research file used.",409);
- return {saved:rows.length,skipped:items.length-rows.length,verified:true};
+ await ensureTracking(token,id);
+ const prior=await allTracking(token,id,candidate),priorKeys=new Set(prior.map(x=>x.key));
+ const newTracking=tracked.filter(x=>!priorKeys.has(x[1]));
+ if(newTracking.length)await api(sheetUrl(id)+"/values/"+range("SocialTracking","A1:K")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:newTracking}});
+ let sourceMarkedUsed=false,renameWarning="";
+ if(sourceFileId){try{await markUsed({token:driveAccess,candidate,fileId:sourceFileId,verifiedCount:rows.length,confirm:true});sourceMarkedUsed=true}catch(e){renameWarning=String(e.message||e).slice(0,200)}}
+ return {saved:rows.length,skipped:items.length-rows.length,verified:true,sourceMarkedUsed,renameWarning};
 }
 function driveFolder(candidate,env=process.env){const val=env[candidate==="Abhishek"?"SOCIAL_INBOX_ABHISHEK_FOLDER_ID":"SOCIAL_INBOX_POOJA_FOLDER_ID"];if(!val||!/^[A-Za-z0-9_-]{20,}$/.test(val))throw bad("Research Inbox Drive folder is not configured for this candidate.",503);return val}
 function driveToken(token){return {Authorization:"Bearer "+token}}
