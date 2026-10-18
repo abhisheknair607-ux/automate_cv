@@ -218,6 +218,9 @@ function researchPrompt(){
  ].join("\n\n");
 }
 
+function campaignContactCount(step){
+ return state.items.filter(c=>norm(c.company)===norm(step.company)&&norm(department(c))===norm(step.department)).length;
+}
 function legacyInboxView(){
  const step=currentCampaign(),count=campaignContactCount(step);
  const rows=campaignSteps.map((x,i)=>'<button class="campaign-step '+(i===state.campaignIndex?"active":"")+'" data-campaign-index="'+i+'"><span>'+(i+1)+'. '+esc(x.company)+' · '+esc(x.department)+'</span><span class="small muted">'+campaignContactCount(x)+' tracked</span></button>').join("");
