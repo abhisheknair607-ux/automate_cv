@@ -77,3 +77,15 @@ test("Import and status changes require explicit confirmation",async()=>{
  await assert.rejects(social.importContacts({candidate:"Abhishek",items:[{}],confirm:false}),/Approve/i);
  await assert.rejects(social.writeStatus({candidate:"Abhishek",confirm:false,key:"a".repeat(24),status:"sent"}),/Confirm/i);
 });
+
+test("Social standalone HTML contains one syntax-valid inline UI script, no seeded contacts",()=>{
+ const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
+ const markup=fs.readFileSync(path.join(__dirname,"../social.html"),"utf8");
+ const inline=[...markup.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(x=>x[1]).filter(Boolean);
+ assert.equal(inline.length,1);
+ assert.doesNotThrow(()=>new vm.Script(inline[0],{filename:"social.html"}));
+ assert.ok(markup.includes('src="/bridge.js"'),"Must use existing Firebase bridge");
+ assert.ok(markup.includes('id="swipeCard"'),"Swipe card missing");
+ assert.ok(markup.includes("Research Inbox"),"Research fourth section missing");
+ assert.ok(!markup.includes("makeSeed"),"Must not show fictional contacts in live Social");
+});
