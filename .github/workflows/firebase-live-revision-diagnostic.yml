@@ -39,6 +39,54 @@ jobs:
                   print("LIVE_PATH",path,"ERROR",type(e).__name__)
           PY
 
+  source-fingerprint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 7
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Compare public Jobs page bytes with all existing Git source branches
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib, subprocess, urllib.request
+          base="https://garamaal.web.app/"
+          with urllib.request.urlopen(base,timeout=20) as response:
+              live=response.read(2_000_000)
+          print("LIVE_HTML_BYTES",len(live))
+          print("LIVE_HTML_SHA256",hashlib.sha256(live).hexdigest())
+          print("NOTE: matching the rendered HTML identifies source-equivalent code, NOT a proven deployed commit/revision.")
+          refs=subprocess.check_output(["git","for-each-ref","--format=%(refname:short)","refs/remotes/origin"],text=True).splitlines()
+          matches=[]
+          seen=set()
+          variants=[
+            ("raw",lambda x:x),
+            ("bridge",lambda x:x.replace("<script>\n'use strict';",'<script src="/bridge.js"></script>\n<script>\n\'use strict\';',1)),
+          ]
+          scripts=['<script src="/dashboard-ranking.js"></script>', '<script src="/dashboard-connections.js"></script>']
+          for ref in refs:
+              if ref in seen or ref.endswith("/HEAD"):continue
+              seen.add(ref)
+              p=subprocess.run(["git","show",ref+":webapp/Index.html"],stdout=subprocess.PIPE,stderr=subprocess.DEVNULL)
+              if p.returncode!=0:continue
+              index=p.stdout.decode("utf-8",errors="replace")
+              branchsha=subprocess.check_output(["git","rev-parse",ref],text=True).strip()
+              blobsha=subprocess.check_output(["git","rev-parse",ref+":webapp/Index.html"],text=True).strip()
+              for mode,gen in variants:
+                  baseline=gen(index)
+                  for mask in range(4):
+                      additions="".join(s for bit,s in enumerate(scripts) if (mask>>bit)&1)
+                      final=baseline.replace("</body>",additions+"</body>",1) if additions else baseline
+                      if final.encode("utf-8")==live:
+                          matches.append((ref,branchsha,blobsha,mode,mask))
+          if matches:
+              for ref,sha,blob,mode,mask in matches:
+                  print("SOURCE_EQUIVALENT_BRANCH",ref,"BRANCH_COMMIT",sha,"INDEX_BLOB",blob,"INJECTION",mode,"EXTRA_MASK",mask)
+          else:
+              print("SOURCE_FINGERPRINT_NO_EXACT_MATCH: deployed template may add other dynamic elements or originate from different source history")
+          PY
+
   cloudrun-revision:
     runs-on: ubuntu-latest
     timeout-minutes: 7
