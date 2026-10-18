@@ -97,7 +97,7 @@ const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=
 function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
 function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false,loadError:""};
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -109,12 +109,20 @@ function department(c){if(c.relation?.department)return c.relation.department;co
  for(const x of [...depts.consulting,...depts.wealth])if(t.includes(norm(x)))return x;
  return "Uncategorised"}
 function contactKind(c){let t=norm(c.title);if(/recruit(ment|er)|head.?hunt|talent acquisition|sourc/.test(t))return /ey|pwc|kpmg|deloitte/.test(norm(c.company))?"In-house recruiter":"Recruiter";if(/partner|director|head of|manager/.test(t))return "Senior professional";return "Employee"}
+function coffeeInvite(c){
+ const first=String(c.name||"there").split(" ")[0];
+ const title=department(c);
+ const place=c.company||"your firm";
+ const personType=contactKind(c);
+ const topic=personType==="Recruiter"||personType==="In-house recruiter"?"your perspective on careers and teams":"your experience in "+title;
+ return ("Hi "+first+", I saw your profile at "+place+" and would appreciate hearing "+topic+". Would you be open to a brief 15-minute coffee chat in Dublin or virtually, whenever convenient?").slice(0,300);
+}
 function makeMessage(c,variation=0,followup=false){
  const first=String(c.name||"there").split(" ")[0],type=contactKind(c),dept=department(c),company=c.company;
  if(followup){
  const base=["Thanks for connecting, "+first+". I appreciate it and would be glad to stay in touch.",
  "Thanks for connecting, "+first+". I’m exploring opportunities in "+dept+" and would value any general guidance you might share.",
- "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+"."][variation]||"Thanks for connecting.";
+ "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+".",coffeeInvite(c)][variation]||"Thanks for connecting.";
  return base;
  }
  if(c.message)return c.message;
@@ -158,20 +166,20 @@ function peopleList(){const v=activeItems();return '<section class="card dashboa
 function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
 function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"identified")==="identified")}
 function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
- const top=heading("Discover & swipe")+filterBar();
+ const top=heading("Discover & swipe")+filterBar()+(state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
  if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
  const href=c.profile||safeLinkedInSearch(c.search);
- return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
+ return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
 function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
  return heading("Follow-ups")+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
-function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
+function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option><option value="3">Coffee chat</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
 function researchPrompt(){
  return "GARAMAAL LINKEDIN RESEARCH / FRESHMAAL IMPORT\nCandidate: "+state.candidate+
- "\nTarget: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Selected department")+
+ "\nTarget: "+currentCampaign().company+" | "+currentCampaign().department+" in Dublin"+
  "\nFreshmaal Connections: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit\n"+
  "Find NEW_ .txt files in my connected Research Inbox Drive folder, read them as user-supplied leads, NOT proof of titles. Independently verify named professionals against accessible official/public sources. LinkedIn pages behind login are NOT accessible unless copied text is provided. Never invent profiles, title, emails, claims of hiring or source links. Do not scrape LinkedIn.\n"+
  "For each verified person prepare the exact Connections A:L columns: Company, Contact Name, Direct LinkedIn Profile (blank unless independently verified), LinkedIn Search, Applied-for Role='Networking', Candidate full name, Freshmaal Row blank, Vacancy Link blank, Person's Position, Verification/Evidence with source URL, personalised Outreach Message <=300 characters, Research Date UTC. Check for duplicates for this candidate and company, preserve all existing job-related rows. Use distinct approaches for colleagues, internal recruiters and agency recruiters.\n"+
- "Write only verified rows using my authorised Google Sheets connector. Read back and confirm each saved row. ONLY AFTER a successful import, rename its NEW_ .txt source file to USED_ keeping the rest of the filename unchanged. If no records verified, save fails, or access is unavailable, leave file NEW_ and provide a review table without claiming success.";
+ "Write only verified rows using my authorised Google Sheets connector. Read back and confirm each saved row. ONLY AFTER a successful import, rename its NEW_ .txt source file to USED_ keeping the rest of the filename unchanged. If no records verified, save fails, or access is unavailable, leave file NEW_ and provide a review table without claiming success. Research the selected firm and team, and consider employees, managers and recruiters supported by verifiable sources. Prepare distinct optional 15-minute Dublin or virtual coffee-chat invitations for each verified individual. Do not send or bulk-message anyone automatically.";
 }
 function campaignContactCount(step){
  return state.items.filter(c=>norm(c.company)===norm(step.company)&&norm(department(c))===norm(step.department)).length;
@@ -213,6 +221,7 @@ async function refresh(){
   if(state.candidate!==candidate||viewRequest!==requestId)return;
   if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
   state.items=data.items||[];
+  state.readOnly=data.readOnly!==false;
   state.loadError="";
   render();
  }catch(e){
@@ -227,7 +236,7 @@ async function switchCandidate(candidate){
  state.candidate=candidate;
  try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
  state.items=[];state.query="";state.company="";state.department="";state.industry="all";
- state.selected="";state.swipeIndex=0;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.loadError="";
+ state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.loadError="";state.readOnly=true;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
@@ -242,9 +251,9 @@ async function loadInbox(){
   state.inbox=v.files||[];state.inboxLoad=true;render();
  }catch(e){if(state.candidate===candidate)alertUser(e.message)}
 }
-async function updateStatus(key,status,next){if(!confirm("Record "+status+" for this person? LinkedIn is not connected."))return;
+async function updateStatus(key,status,next){if(state.readOnly){alertUser("Tracking is read-only. The request was not recorded.");return}if(!confirm("I have manually sent this request on LinkedIn. Record "+status+"?"))return;
  try{await request("status",{key,status,next:next||"",confirm:true});state.selected="";state.swipeIndex=0;await refresh();alertUser("Status saved to Freshmaal.")}catch(e){alertUser(e.message)}}
-async function markFollow(key){if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
+async function markFollow(key){if(state.readOnly){alertUser("Tracking is read-only. The follow-up was not recorded.");return}if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
  try{await request("followup",{key,confirm:true});state.selected="";await refresh();alertUser("Follow-up saved.")}catch(e){alertUser(e.message)}}
 function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(s).then(()=>alertUser("Copied."),()=>prompt("Copy text",s));else prompt("Copy text",s)}
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
@@ -276,6 +285,9 @@ document.addEventListener("click",async e=>{
  if(b.id==="later"||b.id==="sent"){const x=swipeQueue()[state.swipeIndex];if(x){state.lastSwipe={key:x.key,before:x.relation?.status||"identified"};await updateStatus(x.key,b.id==="later"?"later":"sent","")}return}
  if(b.id==="undo"&&state.lastSwipe){const {key,before}=state.lastSwipe;state.lastSwipe=null;await updateStatus(key,before,"");return}
  if(b.id==="saveInbox"){try{const data=await request("inbox/save",{company:document.getElementById("inboxCompany").value,department:document.getElementById("inboxDepartment").value,pageUrl:document.getElementById("inboxUrl").value,pastedText:document.getElementById("inboxText").value});alertUser("Saved "+data.name);await loadInbox()}catch(err){alertUser(err.message)}return}
+ if(v.campaignIndex!==undefined){const idx=Number(v.campaignIndex);if(Number.isInteger(idx)&&idx>=0&&idx<campaignSteps.length){state.campaignIndex=idx;state.company=campaignSteps[idx].company;state.department=campaignSteps[idx].department;render()}return}
+ if(b.id==="nextCampaign"||b.id==="prevCampaign"){const diff=b.id==="nextCampaign"?1:-1;state.campaignIndex=Math.max(0,Math.min(campaignSteps.length-1,state.campaignIndex+diff));const step=currentCampaign();state.company=step.company;state.department=step.department;render();return}
+ if(b.id==="copyTargetSearch"){const step=currentCampaign();copyText([step.company,step.department,"Dublin"].join(" "));return}
  if(b.id==="copyResearch"){copyText(researchPrompt());return}
  if(b.id==="reloadInbox"){await loadInbox();return}
  if(b.id==="importConfirm"){
