@@ -45,7 +45,7 @@ const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadshee
 const app=express();
 app.disable("x-powered-by");
 app.set("trust proxy",1);
-app.use("/api/social/conversations/save",express.json({limit:"2mb"}));
+app.use("/api/social/conversations/save",express.json({limit:"5mb"}));
 app.use(express.json({limit:"120kb"}));
 app.use((req,res,next)=>{
   res.set("X-Content-Type-Options","nosniff");
