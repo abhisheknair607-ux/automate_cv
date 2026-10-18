@@ -9,14 +9,13 @@ const TRACK_HEADERS=["Candidate","Contact Key","Status","Request Sent UTC","Acce
 const MAX_BATCH=50;
 function bad(message,status=400){return Object.assign(new Error(message),{httpCode:status})}
 function norm(v){return String(v||"").trim().replace(/\s+/g," ").toLowerCase()}
-function candidateFromEmail(email,env=process.env){
- const entries=[["Abhishek",env.SOCIAL_ABHISHEK_EMAIL],["Pooja",env.SOCIAL_POOJA_EMAIL]].filter(x=>x[1]);
- if(entries.length!==2||norm(entries[0][1])===norm(entries[1][1]))throw bad("Social candidate email mapping not configured.",503);
- const match=entries.find(x=>norm(x[1])===norm(email));
- if(!match)throw bad("This account is not authorised for Social contacts.",403);
- return match[0];
-}
+// Both authorised Garamaal accounts can switch workspaces. Candidate is validated on every RPC.
 function canonicalCandidate(text){const x=norm(text);return x==="abhishek"||x==="abhishek nair"?"Abhishek":x==="pooja"||x==="pooja tirupati"||x==="pooja krishna tirupati"?"Pooja":""}
+function selectedCandidate(value){
+ const candidate=canonicalCandidate(value);
+ if(!candidate)throw bad("Select Abhishek or Pooja.",400);
+ return candidate;
+}
 function fullName(candidate){return candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati"}
 function contactKey(c){
  const profile=validProfile(c.profile)||"";
@@ -196,4 +195,4 @@ async function markUsed({token,candidate,fileId,verifiedCount,confirm}){
  const data=await driveRequest("https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(fileId)+"?fields=id,name",token,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
  return {saved:true,file:data.name||name};
 }
-module.exports={candidateFromEmail,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS};
+module.exports={selectedCandidate,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS};
