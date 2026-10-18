@@ -17,7 +17,7 @@ function createHarness(handler){
  };
  const store=new Map();
  const context=vm.createContext({
-  window:{isSecureContext:false,__cvStandalone:{requestSpecial:handler}},
+  window:{isSecureContext:false,__cvStandalone:{requestSpecial:(method,arg)=>method==="social/templates/get"?Promise.resolve({candidate:arg.candidate,templates:[]}):handler(method,arg)}},
   document:{getElementById:getNode,addEventListener(){},readyState:"complete"},
   localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
   navigator:{},confirm:()=>false,prompt:()=>"",
