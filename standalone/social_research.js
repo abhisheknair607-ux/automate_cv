@@ -105,6 +105,24 @@ function safeImage({imageData,mimeType}){
  if(!(mimeType==="image/png"&&png||mimeType==="image/jpeg"&&jpg||mimeType==="image/webp"&&webp))throw err("Screenshot bytes do not match the selected image type.");
  return buffer;
 }
+/**
+ * Initial LinkedIn research screenshot: preserve the screenshot as an unverified
+ * Drive lead, not a contact row. GPT / a reviewer must verify names, roles and
+ * sources before using the separate Connections import.
+ */
+async function saveLeadScreenshot({token,candidate,company,department,city,imageData,mimeType,confirm,fetcher}){
+ candidateCheck(candidate);
+ if(confirm!==true)throw err("Confirm saving this screenshot to the private candidate Research Inbox.");
+ company=value(company,120);department=value(department||"General",120);city=value(city||"Dublin",90);
+ if(!company)throw err("Enter the company before saving initial research.");
+ const image=safeImage({imageData,mimeType});
+ const stamp=new Date().toISOString().replace(/[:.]/g,"-");
+ const prefix=candidate==="Abhishek"?"a":"p";
+ const extension={"image/png":".png","image/jpeg":".jpg","image/webp":".webp"}[mimeType];
+ const filename="NEW_"+prefix+"_"+stamp+"_"+safeStem(company)+"_"+safeStem(department)+"_"+safeStem(city)+"_"+crypto.randomBytes(4).toString("hex")+extension;
+ const file=await uploadDrive({token,candidate,filename,content:image,mimeType,fetcher});
+ return {saved:true,file,pendingVerification:true,importedContacts:0};
+}
 function safeStem(s){return value(s||"contact",90).toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,40)||"contact"}
 async function listConversations({token,id,candidate,fetcher}){
  candidateCheck(candidate);
@@ -154,4 +172,4 @@ async function saveDraft({token,id,candidate,conversationId,draft,next,status="d
  await api(sheet(id)+"/values/"+range(CONVO_TAB,"A"+item.row+":K"+item.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[newRow]},fetcher});
  return {saved:true,status};
 }
-module.exports={TARGET_HEAD,CONVO_HEAD,researchUrl,safeLink,safeImage,listTargets,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};
+module.exports={TARGET_HEAD,CONVO_HEAD,researchUrl,safeLink,safeImage,saveLeadScreenshot,listTargets,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};

@@ -126,3 +126,35 @@ test("Social candidate storage does not modify Jobs candidate choice",()=>{
  assert.match(social,/garamaal-social-candidate/);
  assert.ok(!social.includes("freshmaal-candidate"),"Social must not overwrite the Jobs candidate preference");
 });
+
+test("Initial screenshots and TXT leads appear only in their candidate's Research queue",async()=>{
+ const prev=process.env.SOCIAL_INBOX_ABHISHEK_FOLDER_ID;
+ const original=global.fetch;
+ process.env.SOCIAL_INBOX_ABHISHEK_FOLDER_ID="14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo";
+ let urlSeen="";
+ global.fetch=async(url)=>{
+  urlSeen=decodeURIComponent(String(url));
+  return {ok:true,status:200,json:async()=>({files:[
+   {id:"abc",name:"NEW_a_test_company.png",mimeType:"image/png"},
+   {id:"def",name:"NEW_a_test_company.txt",mimeType:"text/plain"},
+   {id:"ghi",name:"NEW_p_other_company.png",mimeType:"image/png"},
+   {id:"jkl",name:"USED_a_test_done.webp",mimeType:"image/webp"},
+   {id:"mno",name:"NEW_a_wrong.pdf",mimeType:"application/pdf"}
+  ]})};
+ };
+ try{
+  const result=await social.listResearch({token:"test",candidate:"Abhishek"});
+  assert.equal(result.files.length,3);
+  assert.equal(result.files.find(f=>f.id==="abc").mimeType,"image/png");
+  assert.equal(result.files.find(f=>f.id==="def").mimeType,"text/plain");
+  assert.equal(result.files.find(f=>f.id==="jkl").status,"used");
+  assert.ok(!result.files.some(f=>f.id==="ghi"));
+  assert.ok(!result.files.some(f=>f.id==="mno"));
+  assert.match(urlSeen,/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo/);
+  assert.doesNotMatch(urlSeen,/mimeType = 'text\/plain'/);
+ }finally{
+  global.fetch=original;
+  if(prev===undefined)delete process.env.SOCIAL_INBOX_ABHISHEK_FOLDER_ID;
+  else process.env.SOCIAL_INBOX_ABHISHEK_FOLDER_ID=prev;
+ }
+});

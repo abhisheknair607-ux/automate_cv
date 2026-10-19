@@ -263,11 +263,11 @@ async function submitResearch({token,candidate,company,department,pageUrl,pasted
 }
 async function listResearch({token,candidate}){
  const folder=driveFolder(candidate),prefix=candidate==="Abhishek"?"_a_":"_p_";
- const q="'"+folder.replace(/'/g,"\\'")+"' in parents and trashed = false and mimeType = 'text/plain'";
- const u="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(q)+"&fields=nextPageToken,files(id,name,webViewLink,createdTime)&page_size=100&pageSize=100&orderBy=createdTime%20desc";
+ const q="'"+folder.replace(/'/g,"\\'")+"' in parents and trashed = false";
+ const u="https://www.googleapis.com/drive/v3/files?q="+encodeURIComponent(q)+"&fields=nextPageToken,files(id,name,mimeType,webViewLink,createdTime)&pageSize=100&orderBy=createdTime%20desc";
  const info=await driveRequest(u,token);
- return {files:(info.files||[]).filter(f=>/^(NEW|USED)_/.test(f.name||"")&&String(f.name).includes(prefix))
- .map(f=>({id:f.id,name:f.name,url:f.webViewLink||"https://drive.google.com/file/d/"+f.id+"/view",status:f.name.startsWith("USED_")?"used":"new"}))};
+ return {files:(info.files||[]).filter(f=>/^(NEW|USED)_/.test(f.name||"")&&String(f.name).includes(prefix)&&["text/plain","image/png","image/jpeg","image/webp"].includes(f.mimeType||"text/plain"))
+ .map(f=>({id:f.id,name:f.name,mimeType:f.mimeType||"text/plain",url:f.webViewLink||"https://drive.google.com/file/d/"+f.id+"/view",status:f.name.startsWith("USED_")?"used":"new"}))};
 }
 async function markUsed({token,candidate,fileId,verifiedCount,confirm}){
  if(confirm!==true||!Number.isInteger(verifiedCount)||verifiedCount<1)throw bad("Only mark USED after verified contacts have been imported.");

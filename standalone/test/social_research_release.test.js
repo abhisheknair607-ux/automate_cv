@@ -54,3 +54,52 @@ test("The isolated Social service does not import Jobs or CV runtime",()=>{
  assert.ok(docker.includes("COPY standalone/social_research.js"));
  assert.ok(!docker.includes("webapp/"));
 });
+
+test("Initial research screenshot is saved as NEW in the correct candidate Drive folder, never to Connections",async()=>{
+ const previous=process.env.SOCIAL_INBOX_POOJA_FOLDER_ID;
+ process.env.SOCIAL_INBOX_POOJA_FOLDER_ID="1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc";
+ const png=Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),Buffer.alloc(148)]).toString("base64");
+ const writes=[];
+ const fakeFetch=async(url,opts)=>{
+   writes.push({url:String(url),method:opts?.method,body:opts?.body});
+   return {ok:true,status:200,json:async()=>({id:"image-test-123",name:"NEW_p_test.png"})};
+ };
+ try{
+  const result=await research.saveLeadScreenshot({token:"test-only",candidate:"Pooja",
+    company:"Davy",department:"Wealth Management",city:"Dublin",imageData:png,mimeType:"image/png",
+    confirm:true,fetcher:fakeFetch});
+  assert.equal(result.saved,true);
+  assert.equal(result.pendingVerification,true);
+  assert.equal(result.importedContacts,0);
+  assert.equal(result.file.id,"image-test-123");
+  assert.equal(writes.length,1);
+  assert.match(writes[0].url,/googleapis.com\/upload\/drive\/v3\/files/);
+  assert.match(writes[0].body.toString("utf8"),/NEW_p_[^\r\n]*davy_wealth-management_dublin_[a-f0-9]+\.png/);
+  assert.match(writes[0].body.toString("utf8"),/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc/);
+  assert.doesNotMatch(writes[0].url,/sheets\.googleapis\.com/);
+ }finally{
+   if(previous===undefined)delete process.env.SOCIAL_INBOX_POOJA_FOLDER_ID;
+   else process.env.SOCIAL_INBOX_POOJA_FOLDER_ID=previous;
+ }
+});
+test("Initial research screenshot cannot bypass consent, image validation or candidate mapping",async()=>{
+ const image=Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),Buffer.alloc(148)]).toString("base64");
+ await assert.rejects(research.saveLeadScreenshot({candidate:"Abhishek",company:"EY",imageData:image,mimeType:"image/png",confirm:false}),/Confirm saving/);
+ await assert.rejects(research.saveLeadScreenshot({candidate:"third-party",company:"EY",imageData:image,mimeType:"image/png",confirm:true}),/Choose Abhishek or Pooja/);
+ await assert.rejects(research.saveLeadScreenshot({candidate:"Pooja",company:"EY",imageData:"invalid",mimeType:"image/png",confirm:true}),/Screenshot/);
+});
+test("Research Sources has initial screenshots and separate conversation uploads, both candidate-aware",()=>{
+ const html=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
+ assert.match(html,/id="initialScreenshot"/);
+ assert.match(html,/id="chatScreenshot"/);
+ assert.match(html,/id="saveResearchImage"/);
+ assert.match(html,/id="researchSource"/);
+ assert.match(html,/inbox\/image/);
+ assert.match(html,/Read all candidate-scoped NEW_ \.txt, \.png, \.jpg and \.webp sources/);
+ assert.match(html,/Swipe & Connect reads that tab/);
+ const bridge=fs.readFileSync(path.resolve(__dirname,"../bridge.js"),"utf8");
+ assert.match(bridge,/social\/inbox\/image/);
+ const server=fs.readFileSync(path.resolve(__dirname,"../social_server.js"),"utf8");
+ assert.match(server,/inbox\/image/);
+ assert.match(server,/write&&readOnly/);
+});

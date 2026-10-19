@@ -196,7 +196,7 @@ function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIn
  const href=c.profile||safeLinkedInSearch(c.search);
  return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
 function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
- return heading("Follow-ups")+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
+ return heading("Follow-ups")+'<section class="card"><div class="section-head"><b>GPT follow-up assistance</b><span class="tag">Copy prompt</span></div><p class="subtle">Use your saved LinkedIn conversations, accepted contacts and candidate background to draft reviewed follow-ups. This does not send anything.</p><button class="btn soft small" id="copyFollowupTabPrompt">▣ Copy Follow-up Prompt</button></section>'+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
 function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Edit template</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option><option value="3">Coffee chat</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
 function researchPrompt(){
  const chosen=Object.values(state.templates);
@@ -204,17 +204,18 @@ function researchPrompt(){
    .filter(t=>!state.department||t.department===state.department);
  return [
  "GARAMAAL LINKEDIN RESEARCH / DEPARTMENT TEMPLATES / FRESHMAAL IMPORT",
+ "Research folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
  "Candidate: "+state.candidate,
  "Target: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Any department"),
  "Freshmaal spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
  "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
- "Read NEW_ .txt sources in the candidate's connected Drive Research Inbox. These are leads, not proof of people's roles. Verify names, positions and a specific detail using accessible official/public sources. Never invent a profile URL, mutual connection, project, hiring status or achievement. Do not scrape LinkedIn or use accounts to bypass access.",
+ "Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp sources in the selected candidate's connected Research Inbox Drive folder. Screenshots and pasted text are unverified leads, not proof of role or LinkedIn identity. Read visible screenshots accurately and report illegible or incomplete images; do not infer hidden details. Verify each named person and specific role/personalisation against accessible official/public evidence before importing. Never invent profile URLs, mutual connections, projects, hiring status or achievements, and never scrape LinkedIn or bypass access.",
  "For each recipient, choose the appropriate department template and preserve the exact user-written INTRODUCTION with {{first_name}}, {{company}}, {{department}} replaced using VERIFIED facts. Compose the MIDDLE line separately with one short, specific, verifiable observation about the recipient's role/work, grounded in a cited URL. If you cannot verify a personalised detail, leave the middle line blank, mark the item for review and do not pretend it is researched.",
  "Append the exact template CLOSING unchanged. Introduction + verified middle + closing must together be no more than 300 characters. If they cannot fit without modifying user-owned template text, flag for manual review; never quietly truncate credentials. Never describe CFA or another qualification as completed/in progress unless supported by the candidate's verified evidence.",
  "Differentiate colleagues, internal recruiters and independent agency recruiters in the MIDDLE line, without changing the user's department intro or closing.",
  "For each verified contact save the full composed 3-line message to Connections column K (Outreach Message), evidence/source links to column J; keep existing A:L header order and candidate identity, vacancy-linked existing rows intact. De-duplicate by candidate + company + recipient. Do not overwrite existing messages without explicit approval; surface conflicts for review.",
- "Read back and verify every write. Only after successful import and verification rename each processed NEW_ TXT to USED_. If no verified people or save unavailable, leave the TXT NEW_, show a reviewable table, and do not report a successful import."
+ "Read back Freshmaal Connections A:L and SocialTracking and verify each imported row appears under the correct candidate and department. Swipe & Connect draw from these verified records, not the Drive queue. Only AFTER successful import and read-back verification, rename each processed NEW_ screenshot/TXT file to USED_ with its remaining filename unchanged. If access is unavailable, no person is verified, or import fails, leave every source NEW_, provide a review table and do not claim saved records.",
  ].join("\n\n");
 }
 
@@ -262,7 +263,7 @@ function targetResearch(){const company=state.researchCompany||state.company||""
  '<label class="field city">City<input id="targetCity" placeholder="Dublin" value="'+esc(city)+'"></label></div>'+
 
  '<div class="btnrow"><a class="btn primary small" id="researchNow" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">↗ Research Now</a>'+
- '<button class="btn small" id="saveTarget">＋ Save target</button><button class="btn small" data-copy="'+esc(searchWords)+'">▣ Copy search</button></div>'+
+ '<button class="btn small" id="saveTarget">＋ Save target</button><button class="btn small" id="researchSource">▧ Upload screenshot</button><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button><button class="btn small" data-copy="'+esc(searchWords)+'">▣ Copy search</button></div>'+
  '<p class="subtle">Search bar: '+esc(searchWords||"Company + department + city")+'. Tap Research Now to open LinkedIn People search with these words in the search bar. No advanced filters.</p></section>'+
  '<section class="card"><div class="section-head"><b>Saved targets</b><span class="count">'+state.targets.length+'</span></div>'+
  state.targets.map(t=>'<div class="search-target"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><strong>'+esc(t.company)+'</strong><div class="subtle">'+esc(t.department)+' · '+esc(t.city)+'</div></div>'+
@@ -270,10 +271,25 @@ function targetResearch(){const company=state.researchCompany||state.company||""
  '<button class="btn small" data-use-target="'+esc(t.row)+'">☷ Use filters</button><button class="btn small" data-copy="'+esc([t.company,t.department,t.city].join(" "))+'">▣ Copy</button></div></div>').join("")+
  (!state.targets.length?'<div class="empty">Save an organisation/department/city pair to reuse it here.</div>':"")+'</section>';
 }
-function sourceInbox(){return '<section class="card"><div class="section-head"><b>Save LinkedIn research to Drive</b><span class="tag">NEW → USED</span></div><div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(state.department)+'" placeholder="e.g. Valuations"></label></div><label class="field">LinkedIn company or search page<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label><label class="field">Optional copied profiles / names<textarea id="inboxText" placeholder="Paste LinkedIn text or individual names and positions. Do not enter private messages."></textarea></label><div class="btnrow"><button class="btn primary" id="saveInbox">＋ Save .txt to Drive</button><button class="btn soft" id="copyResearch">▣ Copy AI import prompt</button><button class="btn" id="editTemplate">✎ Master templates</button></div><p class="subtle">A page URL alone cannot reveal members behind LinkedIn login. Verify people before importing them into Freshmaal.</p></section>'+
- '<section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+
- (!state.inboxLoad?'<div class="subtle">Loading Drive queue…</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files yet.</div>')+
- '<div class="btnrow"><button class="btn" id="addContact">＋ Import reviewed names</button></div></section>';
+function sourceInbox(){
+ const preview=state.inboxLoad?state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.mimeType?.startsWith("image/")?"▧ Screenshot · ":"▣ TXT · ")+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+' · '+(f.status==="new"?"Awaiting GPT review / import":"Previously processed")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No screenshots or TXT leads yet.</div>':'<div class="subtle">Loading candidate Research Inbox…</div>';
+ const company=state.researchCompany||state.company||"";
+ const dept=state.researchDepartment||state.department||"";
+ const city=state.researchCity||"Dublin";
+ return '<section class="card"><div class="section-head"><b>Initial research → Swipe & Connect</b><span class="tag">NEW → USED</span></div>'+
+ '<p class="subtle">Paste LinkedIn profile/search text, save a page link, or upload a screenshot. Each source stays in your private Drive Inbox until GPT verifies the people and their details.</p>'+
+ '<div class="research-form"><label class="field">Company<input id="inboxCompany" value="'+esc(company)+'" placeholder="e.g. EY"></label>'+
+ '<label class="field">Department<input id="inboxDepartment" value="'+esc(dept)+'" placeholder="e.g. Valuations"></label>'+
+ '<label class="field city">City<input id="inboxCity" value="'+esc(city)+'" placeholder="Dublin"></label></div>'+
+ '<label class="field">Screenshot of LinkedIn People results / a profile<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
+ '<div class="btnrow"><button class="btn primary small" id="saveResearchImage">▧ Save screenshot to Drive</button></div>'+
+ '<p class="subtle">PNG, JPEG or WebP; maximum 3 MB per screenshot. This is contact research, not the conversation follow-up uploader.</p>'+
+ '<label class="field">LinkedIn company or search page (optional)<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label>'+
+ '<label class="field">Or paste copied profiles and names<textarea id="inboxText" placeholder="Paste visible LinkedIn profile/search text; never invent inaccessible details."></textarea></label>'+
+ '<div class="btnrow"><button class="btn small" id="saveInbox">＋ Save TXT to Drive</button><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button><button class="btn small" id="editTemplate">✎ Master templates</button></div>'+
+ '<p class="subtle">GPT processes saved NEW screenshots and TXT leads, verifies publicly available roles, prepares department-specific messages, and writes approved contacts to Freshmaal Connections. Swipe & Connect reads that tab. Uploading alone does not add names, and there is no automatic GPT run from this page.</p></section>'+
+ '<section class="card"><div class="section-head"><b>Screenshot & TXT research queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+
+ preview+'<div class="btnrow"><button class="btn soft small" id="addContact">＋ Import verified names</button></div></section>';
 }
 function conversationResearchPrompt(record){
  return [
@@ -301,11 +317,11 @@ function followupsResearch(){return '<section class="card"><div class="section-h
  '<div class="split"><label class="field">Contact name<input id="chatContact" placeholder="First / full name"></label><label class="field">Company<input id="chatCompany" value="'+esc(state.company)+'" placeholder="EY, Davy…"></label></div>'+
  '<label class="field">Paste the whole LinkedIn conversation<textarea id="chatTranscript" placeholder="Copy the conversation from LinkedIn and paste it here. Keep the order of messages intact." style="min-height:135px"></textarea></label>'+
  '<label class="field">Or attach a screenshot<input id="chatScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
- '<div class="btnrow"><button class="btn primary small" id="saveConversation">＋ Save source to Drive</button><button class="btn soft small" id="copyGeneralFollowPrompt">▣ Copy GPT follow-up prompt</button></div>'+
+ '<div class="btnrow"><button class="btn primary small" id="saveConversation">＋ Save source to Drive</button><button class="btn soft small" id="copyGeneralFollowPrompt">▣ Copy Follow-up Prompt</button></div>'+
  '<p class="subtle">This saves source material to your candidate’s private Drive folder; the webpage does not run OCR or automatically message anyone. Screenshots up to 3 MB.</p></section>'+
  '<section class="card"><div class="section-head"><b>Saved conversation follow-ups</b><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
 }
-function inboxView(){return heading("Research")+researchTabs()+(state.researchMode==="targets"?targetResearch()+'<details class="card"><summary style="cursor:pointer;font-weight:750">Campaign planner · Consulting & Wealth</summary>'+legacyInboxView()+'</details>':state.researchMode==="followups"?followupsResearch():'<section class="card"><button class="btn soft" id="editTemplate">✎ Department master templates</button></section>'+legacyInboxView());}
+function inboxView(){return heading("Research")+researchTabs()+(state.researchMode==="targets"?targetResearch()+'<details class="card"><summary style="cursor:pointer;font-weight:750">Campaign planner · Consulting & Wealth</summary>'+legacyInboxView()+'</details>':state.researchMode==="followups"?followupsResearch():sourceInbox());}
 
 function openTemplateEditor(dept){
  state.templateDepartment=dept||state.department||state.templateDepartment||"Deals";
@@ -407,6 +423,22 @@ function screenshotToBase64(file){
   reader.readAsDataURL(file);
  });
 }
+async function saveInitialResearchImage(){
+ const company=document.getElementById("inboxCompany")?.value?.trim()||"";
+ const department=document.getElementById("inboxDepartment")?.value?.trim()||"General";
+ const city=document.getElementById("inboxCity")?.value?.trim()||"Dublin";
+ const file=document.getElementById("initialScreenshot")?.files?.[0]||null;
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ if(!company||!file)return alertUser("Enter the company and choose a screenshot.");
+ if(!confirm("Save this unverified initial research screenshot in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
+ const selected=state.candidate;
+ try{
+  const image=await screenshotToBase64(file);
+  const result=await request("inbox/image",{company,department,city,...image,confirm:true});
+  if(state.candidate!==selected)return;
+  if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
+ }catch(e){alertUser(e.message)}
+}
 async function saveChatSource(){
  const contact=document.getElementById("chatContact")?.value.trim(),company=document.getElementById("chatCompany")?.value.trim();
  const chatText=document.getElementById("chatTranscript")?.value.trim()||"";
@@ -476,8 +508,10 @@ document.addEventListener("click",async e=>{
  if(v.person){state.selected=v.person;render();return}
  if(v.copy!==undefined){copyText(v.copy);return}
  if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
+ if(b.id==="researchSource"){state.researchCompany=document.getElementById("targetCompany")?.value?.trim()||state.researchCompany;state.researchDepartment=document.getElementById("targetDepartment")?.value?.trim()||state.researchDepartment;state.researchCity=document.getElementById("targetCity")?.value?.trim()||"Dublin";state.researchMode="sources";render();if(!state.inboxLoad)await loadInbox();return}
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
+ if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
  if(b.id==="copyGeneralFollowPrompt"){copyText(conversationResearchPrompt({contact:document.getElementById("chatContact")?.value||"",company:document.getElementById("chatCompany")?.value||""}));return}
  if(b.id==="saveConversationDraft"){await saveChatDraft(false);return}
  if(b.id==="markConversationSent"){await saveChatDraft(true);return}
@@ -495,6 +529,7 @@ document.addEventListener("click",async e=>{
  if(b.id==="markFollow"){await markFollow(state.selected);return}
  if(b.id==="later"||b.id==="sent"){const x=swipeQueue()[state.swipeIndex];if(x){state.lastSwipe={key:x.key,before:x.relation?.status||"identified"};await updateStatus(x.key,b.id==="later"?"later":"sent","")}return}
  if(b.id==="undo"&&state.lastSwipe){const {key,before}=state.lastSwipe;state.lastSwipe=null;await updateStatus(key,before,"");return}
+ if(b.id==="saveResearchImage"){await saveInitialResearchImage();return}
  if(b.id==="saveInbox"){try{const data=await request("inbox/save",{company:document.getElementById("inboxCompany").value,department:document.getElementById("inboxDepartment").value,pageUrl:document.getElementById("inboxUrl").value,pastedText:document.getElementById("inboxText").value});alertUser("Saved "+data.name);await loadInbox()}catch(err){alertUser(err.message)}return}
  if(v.campaignIndex!==undefined){const idx=Number(v.campaignIndex);if(Number.isInteger(idx)&&idx>=0&&idx<campaignSteps.length){state.campaignIndex=idx;state.company=campaignSteps[idx].company;state.department=campaignSteps[idx].department;render()}return}
  if(b.id==="nextCampaign"||b.id==="prevCampaign"){const diff=b.id==="nextCampaign"?1:-1;state.campaignIndex=Math.max(0,Math.min(campaignSteps.length-1,state.campaignIndex+diff));const step=currentCampaign();state.company=step.company;state.department=step.department;render();return}
