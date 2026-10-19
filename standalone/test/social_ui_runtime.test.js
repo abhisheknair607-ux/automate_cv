@@ -166,3 +166,29 @@ test("Research and Follow-ups show separate prompt buttons, with distinct intent
  assert.match(follow,/Do not send LinkedIn messages/);
  assert.doesNotMatch(follow,/FRESHMAAL IMPORT/);
 });
+
+test("Compact Research workspace preserves key controls and shows each source input once",async()=>{
+ const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+ await new Promise(resolve=>setImmediate(resolve));
+ h.run('state.view="inbox";state.researchMode="targets";render()');
+ let page=h.getNode("app").innerHTML;
+ assert.match(page,/class="research-space"/);
+ assert.match(page,/class="research-tabs"/);
+ assert.match(page,/class="research-action-grid"/);
+ for(const id of ["researchNow","saveTarget","researchSource","copyResearch","targetCompany","targetDepartment","targetCity"])
+   assert.match(page,new RegExp('id="'+id+'"'),id+" missing on Targets");
+ assert.match(page,/Campaign planner/);
+ assert.match(page,/Outreach targets/);
+ assert.doesNotMatch(page,/id="inboxCompany"/,"Collapsed campaign planner must not duplicate Sources inputs");
+ h.run('state.researchMode="sources";render()');
+ page=h.getNode("app").innerHTML;
+ for(const id of ["inboxCompany","inboxDepartment","inboxCity","initialScreenshot","saveResearchImage","inboxUrl","inboxText","saveInbox","copyResearch","importSource"].filter(x=>x!=="importSource"))
+   assert.equal(page.split('id="'+id+'"').length-1,1,"Exactly one "+id+" control expected");
+ assert.match(page,/research-expand/);
+ assert.match(page,/research-tip/);
+ h.run('state.researchMode="followups";render()');
+ page=h.getNode("app").innerHTML;
+ for(const id of ["chatContact","chatCompany","chatTranscript","chatScreenshot","saveConversation","copyGeneralFollowPrompt"])
+   assert.match(page,new RegExp('id="'+id+'"'));
+ assert.doesNotMatch(page,/id="initialScreenshot"/);
+});
