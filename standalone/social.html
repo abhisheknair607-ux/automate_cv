@@ -579,13 +579,15 @@ async function saveInitialResearchText(){
  if(!company)return alertUser("Enter a company under Targets before saving a source.");
  if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
  if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
+ if(!file&&!copied&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
+ if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
+ const selected=state.candidate;
  try{
+  // Start the OAuth popup before any awaited File.text() call, for mobile browsers.
+  const driveAccessToken=await socialDriveToken();
   const pastedText=file?await file.text():copied;
   if(pastedText.length>25000)return alertUser("Text must be below 25,000 characters.");
   if(!pastedText&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
-  if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
-  const selected=state.candidate;
-  const driveAccessToken=await socialDriveToken();
   const result=await request("inbox/save",{company,department,pageUrl,pastedText,driveAccessToken});
   if(selected!==state.candidate)return;
   alertUser("Saved "+result.name+" as a research source.");
