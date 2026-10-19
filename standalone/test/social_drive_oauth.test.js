@@ -10,7 +10,7 @@ assert.ok(start>0&&end>start,"delegated OAuth helper must precede authenticate")
 const delegatedDriveToken=vm.runInNewContext(
   'const bad=(message,httpCode)=>Object.assign(new Error(message),{httpCode});\\n'+
   server.slice(start,end)+'\\ndelegatedDriveToken',
-  {fetch:async()=>({ok:false,status:503}),AbortSignal,Error}
+  {fetch:async()=>({ok:false,status:503}),AbortSignal,Error,SOCIAL_DRIVE_UPLOADER:"abhisheknair607@gmail.com"}
 );
 
 const owner="abhisheknair607@gmail.com";
