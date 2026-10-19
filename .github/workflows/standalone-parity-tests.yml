@@ -45,6 +45,7 @@ jobs:
           node --check standalone/social_research.js
           bash -n standalone/deploy-social-update-guarded.sh
           bash -n standalone/deploy-jobs-social-button-overlay.sh
+          bash -n standalone/deploy-social-editable-guarded.sh
       - name: Test existing and migrated app logic (no API calls)
         run: |
           npm test

@@ -127,37 +127,40 @@ test("Read-only right swipe does not show misleading sent confirmation or write 
  assert.match(h.getNode("toast").textContent,/read-only/i);
 });
 
-test("Initial research screenshot uploader is visible in Research Sources, separate from chat follow-ups",async()=>{
+test("Research combines Targets and Sources without repeated input fields, keeping chats separate",async()=>{
  const h=createHarness(async (_method,{candidate})=>({candidate,readOnly:true,items:[]}));
  await new Promise(resolve=>setImmediate(resolve));
- h.run('state.view="inbox";state.researchMode="sources";render()');
- const sources=h.getNode("app").innerHTML;
- assert.match(sources,/id="initialScreenshot"/);
- assert.match(sources,/id="saveResearchImage"/);
- assert.match(sources,/id="inboxText"/);
- assert.match(sources,/id="copyResearch"/);
- assert.match(sources,/Copy Research Prompt/);
- assert.doesNotMatch(sources,/id="chatScreenshot"/);
+ h.run('state.view="inbox";state.researchMode="research";render()');
+ const research=h.getNode("app").innerHTML;
+ assert.match(research,/id="initialScreenshot"/);
+ assert.match(research,/id="saveResearchImage"/);
+ assert.match(research,/id="targetCompany"/);
+ assert.match(research,/id="inboxText"/);
+ assert.match(research,/id="copyResearch"/);
+ assert.match(research,/Saved targets/);
+ assert.match(research,/Research queue/);
+ assert.doesNotMatch(research,/id="inboxCompany"/);
+ assert.doesNotMatch(research,/id="chatScreenshot"/);
+ assert.equal(research.split('role="tab"').length-1,2);
  h.run('state.researchMode="followups";render()');
  const followups=h.getNode("app").innerHTML;
  assert.match(followups,/id="chatScreenshot"/);
  assert.doesNotMatch(followups,/id="initialScreenshot"/);
 });
 
-test("Research and Follow-ups show separate prompt buttons, with distinct intents",async()=>{
+test("Research and Follow-ups have distinct GPT prompts in the merged view",async()=>{
  const h=createHarness(async (_method,{candidate})=>({candidate,readOnly:true,items:[]}));
  await new Promise(resolve=>setImmediate(resolve));
- h.run('state.view="inbox";state.researchMode="targets";render()');
- assert.match(h.getNode("app").innerHTML,/id="copyResearch"/);
- assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyFollowupTabPrompt"/);
- h.run('state.researchMode="sources";render()');
- assert.match(h.getNode("app").innerHTML,/id="copyResearch"/);
+ h.run('state.view="inbox";state.researchMode="research";render()');
+ const researchPage=h.getNode("app").innerHTML;
+ assert.equal(researchPage.split('id="copyResearch"').length-1,1);
+ assert.doesNotMatch(researchPage,/id="copyFollowupTabPrompt"/);
+ assert.doesNotMatch(researchPage,/id="copyGeneralFollowPrompt"/);
  h.run('state.researchMode="followups";render()');
  assert.match(h.getNode("app").innerHTML,/id="copyGeneralFollowPrompt"/);
  assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyResearch"/);
  h.run('state.view="followups";render()');
  assert.match(h.getNode("app").innerHTML,/id="copyFollowupTabPrompt"/);
- assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyResearch"/);
  const research=h.run('researchPrompt()');
  const follow=h.run('conversationResearchPrompt({contact:"Test Person",company:"EY"})');
  assert.match(research,/FRESHMAAL IMPORT/);
@@ -167,25 +170,26 @@ test("Research and Follow-ups show separate prompt buttons, with distinct intent
  assert.doesNotMatch(follow,/FRESHMAAL IMPORT/);
 });
 
-test("Compact Research workspace preserves key controls and shows each source input once",async()=>{
- const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+test("Compact merged Research UI keeps one metadata form and two predictable stages",async()=>{
+ const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:false,items:[]}));
  await new Promise(resolve=>setImmediate(resolve));
- h.run('state.view="inbox";state.researchMode="targets";render()');
+ h.run('state.view="inbox";state.researchMode="research";render()');
  let page=h.getNode("app").innerHTML;
  assert.match(page,/class="research-space"/);
  assert.match(page,/class="research-tabs"/);
  assert.match(page,/class="research-action-grid"/);
- for(const id of ["researchNow","saveTarget","researchSource","copyResearch","targetCompany","targetDepartment","targetCity"])
-   assert.match(page,new RegExp('id="'+id+'"'),id+" missing on Targets");
  assert.match(page,/Campaign planner/);
  assert.match(page,/Outreach targets/);
- assert.doesNotMatch(page,/id="inboxCompany"/,"Collapsed campaign planner must not duplicate Sources inputs");
- h.run('state.researchMode="sources";render()');
- page=h.getNode("app").innerHTML;
- for(const id of ["inboxCompany","inboxDepartment","inboxCity","initialScreenshot","saveResearchImage","inboxUrl","inboxText","saveInbox","copyResearch","importSource"].filter(x=>x!=="importSource"))
-   assert.equal(page.split('id="'+id+'"').length-1,1,"Exactly one "+id+" control expected");
  assert.match(page,/research-expand/);
  assert.match(page,/research-tip/);
+ for(const id of ["researchNow","saveTarget","researchSource","copyResearch","targetCompany","targetDepartment","targetCity","initialScreenshot","saveResearchImage","inboxUrl","inboxText","saveInbox","reloadInbox"])
+   assert.equal(page.split('id="'+id+'"').length-1,1,"Exactly one "+id+" in Research");
+ for(const id of ["inboxCompany","inboxDepartment","inboxCity"])
+   assert.doesNotMatch(page,new RegExp('id="'+id+'"'),"Duplicate source metadata removed: "+id);
+ assert.equal(page.split('role="tab"').length-1,2,"Only Research and Chat Follow-ups sub-tabs remain");
+ assert.match(page,/Saved targets/);
+ assert.match(page,/Research queue/);
+ assert.equal(h.getNode("socialModeBadge").textContent,"LIVE SHEET");
  h.run('state.researchMode="followups";render()');
  page=h.getNode("app").innerHTML;
  for(const id of ["chatContact","chatCompany","chatTranscript","chatScreenshot","saveConversation","copyGeneralFollowPrompt"])
