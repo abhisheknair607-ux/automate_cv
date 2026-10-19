@@ -312,24 +312,13 @@ function campaignContactCount(step){
 function legacyInboxView(){
  const step=currentCampaign(),count=campaignContactCount(step);
  const rows=campaignSteps.map((x,i)=>'<button class="campaign-step '+(i===state.campaignIndex?"active":"")+'" data-campaign-index="'+i+'"><span>'+(i+1)+'. '+esc(x.company)+' · '+esc(x.department)+'</span><span class="small muted">'+campaignContactCount(x)+' tracked</span></button>').join("");
- return heading("Research")+
- '<section class="card research-compact"><div class="section-head"><b>Outreach targets</b><span class="count">'+(state.campaignIndex+1)+' / '+campaignSteps.length+'</span></div>'+
+ return '<div class="card research-compact"><div class="section-head"><b>Outreach targets</b><span class="count">'+(state.campaignIndex+1)+' / '+campaignSteps.length+'</span></div>'+
  '<div class="campaign-current"><div class="campaign-headline">Current target · Dublin</div><strong>'+esc(step.company)+' · '+esc(step.department)+'</strong>'+
  '<div class="subtle">'+count+' tracked in Freshmaal · Manual, individual outreach</div>'+
  '<div class="campaign-tools"><a class="btn primary small" href="'+esc(campaignSearchUrl(step))+'" rel="noopener noreferrer" target="_blank">↗ Find people</a>'+
  '<button class="btn small" id="copyTargetSearch">▣ Copy search</button><button class="btn small" id="prevCampaign" '+(state.campaignIndex===0?"disabled":"")+'>←</button>'+
  '<button class="btn small" id="nextCampaign" '+(state.campaignIndex===campaignSteps.length-1?"disabled":"")+'>Next →</button></div></div>'+
- '<details class="campaign-steps"><summary class="btn small" style="margin:8px 0;cursor:pointer">Show all '+campaignSteps.length+' targets ▾</summary>'+rows+'</details></section>'+
- '<section class="card research-compact"><div class="section-head"><b>Save research in Drive</b><span class="tag">NEW → USED</span></div>'+
- '<div class="split"><label class="field">Company<input id="inboxCompany" value="'+esc(state.company||step.company)+'"></label>'+
- '<label class="field">Team<input id="inboxDepartment" value="'+esc(state.department||step.department)+'"></label></div>'+
- '<label class="field">LinkedIn page or search URL<input id="inboxUrl" placeholder="Paste company or profile search URL"></label>'+
- '<label class="field">Copied names / profile text<textarea id="inboxText" placeholder="Paste visible names and roles for verification"></textarea></label>'+
- '<div class="btnrow"><button class="btn primary small" id="saveInbox">＋ Save TXT</button><button class="btn soft small" id="copyResearch">▣ Research prompt</button></div>'+
- '<div class="subtle">Verify individual profiles before import; invitations are sent manually.</div></section>'+
- '<section class="card"><div class="section-head"><b>Research TXT queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+
- (!state.inboxLoad?'<div class="subtle">Research queue has not loaded.</div>':state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No TXT files for this candidate yet.</div>')+
- '<div class="btnrow"><button class="btn small" id="addContact">＋ Import verified people</button></div></section>';
+ '<details class="campaign-steps"><summary class="btn small" style="margin:8px 0;cursor:pointer">Show all '+campaignSteps.length+' targets ▾</summary>'+rows+'</details></div>';
 }
 function linkedInPeopleUrl(company,dept,city){
  const words=[company,dept,city].map(x=>String(x||"").trim()).filter(Boolean).join(" ");
