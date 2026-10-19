@@ -399,7 +399,7 @@ function followupsResearch(){
  '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Saved conversations</span><h2>Follow-up queue</h2></div><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
 }
 function inboxView(){
- return '<div class="research-space">'+heading("Research")+
+ return '<div class="research-space"><div class="heading"><h1>Research</h1><button class="btn small" id="refresh" aria-label="Refresh research">↻</button></div>'+
  '<div class="research-progress" aria-label="Workflow overview"><span>Discover</span><span aria-hidden="true">→</span><span>Save sources</span><span aria-hidden="true">→</span><span>Review & connect</span></div>'+
  researchTabs()+
  (state.researchMode==="targets"?targetResearch()+
