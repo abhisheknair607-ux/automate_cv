@@ -16,8 +16,16 @@ function createHarness(handler){
   return nodes.get(id);
  };
  const store=new Map();
+ const GoogleAuthProvider=class {addScope(){} setCustomParameters(){}};
+ GoogleAuthProvider.credentialFromResult=()=>({accessToken:"mock-owner-drive-token-123456"});
+ const firebaseAuth=()=>({currentUser:{
+  email:"abhisheknair607@gmail.com",
+  reauthenticateWithPopup:async()=>({user:{email:"abhisheknair607@gmail.com"}})
+ }});
+ firebaseAuth.GoogleAuthProvider=GoogleAuthProvider;
+ const firebase={apps:[{}],auth:firebaseAuth};
  const context=vm.createContext({
-  window:{isSecureContext:false,__cvStandalone:{requestSpecial:(method,arg)=>method==="social/templates/get"?Promise.resolve({candidate:arg.candidate,templates:[]}):handler(method,arg)}},
+  window:{firebase,isSecureContext:false,__cvStandalone:{requestSpecial:(method,arg)=>method==="social/templates/get"?Promise.resolve({candidate:arg.candidate,templates:[]}):handler(method,arg)}},
   document:{getElementById:getNode,addEventListener(){},readyState:"complete"},
   localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v)},
   navigator:{},confirm:()=>false,prompt:()=>"",
@@ -254,4 +262,5 @@ test("TXT file is read locally and posted as private candidate text, without AI 
  assert.equal(saved[0].company,"EY");
  assert.equal(saved[0].department,"Deals");
  assert.equal(saved[0].pastedText,"John | EY | Deals");
+ assert.equal(saved[0].driveAccessToken,"mock-owner-drive-token-123456");
 });
