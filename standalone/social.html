@@ -321,7 +321,7 @@ function followupsResearch(){return '<section class="card"><div class="section-h
  '<p class="subtle">This saves source material to your candidate’s private Drive folder; the webpage does not run OCR or automatically message anyone. Screenshots up to 3 MB.</p></section>'+
  '<section class="card"><div class="section-head"><b>Saved conversation follow-ups</b><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
 }
-function inboxView(){return heading("Research")+researchTabs()+(state.researchMode==="targets"?targetResearch()+'<details class="card"><summary style="cursor:pointer;font-weight:750">Campaign planner · Consulting & Wealth</summary>'+legacyInboxView()+'</details>':state.researchMode==="followups"?followupsResearch():'<section class="card"><button class="btn soft" id="editTemplate">✎ Department master templates</button></section>'+legacyInboxView());}
+function inboxView(){return heading("Research")+researchTabs()+(state.researchMode==="targets"?targetResearch()+'<details class="card"><summary style="cursor:pointer;font-weight:750">Campaign planner · Consulting & Wealth</summary>'+legacyInboxView()+'</details>':state.researchMode==="followups"?followupsResearch():sourceInbox());}
 
 function openTemplateEditor(dept){
  state.templateDepartment=dept||state.department||state.templateDepartment||"Deals";
