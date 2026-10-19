@@ -230,6 +230,26 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
 async function request(p,data={}){return await window.__cvStandalone.requestSpecial("social/"+p,{candidate:state.candidate,...data})}
+// Social-only Google OAuth consent. The Jobs bridge is never changed.
+// Access tokens are ephemeral and are not persisted in browser storage.
+async function socialDriveToken(){
+ const owner="abhisheknair607@gmail.com";
+ const sdk=window.firebase;
+ const user=sdk?.apps?.length?sdk.auth().currentUser:null;
+ if(!user||String(user.email||"").toLowerCase()!==owner)
+  throw Error("Sign into Social as "+owner+" to upload to Research Drive.");
+ const provider=new sdk.auth.GoogleAuthProvider();
+ provider.addScope("https://www.googleapis.com/auth/drive");
+ provider.setCustomParameters({prompt:"consent select_account"});
+ let result;
+ try{result=await user.reauthenticateWithPopup(provider)}
+ catch(e){throw Error("Google Drive authorization was not completed: "+String(e?.message||"Retry Google sign-in."))}
+ if(String(result?.user?.email||"").toLowerCase()!==owner)
+  throw Error("The Google Drive account must be "+owner+".");
+ const credential=sdk.auth.GoogleAuthProvider.credentialFromResult(result);
+ if(!credential?.accessToken)throw Error("Google did not grant Drive access. Check the consent screen.");
+ return credential.accessToken;
+}
 function norm(s){return String(s||"").toLowerCase()}
 function safeLinkedInSearch(raw){try{const u=new URL(String(raw||""));return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)?u.href:""}catch{return ""}}
 function orgGroup(company){return firms.wealth.some(f=>norm(f)===norm(company))?"wealth":"consulting"}
@@ -325,12 +345,12 @@ function researchPrompt(){
  "Freshmaal spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
  "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
- "Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp sources in the selected candidate's connected Research Inbox Drive folder. Screenshots and pasted text are unverified leads, not proof of role or LinkedIn identity. Read visible screenshots accurately and report illegible or incomplete images; do not infer hidden details. Verify each named person and specific role/personalisation against accessible official/public evidence before importing. Never invent profile URLs, mutual connections, projects, hiring status or achievements, and never scrape LinkedIn or bypass access.",
+ "Use the connected Google Drive account abhisheknair607@gmail.com for Research Drive and keep Abhishek and Pooja source folders separate. Process ONLY files whose names start NEW_ and match the selected candidate's _a_ or _p_ filename tag; never process USED_ files, even when still visible in the Drive folder. Track each unique Google Drive file ID and never reprocess the same ID within a run. Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp sources; screenshots and pasted text are unverified leads, not proof of role or LinkedIn identity. Read visible screenshots accurately and report illegible/incomplete images. Verify each name and role using trustworthy accessible public sources before import. Never invent profile URLs, mutual connections, projects, hiring status or achievements, and never scrape LinkedIn or bypass access.",
  "For each recipient, choose the appropriate department template and preserve the exact user-written INTRODUCTION with {{first_name}}, {{company}}, {{department}} replaced using VERIFIED facts. Compose the MIDDLE line separately with one short, specific, verifiable observation about the recipient's role/work, grounded in a cited URL. If you cannot verify a personalised detail, leave the middle line blank, mark the item for review and do not pretend it is researched.",
  "Append the exact template CLOSING unchanged. Introduction + verified middle + closing must together be no more than 300 characters. If they cannot fit without modifying user-owned template text, flag for manual review; never quietly truncate credentials. Never describe CFA or another qualification as completed/in progress unless supported by the candidate's verified evidence.",
  "Differentiate colleagues, internal recruiters and independent agency recruiters in the MIDDLE line, without changing the user's department intro or closing.",
  "For each verified contact save the full composed 3-line message to Connections column K (Outreach Message), evidence/source links to column J; keep existing A:L header order and candidate identity, vacancy-linked existing rows intact. De-duplicate by candidate + company + recipient. Do not overwrite existing messages without explicit approval; surface conflicts for review.",
- "Read back Freshmaal Connections A:L and SocialTracking and verify each imported row appears under the correct candidate and department. Swipe & Connect draw from these verified records, not the Drive queue. Only AFTER successful import and read-back verification, rename each processed NEW_ screenshot/TXT file to USED_ with its remaining filename unchanged. If access is unavailable, no person is verified, or import fails, leave every source NEW_, provide a review table and do not claim saved records.",
+ "For each source keep an audit record of its Drive file ID, original NEW_ filename, verified contacts, excluded/uncertain names and Sheet row references. Import only verified, approved contacts into the chosen candidate's Freshmaal Connections A:L and SocialTracking, preserving existing rows; deduplicate by candidate+company+person. Read back the exact Sheet rows after writing. Existing duplicates may be counted as completed only when their candidate, company and person records are independently verified. Only AFTER the entire source has been successfully processed, all approved contacts are present in the correct candidate rows, and read-back succeeds, rename that same Drive file from NEW_ to USED_, preserving the filename suffix and extension. Never rename on partial verification, unavailable Sheets/Drive permissions or failed read-back. If rename fails, leave the source NEW_, report its file ID and the precise pending action, and do not claim it was completed. Future runs must ignore USED_ files. Do not upload the file again or delete it.",
  ].join("\n\n");
 }
 
@@ -390,7 +410,7 @@ function sourceInbox(){
  '<label class="field">Or paste copied text<textarea id="inboxText" rows="3" placeholder="Paste names, roles, or LinkedIn results here."></textarea></label>'+
  '<details class="research-expand"><summary>Optional LinkedIn URL <span>▾</span></summary><div class="research-expand-body"><label class="field">Source URL<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label></div></details>'+
  '<button class="btn" id="saveInbox">＋ Save as TXT</button></div></div>'+
- '<div class="research-tip"><strong>Next step</strong><span>Sources stay unverified until reviewed. Copy the GPT prompt, verify people, then import approved contacts to Freshmaal Connections. Nothing is automatically messaged.</span></div></section>'+
+ '<div class="research-tip"><strong>Next step</strong><span>Uploads use the approved Google account. GPT processes NEW_ files only and renames them USED_ after verified import. Nothing is automatically messaged.</span></div></section>'+
  '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Candidate inbox</span><h2>Research queue</h2></div><div class="research-card-utility"><span class="count">'+state.inbox.length+'</span><button class="research-icon-button" id="reloadInbox" title="Refresh research queue" aria-label="Refresh research queue">↻</button></div></div>'+
  '<div class="research-target-list">'+files+'</div><div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
 }
@@ -542,8 +562,9 @@ async function saveInitialResearchImage(){
  if(!confirm("Save this unverified initial research screenshot in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
  const selected=state.candidate;
  try{
+  const driveAccessToken=await socialDriveToken();
   const image=await screenshotToBase64(file);
-  const result=await request("inbox/image",{company,department,city,...image,confirm:true});
+  const result=await request("inbox/image",{company,department,city,...image,driveAccessToken,confirm:true});
   if(state.candidate!==selected)return;
   if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
  }catch(e){alertUser(e.message)}
@@ -558,13 +579,16 @@ async function saveInitialResearchText(){
  if(!company)return alertUser("Enter a company under Targets before saving a source.");
  if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
  if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
+ if(!file&&!copied&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
+ if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
+ const selected=state.candidate;
  try{
+  // Start the OAuth popup before any awaited File.text() call, for mobile browsers.
+  const driveAccessToken=await socialDriveToken();
   const pastedText=file?await file.text():copied;
   if(pastedText.length>25000)return alertUser("Text must be below 25,000 characters.");
   if(!pastedText&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
-  if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
-  const selected=state.candidate;
-  const result=await request("inbox/save",{company,department,pageUrl,pastedText});
+  const result=await request("inbox/save",{company,department,pageUrl,pastedText,driveAccessToken});
   if(selected!==state.candidate)return;
   alertUser("Saved "+result.name+" as a research source.");
   await loadInbox();
@@ -579,8 +603,9 @@ async function saveChatSource(){
  if(file&&chatText)return alertUser("Choose either a screenshot or pasted chat for this record.");
  if(!confirm("Save this private LinkedIn conversation source to your "+state.candidate+" Drive folder?"))return;
  try{
+  const driveAccessToken=await socialDriveToken();
   const image=await screenshotToBase64(file);
-  const result=await request("conversations/save",{contact,company,chatText,...image,confirm:true});
+  const result=await request("conversations/save",{contact,company,chatText,...image,driveAccessToken,confirm:true});
   await loadResearch();alertUser("Conversation saved to Drive. Copy the GPT follow-up prompt to prepare a reply.");
   return result;
  }catch(e){alertUser(e.message)}
@@ -675,7 +700,8 @@ document.addEventListener("click",async e=>{
   const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
   if(!items.length)return alertUser("Paste some names first.");
   if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
-  try{const result=await request("import",{items,sourceFileId:source,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
+  try{const driveAccessToken=source?await socialDriveToken():null;
+   const result=await request("import",{items,sourceFileId:source,driveAccessToken,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
    document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
   }catch(err){alertUser(err.message)}return
  }

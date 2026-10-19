@@ -37,6 +37,25 @@ app.use((_req,res,next)=>{
   next();
 });
 const bad=(message,httpCode)=>Object.assign(new Error(message),{httpCode});
+// Social-only delegated Google Drive authorization. Never accept a Drive token
+// from a different Google account, even when that account may view Garamaal.
+const SOCIAL_DRIVE_UPLOADER="abhisheknair607@gmail.com";
+async function delegatedDriveToken(payload,sessionEmail,fetcher=fetch){
+  const token=String(payload?.driveAccessToken||"");
+  if(token.length<20||token.length>8192||!/^[A-Za-z0-9._~+/-]+$/.test(token))
+    throw bad("Connect the approved Google Drive account before uploading.",403);
+  if(sessionEmail!==SOCIAL_DRIVE_UPLOADER)
+    throw bad("Social uploads require the approved Google account.",403);
+  let response;
+  try{response=await fetcher("https://www.googleapis.com/oauth2/v3/userinfo",{
+    headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(10000)
+  })}catch{throw bad("Google Drive authorization could not be verified. Reconnect and retry.",503)}
+  if(!response.ok)throw bad("Google Drive permission has expired or was denied. Reconnect and retry.",403);
+  const profile=await response.json().catch(()=>({}));
+  if(profile.email_verified!==true||String(profile.email||"").trim().toLowerCase()!==SOCIAL_DRIVE_UPLOADER)
+    throw bad("The Google Drive permission belongs to a different account.",403);
+  return token;
+}
 async function authenticate(req){
   const token=String(req.headers.authorization||"").match(/^Bearer\s+(\S+)$/i)?.[1];
   if(!token)throw bad("Sign in to Garamaal to continue.",401);
@@ -62,7 +81,7 @@ app.get("/social/bridge.js",(_req,res)=>res.type("text/javascript").sendFile(pat
 
 app.post("/api/social/*",async(req,res)=>{
   try{
-    await authenticate(req);
+    const sessionEmail=await authenticate(req);
     if(!spreadsheetId||!/^[A-Za-z0-9_-]{20,}$/.test(spreadsheetId))
       throw bad("Freshmaal sheet is not configured for Social.",503);
     const candidate=social.selectedCandidate(req.body?.candidate);
@@ -71,6 +90,9 @@ app.post("/api/social/*",async(req,res)=>{
     if(!supported.includes(action))return res.status(404).json({error:"Unknown Social operation."});
     const write=["status","followup","import","inbox/save","inbox/image","templates/save","targets/save","conversations/save","conversations/draft"].includes(action);
     if(write&&readOnly)throw bad("Social writes are disabled until release approval.",403);
+    const delegatedRequired=["inbox/save","inbox/image","conversations/save"].includes(action)
+      ||(action==="import"&&Boolean(payload.sourceFileId));
+    const driveAccess=delegatedRequired?await delegatedDriveToken(payload,sessionEmail):null;
     const token=await accessToken();
     const base={token,id:spreadsheetId,candidate};
     let data;
@@ -78,18 +100,18 @@ app.post("/api/social/*",async(req,res)=>{
     else if(action==="status")data=await social.writeStatus({...base,key:payload.key,status:payload.status,
       next:payload.next,department:payload.department,city:payload.city,type:payload.type,confirm:payload.confirm});
     else if(action==="followup")data=await social.setFollowup({...base,key:payload.key,confirm:payload.confirm});
-    else if(action==="import")data=await social.importContacts({...base,driveAccess:token,
+    else if(action==="import")data=await social.importContacts({...base,driveAccess,
       items:payload.items,sourceFileId:payload.sourceFileId,confirm:payload.confirm});
     else if(action==="inbox/save")data=await social.submitResearch({
-      token,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
+      token:driveAccess,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
     else if(action==="inbox/list")data=await social.listResearch({token,candidate});
-    else if(action==="inbox/image")data=await research.saveLeadScreenshot({token,candidate,company:payload.company,department:payload.department,city:payload.city,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
+    else if(action==="inbox/image")data=await research.saveLeadScreenshot({token:driveAccess,candidate,company:payload.company,department:payload.department,city:payload.city,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
     else if(action==="templates/get")data=await social.getTemplates(base);
     else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
     else if(action==="targets/list")data=await research.listTargets(base);
     else if(action==="targets/save")data=await research.saveTarget({...base,company:payload.company,department:payload.department,city:payload.city,confirm:payload.confirm});
     else if(action==="conversations/list")data=await research.listConversations(base);
-    else if(action==="conversations/save")data=await research.saveConversation({...base,contact:payload.contact,company:payload.company,chatText:payload.chatText,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
+    else if(action==="conversations/save")data=await research.saveConversation({...base,driveToken:driveAccess,contact:payload.contact,company:payload.company,chatText:payload.chatText,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
     else if(action==="conversations/draft")data=await research.saveDraft({...base,conversationId:payload.id,draft:payload.draft,next:payload.next,status:payload.status,confirm:payload.confirm});
     res.json({data});
   }catch(e){
@@ -101,4 +123,4 @@ app.post("/api/social/*",async(req,res)=>{
 app.use((_req,res)=>res.status(404).type("text").send("Not found"));
 if(require.main===module)app.listen(Number(process.env.PORT||8080),"0.0.0.0",
   ()=>console.log("[garamaal-social] listening; write gate="+(readOnly?"read-only":"enabled")));
-module.exports={app};
+module.exports={app,delegatedDriveToken};
