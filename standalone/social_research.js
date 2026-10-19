@@ -131,7 +131,7 @@ async function listConversations({token,id,candidate,fetcher}){
  return {items:rows.slice(1).map((r,i)=>({row:i+2,candidate:r[0],id:r[1],contact:r[2],company:r[3],sourceType:r[4],fileId:r[5],driveUrl:r[6],draft:r[7]||"",status:r[8]||"new",next:r[9]||"",updated:r[10]||""}))
   .filter(x=>x.candidate===candidateName(candidate))};
 }
-async function saveConversation({token,id,candidate,contact,company,chatText,imageData,mimeType,confirm,fetcher}){
+async function saveConversation({token,driveToken,id,candidate,contact,company,chatText,imageData,mimeType,confirm,fetcher}){
  candidateCheck(candidate);if(confirm!==true)throw err("Confirm saving this chat/screenshot to your private research folder.");
  contact=value(contact,100);company=value(company,120);chatText=value(chatText,45000);
  if(!contact||!company)throw err("Contact and company are required.");
@@ -150,7 +150,7 @@ async function saveConversation({token,id,candidate,contact,company,chatText,ima
   "\n\nCOPIED CONVERSATION:\n"+chatText+"\n";
   mime="text/plain";filename="NEW_CHAT_"+candidate.toLowerCase()+"_"+stamp+"_"+safeStem(contact)+"_"+idSuffix+".txt";
  }
- const upload=await uploadDrive({token,candidate,filename,content:contents,mimeType:mime,fetcher});
+ const upload=await uploadDrive({token:driveToken||token,candidate,filename,content:contents,mimeType:mime,fetcher});
  await ensure({token,id,tab:CONVO_TAB,head:CONVO_HEAD,fetcher});
  const idCode=crypto.randomBytes(12).toString("hex");
  const vals=[candidateName(candidate),idCode,contact,company,imageData?"screenshot":"paste",upload.id,upload.url,"","new","",new Date().toISOString()];
