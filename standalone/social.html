@@ -230,6 +230,26 @@ const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
 async function request(p,data={}){return await window.__cvStandalone.requestSpecial("social/"+p,{candidate:state.candidate,...data})}
+// Social-only Google OAuth consent. The Jobs bridge is never changed.
+// Access tokens are ephemeral and are not persisted in browser storage.
+async function socialDriveToken(){
+ const owner="abhisheknair607@gmail.com";
+ const sdk=window.firebase;
+ const user=sdk?.apps?.length?sdk.auth().currentUser:null;
+ if(!user||String(user.email||"").toLowerCase()!==owner)
+  throw Error("Sign into Social as "+owner+" to upload to Research Drive.");
+ const provider=new sdk.auth.GoogleAuthProvider();
+ provider.addScope("https://www.googleapis.com/auth/drive");
+ provider.setCustomParameters({prompt:"consent select_account"});
+ let result;
+ try{result=await user.reauthenticateWithPopup(provider)}
+ catch(e){throw Error("Google Drive authorization was not completed: "+String(e?.message||"Retry Google sign-in."))}
+ if(String(result?.user?.email||"").toLowerCase()!==owner)
+  throw Error("The Google Drive account must be "+owner+".");
+ const credential=sdk.auth.GoogleAuthProvider.credentialFromResult(result);
+ if(!credential?.accessToken)throw Error("Google did not grant Drive access. Check the consent screen.");
+ return credential.accessToken;
+}
 function norm(s){return String(s||"").toLowerCase()}
 function safeLinkedInSearch(raw){try{const u=new URL(String(raw||""));return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)?u.href:""}catch{return ""}}
 function orgGroup(company){return firms.wealth.some(f=>norm(f)===norm(company))?"wealth":"consulting"}
@@ -542,8 +562,9 @@ async function saveInitialResearchImage(){
  if(!confirm("Save this unverified initial research screenshot in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
  const selected=state.candidate;
  try{
+  const driveAccessToken=await socialDriveToken();
   const image=await screenshotToBase64(file);
-  const result=await request("inbox/image",{company,department,city,...image,confirm:true});
+  const result=await request("inbox/image",{company,department,city,...image,driveAccessToken,confirm:true});
   if(state.candidate!==selected)return;
   if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
  }catch(e){alertUser(e.message)}
@@ -564,7 +585,8 @@ async function saveInitialResearchText(){
   if(!pastedText&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
   if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
   const selected=state.candidate;
-  const result=await request("inbox/save",{company,department,pageUrl,pastedText});
+  const driveAccessToken=await socialDriveToken();
+  const result=await request("inbox/save",{company,department,pageUrl,pastedText,driveAccessToken});
   if(selected!==state.candidate)return;
   alertUser("Saved "+result.name+" as a research source.");
   await loadInbox();
@@ -579,8 +601,9 @@ async function saveChatSource(){
  if(file&&chatText)return alertUser("Choose either a screenshot or pasted chat for this record.");
  if(!confirm("Save this private LinkedIn conversation source to your "+state.candidate+" Drive folder?"))return;
  try{
+  const driveAccessToken=await socialDriveToken();
   const image=await screenshotToBase64(file);
-  const result=await request("conversations/save",{contact,company,chatText,...image,confirm:true});
+  const result=await request("conversations/save",{contact,company,chatText,...image,driveAccessToken,confirm:true});
   await loadResearch();alertUser("Conversation saved to Drive. Copy the GPT follow-up prompt to prepare a reply.");
   return result;
  }catch(e){alertUser(e.message)}
@@ -675,7 +698,8 @@ document.addEventListener("click",async e=>{
   const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
   if(!items.length)return alertUser("Paste some names first.");
   if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
-  try{const result=await request("import",{items,sourceFileId:source,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
+  try{const driveAccessToken=source?await socialDriveToken():null;
+   const result=await request("import",{items,sourceFileId:source,driveAccessToken,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
    document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
   }catch(err){alertUser(err.message)}return
  }
