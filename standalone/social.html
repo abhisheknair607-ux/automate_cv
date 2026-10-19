@@ -548,6 +548,28 @@ async function saveInitialResearchImage(){
   if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
  }catch(e){alertUser(e.message)}
 }
+async function saveInitialResearchText(){
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ const company=document.getElementById("targetCompany")?.value?.trim()||"";
+ const department=document.getElementById("targetDepartment")?.value?.trim()||"General";
+ const pageUrl=document.getElementById("inboxUrl")?.value?.trim()||"";
+ const copied=document.getElementById("inboxText")?.value?.trim()||"";
+ const file=document.getElementById("researchTextFile")?.files?.[0]||null;
+ if(!company)return alertUser("Enter a company under Targets before saving a source.");
+ if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
+ if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
+ try{
+  const pastedText=file?await file.text():copied;
+  if(pastedText.length>25000)return alertUser("Text must be below 25,000 characters.");
+  if(!pastedText&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
+  if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
+  const selected=state.candidate;
+  const result=await request("inbox/save",{company,department,pageUrl,pastedText});
+  if(selected!==state.candidate)return;
+  alertUser("Saved "+result.name+" as a research source.");
+  await loadInbox();
+ }catch(e){alertUser(e.message)}
+}
 async function saveChatSource(){
  const contact=document.getElementById("chatContact")?.value.trim(),company=document.getElementById("chatCompany")?.value.trim();
  const chatText=document.getElementById("chatTranscript")?.value.trim()||"";
@@ -580,6 +602,9 @@ function updateTargetUrl(){
  state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
  const url=linkedInPeopleUrl(company,department,city);
  const anchor=document.getElementById("researchNow");if(anchor)anchor.href=url;
+ const list=document.getElementById("researchTargetResults");if(list)list.innerHTML=savedTargetRows(company);
+ const count=document.getElementById("targetMatchCount");if(count)count.textContent=state.targets.filter(t=>!company||t.company.toLowerCase().includes(company.toLowerCase())).length+" shown";
+ const context=document.getElementById("sourceContext");if(context)context.textContent="For "+[company||"your chosen company",department,city].filter(Boolean).join(" · ")+" · "+state.candidate+" private Drive";
 }
 async function loadInbox(){
  const candidate=state.candidate;
@@ -609,7 +634,7 @@ document.addEventListener("click",async e=>{
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
  if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}return}
  if(v.researchMode){state.researchMode=v.researchMode;state.selectedConversation="";render();if(v.researchMode!=="followups"&&!state.inboxLoad)loadInbox();return}
- if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;state.company=t.company;state.department=t.department;render()}return}
+ if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;state.company=t.company;state.department=t.department;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}updateTargetUrl()}return}
  if(v.conversation){state.selectedConversation=state.selectedConversation===v.conversation?"":v.conversation;render();return}
  if(v.copyFollowprompt){copyText(conversationResearchPrompt(state.conversations.find(x=>x.id===v.copyFollowprompt)));return}
  if(v.industry){state.orgOpen=!(state.orgOpen&&state.industry===v.industry);state.industry=v.industry;state.company="";state.department="";render();return}
@@ -617,7 +642,7 @@ document.addEventListener("click",async e=>{
  if(v.person){state.selected=v.person;render();return}
  if(v.copy!==undefined){copyText(v.copy);return}
  if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
- if(b.id==="researchSource"){document.getElementById("initialScreenshot")?.scrollIntoView?.({behavior:"smooth",block:"center"});document.getElementById("initialScreenshot")?.focus?.();return}
+ 
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
  if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
@@ -639,7 +664,7 @@ document.addEventListener("click",async e=>{
  if(b.id==="later"||b.id==="sent"){const x=swipeQueue()[state.swipeIndex];if(x){state.lastSwipe={key:x.key,before:x.relation?.status||"identified"};await updateStatus(x.key,b.id==="later"?"later":"sent","")}return}
  if(b.id==="undo"&&state.lastSwipe){const {key,before}=state.lastSwipe;state.lastSwipe=null;await updateStatus(key,before,"");return}
  if(b.id==="saveResearchImage"){await saveInitialResearchImage();return}
- if(b.id==="saveInbox"){try{const data=await request("inbox/save",{company:document.getElementById("targetCompany").value,department:document.getElementById("targetDepartment").value,pageUrl:document.getElementById("inboxUrl").value,pastedText:document.getElementById("inboxText").value});alertUser("Saved "+data.name);await loadInbox()}catch(err){alertUser(err.message)}return}
+ if(b.id==="saveInbox"){await saveInitialResearchText();return}
  if(v.campaignIndex!==undefined){const idx=Number(v.campaignIndex);if(Number.isInteger(idx)&&idx>=0&&idx<campaignSteps.length){state.campaignIndex=idx;state.company=campaignSteps[idx].company;state.department=campaignSteps[idx].department;render()}return}
  if(b.id==="nextCampaign"||b.id==="prevCampaign"){const diff=b.id==="nextCampaign"?1:-1;state.campaignIndex=Math.max(0,Math.min(campaignSteps.length-1,state.campaignIndex+diff));const step=currentCampaign();state.company=step.company;state.department=step.department;render();return}
  if(b.id==="copyTargetSearch"){const step=currentCampaign();copyText([step.company,step.department,"Dublin"].join(" "));return}
