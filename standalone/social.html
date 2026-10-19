@@ -363,7 +363,7 @@ function sourceInbox(){
  '<label class="field">Copied names / roles<textarea id="inboxText" rows="3" placeholder="Paste visible LinkedIn profiles, names and positions."></textarea></label>'+
  '<button class="btn" id="saveInbox">＋ Save TXT to Drive</button></div></details>'+
  '<div class="research-toolbar"><button class="btn soft" id="copyResearch">▣ Copy Research Prompt</button><button class="btn" id="editTemplate">✎ Edit templates</button></div>'+
- '<div class="research-tip"><strong>How it works</strong><span>Save as NEW → verify with GPT → review & import to Connections → Swipe / Connect. No automatic processing or messaging.</span></div></section>'+
+ '<div class="research-tip"><strong>How it works</strong><span>Save as NEW → verify with GPT → review & import to Freshmaal Connections. Swipe & Connect reads that tab. No automatic processing or messaging.</span></div></section>'+
  '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Candidate inbox</span><h2>Research queue</h2></div><div class="research-card-utility"><span class="count">'+state.inbox.length+'</span><button class="research-icon-button" id="reloadInbox" title="Refresh research queue" aria-label="Refresh research queue">↻</button></div></div>'+
  '<div class="research-target-list">'+files+'</div><div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
 }
@@ -403,7 +403,7 @@ function inboxView(){
  '<div class="research-progress" aria-label="Workflow overview"><span>Discover</span><span aria-hidden="true">→</span><span>Save sources</span><span aria-hidden="true">→</span><span>Review & connect</span></div>'+
  researchTabs()+
  (state.researchMode==="targets"?targetResearch()+
- '<details class="research-campaign"><summary>Consulting & Wealth campaign planner <span>▾</span></summary>'+legacyInboxView()+'</details>':
+ '<details class="research-campaign"><summary>Consulting & Wealth Campaign planner <span>▾</span></summary>'+legacyInboxView()+'</details>':
  state.researchMode==="followups"?followupsResearch():sourceInbox())+
  '</div>';
 }
