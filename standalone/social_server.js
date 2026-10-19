@@ -27,6 +27,7 @@ const sheetsAuth=new GoogleAuth({scopes:[
 const app=express();
 app.disable("x-powered-by");
 app.set("trust proxy",1);
+app.use("/api/social/inbox/image",express.json({limit:"5mb"}));
 app.use("/api/social/conversations/save",express.json({limit:"5mb"}));
 app.use(express.json({limit:"120kb"}));
 app.use((_req,res,next)=>{
@@ -66,9 +67,9 @@ app.post("/api/social/*",async(req,res)=>{
       throw bad("Freshmaal sheet is not configured for Social.",503);
     const candidate=social.selectedCandidate(req.body?.candidate);
     const action=req.params[0]||"",payload=req.body||{};
-    const supported=["data","status","followup","import","inbox/save","inbox/list","templates/get","templates/save","targets/list","targets/save","conversations/list","conversations/save","conversations/draft"];
+    const supported=["data","status","followup","import","inbox/save","inbox/list","inbox/image","templates/get","templates/save","targets/list","targets/save","conversations/list","conversations/save","conversations/draft"];
     if(!supported.includes(action))return res.status(404).json({error:"Unknown Social operation."});
-    const write=["status","followup","import","inbox/save","templates/save","targets/save","conversations/save","conversations/draft"].includes(action);
+    const write=["status","followup","import","inbox/save","inbox/image","templates/save","targets/save","conversations/save","conversations/draft"].includes(action);
     if(write&&readOnly)throw bad("Social writes are disabled until release approval.",403);
     const token=await accessToken();
     const base={token,id:spreadsheetId,candidate};
@@ -82,6 +83,7 @@ app.post("/api/social/*",async(req,res)=>{
     else if(action==="inbox/save")data=await social.submitResearch({
       token,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
     else if(action==="inbox/list")data=await social.listResearch({token,candidate});
+    else if(action==="inbox/image")data=await research.saveLeadScreenshot({token,candidate,company:payload.company,department:payload.department,city:payload.city,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
     else if(action==="templates/get")data=await social.getTemplates(base);
     else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
     else if(action==="targets/list")data=await research.listTargets(base);
