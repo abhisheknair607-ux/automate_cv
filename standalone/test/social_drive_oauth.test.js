@@ -1,7 +1,17 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
-const {delegatedDriveToken}=require("../social_server");
+// The parity job intentionally runs without npm dependencies. Extract the
+// Social-only identity helper without importing Express or any Cloud SDK.
+const server=fs.readFileSync(path.resolve(__dirname,"../social_server.js"),"utf8");
+const start=server.indexOf("async function delegatedDriveToken(");
+const end=server.indexOf("async function authenticate(",start);
+assert.ok(start>0&&end>start,"delegated OAuth helper must precede authenticate");
+const delegatedDriveToken=vm.runInNewContext(
+  'const bad=(message,httpCode)=>Object.assign(new Error(message),{httpCode});\\n'+
+  server.slice(start,end)+'\\ndelegatedDriveToken',
+  {fetch:async()=>({ok:false,status:503}),AbortSignal,Error}
+);
 
 const owner="abhisheknair607@gmail.com";
 const token="valid-google-oauth-test-token-123";
