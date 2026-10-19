@@ -93,6 +93,18 @@ try:
     if status == 200:
         print("INFO Jobs root sha256=", hashlib.sha256(home).hexdigest())
         print("INFO LIVE_JOBS_SOCIAL_LINK_PRESENT=", 'href="/social"' in home.decode("utf-8", errors="replace"))
+        from pathlib import Path
+        src=Path("webapp/Index.html").read_text(encoding="utf-8")
+        social='<a href="/social" class="btn" aria-label="Open Social Networking Hub" title="Networking Hub">👥 Social</a>'
+        if src.count(social)!=1:
+            print("INFO BASELINE_JOB_MATCH=False (candidate Social patch is not unique)")
+        else:
+            old=src.replace(social,"",1)
+            injected=old.replace("<script>\n'use strict';",'<script src="/bridge.js"></script>\n<script>\n\'use strict\';',1)
+            injected=injected.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>',1)
+            print("INFO LIVE_JOBS_MATCHES_PRE_SOCIAL_SOURCE=",injected.encode("utf-8")==home)
+            print("INFO EXPECTED_PRE_SOCIAL_SHA256=",hashlib.sha256(injected.encode("utf-8")).hexdigest())
+
 except Exception as err:
     failures.append(str(err))
     print("ERROR", type(err).__name__, str(err))
