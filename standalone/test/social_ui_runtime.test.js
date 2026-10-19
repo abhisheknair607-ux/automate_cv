@@ -142,3 +142,26 @@ test("Initial research screenshot uploader is visible in Research Sources, separ
  assert.match(followups,/id="chatScreenshot"/);
  assert.doesNotMatch(followups,/id="initialScreenshot"/);
 });
+
+test("Research and Follow-ups show separate prompt buttons, with distinct intents",async()=>{
+ const h=createHarness(async (_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+ await new Promise(resolve=>setImmediate(resolve));
+ h.run('state.view="inbox";state.researchMode="targets";render()');
+ assert.match(h.getNode("app").innerHTML,/id="copyResearch"/);
+ assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyFollowupTabPrompt"/);
+ h.run('state.researchMode="sources";render()');
+ assert.match(h.getNode("app").innerHTML,/id="copyResearch"/);
+ h.run('state.researchMode="followups";render()');
+ assert.match(h.getNode("app").innerHTML,/id="copyGeneralFollowPrompt"/);
+ assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyResearch"/);
+ h.run('state.view="followups";render()');
+ assert.match(h.getNode("app").innerHTML,/id="copyFollowupTabPrompt"/);
+ assert.doesNotMatch(h.getNode("app").innerHTML,/id="copyResearch"/);
+ const research=h.run('researchPrompt()');
+ const follow=h.run('conversationResearchPrompt({contact:"Test Person",company:"EY"})');
+ assert.match(research,/FRESHMAAL IMPORT/);
+ assert.match(research,/Read all candidate-scoped NEW_/);
+ assert.match(follow,/FOLLOW-UP RESEARCH/);
+ assert.match(follow,/Do not send LinkedIn messages/);
+ assert.doesNotMatch(follow,/FRESHMAAL IMPORT/);
+});
