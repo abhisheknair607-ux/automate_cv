@@ -182,7 +182,7 @@ test("Compact merged Research UI keeps one metadata form and two predictable sta
  assert.match(page,/Outreach targets/);
  assert.match(page,/research-expand/);
  assert.match(page,/research-tip/);
- for(const id of ["researchNow","saveTarget","researchSource","copyResearch","targetCompany","targetDepartment","targetCity","initialScreenshot","saveResearchImage","inboxUrl","inboxText","saveInbox","reloadInbox"])
+ for(const id of ["researchNow","saveTarget","copyResearch","targetCompany","targetDepartment","targetCity","initialScreenshot","saveResearchImage","researchTextFile","inboxUrl","inboxText","saveInbox","reloadInbox"])
    assert.equal(page.split('id="'+id+'"').length-1,1,"Exactly one "+id+" in Research");
  for(const id of ["inboxCompany","inboxDepartment","inboxCity"])
    assert.doesNotMatch(page,new RegExp('id="'+id+'"'),"Duplicate source metadata removed: "+id);
@@ -195,4 +195,63 @@ test("Compact merged Research UI keeps one metadata form and two predictable sta
  for(const id of ["chatContact","chatCompany","chatTranscript","chatScreenshot","saveConversation","copyGeneralFollowPrompt"])
    assert.match(page,new RegExp('id="'+id+'"'));
  assert.doesNotMatch(page,/id="initialScreenshot"/);
+});
+
+test("Targets are above uploads and offer only Search Now and Save Target",async()=>{
+ const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+ await new Promise(resolve=>setImmediate(resolve));
+ h.run('state.view="inbox";state.researchMode="research";render()');
+ const page=h.getNode("app").innerHTML;
+ const top=page.slice(page.indexOf('class="card research-card research-targets"'),page.indexOf('class="card research-card research-sources"'));
+ assert.ok(top.length>100);
+ assert.ok(page.indexOf('id="saveTarget"')<page.indexOf('id="initialScreenshot"'));
+ assert.match(top,/id="researchNow"/);
+ assert.match(top,/id="saveTarget"/);
+ assert.match(top,/id="researchTargetResults"/);
+ assert.doesNotMatch(top,/id="copyResearch"/);
+ assert.doesNotMatch(top,/id="initialScreenshot"/);
+ assert.equal((top.match(/<button[^>]+id=/g)||[]).length,1);
+ assert.match(page,/research-target-scroll/);
+ assert.match(page,/id="researchTextFile"/);
+});
+test("EY department matches appear together in filtered saved targets",async()=>{
+ const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+ await new Promise(resolve=>setImmediate(resolve));
+ h.run('state.view="inbox";state.researchMode="research";state.targets=[{row:2,company:"EY",department:"Deals",city:"Dublin"},{row:3,company:"EY",department:"Valuations",city:"Dublin"},{row:4,company:"Davy",department:"Wealth",city:"Dublin"}];render()');
+ const matches=h.run('savedTargetRows("EY")');
+ assert.match(matches,/Deals/);
+ assert.match(matches,/Valuations/);
+ assert.doesNotMatch(matches,/Davy/);
+ assert.equal((matches.match(/data-use-target=/g)||[]).length,2);
+ assert.match(matches,/linkedin.com\/search\/results\/people\/\?keywords=/);
+ h.getNode("targetCompany").value="Davy";
+ h.getNode("targetDepartment").value="Wealth";
+ h.getNode("targetCity").value="Dublin";
+ h.run("updateTargetUrl()");
+ assert.match(h.getNode("researchTargetResults").innerHTML,/Davy/);
+ assert.doesNotMatch(h.getNode("researchTargetResults").innerHTML,/Valuations/);
+});
+test("TXT file is read locally and posted as private candidate text, without AI generation",async()=>{
+ const saved=[];
+ const h=createHarness(async(method,args)=>{
+  if(method==="social/data")return {candidate:args.candidate,readOnly:false,items:[]};
+  if(method==="social/inbox/save"){saved.push(args);return {name:"NEW_a_test.txt"}}
+  if(method==="social/inbox/list")return {files:[]};
+  if(method==="social/targets/list")return {targets:[]};
+  if(method==="social/conversations/list")return {items:[]};
+  return {candidate:args.candidate,items:[]};
+ });
+ await new Promise(resolve=>setImmediate(resolve));
+ h.context.confirm=()=>true;
+ h.getNode("targetCompany").value="EY";
+ h.getNode("targetDepartment").value="Deals";
+ h.getNode("inboxUrl").value="";
+ h.getNode("inboxText").value="";
+ h.getNode("researchTextFile").files=[{name:"people.txt",size:24,text:async()=>"John | EY | Deals"}];
+ await h.run("saveInitialResearchText()");
+ assert.equal(saved.length,1);
+ assert.equal(saved[0].candidate,"Abhishek");
+ assert.equal(saved[0].company,"EY");
+ assert.equal(saved[0].department,"Deals");
+ assert.equal(saved[0].pastedText,"John | EY | Deals");
 });
