@@ -126,3 +126,19 @@ test("Read-only right swipe does not show misleading sent confirmation or write 
  assert.equal(h.run('state.items[0].relation.status'),"identified");
  assert.match(h.getNode("toast").textContent,/read-only/i);
 });
+
+test("Initial research screenshot uploader is visible in Research Sources, separate from chat follow-ups",async()=>{
+ const h=createHarness(async (_method,{candidate})=>({candidate,readOnly:true,items:[]}));
+ await new Promise(resolve=>setImmediate(resolve));
+ h.run('state.view="inbox";state.researchMode="sources";render()');
+ const sources=h.getNode("app").innerHTML;
+ assert.match(sources,/id="initialScreenshot"/);
+ assert.match(sources,/id="saveResearchImage"/);
+ assert.match(sources,/id="inboxText"/);
+ assert.match(sources,/GPT verification &amp; import prompt|Copy GPT verification/);
+ assert.doesNotMatch(sources,/id="chatScreenshot"/);
+ h.run('state.researchMode="followups";render()');
+ const followups=h.getNode("app").innerHTML;
+ assert.match(followups,/id="chatScreenshot"/);
+ assert.doesNotMatch(followups,/id="initialScreenshot"/);
+});
