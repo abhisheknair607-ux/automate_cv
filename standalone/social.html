@@ -73,6 +73,93 @@ body{background:#f5f7fb}
 .research-tabs{display:flex;gap:6px;margin-bottom:12px}.research-tabs button{flex:1;min-width:0;padding:10px 5px;font-size:11px}.research-tabs .active{background:#e4efff;border-color:#a9caf7;color:#1656a9}
 .research-form{display:grid;grid-template-columns:1fr 1fr 115px;gap:8px}.search-target{display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #edf1f5;padding:10px 0}.search-target:last-child{border:0}.text-preview{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}.full{width:100%}.counter{font-size:11px;color:var(--muted)}.upload-label{display:flex;align-items:center;gap:8px;border:1px dashed #b3c5dd;padding:12px;border-radius:11px;background:#f8fbff;color:#516c90}.limit{max-width:100%;overflow-wrap:anywhere}
 @media(max-width:700px){.research-form{grid-template-columns:1fr 1fr}.research-form .city{grid-column:span 2}.research-tabs button{font-size:10px}}
+
+/* Research workspace — refined compact layout, scoped to Research only. */
+.research-space{--r-ink:#193555;--r-border:#dbe5f1;--r-sub:#61758e}
+.research-space .heading{margin-bottom:8px}
+.research-space .heading h1{font-size:19px;font-weight:800;letter-spacing:-.6px}
+.research-progress{display:flex;align-items:center;gap:8px;color:#687b90;font-size:10px;font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+.research-progress span:nth-child(even){color:#a1b1c3}
+.research-space .research-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;border:1px solid #dfe8f3;border-radius:13px;padding:4px;background:#eaf0f7;margin-bottom:11px}
+.research-space .research-tab{display:flex;justify-content:center;align-items:center;gap:6px;min-width:0;min-height:41px;border:1px solid transparent;background:transparent;border-radius:10px;padding:8px 5px;color:#5d6f85;font-size:11px;font-weight:750;line-height:1.2}
+.research-space .research-tab:hover{background:#ffffffa6}
+.research-space .research-tab.active{background:white;border-color:#d8e3f2;box-shadow:0 2px 7px #263c5d12;color:#1f5cb2}
+.research-tab-number{color:#94a8bc;font-size:9px;letter-spacing:.03em;font-weight:800}
+.research-tab.active .research-tab-number{color:#4980c9}
+.research-card{padding:15px 16px;margin-bottom:10px;border-radius:15px;box-shadow:0 3px 14px #15395d08}
+.research-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.research-card-head h2{font-size:15px;color:var(--r-ink);font-weight:800;margin:2px 0 0;letter-spacing:-.25px}
+.research-eyebrow{color:#6b89a9;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.research-meta{white-space:nowrap;background:#edf4ff;color:#3767a1;padding:5px 9px;border-radius:15px;font-size:10px;font-weight:750}
+.research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(80px,.66fr);gap:9px;margin-bottom:6px}
+.research-space .field{font-size:11px;color:#526983;font-weight:750;gap:5px;margin-bottom:9px}
+.research-space input,.research-space textarea{border-color:#dbe4ef;background:#fbfcfe;border-radius:10px;min-height:39px;padding:9px 11px;font-size:12px;font-weight:500;line-height:1.35}
+.research-space input:focus,.research-space textarea:focus{background:white}
+.research-space input[type=file]{padding:7px;font-size:11px;color:#536a86;max-width:100%}
+.research-space textarea{min-height:76px}
+.research-space .research-action-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:6px}
+.research-space .research-action-grid .btn,.research-space .research-toolbar .btn{min-height:39px;padding:9px 10px;font-size:11px;line-height:1.25;border-radius:10px}
+.research-space .research-action-grid .btn{white-space:normal}
+.research-searchline{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:10px;color:var(--r-sub);font-size:10px;min-width:0}
+.research-searchline span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.research-searchline b{color:#3e5878;font-weight:700}
+.research-link{border:0;background:transparent;color:#2761ae;font-size:10px;white-space:nowrap;font-weight:750;padding:5px 0}
+.research-saved .research-card-head{margin-bottom:6px}
+.research-target-list{display:flex;flex-direction:column}
+.research-target-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:9px 0;border-bottom:1px solid #ecf0f5}
+.research-target-row:last-child{border-bottom:0}
+.research-target-info{min-width:0;flex:1}
+.research-target-info strong{display:block;color:#203b5d;font-weight:750;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.research-target-info small{display:block;color:#75879a;font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.research-target-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.research-target-actions .btn,.research-target-row>.btn{font-size:10px;padding:7px 9px}
+.research-icon-button{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;background:#f1f5fa;border:1px solid #e1e9f3;border-radius:9px;color:#54718f;font-size:13px}
+.research-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:22px 8px;color:#718399;font-size:11px}
+.research-empty strong{color:#47617b;font-size:12px}
+.research-toolbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.research-upload{display:flex;align-items:end;gap:9px;margin:3px 0 9px}
+.research-upload .research-file-field{flex:1;min-width:0;margin-bottom:0}
+.research-file-field small{font-size:10px;color:#7b8ea3;font-weight:500}
+.research-upload .btn{margin-bottom:0;min-height:39px;white-space:nowrap;font-size:11px}
+.research-expand{margin:7px 0 0;border:1px solid var(--r-border);border-radius:11px;overflow:hidden;background:#f8fafd}
+.research-expand>summary,.research-campaign>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;padding:11px 12px;font-size:11px;color:#426387;font-weight:750;list-style:none}
+.research-expand>summary::-webkit-details-marker,.research-campaign>summary::-webkit-details-marker{display:none}
+.research-expand-body{border-top:1px solid #e6edf4;padding:11px 12px}
+.research-expand-body .btn{font-size:11px}
+.research-tip{display:flex;align-items:start;gap:7px;border-top:1px solid #e9eef5;margin-top:12px;padding-top:10px;color:#73869b;font-size:10px;line-height:1.5}
+.research-tip strong{white-space:nowrap;color:#4b6f9e}
+.research-footer{display:flex;justify-content:flex-end;border-top:1px solid #eef2f7;padding-top:10px;margin-top:4px}
+.research-card-utility{display:flex;align-items:center;gap:7px}
+.research-campaign{margin:2px 0 12px;border:1px solid var(--r-border);border-radius:12px;background:#fff;overflow:hidden}
+.research-campaign>summary{padding:11px 14px}
+.research-campaign[open]>summary{border-bottom:1px solid var(--r-border)}
+.research-campaign>.card{border:0;box-shadow:none;margin:0}
+.research-space .search-target{padding:9px 0;gap:5px}
+.research-space .search-target .note{margin:6px 0;padding:9px}
+@media(max-width:700px){
+ .research-space .heading{margin-bottom:7px}
+ .research-space .research-card{padding:12px;margin-bottom:8px}
+ .research-space .research-card-head{margin-bottom:9px}
+ .research-space .research-tab{font-size:10px;min-height:40px;gap:4px;padding:6px 3px}
+ .research-space .research-tab-number{font-size:9px}
+ .research-space .research-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .research-space .research-form .city{grid-column:span 2}
+ .research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .research-space .research-action-grid .btn{min-height:40px}
+ .research-space .research-upload{flex-direction:column;align-items:stretch;gap:7px}
+ .research-space .research-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .research-space .research-toolbar .btn{min-width:0}
+ .research-space .research-target-actions{gap:4px}
+ .research-space .research-target-actions .btn{padding:7px 8px}
+ .research-progress{font-size:9px}
+}
+@media(max-width:370px){
+ .research-space .research-tab{font-size:9px}
+ .research-tab-number{display:none}
+ .research-space .research-action-grid .btn{font-size:10px}
+ .research-progress{gap:5px}
+}
+
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -252,44 +339,44 @@ function isLinkedInPeopleUrl(s){try{const u=new URL(s);return u.protocol==="http
 function selectedResearchUrl(){
  return linkedInPeopleUrl(state.researchCompany||state.company,state.researchDepartment||state.department,state.researchCity||"Dublin");
 }
-function researchTabs(){const names=[["targets","⌕ Targets"],["sources","▣ Sources"],["followups","↗ Chat follow-ups"]];
- return '<div class="research-tabs">'+names.map(([id,label])=>'<button class="btn '+(state.researchMode===id?"active":"")+'" data-research-mode="'+id+'">'+label+'</button>').join("")+'</div>';
+function researchTabs(){
+ const names=[["targets","01","Targets"],["sources","02","Sources"],["followups","03","Chat follow-ups"]];
+ return '<div class="research-tabs" role="tablist" aria-label="Research stages">'+
+ names.map(([id,num,label])=>'<button type="button" role="tab" aria-selected="'+(state.researchMode===id?"true":"false")+'" class="research-tab '+(state.researchMode===id?"active":"")+'" data-research-mode="'+id+'"><span class="research-tab-number">'+num+'</span><span>'+label+'</span></button>').join("")+
+ '</div>';
 }
-function targetResearch(){const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+function targetResearch(){
+ const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
  const url=selectedResearchUrl(),searchWords=[company,dept,city].filter(Boolean).join(" ");
- return '<section class="card"><div class="section-head"><b>Company + department search</b><span class="tag">LinkedIn · People</span></div>'+
- '<div class="research-form"><label class="field">Company<input id="targetCompany" placeholder="EY, Davy, etc." value="'+esc(company)+'"></label>'+
- '<label class="field">Department<input id="targetDepartment" placeholder="Deals, Wealth…" value="'+esc(dept)+'"></label>'+
- '<label class="field city">City<input id="targetCity" placeholder="Dublin" value="'+esc(city)+'"></label></div>'+
-
- '<div class="btnrow"><a class="btn primary small" id="researchNow" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">↗ Research Now</a>'+
- '<button class="btn small" id="saveTarget">＋ Save target</button><button class="btn small" id="researchSource">▧ Upload screenshot</button><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button><button class="btn small" data-copy="'+esc(searchWords)+'">▣ Copy search</button></div>'+
- '<p class="subtle">Search bar: '+esc(searchWords||"Company + department + city")+'. Tap Research Now to open LinkedIn People search with these words in the search bar. No advanced filters.</p></section>'+
- '<section class="card"><div class="section-head"><b>Saved targets</b><span class="count">'+state.targets.length+'</span></div>'+
- state.targets.map(t=>'<div class="search-target"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><strong>'+esc(t.company)+'</strong><div class="subtle">'+esc(t.department)+' · '+esc(t.city)+'</div></div>'+
- '<span class="tag">'+esc(t.city)+'</span></div><div class="btnrow"><a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ Research Now</a>'+
- '<button class="btn small" data-use-target="'+esc(t.row)+'">☷ Use filters</button><button class="btn small" data-copy="'+esc([t.company,t.department,t.city].join(" "))+'">▣ Copy</button></div></div>').join("")+
- (!state.targets.length?'<div class="empty">Save an organisation/department/city pair to reuse it here.</div>':"")+'</section>';
+ return '<section class="card research-card"><div class="research-card-head"><div><span class="research-eyebrow">01 · Discover</span><h2>Find professionals</h2></div><span class="research-meta">LinkedIn People</span></div>'+
+ '<div class="research-form"><label class="field">Company<input id="targetCompany" placeholder="e.g. EY" value="'+esc(company)+'" autocomplete="off"></label>'+
+ '<label class="field">Department<input id="targetDepartment" placeholder="Valuations" value="'+esc(dept)+'" autocomplete="off"></label>'+
+ '<label class="field city">City<input id="targetCity" placeholder="Dublin" value="'+esc(city)+'" autocomplete="off"></label></div>'+
+ '<div class="research-action-grid"><a class="btn primary" id="researchNow" href="'+esc(url)+'" target="_blank" rel="noopener noreferrer">↗ Research Now</a>'+
+ '<button class="btn" id="saveTarget">＋ Save target</button><button class="btn" id="researchSource">▧ Upload screenshot</button>'+
+ '<button class="btn soft" id="copyResearch">▣ Copy Research Prompt</button></div>'+
+ '<div class="research-searchline"><span>Search words: <b>'+esc(searchWords||"Company · Department · City")+'</b></span><button class="research-link" data-copy="'+esc(searchWords)+'">Copy terms</button></div></section>'+
+ '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Saved searches</span><h2>My targets</h2></div><span class="count">'+state.targets.length+'</span></div>'+
+ (state.targets.length?'<div class="research-target-list">'+state.targets.map(t=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></div>'+
+ '<div class="research-target-actions"><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ Find</a>'+
+ '<button class="btn small" data-use-target="'+esc(t.row)+'">Use</button><button class="research-icon-button" aria-label="Copy search for '+esc(t.company)+'" title="Copy search words" data-copy="'+esc([t.company,t.department,t.city].join(" "))+'">▣</button></div></div>').join("")+'</div>':
+ '<div class="research-empty"><strong>Nothing saved yet</strong><span>Save a company and department to revisit the search in one tap.</span></div>')+'</section>';
 }
 function sourceInbox(){
- const preview=state.inboxLoad?state.inbox.map(f=>'<div class="person"><div><strong>'+esc(f.mimeType?.startsWith("image/")?"▧ Screenshot · ":"▣ TXT · ")+esc(f.name)+'</strong><small>'+esc(f.status.toUpperCase())+' · '+(f.status==="new"?"Awaiting GPT review / import":"Previously processed")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">Drive ↗</a></div>').join("")||'<div class="empty">No screenshots or TXT leads yet.</div>':'<div class="subtle">Loading candidate Research Inbox…</div>';
- const company=state.researchCompany||state.company||"";
- const dept=state.researchDepartment||state.department||"";
- const city=state.researchCity||"Dublin";
- return '<section class="card"><div class="section-head"><b>Initial research → Swipe & Connect</b><span class="tag">NEW → USED</span></div>'+
- '<p class="subtle">Paste LinkedIn profile/search text, save a page link, or upload a screenshot. Each source stays in your private Drive Inbox until GPT verifies the people and their details.</p>'+
- '<div class="research-form"><label class="field">Company<input id="inboxCompany" value="'+esc(company)+'" placeholder="e.g. EY"></label>'+
- '<label class="field">Department<input id="inboxDepartment" value="'+esc(dept)+'" placeholder="e.g. Valuations"></label>'+
- '<label class="field city">City<input id="inboxCity" value="'+esc(city)+'" placeholder="Dublin"></label></div>'+
- '<label class="field">Screenshot of LinkedIn People results / a profile<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
- '<div class="btnrow"><button class="btn primary small" id="saveResearchImage">▧ Save screenshot to Drive</button></div>'+
- '<p class="subtle">PNG, JPEG or WebP; maximum 3 MB per screenshot. This is contact research, not the conversation follow-up uploader.</p>'+
- '<label class="field">LinkedIn company or search page (optional)<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label>'+
- '<label class="field">Or paste copied profiles and names<textarea id="inboxText" placeholder="Paste visible LinkedIn profile/search text; never invent inaccessible details."></textarea></label>'+
- '<div class="btnrow"><button class="btn small" id="saveInbox">＋ Save TXT to Drive</button><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button><button class="btn small" id="editTemplate">✎ Master templates</button></div>'+
- '<p class="subtle">GPT processes saved NEW screenshots and TXT leads, verifies publicly available roles, prepares department-specific messages, and writes approved contacts to Freshmaal Connections. Swipe & Connect reads that tab. Uploading alone does not add names, and there is no automatic GPT run from this page.</p></section>'+
- '<section class="card"><div class="section-head"><b>Screenshot & TXT research queue</b><button class="btn small" id="reloadInbox">↻</button></div>'+
- preview+'<div class="btnrow"><button class="btn soft small" id="addContact">＋ Import verified names</button></div></section>';
+ const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or paste LinkedIn text to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
+ const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+ return '<section class="card research-card"><div class="research-card-head"><div><span class="research-eyebrow">02 · Collect leads</span><h2>Add a source</h2></div><span class="research-meta">Private Drive</span></div>'+
+ '<div class="research-form"><label class="field">Company<input id="inboxCompany" value="'+esc(company)+'" placeholder="e.g. EY"></label><label class="field">Department<input id="inboxDepartment" value="'+esc(dept)+'" placeholder="Valuations"></label><label class="field city">City<input id="inboxCity" value="'+esc(city)+'" placeholder="Dublin"></label></div>'+
+ '<div class="research-upload"><label class="field research-file-field"><span>LinkedIn results or profile screenshot</span><input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPG or WebP · max 3 MB</small></label>'+
+ '<button class="btn primary" id="saveResearchImage">＋ Save screenshot</button></div>'+
+ '<details class="research-expand"><summary>Or paste LinkedIn text / URL <span>▾</span></summary>'+
+ '<div class="research-expand-body"><label class="field">Company or search URL<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label>'+
+ '<label class="field">Copied names / roles<textarea id="inboxText" rows="3" placeholder="Paste visible LinkedIn profiles, names and positions."></textarea></label>'+
+ '<button class="btn" id="saveInbox">＋ Save TXT to Drive</button></div></details>'+
+ '<div class="research-toolbar"><button class="btn soft" id="copyResearch">▣ Copy Research Prompt</button><button class="btn" id="editTemplate">✎ Edit templates</button></div>'+
+ '<div class="research-tip"><strong>How it works</strong><span>Save as NEW → verify with GPT → review & import to Connections → Swipe / Connect. No automatic processing or messaging.</span></div></section>'+
+ '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Candidate inbox</span><h2>Research queue</h2></div><div class="research-card-utility"><span class="count">'+state.inbox.length+'</span><button class="research-icon-button" id="reloadInbox" title="Refresh research queue" aria-label="Refresh research queue">↻</button></div></div>'+
+ '<div class="research-target-list">'+files+'</div><div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
 }
 function conversationResearchPrompt(record){
  return [
@@ -313,16 +400,24 @@ function conversationCards(){if(!state.conversations.length)return '<div class="
  (state.selectedConversation===c.id?'<label class="field">Approved draft / GPT result<textarea id="conversationDraft" placeholder="Paste the follow-up you want to send">'+esc(c.draft||"")+'</textarea></label><label class="field">Next follow-up<input id="conversationNext" type="date" value="'+esc(c.next||"")+'"></label><div class="btnrow"><button class="btn primary small" id="saveConversationDraft">Save draft</button><button class="btn good small" id="markConversationSent" '+(!c.draft?"disabled":"")+'>✓ I sent this manually</button></div>':"")+
  '</div>').join("");
 }
-function followupsResearch(){return '<section class="card"><div class="section-head"><b>LinkedIn chat → follow-up</b><span class="tag">Manual review</span></div>'+
- '<div class="split"><label class="field">Contact name<input id="chatContact" placeholder="First / full name"></label><label class="field">Company<input id="chatCompany" value="'+esc(state.company)+'" placeholder="EY, Davy…"></label></div>'+
- '<label class="field">Paste the whole LinkedIn conversation<textarea id="chatTranscript" placeholder="Copy the conversation from LinkedIn and paste it here. Keep the order of messages intact." style="min-height:135px"></textarea></label>'+
- '<label class="field">Or attach a screenshot<input id="chatScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
- '<div class="btnrow"><button class="btn primary small" id="saveConversation">＋ Save source to Drive</button><button class="btn soft small" id="copyGeneralFollowPrompt">▣ Copy Follow-up Prompt</button></div>'+
- '<p class="subtle">This saves source material to your candidate’s private Drive folder; the webpage does not run OCR or automatically message anyone. Screenshots up to 3 MB.</p></section>'+
- '<section class="card"><div class="section-head"><b>Saved conversation follow-ups</b><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
+function followupsResearch(){
+ return '<section class="card research-card"><div class="research-card-head"><div><span class="research-eyebrow">03 · Continue conversations</span><h2>Draft a follow-up</h2></div><span class="research-meta">Manual review</span></div>'+
+ '<div class="split research-two-col"><label class="field">Contact name<input id="chatContact" placeholder="Full name"></label><label class="field">Company<input id="chatCompany" value="'+esc(state.company)+'" placeholder="e.g. Davy"></label></div>'+
+ '<label class="field">LinkedIn conversation<textarea id="chatTranscript" rows="4" placeholder="Paste messages in chronological order."></textarea></label>'+
+ '<label class="field research-file-field">Or upload a chat screenshot<input id="chatScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
+ '<div class="research-toolbar"><button class="btn primary" id="saveConversation">＋ Save conversation</button><button class="btn soft" id="copyGeneralFollowPrompt">▣ Copy Follow-up Prompt</button></div>'+
+ '<div class="research-tip"><span>Save a private source, copy the GPT prompt, then review and manually send any reply. Screenshots: max 3 MB.</span></div></section>'+
+ '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Saved conversations</span><h2>Follow-up queue</h2></div><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
 }
-function inboxView(){return heading("Research")+researchTabs()+(state.researchMode==="targets"?targetResearch()+'<details class="card"><summary style="cursor:pointer;font-weight:750">Campaign planner · Consulting & Wealth</summary>'+legacyInboxView()+'</details>':state.researchMode==="followups"?followupsResearch():sourceInbox());}
-
+function inboxView(){
+ return '<div class="research-space">'+heading("Research")+
+ '<div class="research-progress" aria-label="Workflow overview"><span>Discover</span><span aria-hidden="true">→</span><span>Save sources</span><span aria-hidden="true">→</span><span>Review & connect</span></div>'+
+ researchTabs()+
+ (state.researchMode==="targets"?targetResearch()+
+ '<details class="research-campaign"><summary>Consulting & Wealth campaign planner <span>▾</span></summary>'+legacyInboxView()+'</details>':
+ state.researchMode==="followups"?followupsResearch():sourceInbox())+
+ '</div>';
+}
 function openTemplateEditor(dept){
  state.templateDepartment=dept||state.department||state.templateDepartment||"Deals";
  const sel=document.getElementById("templateDepartment");
