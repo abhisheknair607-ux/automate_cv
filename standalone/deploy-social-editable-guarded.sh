@@ -10,7 +10,7 @@ JOBS=automate-cv-dashboard
 for bin in git gcloud python3 curl; do command -v "$bin" >/dev/null || { echo "SAFE STOP: missing $bin"; exit 2; }; done
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo 'SAFE STOP: source checkout has uncommitted changes'; exit 2; }
-grep -q 'function combinedResearch()' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: merged Research UI missing'; exit 2; }
+grep -q 'function savedTargetRows(query)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: merged Research UI missing'; exit 2; }
 SHA="$(git -C "$ROOT" rev-parse HEAD)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -97,7 +97,7 @@ assert x.get('credentialsConfigured') is True,'SAFE STOP: Social auth credential
 print('EDITABLE_CANARY_HEALTH_OK')
 PY
 curl -fsS --max-time 25 "$PREVIEW_URL/social" >"$TMP/social.html"
-grep -q 'function combinedResearch()' "$TMP/social.html" || { echo 'SAFE STOP: combined Research UI missing from preview'; exit 5; }
+grep -q 'function savedTargetRows(query)' "$TMP/social.html" || { echo 'SAFE STOP: combined Research UI missing from preview'; exit 5; }
 curl -fsS --max-time 25 "$PREVIEW_URL/social/bridge.js" >/dev/null
 for route in / /api/listJobs /api/download; do
   [[ "$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "$PREVIEW_URL$route")" == 404 ]] || { echo "SAFE STOP: unexpected Jobs route $route"; exit 5; }
@@ -105,7 +105,7 @@ done
 [[ "$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"candidate":"Abhishek"}' "$PREVIEW_URL/api/social/data")" == 401 ]] || { echo 'SAFE STOP: unauthorised API was not blocked'; exit 5; }
 echo "EDITABLE_PREVIEW_VERIFIED: $PREVIEW_URL/social"
 if [[ "${GARAMAAL_SOCIAL_EDIT_PROMOTE:-}" != "YES_AFTER_CANARY_CHECK" ]]; then
-  echo 'SOCIAL_PRODUCTION_UNCHANGED: set GARAMAAL_SOCIAL_EDIT_PROMOTE=YES_AFTER_CANARY_CHECK to promote on a clean rerun'
+  echo 'SOCIAL_PRODUCTION_UNCHANGED: to promote the canary, rerun the guarded release with both confirmation flags set'
   exit 0
 fi
 gcloud run services update-traffic "$SOCIAL" --project="$PROJECT" --region="$REGION" --to-revisions="$PREVIEW_REV=100" --quiet
