@@ -135,7 +135,8 @@ test("Initial research screenshot uploader is visible in Research Sources, separ
  assert.match(sources,/id="initialScreenshot"/);
  assert.match(sources,/id="saveResearchImage"/);
  assert.match(sources,/id="inboxText"/);
- assert.match(sources,/GPT verification &amp; import prompt|Copy GPT verification/);
+ assert.match(sources,/id="copyResearch"/);
+ assert.match(sources,/Copy Research Prompt/);
  assert.doesNotMatch(sources,/id="chatScreenshot"/);
  h.run('state.researchMode="followups";render()');
  const followups=h.getNode("app").innerHTML;
