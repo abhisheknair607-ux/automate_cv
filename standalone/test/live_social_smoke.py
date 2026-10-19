@@ -92,6 +92,7 @@ try:
     assert_case("Firebase Jobs homepage HTTP", status, 200)
     if status == 200:
         print("INFO Jobs root sha256=", hashlib.sha256(home).hexdigest())
+        print("INFO LIVE_JOBS_SOCIAL_LINK_PRESENT=", 'href="/social"' in home.decode("utf-8", errors="replace"))
 except Exception as err:
     failures.append(str(err))
     print("ERROR", type(err).__name__, str(err))
