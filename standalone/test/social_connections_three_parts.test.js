@@ -37,7 +37,8 @@ test("Swipe renders structured fields and leaves legacy one-paragraph K intact",
  const base='{name:"Angela Example",company:"BDO",title:"Director",message:"Hello Angela, historical unstructured message.",relation:{status:"identified",department:"Deals"}}';
  run("state.items=["+base+"];");
  assert.equal(run("invitationPreview(state.items[0]).kind"),"legacy");
- assert.match(run("invitationPreview(state.items[0]).text"),/Hi Angela, CURRENT MASTER/);\n assert.doesNotMatch(run("invitationPreview(state.items[0]).text"),/historical unstructured/);
+ assert.match(run("invitationPreview(state.items[0]).text"),/Hi Angela, CURRENT MASTER/);
+ assert.doesNotMatch(run("invitationPreview(state.items[0]).text"),/historical unstructured/);
  run("state.items[0].introduction='OLD MASTER';state.items[0].personalisedMiddle='Verified leadership detail';state.items[0].closing='OLD CLOSE'");
  const structured=run("invitationPreview(state.items[0])");
  assert.equal(structured.kind,"structured");
