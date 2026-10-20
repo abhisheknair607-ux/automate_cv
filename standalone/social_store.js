@@ -148,18 +148,18 @@ async function importContacts({token,driveAccess,id,candidate,items,confirm,sour
   const nk=norm(company)+"|"+norm(name);if(keys.has(key)||names.has(nk))continue;keys.add(key);names.add(nk);
   const evidence=clean(p.evidence||"User-submitted contact; role and LinkedIn identity not independently verified",400);
   const direct=profile&&p.profileVerified===true?profile:"";
-  const legacyMessage=clean(p.message||"",300);
   const dept=clean(p.department||"",100);
-  const explicitParts=[p.introduction,p.personalisedMiddle,p.middle,p.closing].some(v=>String(v||"").trim());
-  const isLegacy=!!legacyMessage&&!explicitParts;
-  // Existing paragraph messages remain intact; their missing parts cannot be safely inferred.
+  const requestedMiddle=String(p.personalisedMiddle||p.middle||"").trim();
+  // Never interpret a legacy combined paragraph as a verified middle line.
+  if(p.message&&!p.introduction&&!p.personalisedMiddle&&!p.middle&&!p.closing)
+   throw bad("Supply the verified GPT middle in its separate field, not a combined K message. No contact imported.",400);
   const template=templateMap.get(norm(dept))||templateMap.get("general")||defaultTemplate(candidate,dept||"General");
-  const rawIntro=explicitParts&&p.introduction?String(p.introduction):fillTemplate(template.introduction,{name,company,department:dept});
-  const rawMiddle=String(p.personalisedMiddle||p.middle||"");
-  const rawClosing=explicitParts&&p.closing?String(p.closing):fillTemplate(template.closing,{name,company,department:dept});
-  const intro=isLegacy?"":clean(rawIntro,300),middle=isLegacy?"":clean(rawMiddle,300),closing=isLegacy?"":clean(rawClosing,300);
-  const message=isLegacy?legacyMessage:clean(composeInvitation(intro,middle,closing),300);
-  if(!isLegacy&&message.length>300)throw bad("Three-part invitation exceeds 300 characters; revise before import.",400);
+  const intro=clean(p.introduction||fillTemplate(template.introduction,{name,company,department:dept}),300);
+  const middle=clean(requestedMiddle,300);
+  const closing=clean(p.closing||fillTemplate(template.closing,{name,company,department:dept}),300);
+  const complete=composeInvitation(intro,middle,closing);
+  if(complete.length>300)throw bad("Three-part invitation exceeds 300 characters; revise before import.",400);
+  const message=clean(complete,300);
   rows.push([company,name,direct,searchLink(c),"Networking",fullName(candidate),"","",title,evidence,message,now,intro,middle,closing]);
   added.push({name,company,key});
   tracked.push([fullName(candidate),key,"identified","","","","",clean(p.department||"",100),clean(p.city||"Dublin",80),clean(p.contactType||"Employee",45),now]);
