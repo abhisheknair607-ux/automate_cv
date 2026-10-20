@@ -20,7 +20,7 @@ test("Connection reads include three structured values; imports require installe
  assert.match(src,/row\[12\]===c\.introduction/);
  assert.match(src,/row\[13\]===c\.personalisedMiddle/);
  assert.match(src,/row\[14\]===c\.closing/);
- assert.match(src,/const isLegacy=!!legacyMessage&&!explicitParts/);
+ assert.match(src,/Supply the verified GPT middle in its separate field/);
  assert.match(src,/intro=isLegacy\?"":/);
 });
 test("Swipe renders structured fields and leaves legacy one-paragraph K intact",()=>{
