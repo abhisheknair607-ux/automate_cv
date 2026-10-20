@@ -1,0 +1,1361 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#132a49"><title>Garamaal · Social Networking</title>
+<style>
+:root{--navy:#132a49;--blue:#2563eb;--line:#dce4ef;--muted:#728096;--text:#192b40;--bg:#f5f7fb;--lavender:#7a4eea}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;font-size:14px;color:var(--text);background:var(--bg)}
+button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{opacity:.5;cursor:default}
+a{color:#1f5bc9;text-decoration:none}a:hover{text-decoration:underline}
+header{position:sticky;top:0;z-index:10;background:white;border-bottom:1px solid var(--line);padding:12px max(14px,calc((100vw - 1080px)/2));display:flex;align-items:center;justify-content:space-between;gap:8px}
+.row{display:flex;align-items:center;gap:8px}.tight{gap:4px}.pill,.mini{border:1px solid #dde6f1;border-radius:12px;background:#eff3f9;color:#445877;padding:8px 10px;font-size:12px;font-weight:750}
+.pill.active,.mini.active{background:#fff;color:#1754a8;box-shadow:0 1px 6px #1a3f6420}
+.pair{display:flex;border-radius:13px;background:#edf2fa;gap:2px;padding:4px}.pair button{border:0;background:transparent;border-radius:9px;padding:8px 11px;font-size:13px;font-weight:750;color:#68778d}.pair button.active{background:#fff;color:#254776;box-shadow:0 2px 5px #1a3f6420}
+.logo{font-weight:850;color:#1a426e}.preview{font-size:10px;border-radius:7px;padding:5px;background:#fff5d9;color:#795f20}
+main{max-width:1080px;padding:16px 16px 96px;margin:auto}.heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px}.heading h1{font-size:20px;letter-spacing:-.55px;margin:0}.muted{color:var(--muted)}.small{font-size:11px}
+.card{border-radius:17px;border:1px solid var(--line);background:#fff;box-shadow:0 5px 18px #2946670a;padding:15px;margin-bottom:12px}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:12px}
+.stat{padding:14px;border:1px solid var(--line);border-radius:15px;background:#fff}.stat label{display:block;color:var(--muted);font-size:12px;font-weight:650}.stat strong{font-size:26px;letter-spacing:-.5px}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}.section-head b{font-size:14px}
+.btn{background:white;border:1px solid var(--line);border-radius:11px;padding:10px 13px;color:#23405d;font-weight:740}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:white}.btn.soft{background:#eaf2ff;color:#2158aa;border-color:#d4e3fc}.btn.good{background:#eaf8f0;color:#157347;border-color:#cce9d7}
+.btn.small{padding:7px 10px;font-size:11px}.btnrow{display:flex;gap:7px;flex-wrap:wrap}.chip{padding:7px 10px;background:#f4f6fa;border:1px solid #dde6ef;border-radius:20px;font-size:11px;font-weight:720}.chip.selected{background:#e5f0ff;color:#205bb2;border-color:#a7c7f7}
+input,textarea,select{background:#fff;border:1px solid #d5dfeb;border-radius:12px;padding:10px 12px;width:100%;color:var(--text);min-width:0}input:focus,textarea:focus,select:focus{outline:2px solid #bed7ff}textarea{resize:vertical;min-height:80px}label{font-weight:650}
+.search{display:flex;gap:7px;margin-bottom:10px}.search input{background:#f7f9fc;flex:1}
+.split{display:grid;grid-template-columns:1fr 1fr;gap:12px}.compact-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}.field{display:grid;gap:5px;margin-bottom:10px}
+.hidden{display:none!important}.count{border-radius:20px;background:#e9f0fc;padding:3px 7px;color:#2b5a95;font-size:10px}
+.person{padding:10px 0;border-bottom:1px solid #edf1f5;display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.person:last-child{border:0}.person strong{display:block;font-size:13px}.person small{display:block;color:var(--muted);font-size:11px}
+.tag{border-radius:20px;background:#f1f4f8;color:#526579;font-size:10px;font-weight:740;padding:5px 8px;white-space:nowrap}.tag.accepted,.tag.replied{background:#e3f5eb;color:#13754c}.tag.sent{background:#e7efff;color:#285caf}.tag.later{background:#fff5df;color:#8d6a1d}
+.swipe-card{min-height:min(58vh,530px);display:flex;flex-direction:column;padding:21px;border:1px solid #c8d9ef;border-radius:22px;background:linear-gradient(140deg,#fff,#f3f7ff);box-shadow:0 12px 32px #243d6616;touch-action:pan-y}
+.swipe-card h2{font-size:24px;margin:10px 0 2px}.swipe-card p{margin:3px 0}.spacer{flex:1}.note{background:#fff;border:1px solid #e3eaf5;border-radius:12px;padding:12px;white-space:pre-line;line-height:1.5;margin:12px 0}
+.swipe-actions{display:grid;grid-template-columns:1fr 1.15fr 1fr;gap:8px}.swipe-actions .btn{padding:13px 5px}
+.filter-panel{background:#fff;border:1px solid #dce7f5;border-radius:13px;padding:11px;margin:8px 0}
+.preview-note{color:#8b6425;background:#fff8e5;padding:9px 12px;border-radius:10px;font-size:11px;margin-bottom:12px}
+.bottom{display:flex;position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #e1e8f3;z-index:9;justify-content:space-around;padding:9px 3px max(10px,env(safe-area-inset-bottom));box-shadow:0 -4px 18px #182c4410}
+.bottom button{background:none;border:0;color:#78849a;font-size:10px;font-weight:720;min-width:21%;padding:2px 0}.bottom button.active{color:#2664b8}.bottom .sym{display:block;font-size:21px;margin-bottom:4px}
+.topview{display:none}.topview button{border:none;color:#a9c6df;background:transparent;padding:10px 12px;border-radius:9px;font-weight:700}.topview button.active{color:white;background:#314a69}
+aside{display:none}.subtle{color:#6d7d90;font-size:11px;margin:4px 0 10px}.empty{text-align:center;padding:24px 8px;color:#77869d}
+.inline{display:flex;gap:7px;align-items:center}.inline label{min-width:76px}.max{width:100%}.source{overflow-wrap:anywhere}
+#toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);z-index:99;background:#142a43;color:white;padding:10px 18px;border-radius:12px;max-width:90%;display:none;box-shadow:0 9px 30px #22384933;font-size:12px}
+dialog{border:1px solid #dce4f0;border-radius:20px;width:min(520px,95vw);padding:20px;box-shadow:0 20px 70px #092a4950}dialog::backdrop{background:#091e3599}
+@media(max-width:700px){.logo{display:none}.stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}.stat{padding:10px 12px}.stat strong{font-size:23px}.split{grid-template-columns:1fr}.grid3{grid-template-columns:1fr}.card{padding:13px;margin-bottom:9px}main{padding:12px 12px 91px}.heading{margin-bottom:9px}.heading h1{font-size:18px}.swipe-card{min-height:65vh}.small-mobile{font-size:11px}}
+@media(min-width:900px){.bottom{display:none}.topview{display:flex;background:var(--navy);padding:6px max(14px,calc((100vw - 1080px)/2));gap:8px}main{padding-bottom:35px}.swipe-card{max-width:610px;margin:0 auto}}
+
+/* Compact Social dashboard and staged, manually reviewed outreach research */
+body{background:#f5f7fb}
+.heading{margin-bottom:8px}.heading h1{font-size:18px}
+.stats{gap:7px;margin-bottom:9px}
+.stat{padding:9px 12px;border-radius:13px;min-height:68px}
+.stat label{font-size:11px}.stat strong{font-size:23px}
+.org-compact .section-head{margin-bottom:7px}
+.org-summary{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.org-summary .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.org-options{margin-top:8px;max-height:190px;overflow-y:auto;border-top:1px solid #edf1f6;padding-top:8px}
+.org-options .btnrow{margin-top:6px}
+.org-compact{padding-bottom:12px}
+.dashboard-search .section-head{margin-bottom:6px}
+.dashboard-search .person{padding:7px 0}
+.campaign-current{border:1px solid #bfd5f7;border-radius:14px;background:#f1f6ff;padding:12px}
+.campaign-current strong{font-size:17px}
+.campaign-headline{font-size:11px;color:#607695;font-weight:750;text-transform:uppercase;letter-spacing:.04em}
+.campaign-tools{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.campaign-steps{margin-top:9px;max-height:220px;overflow-y:auto}
+.campaign-step{display:flex;align-items:center;justify-content:space-between;gap:7px;width:100%;border:0;border-bottom:1px solid #edf1f7;background:white;text-align:left;padding:9px 7px;color:#23405d;font-size:12px}
+.campaign-step.active{background:#eaf2ff;color:#1c58af;font-weight:760;border-radius:9px}
+.research-compact .section-head{margin-bottom:8px}
+@media(max-width:700px){
+ header{padding:8px 10px}.pill,.mini{padding:7px 8px}.pair{padding:3px}.pair button{padding:7px 9px}
+ main{padding:10px 12px 85px}.stats{gap:6px}.stat{padding:8px 11px;min-height:65px}
+ .stat label{font-size:10px}.stat strong{font-size:22px}.card{margin-bottom:8px;padding:11px}
+ .org-options{max-height:160px}.swipe-card{min-height:67vh}
+}
+.research-tabs{display:flex;gap:6px;margin-bottom:12px}.research-tabs button{flex:1;min-width:0;padding:10px 5px;font-size:11px}.research-tabs .active{background:#e4efff;border-color:#a9caf7;color:#1656a9}
+.research-form{display:grid;grid-template-columns:1fr 1fr 115px;gap:8px}.search-target{display:flex;flex-direction:column;gap:6px;border-bottom:1px solid #edf1f5;padding:10px 0}.search-target:last-child{border:0}.text-preview{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}.full{width:100%}.counter{font-size:11px;color:var(--muted)}.upload-label{display:flex;align-items:center;gap:8px;border:1px dashed #b3c5dd;padding:12px;border-radius:11px;background:#f8fbff;color:#516c90}.limit{max-width:100%;overflow-wrap:anywhere}
+@media(max-width:700px){.research-form{grid-template-columns:1fr 1fr}.research-form .city{grid-column:span 2}.research-tabs button{font-size:10px}}
+
+/* Research workspace — refined compact layout, scoped to Research only. */
+.research-space{--r-ink:#193555;--r-border:#dbe5f1;--r-sub:#61758e}
+.research-space .heading{margin-bottom:8px}
+.research-space .heading h1{font-size:19px;font-weight:800;letter-spacing:-.6px}
+.research-progress{display:flex;align-items:center;gap:8px;color:#687b90;font-size:10px;font-weight:700;margin:0 0 10px;letter-spacing:.01em}
+.research-progress span:nth-child(even){color:#a1b1c3}
+.research-space .research-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px;border:1px solid #dfe8f3;border-radius:13px;padding:4px;background:#eaf0f7;margin-bottom:11px}
+.research-space .research-tab{display:flex;justify-content:center;align-items:center;gap:6px;min-width:0;min-height:41px;border:1px solid transparent;background:transparent;border-radius:10px;padding:8px 5px;color:#5d6f85;font-size:11px;font-weight:750;line-height:1.2}
+.research-space .research-tab:hover{background:#ffffffa6}
+.research-source-context{margin:-3px 0 8px!important}
+.research-space .research-saved{margin:8px 0 10px}
+.research-space .research-saved>.research-expand-body{padding:0 7px 6px}
+.research-space .research-saved>.research-expand-body>.research-card{margin:0;border:0;box-shadow:none;padding:8px 2px}
+.research-space .research-source-context strong{color:#254d79}
+.research-space .research-tab.active{background:white;border-color:#d8e3f2;box-shadow:0 2px 7px #263c5d12;color:#1f5cb2}
+.research-tab-number{color:#94a8bc;font-size:9px;letter-spacing:.03em;font-weight:800}
+.research-tab.active .research-tab-number{color:#4980c9}
+.research-card{padding:15px 16px;margin-bottom:10px;border-radius:15px;box-shadow:0 3px 14px #15395d08}
+.research-card-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:12px}
+.research-card-head h2{font-size:15px;color:var(--r-ink);font-weight:800;margin:2px 0 0;letter-spacing:-.25px}
+.research-eyebrow{color:#6b89a9;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.research-meta{white-space:nowrap;background:#edf4ff;color:#3767a1;padding:5px 9px;border-radius:15px;font-size:10px;font-weight:750}
+.research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(80px,.66fr);gap:9px;margin-bottom:6px}
+.research-space .field{font-size:11px;color:#526983;font-weight:750;gap:5px;margin-bottom:9px}
+.research-space input,.research-space textarea{border-color:#dbe4ef;background:#fbfcfe;border-radius:10px;min-height:39px;padding:9px 11px;font-size:12px;font-weight:500;line-height:1.35}
+.research-space input:focus,.research-space textarea:focus{background:white}
+.research-space input[type=file]{padding:7px;font-size:11px;color:#536a86;max-width:100%}
+.research-space textarea{min-height:76px}
+.research-space .research-action-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px;margin-top:6px}
+.research-space .research-action-grid .btn,.research-space .research-toolbar .btn{min-height:39px;padding:9px 10px;font-size:11px;line-height:1.25;border-radius:10px}
+.research-space .research-action-grid .btn{white-space:normal}
+.research-searchline{display:flex;justify-content:space-between;align-items:center;gap:9px;margin-top:10px;color:var(--r-sub);font-size:10px;min-width:0}
+.research-searchline span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.research-searchline b{color:#3e5878;font-weight:700}
+.research-link{border:0;background:transparent;color:#2761ae;font-size:10px;white-space:nowrap;font-weight:750;padding:5px 0}
+.research-saved .research-card-head{margin-bottom:6px}
+.research-target-list{display:flex;flex-direction:column}
+.research-target-row{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;padding:9px 0;border-bottom:1px solid #ecf0f5}
+.research-target-row:last-child{border-bottom:0}
+.research-target-info{min-width:0;flex:1}
+.research-target-info strong{display:block;color:#203b5d;font-weight:750;font-size:12px;white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.research-target-info small{display:block;color:#75879a;font-size:10px;margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.research-target-actions{display:flex;align-items:center;gap:5px;flex-shrink:0}
+.research-target-actions .btn,.research-target-row>.btn{font-size:10px;padding:7px 9px}
+.research-icon-button{display:inline-flex;align-items:center;justify-content:center;min-width:32px;min-height:32px;background:#f1f5fa;border:1px solid #e1e9f3;border-radius:9px;color:#54718f;font-size:13px}
+.research-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:4px;padding:22px 8px;color:#718399;font-size:11px}
+.research-empty strong{color:#47617b;font-size:12px}
+.research-toolbar{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.research-upload{display:flex;align-items:end;gap:9px;margin:3px 0 9px}
+.research-upload .research-file-field{flex:1;min-width:0;margin-bottom:0}
+.research-file-field small{font-size:10px;color:#7b8ea3;font-weight:500}
+.research-upload .btn{margin-bottom:0;min-height:39px;white-space:nowrap;font-size:11px}
+.research-expand{margin:7px 0 0;border:1px solid var(--r-border);border-radius:11px;overflow:hidden;background:#f8fafd}
+.research-expand>summary,.research-campaign>summary{display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;padding:11px 12px;font-size:11px;color:#426387;font-weight:750;list-style:none}
+.research-expand>summary::-webkit-details-marker,.research-campaign>summary::-webkit-details-marker{display:none}
+.research-expand-body{border-top:1px solid #e6edf4;padding:11px 12px}
+.research-expand-body .btn{font-size:11px}
+.research-tip{display:flex;align-items:start;gap:7px;border-top:1px solid #e9eef5;margin-top:12px;padding-top:10px;color:#73869b;font-size:10px;line-height:1.5}
+.research-tip strong{white-space:nowrap;color:#4b6f9e}
+.research-footer{display:flex;justify-content:flex-end;border-top:1px solid #eef2f7;padding-top:10px;margin-top:4px}
+.research-card-utility{display:flex;align-items:center;gap:7px}
+.research-campaign{margin:2px 0 12px;border:1px solid var(--r-border);border-radius:12px;background:#fff;overflow:hidden}
+.research-campaign>summary{padding:11px 14px}
+.research-campaign[open]>summary{border-bottom:1px solid var(--r-border)}
+.research-campaign>.card{border:0;box-shadow:none;margin:0}
+.research-space .search-target{padding:9px 0;gap:5px}
+.research-space .search-target .note{margin:6px 0;padding:9px}
+@media(max-width:700px){
+ .research-space .heading{margin-bottom:7px}
+ .research-space .research-card{padding:12px;margin-bottom:8px}
+ .research-space .research-card-head{margin-bottom:9px}
+ .research-space .research-tab{font-size:10px;min-height:40px;gap:4px;padding:6px 3px}
+ .research-space .research-tab-number{font-size:9px}
+ .research-space .research-form{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .research-space .research-form .city{grid-column:span 2}
+ .research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .research-space .research-action-grid .btn{min-height:40px}
+ .research-space .research-upload{flex-direction:column;align-items:stretch;gap:7px}
+ .research-space .research-toolbar{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}
+ .research-space .research-toolbar .btn{min-width:0}
+ .research-space .research-target-actions{gap:4px}
+ .research-space .research-target-actions .btn{padding:7px 8px}
+ .research-progress{font-size:9px}
+}
+@media(max-width:370px){
+ .research-space .research-tab{font-size:9px}
+ .research-tab-number{display:none}
+ .research-space .research-action-grid .btn{font-size:10px}
+ .research-progress{gap:5px}
+}
+
+
+/* Research: one compact page with targets first and upload actions immediately below. */
+.research-space .research-tabs{grid-template-columns:repeat(2,minmax(0,1fr))}
+.research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));max-width:470px}
+.research-targets{padding-bottom:12px}
+.research-targets-heading{display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#496784;font-weight:750;margin:11px 0 5px}
+.research-targets-heading small{font-size:10px;color:#8190a3;font-weight:500}
+.research-target-scroll{max-height:142px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;border:1px solid #e4ecf5;border-radius:10px;background:#fbfcfe}
+.research-target-mini{min-height:38px;padding:5px 8px}
+.research-target-select{background:transparent;border:0;min-width:0;flex:1;display:flex;align-items:center;gap:8px;text-align:left;padding:4px 2px;color:#254263}
+.research-target-select strong{font-size:11px;max-width:32%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.research-target-select small{font-size:10px;color:#708399;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.research-target-select:hover{color:#2563eb}
+.research-target-open{font-size:10px;font-weight:750;border:1px solid #dce7f6;background:#f0f6ff;border-radius:8px;white-space:nowrap;padding:6px 8px}
+.research-target-none{padding:12px}
+.research-source-context{font-size:11px;color:#72839a;margin:-3px 0 10px;line-height:1.5}
+.research-source-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.research-source-option{display:flex;flex-direction:column;gap:8px;min-width:0;background:#f8fafd;border:1px solid #e5edf6;border-radius:12px;padding:11px}
+.research-source-option>b{font-size:12px;color:#254869}
+.research-source-option .field{margin-bottom:0}
+.research-source-option .research-expand{margin:0}
+.research-source-option>.btn{align-self:flex-start;margin-top:auto}
+@media(max-width:700px){.research-source-grid{grid-template-columns:1fr}.research-source-option>.btn{width:100%}.research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Research-only strict selection, map-style location trigger, upload feedback */
+.research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;align-items:end;gap:8px}
+.research-select-row{display:flex;align-items:center;gap:5px;min-width:0}
+.research-select-row select{flex:1;min-width:0;min-height:39px;border:1px solid #dbe4ef;background:#fbfcfe;border-radius:10px;padding:9px 6px;font-size:12px;color:#193555}
+.research-select-add{width:35px;min-width:35px;height:39px;padding:0;border-radius:10px;background:#edf4ff;border:1px solid #cedff7;color:#2760b2;font-size:19px;font-weight:700}
+.research-location{display:flex;align-items:center;justify-content:center;width:44px;height:39px;background:#edf4ff;color:#2563eb;border:1px solid #cbdbf2;border-radius:11px}
+.research-location svg{width:21px;height:21px}
+.research-location:hover,.research-select-add:hover{background:#deebff}
+.research-form .research-location-field{margin-bottom:9px}
+.research-location-field>span{display:block;font-size:11px;margin-bottom:5px}
+.research-upload-progress{margin:6px 0 0;font-size:11px;color:#536d89;line-height:1.6}
+.research-upload-progress div{overflow-wrap:anywhere}
+.research-upload-ok{color:#14754a}.research-upload-fail{color:#9a4343}
+.research-upload-progress .btn{font-size:11px;margin-top:5px}
+.research-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media(max-width:700px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:6px}
+ .research-space .research-form .city{grid-column:auto}
+ .research-select-add{min-width:31px;width:31px}
+ .research-space .research-form .field{min-width:0}
+ .research-select-row select{font-size:11px;padding:8px 3px}
+}
+
+/* Social Research layout: equal target fields, full-width actions, bounded lists. */
+.research-space .research-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px;gap:12px;align-items:end}
+.research-space .research-form>.field{min-width:0;margin-bottom:0}
+.research-select-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:7px}
+.research-select-row select{width:100%;height:43px;min-height:43px;padding:10px}
+.research-select-add{width:40px;min-width:40px;height:43px}
+.research-location{height:43px;width:48px}
+.research-form .research-location-field{margin-bottom:0}
+.research-space .research-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;width:100%;gap:12px;margin-top:13px}
+.research-space .research-action-grid .btn{width:100%;display:flex;align-items:center;justify-content:center;min-height:43px}
+.research-target-dropdown{margin-top:13px}
+.research-target-dropdown>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:10px 12px;border-radius:10px;border:1px solid #e2eaf5;background:#f7faff;font-size:12px;font-weight:750;color:#385c86}
+.research-target-dropdown>summary::-webkit-details-marker{display:none}
+.research-target-dropdown>summary .count{margin-left:4px}
+.research-dropdown-hint{font-size:10px;font-weight:550;color:#73859c;text-align:right}
+.research-target-dropdown[open]>summary{border-radius:10px 10px 0 0;border-bottom:0}
+.research-target-dropdown .research-target-scroll{border-radius:0 0 10px 10px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
+.research-target-dropdown .research-target-mini{min-height:48px}
+.research-queue-scroll{max-height:280px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable;border:1px solid #e4ecf5;border-radius:10px;padding:0 9px;background:#fbfcfe}
+.research-queue-scroll .research-target-row{min-height:56px}
+.research-queue-scroll:focus-visible,.research-target-dropdown .research-target-scroll:focus-visible{outline:2px solid #7dabf7;outline-offset:2px}
+@media(max-width:700px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 43px;gap:7px}
+ .research-space .research-form .city{grid-column:auto}
+ .research-select-row{grid-template-columns:minmax(0,1fr) 31px;gap:4px}
+ .research-select-add{width:31px;min-width:31px;height:41px}
+ .research-select-row select{height:41px;min-height:41px;font-size:11px;padding:7px 5px}
+ .research-location{width:43px;height:41px}
+ .research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .research-space .research-action-grid .btn{min-height:41px}
+ .research-dropdown-hint{font-size:9px}
+}
+@media(max-width:390px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) 43px}
+ .research-space .research-form>.field:first-child{grid-column:1;grid-row:1}
+ .research-space .research-form>.field:nth-child(2){grid-column:1;grid-row:2}
+ .research-space .research-form>.research-location-field{grid-column:2;grid-row:2}
+}
+
+/* Social-only Swipe card: compact, consistently aligned controls and invitation feedback. */
+.swipe-card{min-height:0;height:auto;width:100%;max-width:610px;margin:0 auto;gap:12px;padding:16px;border-radius:18px;background:linear-gradient(145deg,#fff 15%,#f5f8fe);box-shadow:0 8px 24px #243d6611}
+.swipe-card .spacer{display:none;flex:0}
+.swipe-card .swipe-contact{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-bottom:1px solid #e8edf5;padding-bottom:12px;min-width:0}
+.swipe-card .swipe-contact h2{font-size:22px;margin:8px 0 2px;line-height:1.2;overflow-wrap:anywhere}
+.swipe-card .swipe-contact p{margin:0;line-height:1.4}
+.swipe-card .swipe-message{min-width:0}
+.swipe-card .swipe-message-title{font-size:11px;color:#61748e;font-weight:750;margin:0 0 6px}
+.swipe-card .swipe-message .note{margin:0;padding:12px 13px;min-height:82px;background:#fff;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.48;border-radius:12px}
+.swipe-card .swipe-message-footer{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:7px 1px 0}
+.swipe-card .swipe-message-status{color:#657990;font-size:10px;line-height:1.45;min-width:0;flex:1}
+.swipe-card .swipe-count{white-space:nowrap;font-size:11px;font-weight:750;font-variant-numeric:tabular-nums;color:#36678e}
+.swipe-card .swipe-count.over{color:#b42335}
+.swipe-card .swipe-limit-warning{font-size:11px;color:#a12e3b;margin-top:5px}
+.swipe-card .swipe-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.swipe-card .swipe-tool-grid>.btn{display:flex;align-items:center;justify-content:center;min-width:0;width:100%;padding:10px 6px;min-height:39px;white-space:normal;text-align:center}
+.swipe-card .swipe-sent-hint{color:#73839a;font-size:10px;margin:0}
+.swipe-card .swipe-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.swipe-card .swipe-actions>.btn{min-width:0;min-height:43px;padding:10px 5px;border-radius:11px}
+.swipe-progress{max-width:610px;margin:0 auto 8px}
+@media(max-width:700px){
+ .swipe-card{min-height:0;padding:13px;gap:10px;border-radius:16px}
+ .swipe-card .swipe-contact h2{font-size:20px}
+ .swipe-card .swipe-message .note{font-size:12px;min-height:76px}
+ .swipe-card .swipe-tool-grid{gap:6px}
+ .swipe-card .swipe-tool-grid>.btn{font-size:10px;padding:9px 4px}
+ .swipe-card .swipe-actions{gap:6px}
+ .swipe-card .swipe-actions>.btn{font-size:11px;padding:10px 3px}
+}
+
+/* Reusable legacy conversion entry, no changes to Jobs UI. */
+.swipe-legacy-review{display:block;width:100%;border:1px solid #c3d6ef;background:#eef5ff;color:#244d8a;padding:10px 12px;text-align:center;border-radius:11px}
+#legacyInvitationDialog .field textarea{white-space:pre-wrap;font-size:12px;line-height:1.6}
+#legacyInvitationDialog #legacyInvitationOriginal{background:#f1f4f9}
+
+/* Garamaal unified navigation design only: all pre-existing candidate and authentication handlers remain unchanged.
+   The existing bridge injects #cv-account-switch into .top-actions; CSS alone places it after $. */
+.garamaal-unified-header{min-height:58px;padding:9px max(14px,calc((100vw - 1080px)/2));background:#fff;border-bottom:1px solid #dce4ef}
+.garamaal-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;flex-wrap:nowrap}
+.garamaal-header-controls #candidatePair{order:1;flex:none;padding:3px;gap:2px;border:1px solid #e0e9f5;border-radius:11px}
+.garamaal-header-controls #candidatePair button{height:32px;min-width:31px;padding:6px 8px;font-size:12px;border-radius:8px}
+.garamaal-header-controls .garamaal-cost-symbol{order:2}
+.garamaal-header-controls #cv-account-switch{order:3;position:relative;flex:none;min-width:33px!important;width:33px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:0!important;border:1px solid #dce4ef!important;border-radius:10px!important;background:#f2f5fa!important;color:#285283!important}
+.garamaal-header-controls #cv-account-switch::before{content:"G";font-size:13px;line-height:1;font-weight:850}
+.garamaal-header-controls .garamaal-job-link{order:4}
+.garamaal-header-controls .garamaal-social-link{order:5}
+.garamaal-header-controls #socialModeBadge{order:6}
+.garamaal-header-controls .garamaal-cost-symbol,.garamaal-header-controls .pill{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 10px;font-size:12px;font-weight:800;white-space:nowrap;border-radius:10px;background:#f2f5fa;color:#34516f;border:1px solid #dce4ef;box-shadow:none}
+.garamaal-header-controls .garamaal-cost-symbol{width:33px;min-width:33px;padding:0}
+.garamaal-header-controls .pill.active{background:#e6efff;border-color:#b8cef6;color:#1d55a0}
+.garamaal-header-controls .garamaal-header-status{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:5px 8px;border-radius:999px;border:1px solid #d8e4d7;background:#eef8ef;color:#27714b;font-size:10px;font-weight:850;white-space:nowrap;letter-spacing:.01em}
+.garamaal-header-controls .garamaal-header-status::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;background:currentColor;border-radius:50%}
+.garamaal-header-controls .garamaal-header-status.garamaal-editing{background:#fff2cf!important;color:#94590c!important;border-color:#e4bf76!important;box-shadow:0 0 0 2px #f1d9a144}
+@media(max-width:700px){
+ .garamaal-unified-header{padding:7px 8px;min-height:52px;gap:0}
+ .garamaal-unified-header .logo{display:none}
+ .garamaal-header-controls{width:100%;justify-content:space-between;gap:4px}
+ .garamaal-header-controls #candidatePair{padding:2px}
+ .garamaal-header-controls #candidatePair button{height:29px;min-width:27px;padding:5px 6px;font-size:11px}
+ .garamaal-header-controls .pill{padding:0 7px;min-height:32px;font-size:11px}
+ .garamaal-header-controls .garamaal-cost-symbol{height:32px;min-height:32px;width:30px;min-width:30px}
+ .garamaal-header-controls #cv-account-switch{height:32px!important;width:30px!important;min-width:30px!important}
+ .garamaal-header-controls .garamaal-header-status{padding:4px 6px;font-size:9px;min-height:25px}
+}
+@media(max-width:365px){
+ .garamaal-header-controls{gap:2px}
+ .garamaal-header-controls .pill{padding:0 5px}
+ .garamaal-header-controls .garamaal-header-status{font-size:8px;padding:3px 5px}
+}
+
+/* Candidate-owned screenshot verification workspace. Independent of Jobs and Social read-only flows. */
+.bottom button{min-width:0;flex:1;padding:2px 1px;font-size:9px}
+.bottom .sym{font-size:20px}
+.research-stage-guide{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid #d7e4f5;border-radius:12px;background:#f1f6ff;font-size:11px;line-height:1.5;margin-bottom:12px}
+.verify-workspace{max-width:980px;margin:auto}
+.verify-workflow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 13px}
+.verify-workflow span{background:#e8f0fb;border:1px solid #d7e6f6;border-radius:9px;padding:9px 4px;text-align:center;font-size:10px;font-weight:750;color:#345b86}
+.verify-layout{display:grid;grid-template-columns:minmax(220px,.85fr) minmax(0,1.25fr);gap:10px;align-items:start}
+.verify-queue{max-height:68vh;overflow:auto;padding:9px}
+.verify-person{width:100%;text-align:left;background:#fff;border:1px solid #e1e8f2;border-radius:12px;padding:11px;margin-bottom:7px;color:#243b5b}
+.verify-person.selected{border-color:#76a6f2;background:#eff5ff}
+.verify-person strong,.verify-person small{display:block}
+.verify-person small{font-size:11px;color:#6b7f9a;margin-top:4px}
+.verify-status{display:inline-block;padding:3px 7px;border:1px solid #d6e0eb;border-radius:7px;font-size:10px;font-weight:750;background:#f5f7fa;color:#516478;margin-top:5px}
+.verify-form .field{margin-bottom:9px}
+.verify-form .field label{display:block;margin-bottom:5px;font-weight:750;font-size:12px}
+.verify-form input,.verify-form select,.verify-form textarea{width:100%;min-width:0}
+.verify-purposes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.verify-purpose{display:flex;gap:5px;align-items:center;padding:8px 7px;border:1px solid #dfe7f1;border-radius:9px;background:#f7faff;font-size:11px}
+.verify-purpose input{width:15px;min-width:15px;min-height:15px}
+.verify-actions{display:flex;gap:7px;flex-wrap:wrap;padding-top:9px}
+.verify-actions button{flex:1 1 125px}
+.verify-draft{border-top:1px solid #dfe7ef;padding-top:13px;margin-top:12px}
+.verify-help{font-size:11px;color:#697f99;line-height:1.6}
+.verify-error{color:#8d333c;background:#fff4f4;border:1px solid #f2ccd0;border-radius:9px;padding:9px;margin:6px 0}
+@media(max-width:700px){.verify-layout{grid-template-columns:1fr}.verify-queue{max-height:195px}.verify-workflow span{font-size:9px;padding:8px 3px}.research-stage-guide{flex-direction:column;align-items:flex-start}.verify-purposes{grid-template-columns:1fr 1fr}}
+</style></head>
+<body>
+<header class="garamaal-unified-header"><span class="logo">Garam Mal</span><div class="row tight top-actions garamaal-header-controls"><div class="pair" id="candidatePair" aria-label="Social candidate"><button id="candA" class="active" aria-label="Abhishek workspace" title="Abhishek">A</button><button id="candP" aria-label="Pooja workspace" title="Pooja">P</button></div><span class="mini garamaal-cost-symbol" title="Costs are available in Jobs">$</span><a class="pill garamaal-job-link" href="/" title="Open Jobs">Job</a><span class="pill active garamaal-social-link" aria-current="page">Social</span><span class="preview garamaal-header-status" id="socialModeBadge" role="status" aria-live="polite" title="Google Sheets connection status">READ ONLY</span></div></header>
+<div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
+<nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
+<dialog id="reviewStageDialog" aria-label="Stage extracted screenshot contact"><div class="section-head"><b>Stage a screenshot result</b><button type="button" class="btn small" id="reviewStageClose">✕</button></div>
+<p class="verify-help">This creates a Pending row only. No invitation will be prepared or sent until you verify it.</p>
+<label class="field">Name<input id="rstName" placeholder="Person's full name"></label>
+<label class="field">Company<input id="rstCompany" placeholder="Visible current company"></label>
+<label class="field">Department<input id="rstDepartment" placeholder="May be uncertain"></label>
+<label class="field">Designation<input id="rstDesignation" placeholder="Visible job title"></label>
+<label class="field">Location<input id="rstLocation" value="Dublin"></label>
+<label class="field">Profile URL (optional)<input id="rstProfile"></label>
+<label class="field">Source / screenshot ID / evidence<textarea id="rstEvidence" rows="2"></textarea></label>
+<label class="field">Uncertainty notes<textarea id="rstNotes" rows="2"></textarea></label>
+<div class="btnrow"><button type="button" class="btn primary" id="reviewStageSave">Save Pending row</button><button type="button" class="btn" id="reviewStageClose2">Cancel</button></div></dialog>
+<dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
+<p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional) | Verified GPT middle line (optional). Introduction and closing are stored separately in Connections M:O.</p>
+<textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
+<div class="field"><label>Research source file (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
+<label class="field" style="display:flex;flex-direction:row;align-items:flex-start;gap:9px;font-size:12px"><input id="importSourceComplete" type="checkbox" style="width:17px;min-width:17px;min-height:17px;margin-top:2px"><span>Entire source reviewed: all approved people have been imported or verified as already saved, with no unresolved entries. Only then rename this source from NEW_ to USED_.</span></label>
+<div class="btnrow"><button class="btn primary" id="importConfirm">Import to Freshmaal</button><button class="btn" id="importCancel">Cancel</button></div></dialog>
+<dialog id="templateDialog" aria-label="Edit department outreach template">
+ <div class="section-head"><b>✎ Department master template</b><button class="btn small" id="templateClose">✕</button></div>
+ <div class="subtle" id="templateCandidate">Candidate</div>
+ <label class="field">Department<select id="templateDepartment"></select></label>
+ <label class="field">1. Introduction<textarea id="templateIntro" rows="3" style="min-height:75px"></textarea></label>
+ <div class="field"><label>2. GPT personalised line</label><div class="note" style="border-style:dashed;color:var(--muted)">[Left blank in the master template — research prompt fills one verified detail for each person]</div></div>
+ <label class="field">3. Closing<textarea id="templateClosing" rows="2" style="min-height:60px"></textarea></label>
+ <div class="subtle">Use {{first_name}}, {{company}} or {{department}}. The three lines together must fit LinkedIn's 300-character invitation limit after GPT fills the middle.</div>
+ <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
+</dialog>
+
+<dialog id="legacyInvitationDialog" aria-label="Review an old invitation and save three separate components">
+ <div class="section-head"><b>Review old invitation</b><button class="btn small" id="legacyInvitationClose" type="button">✕</button></div>
+ <div class="subtle" id="legacyInvitationRecipient"></div>
+ <label class="field">Original saved invitation · Connections K (read-only)<textarea id="legacyInvitationOriginal" readonly rows="5"></textarea></label>
+ <label class="field">1. Current master introduction · will be stored in M<textarea id="legacyInvitationIntro" readonly rows="4"></textarea></label>
+ <label class="field">2. Verified personalised middle · will be stored in N<textarea id="legacyInvitationMiddle" rows="3" maxlength="260" placeholder="Paste only the verified, person-specific observation from your original message. Leave blank if not verified."></textarea></label>
+ <label class="field">3. Current master closing · will be stored in O<textarea id="legacyInvitationClosing" readonly rows="2"></textarea></label>
+ <div class="subtle">Preview preserves blank lines. The historical K message will not be changed. Check that the personalised middle is accurate before confirming.</div>
+ <div class="subtle" id="legacyInvitationLength" aria-live="polite"></div>
+ <div class="btnrow"><button class="btn primary" type="button" id="legacyInvitationSave">Save reviewed M:N:O</button><button class="btn" type="button" id="legacyInvitationCancel">Cancel</button></div>
+</dialog>
+<dialog id="personalisationDialog" aria-label="Edit a personalized outreach line via GPT">
+ <div class="section-head"><b>🗒️ Personalised line · GPT edit prompt</b><button type="button" class="btn small" id="personalisationClose" aria-label="Close">✕</button></div>
+ <div class="subtle" id="personalisationRecipient">Selected Swipe contact</div>
+ <label class="field">What would you like to change?<textarea id="personalisationInstructions" rows="4" maxlength="2400" placeholder="e.g. Make the middle line more natural and specific to this person's verified work; keep the rest unchanged."></textarea></label>
+ <p class="subtle">This copies a research-and-edit prompt. GPT must first verify the exact candidate's Connections row and obtain your approval before editing column K. No automatic edits or messages are sent.</p>
+ <div class="btnrow"><button class="btn primary" id="copyPersonalisationPrompt">▣ Copy GPT edit prompt</button><button class="btn" id="personalisationCancel">Cancel</button></div>
+</dialog>
+<dialog id="researchOptionDialog" aria-label="Add a company or department">
+ <div class="section-head"><b id="researchOptionTitle">Add option</b><button type="button" class="btn small" id="researchOptionClose" aria-label="Close">✕</button></div>
+ <label class="field"><span id="researchOptionLabel">Name</span><input id="researchOptionName" type="text" maxlength="120" autocomplete="off" placeholder="Type a new name"></label>
+ <div class="subtle">Saved in this candidate's Research dropdown only. No contacts will be imported.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchOptionCancel">Cancel</button><button type="button" class="btn primary" id="researchOptionSave">Add</button></div>
+</dialog>
+<dialog id="researchLocationDialog" aria-label="Choose research location">
+ <div class="section-head"><b>Research location</b><button type="button" class="btn small" id="researchLocationClose" aria-label="Close">✕</button></div>
+ <label class="field">City, region or country<input id="researchLocationValue" maxlength="100" placeholder="Dublin, Ireland or United Kingdom" autocomplete="off"></label>
+ <div class="subtle">Use any location name. It will become part of the LinkedIn People search.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchLocationCancel">Cancel</button><button type="button" class="btn primary" id="researchLocationSave">Use location</button></div>
+</dialog>
+<script src="/social/bridge.js"></script><script>
+"use strict";
+const firms={
+ consulting:["EY","PwC","Deloitte","KPMG","Grant Thornton","BDO","Forvis Mazars"],
+ wealth:["Davy","Goodbody","Cantor Fitzgerald Ireland","Unio Wealth Management","Irish Life","AIB Private Banking","Bank of Ireland Private Banking","RBC Brewin Dolphin","Mercer"]
+};
+const depts={
+ consulting:["Corporate Finance","Valuations","Transaction Services","Deals","Financial Due Diligence","Transfer Pricing","Tax Technology"],
+ wealth:["Wealth Management","Investment Specialist","Financial Planner","Investment Planner","Paraplanner","Financial Consultant","Financial Planning Consultant","Investment Advisor","QFA","CFP"]
+};
+const campaignFirms=["EY","Deloitte","KPMG","PwC","Grant Thornton","BDO","Forvis Mazars"];
+const campaignTeams=["Deals","Transaction Services","Valuations"];
+const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=>({company,department})));
+function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
+function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
+const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
+const state={view:"dashboard",candidate:initialCandidate,reviewItems:[],reviewSelected:"",reviewLoaded:false,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],catalogCompanies:[],catalogDepartments:[],photoResults:[],photoFailures:[],photoUploading:false,conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const dateNow=()=>new Date().toISOString().slice(0,10);
+const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
+async function request(p,data={}){return await window.__cvStandalone.requestSpecial("social/"+p,{candidate:state.candidate,...data})}
+// Social-only Google OAuth consent. The Jobs bridge is never changed.
+// Access tokens are ephemeral and are not persisted in browser storage.
+async function socialDriveToken(){
+ const owner="abhisheknair607@gmail.com";
+ const sdk=window.firebase;
+ const auth=sdk?.apps?.length?sdk.auth():null;
+ const user=auth?.currentUser;
+ if(!user||String(user.email||"").trim().toLowerCase()!==owner)
+  throw Error("Sign into Social as "+owner+" to upload to Research Drive.");
+ const provider=new sdk.auth.GoogleAuthProvider();
+ provider.addScope("https://www.googleapis.com/auth/drive");
+ provider.setCustomParameters({prompt:"consent select_account",login_hint:owner});
+ let result;
+ try{
+  // Compat Firebase's documented sign-in popup returns result.credential.
+  // Reauthentication can return a user without a reusable Google API token.
+  result=await auth.signInWithPopup(provider);
+ }catch(e){
+  const code=String(e?.code||"");
+  throw Error("Google Drive permission could not be completed"+(code?" ("+code+")":"")+". Try again.");
+ }
+ if(String(result?.user?.email||"").trim().toLowerCase()!==owner ||
+    auth.currentUser?.uid!==user.uid)
+  throw Error("Google account mismatch. Sign in with "+owner+" before uploading.");
+ const credential=result.credential||sdk.auth.GoogleAuthProvider.credentialFromResult(result);
+ const token=credential?.accessToken;
+ if(typeof token!=="string"||!token)
+  throw Error("Google sign-in completed without a Drive access token. Check OAuth consent permissions for "+owner+".");
+ // This token is passed only with the current Social upload; never persist it.
+ return token;
+}
+function norm(s){return String(s||"").toLowerCase()}
+function safeLinkedInSearch(raw){try{const u=new URL(String(raw||""));return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)?u.href:""}catch{return ""}}
+function orgGroup(company){return firms.wealth.some(f=>norm(f)===norm(company))?"wealth":"consulting"}
+function department(c){if(c.relation?.department)return c.relation.department;const t=norm(c.title);
+ for(const x of [...depts.consulting,...depts.wealth])if(t.includes(norm(x)))return x;
+ return "Uncategorised"}
+function contactKind(c){let t=norm(c.title);if(/recruit(ment|er)|head.?hunt|talent acquisition|sourc/.test(t))return /ey|pwc|kpmg|deloitte/.test(norm(c.company))?"In-house recruiter":"Recruiter";if(/partner|director|head of|manager/.test(t))return "Senior professional";return "Employee"}
+function suggestedTemplate(dept){
+ const d=dept||"General";
+ const intro=state.candidate==="Abhishek"
+  ?"Hi {{first_name}}, I'm an ACCA member with an MSc in Finance from UCD and I'm exploring "+d+" opportunities."
+  :"Hi {{first_name}}, I have a UCD master's background, CSP and QFA and I'm exploring "+d+" opportunities.";
+ return {department:d,introduction:intro,closing:"I'd appreciate connecting. Thank you."};
+}
+function deptTemplate(dept){return state.templates[dept]||state.templates["General"]||suggestedTemplate(dept)}
+function templateText(text,c){return String(text||"").replace(/{{(first_name|company|department)}}/g,(_,token)=>
+ token==="first_name"?String(c.name||"there").trim().split(/\s+/)[0]:
+ token==="company"?c.company||"":department(c))}
+function composeInvitationParts(intro,middle,closing){
+ const block=v=>String(v||"").replace(/\r\n?/g,"\n").replace(/^\n+|\n+$/g,"");
+ return [block(intro),block(middle),block(closing)].filter(Boolean).join("\n\n");
+}
+function draftIntroClosing(c){
+ const template=deptTemplate(department(c));
+ return composeInvitationParts(templateText(template.introduction,c),"",templateText(template.closing,c));
+}
+function invitationPreview(c){
+ const saved=String(c.message||"").replace(/\r\n?/g,"\n").trim();
+ const status=c.relation?.status||"identified";
+ if(status!=="identified"&&saved)return {text:saved,kind:"sent",note:"Previously contacted · saved invitation preserved"};
+ const template=deptTemplate(department(c));
+ const intro=templateText(template.introduction||c.introduction,c);
+ const closing=templateText(template.closing||c.closing,c);
+ if(c.introduction||c.personalisedMiddle||c.closing){
+  const text=composeInvitationParts(intro,c.personalisedMiddle,closing);
+  return {text,kind:"structured",note:"Current master introduction + verified Connections N + master closing · K preserved"};
+ }
+ if(saved)return {text:composeInvitationParts(intro,"",closing),kind:"legacy",note:"Master-template preview · existing personalised line needs review; original K preserved"};
+ return {text:composeInvitationParts(intro,"",closing),kind:"draft",note:"Master-template preview · GPT personalised middle line not yet available"};
+}
+let legacyReviewKey="";
+function legacyReviewContact(){
+ return state.items.find(c=>c.key===legacyReviewKey&&
+   (c.relation?.status||"identified")==="identified"&&
+   !c.introduction&&!c.personalisedMiddle&&!c.closing&&c.message);
+}
+function openLegacyInvitationReview(){
+ const c=swipeQueue()[state.swipeIndex];
+ if(!c||!c.message||c.introduction||c.personalisedMiddle||c.closing)
+  return alertUser("This contact no longer requires legacy conversion.");
+ legacyReviewKey=c.key;
+ const template=deptTemplate(department(c));
+ document.getElementById("legacyInvitationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections row "+c.sheetRow;
+ document.getElementById("legacyInvitationOriginal").value=c.message;
+ document.getElementById("legacyInvitationIntro").value=templateText(template.introduction,c);
+ document.getElementById("legacyInvitationMiddle").value="";
+ document.getElementById("legacyInvitationClosing").value=templateText(template.closing,c);
+ updateLegacyInvitationLength();
+ document.getElementById("legacyInvitationDialog").showModal();
+}
+function updateLegacyInvitationLength(){
+ const intro=document.getElementById("legacyInvitationIntro")?.value||"";
+ const middle=document.getElementById("legacyInvitationMiddle")?.value||"";
+ const closing=document.getElementById("legacyInvitationClosing")?.value||"";
+ const count=composeInvitationParts(intro,middle,closing).length;
+ const label=document.getElementById("legacyInvitationLength");
+ if(label)label.textContent=count+" / 300 characters"+(count>300?" · Please shorten the message before saving.":"");
+ const button=document.getElementById("legacyInvitationSave");
+ if(button)button.disabled=count>300;
+}
+async function saveLegacyInvitationReview(){
+ if(state.readOnly)return alertUser("Social is read-only.");
+ const c=legacyReviewContact();
+ if(!c)return alertUser("Contact changed or was already reviewed; refresh.");
+ const candidate=state.candidate;
+ const intro=document.getElementById("legacyInvitationIntro").value;
+ const middle=document.getElementById("legacyInvitationMiddle").value;
+ const closing=document.getElementById("legacyInvitationClosing").value;
+ if(composeInvitationParts(intro,middle,closing).length>300)return alertUser("Invitation exceeds 300 characters.");
+ if(!confirm("Save three verified invitation components in Connections M:O for "+c.name+"? The original K message stays unchanged."))return;
+ const button=document.getElementById("legacyInvitationSave");button.disabled=true;
+ try{
+  const out=await request("invitation/migrate",{
+   contactRow:c.sheetRow,name:c.name,company:c.company,previousMessage:c.message,
+   introduction:intro,middle,closing,confirm:true
+  });
+  if(candidate!==state.candidate)return;
+  if(!out.saved||!out.originalMessagePreserved)throw Error("Migration verification failed.");
+  document.getElementById("legacyInvitationDialog").close();
+  await refresh();
+  alertUser("Three invitation components saved. Old K preserved.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
+}
+function invitationCount(c){
+ const preview=invitationPreview(c);
+ const length=preview.text.length;
+ return {...preview,length,withinLimit:length<=300};
+}
+function templateSummary(c){return invitationPreview(c).note}
+function personalisationEditPrompt(c,instructions){
+ const row=Number(c.sheetRow);
+ const fullCandidate=state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati";
+ const exactCell=Number.isInteger(row)&&row>=2?"Connections!N"+row:"Unverified row — locate by identity before editing";
+ return [
+  "GARAMAAL — PERSONALISED MIDDLE LINE / INTERNET RESEARCH & STRICT SINGLE-CELL EDIT",
+  "Only spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+  "Only worksheet: Connections. Three separate components: M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing. The ONLY permitted normal write is the one verified N cell "+exactCell+". K is the existing compatibility copy and must not change without separate approval.",
+  "Selected candidate: "+fullCandidate+" (Connections column F); person: "+c.name+" (column B); company: "+c.company+" (column A); position: "+(c.title||"not recorded")+" (column I). Original sheet row hint: "+(row||"unknown")+". Do not trust the hint until verifying the actual row.",
+  "Read Connections A:O headers and verify candidate F, full name B, company A, role I and profile C (where known). Read current K and M:O. If M or O is missing in an older legacy row, STOP and request individual reviewed conversion first; never guess a middle line from one paragraph.",
+  "Read-only evidence is Connections!J[row]. Research public internet sources for THIS person, using reputable and accessible URLs. Cite a verifiable professional detail. Never invent a company project, role, skill, LinkedIn URL, event or accomplishment; do not scrape behind a login. If the detail cannot be verified, leave the middle line blank and report uncertainty.",
+  "Requested modification to the MIDDLE line: "+(instructions.trim()||"[I WILL PROVIDE EDITING INSTRUCTIONS LATER — DO NOT MODIFY ANY CELL UNTIL I DO]"),
+  "Keep the exact M Introduction and O Closing unchanged. Edit only N Middle after verifying cited public research; full composed M+N+O invitation must be <=300 characters. Do not shorten qualifications without approval.",
+  "Display candidate, verified row, "+exactCell+", old N text, proposed N text, composed M+N+O invitation, sources and a diff. ASK for my explicit approval before writing; missing editing instructions means no write.",
+  "After approval edit ONLY Connections!N[row]; read it back and verify A, B, F, M, O remain unchanged. Do not update legacy K except in a separately approved compatibility synchronisation.",
+  "Never edit Connections A:M or O, any other N row, SocialTracking A:K, SocialTemplates A:E, SocialFollowups A:K, SocialTargets A:F, SocialResearchCatalog A:D, Jobs/CV tabs, other spreadsheets, Drive files or LinkedIn messages.",
+  "If the Sheets connector, internet research or needed permissions are unavailable, give me a copy-ready proposed message and exact recommended cell without claiming any changes were saved."
+ ].join("\n\n");
+}
+let personalisationContactKey="";
+function openPersonalisationDialog(){
+ const c=swipeQueue()[state.swipeIndex];
+ if(!c)return alertUser("Select a Swipe contact first.");
+ personalisationContactKey=c.key;
+ const dialog=document.getElementById("personalisationDialog");
+ document.getElementById("personalisationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections!N"+(c.sheetRow||" (verify row)");
+ document.getElementById("personalisationInstructions").value="";
+ dialog.showModal();
+ document.getElementById("personalisationInstructions").focus();
+}
+function copyPersonalisationEditPrompt(){
+ const c=state.items.find(x=>x.key===personalisationContactKey);
+ if(!c||!swipeQueue().some(x=>x.key===c.key))return alertUser("Contact changed. Reopen the prompt from Swipe.");
+ const input=document.getElementById("personalisationInstructions").value;
+ copyText(personalisationEditPrompt(c,input));
+ document.getElementById("personalisationDialog").close();
+}
+function coffeeInvite(c){
+ const first=String(c.name||"there").split(" ")[0];
+ const title=department(c);
+ const place=c.company||"your firm";
+ const personType=contactKind(c);
+ const topic=personType==="Recruiter"||personType==="In-house recruiter"?"your perspective on careers and teams":"your experience in "+title;
+ return ("Hi "+first+", I saw your profile at "+place+" and would appreciate hearing "+topic+". Would you be open to a brief 15-minute coffee chat in Dublin or virtually, whenever convenient?").slice(0,300);
+}
+function makeMessage(c,variation=0,followup=false){
+ const first=String(c.name||"there").split(" ")[0],type=contactKind(c),dept=department(c),company=c.company;
+ if(followup){
+ const base=["Thanks for connecting, "+first+". I appreciate it and would be glad to stay in touch.",
+ "Thanks for connecting, "+first+". I’m exploring opportunities in "+dept+" and would value any general guidance you might share.",
+ "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+".",coffeeInvite(c)][variation]||"Thanks for connecting.";
+ return base;
+ }
+ return invitationPreview(c).text;
+}
+function stats(){
+ const total=state.items.length;
+ const sent=state.items.filter(x=>x.relation?.sent).length;
+ const accepted=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status)).length;
+ const followupsDue=state.items.filter(isFollowupDue).length;
+ return {total,sent,accepted,due:followupsDue};
+}
+function isFollowupDue(x){return ["accepted","replied"].includes(x.relation?.status)&&!x.relation?.followupSent&&!!x.relation?.next&&x.relation.next<=dateNow()}
+function activeItems(){
+ return state.items.filter(c=>(!state.query||norm([c.name,c.company,c.title,department(c)].join(" ")).includes(norm(state.query)))
+ &&(!state.company||c.company===state.company)&&(!state.department||department(c)===state.department)&&
+ (state.industry==="all"||orgGroup(c.company)===state.industry))}
+function options(items,val){return '<option value="">All</option>'+items.map(x=>'<option '+(x===val?'selected':'')+'>'+esc(x)+'</option>').join("")}
+function companies(){return [...new Set([...firms.consulting,...firms.wealth,...state.items.map(c=>c.company)])].sort()}
+function departments(){return [...new Set([...depts.consulting,...depts.wealth,...state.items.map(c=>department(c))])].sort()}
+function filterHTML(){return '<div class="filter-panel"><div class="grid3"><label class="field">Industry<select id="groupFilter"><option value="all">All industries</option><option value="consulting" '+(state.industry==="consulting"?"selected":"")+'>Consulting & Deals</option><option value="wealth" '+(state.industry==="wealth"?"selected":"")+'>Wealth & Planning</option></select></label><label class="field">Company<select id="companyFilter">'+options(companies(),state.company)+'</select></label><label class="field">Department<select id="departmentFilter">'+options(departments(),state.department)+'</select></label></div></div>'}
+function filterBar(){return '<div class="search"><input id="search" aria-label="Search people, organisations and departments" placeholder="⌕ Search people or company" value="'+esc(state.query)+'"><button class="btn '+(state.filterVisible?"soft":"")+'" id="filterButton" title="Search filters">☷ '+(state.filterVisible?"Hide":"Filter")+'</button></div>'+(state.filterVisible?filterHTML():"")}
+function heading(title,withLinePrompt=false){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh" aria-label="Refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button>'+(withLinePrompt?'<button class="btn small" id="personalisationOpen" title="Edit GPT personalised middle line" aria-label="Edit GPT personalised middle line">🗒️</button>':"")+'</div></div>'}
+function statGrid(){const m=stats();return '<div class="stats"><div class="stat"><label>People</label><strong>'+m.total+'</strong></div><div class="stat"><label>Requests ↗</label><strong>'+m.sent+'</strong></div><div class="stat"><label>Accepted ✓</label><strong>'+m.accepted+'</strong></div><div class="stat"><label>Follow-ups ↗</label><strong>'+m.due+'</strong></div></div>'}
+function organizationCard(){
+ const active=state.industry==="wealth"?"wealth":state.industry==="consulting"?"consulting":"";
+ const list=active==="wealth"?firms.wealth:firms.consulting;
+ return '<section class="card org-compact"><div class="section-head"><b>Target organisations</b><span class="small muted">Dublin</span></div>'+
+ '<div class="compact-grid"><button class="btn '+(active==="consulting"?"soft":"")+'" data-industry="consulting">▦ Corporate Finance</button>'+
+ '<button class="btn '+(active==="wealth"?"soft":"")+'" data-industry="wealth">◈ Wealth Management</button></div>'+
+ (state.orgOpen&&active?'<div class="org-options"><div class="section-head"><b>'+esc(active==="wealth"?"Wealth & Planning":"Corporate Finance, Deals & Tax")+'</b><button id="closeOrgs" class="btn small">✕</button></div>'+
+ '<div class="btnrow"><button data-company="" class="chip '+(!state.company?"selected":"")+'">All firms</button>'+
+ list.map(f=>'<button data-company="'+esc(f)+'" class="chip '+(state.company===f?"selected":"")+'">'+esc(f)+'</button>').join("")+'</div></div>':"")+
+ '</section>';
+}
+function peopleList(){const v=activeItems();return '<section class="card dashboard-search"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
+function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
+function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"identified")==="identified")}
+function swipe(){
+ const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));
+ const c=list[state.swipeIndex];
+ const top=heading("Discover & swipe",true)+filterBar()+
+  (state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
+ if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
+ const href=c.profile||safeLinkedInSearch(c.search);
+ const invitation=invitationCount(c);
+ const limitLabel=invitation.withinLimit?"Within LinkedIn’s 300-character limit":"Over limit · shorten before copying";
+ const tools='<div class="swipe-tool-grid"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button>'+
+  '<button class="btn small" data-copy="'+esc(invitation.text)+'" '+(invitation.withinLimit&&invitation.kind!=="legacy"?"":'disabled title="'+(invitation.kind==="legacy"?"Review the legacy personalised line first":"Invitation exceeds 300 characters")+'"')+'>▣ Copy invitation</button>'+
+  '<button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+
+  (href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':'<span class="swipe-tool-placeholder" aria-hidden="true"></span>')+'</div>';
+ return top+'<div class="subtle swipe-progress">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div>'+
+ '<div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'">'+
+ '<div class="swipe-contact"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span>'+
+ '<h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · '+esc(c.relation?.city||"Dublin")+'</p></div>'+
+ '<div class="swipe-message"><div class="swipe-message-title">Invitation preview</div>'+
+ '<div class="note" id="swipeInvitationText">'+esc(invitation.text)+'</div>'+
+ '<div class="swipe-message-footer"><span class="swipe-message-status">'+esc(invitation.note)+'</span>'+
+ '<span class="swipe-count '+(invitation.withinLimit?"":"over")+'" aria-label="Invitation character count">'+invitation.length+' / 300</span></div>'+
+ (invitation.withinLimit?"":'<div class="swipe-limit-warning" role="status">'+limitLabel+'</div>')+
+ '</div>'+(invitation.kind==="legacy"?'<button class="btn small swipe-legacy-review" id="reviewLegacyInvitation">Review old message &amp; save three parts →</button>':"")+tools+
+ '<div class="swipe-sent-hint">Only mark sent after you actually send the request on LinkedIn.</div>'+
+ '<div class="swipe-actions"><button class="btn" id="later">← Later</button>'+
+ '<button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button>'+
+ '<button class="btn good" id="sent">Sent ✓ →</button></div></div>';
+}
+function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
+ return heading("Follow-ups")+'<section class="card"><div class="section-head"><b>GPT follow-up assistance</b><span class="tag">Copy prompt</span></div><p class="subtle">Use your saved LinkedIn conversations, accepted contacts and candidate background to draft reviewed follow-ups. This does not send anything.</p><button class="btn soft small" id="copyFollowupTabPrompt">▣ Copy Follow-up Prompt</button></section>'+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
+function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Edit template</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option><option value="3">Coffee chat</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
+function researchPrompt(){
+ return [
+ "GARAMAAL — LINKEDIN SCREENSHOT EXTRACTION → REVIEW QUEUE (NOT CONNECTIONS)",
+ "Candidate: "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati"),
+ "Research source folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
+ "Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp screenshot sources (only those explicitly supplied or accessible). Ignore USED_ files. Do not rename source files until the user approves processing; staging does not mean the contact was verified.",
+ "Search context is ONLY a lead, not verified evidence. The LinkedIn search may include wrong companies, departments, designations and cities: "+[state.researchCompany,state.researchDepartment,state.researchCity||"Dublin"].filter(Boolean).join(" | "),
+ "Freshmaal (only spreadsheet): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+ "ONLY ALLOWED WRITE: append new user-approved, unverified extracted people to SocialReviewQueue A:T. NEVER write directly to Connections, SocialTracking, SocialTemplates, SocialTargets, Jobs or any other Sheet.",
+ "Required exact SocialReviewQueue A:T mapping: A Candidate, B Review ID, C Person Name, D Company, E Department, F Designation, G Location, H LinkedIn Profile, I Evidence / Source, J Source File ID, K Review Status, L Networking Purposes, M Primary Purpose, N Invitation Introduction, O Invitation Middle, P Invitation Closing, Q Search URL, R Connections Row, S Updated UTC, T Review Notes.",
+ "For EACH visible result capture only actual details supported by the screenshot or independently accessible public evidence. If a field is unclear, leave it blank or explicitly mark uncertainty in Review Notes. Never assume the person's employer, transaction-department membership, seniority or Dublin location from the original SEARCH KEYWORDS alone.",
+ "Set A to the exact full candidate name; B to a fresh unique review ID (e.g. REV-20261020-001); K exactly Pending; S ISO UTC timestamp. Leave L, M, N, O, P, R blank (intentions, message and import must be approved in-app). Use I and J to reference screenshot/source and any public citations. Never fabricate direct LinkedIn profile URLs; leave H blank unless the profile URL is directly evidenced.",
+ "Categorize each result in T as strong match, related, out of target, or requires verification; document independently what company, department, designation, city and seniority are actually known. This category is preliminary, not an auto-approval.",
+ "Deduplicate existing SocialReviewQueue by candidate + person + company + source before appending. Read exact A:T headers, do not add/delete columns, do not overwrite an existing row, and do not alter a status other than newly appended Pending.",
+ "Show me a reviewable table with each person's visible and inferred fields, sources and uncertainty. ASK EXPLICIT APPROVAL before any Sheets write. If you cannot access files, public sources or Google Sheets, give a pending-stage proposal only; do not claim the Sheet is updated.",
+ "NEXT STEPS: I will open Social → Verify to edit company, department and designation, choose networking intentions, approve message components within 300 characters, and finally move approved contacts to Swipe. Do not generate, save, send or mark invitations as sent during screenshot intake."
+ ].join("\n\n");
+}
+function campaignContactCount(step){
+ return state.items.filter(c=>norm(c.company)===norm(step.company)&&norm(department(c))===norm(step.department)).length;
+}
+function legacyInboxView(){
+ const step=currentCampaign(),count=campaignContactCount(step);
+ const rows=campaignSteps.map((x,i)=>'<button class="campaign-step '+(i===state.campaignIndex?"active":"")+'" data-campaign-index="'+i+'"><span>'+(i+1)+'. '+esc(x.company)+' · '+esc(x.department)+'</span><span class="small muted">'+campaignContactCount(x)+' tracked</span></button>').join("");
+ return '<div class="card research-compact"><div class="section-head"><b>Outreach targets</b><span class="count">'+(state.campaignIndex+1)+' / '+campaignSteps.length+'</span></div>'+
+ '<div class="campaign-current"><div class="campaign-headline">Current target · Dublin</div><strong>'+esc(step.company)+' · '+esc(step.department)+'</strong>'+
+ '<div class="subtle">'+count+' tracked in Freshmaal · Manual, individual outreach</div>'+
+ '<div class="campaign-tools"><a class="btn primary small" href="'+esc(campaignSearchUrl(step))+'" rel="noopener noreferrer" target="_blank">↗ Find people</a>'+
+ '<button class="btn small" id="copyTargetSearch">▣ Copy search</button><button class="btn small" id="prevCampaign" '+(state.campaignIndex===0?"disabled":"")+'>←</button>'+
+ '<button class="btn small" id="nextCampaign" '+(state.campaignIndex===campaignSteps.length-1?"disabled":"")+'>Next →</button></div></div>'+
+ '<details class="campaign-steps"><summary class="btn small" style="margin:8px 0;cursor:pointer">Show all '+campaignSteps.length+' targets ▾</summary>'+rows+'</details></div>';
+}
+function linkedInPeopleUrl(company,dept,city){
+ const words=[company,dept,city].map(x=>String(x||"").trim()).filter(Boolean).join(" ");
+ return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent(words);
+}
+function isLinkedInPeopleUrl(s){try{const u=new URL(s);return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)&&/^\/search\/results\/people\/?$/i.test(u.pathname)}catch{return false}}
+function selectedResearchUrl(){
+ return linkedInPeopleUrl(state.researchCompany,state.researchDepartment,state.researchCity||"Dublin");
+}
+function researchTabs(){
+ const names=[["research","01","Research"],["followups","02","Chat follow-ups"]];
+ return '<div class="research-tabs" role="tablist" aria-label="Research and chat follow-ups">'+
+ names.map(([id,num,label])=>'<button type="button" role="tab" aria-selected="'+(state.researchMode===id?"true":"false")+'" class="research-tab '+(state.researchMode===id?"active":"")+'" data-research-mode="'+id+'"><span class="research-tab-number">'+num+'</span><span>'+label+'</span></button>').join("")+
+ '</div>';
+}
+function savedTargetRows(){
+ // A selected company must never hide unrelated saved targets. Latest first.
+ const targets=state.targets.slice().sort((a,b)=>String(b.updated||"").localeCompare(String(a.updated||""))||Number(b.row||0)-Number(a.row||0));
+ if(!targets.length)return '<div class="research-empty research-target-none">No saved targets yet. Save a company and department above.</div>';
+ return targets.map(t=>'<div class="research-target-row research-target-mini"><button class="research-target-select" data-use-target="'+esc(t.row)+'" title="Use target"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></button>'+
+ '<a class="research-target-open" title="Open LinkedIn People search" aria-label="Find '+esc(t.company)+' '+esc(t.department)+' on LinkedIn" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ LinkedIn</a></div>').join("");
+}
+function researchSelectOptions(kind,current){
+ const saved=kind==="company"?state.catalogCompanies:state.catalogDepartments;
+ const values=[...new Map([...saved,...state.targets.map(t=>kind==="company"?t.company:t.department)].filter(Boolean)
+   .map(v=>[v.toLowerCase(),v])).values()].sort((a,b)=>a.localeCompare(b));
+ // Existing saved/previously selected values remain selectable until the catalog loads.
+ if(current&&!values.some(v=>v.toLowerCase()===current.toLowerCase()))values.unshift(current);
+ return '<option value="">Select '+kind+'</option>'+values.map(v=>'<option value="'+esc(v)+'" '+(v===current?'selected':'')+'>'+esc(v)+'</option>').join("");
+}
+function researchLocationPin(city){
+ return '<button type="button" class="research-location" id="researchLocationOpen" aria-label="Change city or country: '+esc(city)+'" title="'+esc(city)+'">'+
+ '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></button>';
+}
+function targetResearch(){
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
+ return '<section class="card research-card research-targets"><div class="research-card-head"><div><span class="research-eyebrow">01 · Discover</span><h2>Targets</h2></div><span class="research-meta">LinkedIn People</span></div>'+
+ '<div class="research-form"><label class="field">Company<div class="research-select-row"><select id="targetCompany" aria-label="Choose company" required>'+researchSelectOptions("company",company)+'</select><button type="button" class="research-select-add" id="researchAddCompany" title="Add company" aria-label="Add company">+</button></div></label>'+
+ '<label class="field">Department<div class="research-select-row"><select id="targetDepartment" aria-label="Choose department" required>'+researchSelectOptions("department",dept)+'</select><button type="button" class="research-select-add" id="researchAddDepartment" title="Add department" aria-label="Add department">+</button></div></label>'+
+ '<div class="field city research-location-field"><span>Location</span>'+researchLocationPin(city)+'<input type="hidden" id="targetCity" value="'+esc(city)+'"></div></div>'+
+ '<div class="research-action-grid"><a class="btn primary" id="researchNow" href="'+esc(selectedResearchUrl())+'" target="_blank" rel="noopener noreferrer">↗ Search Now</a>'+
+ '<button class="btn" id="saveTarget">＋ Save Target</button></div>'+
+ '<details class="research-target-dropdown" id="researchSavedTargets" open><summary><span>Saved targets <span class="count">'+state.targets.length+'</span></span><span class="research-dropdown-hint">Latest first · scroll for more <span aria-hidden="true">⌄</span></span></summary>'+
+ '<div class="research-target-scroll" id="researchTargetResults" role="region" tabindex="0" aria-label="Scrollable saved target companies and departments">'+savedTargetRows()+'</div></details></section>';
+}
+function sourceInbox(){
+ const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or text file to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
+ return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Screenshot-to-Sheet Prompt</button></div>'+
+ '<p class="research-source-context" id="sourceContext">For '+esc([company||"your chosen company",dept,city].filter(Boolean).join(" · "))+' · '+esc(state.candidate)+' private Drive</p>'+
+ '<div class="research-stage-guide"><strong>Upload → Stage in Sheet → Verify in app → Prepare message → Send manually</strong><button type="button" class="btn small" data-view="verify">Open Verify Contacts →</button></div><div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
+ '<button class="btn primary" id="saveResearchImage">＋ Upload photos</button>'+photoProgressHTML()+'</div>'+
+ '<div class="research-source-option"><b>Text or TXT</b><label class="field research-file-field">Upload a TXT file<input id="researchTextFile" type="file" accept=".txt,text/plain"></label>'+
+ '<label class="field">Or paste copied text<textarea id="inboxText" rows="3" placeholder="Paste names, roles, or LinkedIn results here."></textarea></label>'+
+ '<details class="research-expand"><summary>Optional LinkedIn URL <span>▾</span></summary><div class="research-expand-body"><label class="field">Source URL<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label></div></details>'+
+ '<button class="btn" id="saveInbox">＋ Save as TXT</button></div></div>'+
+ '<div class="research-tip"><strong>Next step</strong><span>Uploads use the approved Google account. GPT processes NEW_ files only and renames them USED_ after verified import. Nothing is automatically messaged.</span></div></section>'+
+ '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Candidate inbox</span><h2>Research queue</h2></div><div class="research-card-utility"><span class="count">'+state.inbox.length+'</span><button class="research-icon-button" id="reloadInbox" title="Refresh research queue" aria-label="Refresh research queue">↻</button></div></div>'+
+ '<div class="research-queue-scroll" role="region" tabindex="0" aria-label="Scrollable research queue, five latest files visible"><div class="research-target-list">'+files+'</div></div>'+
+ '<div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
+}
+function conversationResearchPrompt(record){
+ return [
+ "GARAMAAL LINKEDIN FOLLOW-UP RESEARCH (manual reply, do NOT send)",
+ "Candidate: "+state.candidate,
+ "Recipient: "+(record?.contact||"See saved conversation")+" · "+(record?.company||""),
+ "Drive conversation file: "+(record?.driveUrl||"See the NEW_CHAT file in my Research Inbox Drive folder"),
+ "Freshmaal spreadsheet (ONLY eligible spreadsheet): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+ "Follow-up sheet is SocialFollowups, columns A:K: A Candidate, B conversation ID, C Contact Name, D Company, E Source Type, F Drive File ID, G Drive URL, H Draft Reply, I Status, J Next Follow-up, K Updated UTC. Read only the selected candidate and exact matching B ID + C recipient + D company; never guess a row.",
+ "DEFAULT: NO SHEET WRITES. Research the conversation and return three options for my review. After I expressly approve one option AND identify the exact verified candidate/conversation row, the ONLY GPT-editable cell is that single SocialFollowups!H[row] (Draft Reply). Show the exact cell address and prior/new draft for approval. All SocialFollowups A:G and I:K are READ-ONLY; do not mark sent, change status/dates/timestamps or touch any other person's row.",
+ "Connections (A:O, including M=Invitation Introduction, N=GPT Personalised Middle, O=Invitation Closing), SocialTracking (A:K), SocialTemplates (A:E), SocialTargets (A:F), SocialResearchCatalog (A:D), all job/CV tabs and every other file are READ-ONLY for the follow-up prompt. Follow-ups must never regenerate an invitation or alter M, N, O or compatibility K. Never reorder, delete, format, insert, append or edit outside the one explicitly approved SocialFollowups H cell. Verify the read-back. If no exact matching ID, ask for it and do not write.",
+ "This source is a LinkedIn screenshot or copied chat supplied by me. Read the conversation in chronological order. Treat it as private data, do not quote it elsewhere, do not claim the recipient has replied when they have not.",
+ "If the screenshot cannot be read, ask me to paste the text instead. Do not invent unseen messages or timestamps.",
+ "Write three concise, polite follow-up options in different tones: (1) warm check-in; (2) specific, helpful professional question; (3) brief low-pressure close. Match what the other person said, if any; avoid repeating an unanswered ask.",
+ "Use the candidate-specific UCD/qualification background only if supported by their saved evidence or SocialTemplates. No false claims or invented personalisation.",
+ "For each option: draft under 600 characters, specify when a follow-up is appropriate and whether silence would be better. Do not send LinkedIn messages.",
+ "I will review, copy and manually send one. The Social Hub normally saves an approved follow-up draft after I paste it; do not initiate a Sheet write merely because I copied this prompt. Invitations live separately in Connections M:N:O and are not part of this follow-up operation."
+ ].join("\n\n");
+}
+function conversationCards(){if(!state.conversations.length)return '<div class="empty">No saved conversations yet. Add a chat or screenshot to start drafting follow-ups.</div>';
+ return state.conversations.map(c=>'<div class="search-target"><div class="row" style="justify-content:space-between"><div><strong>'+esc(c.contact)+'</strong><div class="subtle">'+esc(c.company)+' · '+esc(c.sourceType)+' · '+esc(c.status)+'</div></div><a class="btn small" href="'+esc(c.driveUrl)+'" target="_blank" rel="noopener noreferrer">Source ↗</a></div>'+
+ (c.draft?'<div class="note text-preview">'+esc(c.draft)+'</div>':'')+
+ '<div class="btnrow"><button class="btn small" data-conversation="'+esc(c.id)+'">✎ Draft</button><button class="btn small" data-copy-followprompt="'+esc(c.id)+'">▣ Copy GPT prompt</button>'+
+ (c.draft?'<button class="btn small" data-copy="'+esc(c.draft)+'">▣ Copy reply</button>':"")+'</div>'+
+ (state.selectedConversation===c.id?'<label class="field">Approved draft / GPT result<textarea id="conversationDraft" placeholder="Paste the follow-up you want to send">'+esc(c.draft||"")+'</textarea></label><label class="field">Next follow-up<input id="conversationNext" type="date" value="'+esc(c.next||"")+'"></label><div class="btnrow"><button class="btn primary small" id="saveConversationDraft">Save draft</button><button class="btn good small" id="markConversationSent" '+(!c.draft?"disabled":"")+'>✓ I sent this manually</button></div>':"")+
+ '</div>').join("");
+}
+function followupsResearch(){
+ return '<section class="card research-card"><div class="research-card-head"><div><span class="research-eyebrow">02 · Continue conversations</span><h2>Draft a follow-up</h2></div><span class="research-meta">Manual review</span></div>'+
+ '<div class="split research-two-col"><label class="field">Contact name<input id="chatContact" placeholder="Full name"></label><label class="field">Company<input id="chatCompany" value="'+esc(state.company)+'" placeholder="e.g. Davy"></label></div>'+
+ '<label class="field">LinkedIn conversation<textarea id="chatTranscript" rows="4" placeholder="Paste messages in chronological order."></textarea></label>'+
+ '<label class="field research-file-field">Or upload a chat screenshot<input id="chatScreenshot" type="file" accept="image/png,image/jpeg,image/webp"></label>'+
+ '<div class="research-toolbar"><button class="btn primary" id="saveConversation">＋ Save conversation</button><button class="btn soft" id="copyGeneralFollowPrompt">▣ Copy Follow-up Prompt</button></div>'+
+ '<div class="research-tip"><span>Save a private source, copy the GPT prompt, then review and manually send any reply. Screenshots: max 3 MB.</span></div></section>'+
+ '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Saved conversations</span><h2>Follow-up queue</h2></div><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
+}
+
+const REVIEW_PURPOSES=["Just connect","Coffee chat","Senior leader — connect only","Inspired by profile","Looking for a mentor","Career or industry insights","Exploring opportunities","UCD / alumni connection"];
+function reviewCurrent(){return state.reviewItems.find(x=>x.id===state.reviewSelected);}
+function reviewCompose(intro,middle,closing){return [intro,middle,closing].map(x=>String(x||"").replace(/^\n+|\n+$/g,"")).filter(Boolean).join("\n\n");}
+function reviewField(id,label,value,kind="input",readonly=false){
+ const prefix='<div class="field"><label for="'+id+'">'+esc(label)+'</label>';
+ const body=kind==="textarea"?'<textarea id="'+id+'" rows="3" '+(readonly?"readonly":"")+'>'+esc(value||"")+'</textarea>':
+ '<input id="'+id+'" value="'+esc(value||"")+'" '+(readonly?"readonly":"")+' />';
+ return prefix+body+'</div>';
+}
+function reviewFormData(){
+ const read=id=>document.getElementById(id)?.value||"";
+ return {name:read("rvName").trim(),company:read("rvCompany").trim(),
+ department:read("rvDepartment").trim(),designation:read("rvDesignation").trim(),
+ location:read("rvLocation").trim(),profile:read("rvProfile").trim(),
+ evidence:read("rvEvidence").trim(),notes:read("rvNotes").trim(),
+ purposes:[...document.querySelectorAll('.verify-purpose input:checked')].map(el=>el.value),
+ primary:read("rvPrimary"),intro:read("rvIntro"),middle:read("rvMiddle"),closing:read("rvClosing")};
+}
+function verifyView(){
+ const records=state.reviewItems||[],current=reviewCurrent()||records.find(x=>x.status==="Pending")||records[0];
+ if(current&&!state.reviewSelected)state.reviewSelected=current.id;
+ const c=reviewCurrent()||current;
+ const queued=records.filter(x=>x.status==="Pending").length,ready=records.filter(x=>x.status==="Draft Ready").length;
+ const summary='<div class="heading"><h1>Verify contacts</h1><div class="btnrow"><button class="btn small" id="reviewReload">↻ Refresh</button><button class="btn small primary" id="reviewStageOpen">＋ Stage person</button></div></div>'+
+  '<div class="verify-workflow"><span>1 Upload screenshot</span><span>2 Verify details</span><span>3 Approve message</span><span>4 Send via Swipe</span></div>'+
+  '<p class="verify-help">Screenshots first go into the pending Sheet queue. Review the actual employer, department, designation and evidence here. The search keywords are never taken as proof. '+queued+' pending · '+ready+' draft(s) ready.</p>';
+ const people='<div class="card verify-queue"><div class="section-head"><b>Screenshot review queue</b><span class="small muted">'+records.length+' contacts</span></div>'+
+  (records.length?records.map(r=>'<button class="verify-person '+(c?.id===r.id?'selected':'')+'" data-review-id="'+esc(r.id)+'"><strong>'+esc(r.name)+'</strong><small>'+esc([r.company,r.department,r.designation,r.location].filter(Boolean).join(" · "))+'</small><span class="verify-status">'+esc(r.status)+'</span></button>').join(""):'<p class="verify-help">No pending extracted contacts yet. Upload a screenshot in Research, copy its screenshot-to-Sheet prompt, or stage one manually.</p>')+'</div>';
+ if(!c)return '<div class="verify-workspace">'+summary+'<div class="verify-layout">'+people+'<section class="card"><b>Awaiting screenshot extraction</b><p class="verify-help">Click Stage person to enter one result manually, or return to Research and run the approved GPT staging prompt.</p><button class="btn" data-view="inbox">← Research</button></section></div></div>';
+ const locked=c.status==="Imported";
+ const tmpl=state.templates[c.department]||state.templates.General||suggestedTemplate(c.department||"General");
+ const draftPerson={name:c.name,company:c.company,relation:{department:c.department},title:c.designation};
+ const intro=c.intro||templateText(tmpl.introduction,draftPerson),closing=c.closing||templateText(tmpl.closing,draftPerson);
+ const intentUI=REVIEW_PURPOSES.map(p=>'<label class="verify-purpose"><input type="checkbox" value="'+esc(p)+'" '+(c.purposes?.includes(p)?"checked":"")+' '+(locked?"disabled":"")+'><span>'+esc(p)+'</span></label>').join("");
+ const primary='<div class="field"><label for="rvPrimary">Primary networking purpose</label><select id="rvPrimary" '+(locked?"disabled":"")+'><option value="">Choose primary purpose</option>'+REVIEW_PURPOSES.map(p=>'<option value="'+esc(p)+'" '+(c.primary===p?"selected":"")+'>'+esc(p)+'</option>').join("")+'</select></div>';
+ const opts='<div class="section-head"><b>'+esc(c.name)+'</b><span class="verify-status">'+esc(c.status)+'</span></div><p class="verify-help">Source: '+esc(c.sourceFileId||"User supplied")+' · Sheet row '+c.row+'. Only this candidate’s review row may change.</p>';
+ const details=reviewField("rvName","Person name",c.name)+reviewField("rvCompany","Company — verify",c.company)+reviewField("rvDepartment","Department — verify",c.department)+reviewField("rvDesignation","Designation / seniority — verify",c.designation)+reviewField("rvLocation","Location",c.location)+reviewField("rvProfile","Verified LinkedIn profile URL (optional)",c.profile)+reviewField("rvEvidence","Evidence / screenshot or public source",c.evidence,"textarea")+reviewField("rvNotes","Review notes / uncertainties",c.notes,"textarea");
+ const drafting='<div class="verify-draft"><div class="section-head"><b>3 · Invitation message</b><button class="btn small" id="rvCopyDraftPrompt">▣ GPT prompt</button></div>'+
+  '<p class="verify-help">Choose purposes above. Copy the GPT prompt, then paste a proposed introduction, personalized middle and closing here. You may shorten the master intro/closing for this person only; the shared master never changes.</p>'+
+  reviewField("rvIntro","Introduction (M)",intro,"textarea")+
+  reviewField("rvMiddle","Personalized middle (N)",c.middle,"textarea")+
+  reviewField("rvClosing","Closing (O)",closing,"textarea")+
+  '<p class="verify-help" id="rvCharCount" aria-live="polite">'+reviewCompose(intro,c.middle,closing).length+' / 300 characters</p></div>';
+ const actions='<div class="verify-actions">'+(locked?'<button class="btn" disabled>Already in Swipe</button>':
+  '<button class="btn" id="rvSaveReview">✓ Save verification</button><button class="btn" id="rvSaveDraft">▣ Save draft</button><button class="btn primary" id="rvApproveSwipe" '+(c.status==="Draft Ready"?"":"disabled title=\"Save the draft first\"")+'>Approve → Swipe</button><button class="btn" id="rvReject">Exclude</button>')+'</div>';
+ return '<div class="verify-workspace">'+summary+'<div class="verify-layout">'+people+'<section class="card verify-form">'+opts+details+
+  '<div class="verify-draft"><div class="section-head"><b>Networking intentions</b><span class="small muted">Select multiple</span></div><div class="verify-purposes">'+intentUI+'</div>'+primary+'</div>'+
+  drafting+actions+'</section></div></div>';
+}
+async function loadReviewQueue(){
+ const candidate=state.candidate;
+ try{
+  const result=await request("review/list");
+  if(state.candidate!==candidate)return;
+  state.reviewItems=result.items||[];
+  if(!state.reviewItems.some(x=>x.id===state.reviewSelected))state.reviewSelected=state.reviewItems.find(x=>x.status==="Pending")?.id||state.reviewItems[0]?.id||"";
+  state.reviewLoaded=true;if(state.view==="verify")render();
+ }catch(e){if(state.candidate===candidate)alertUser(e.message)}
+}
+async function reviewSaveStatus(status){
+ if(state.readOnly)return alertUser("Social review is read-only.");
+ const c=reviewCurrent();
+ if(!c)return;
+ const record=reviewFormData();
+ if(status==="Rejected"&&!confirm("Exclude "+c.name+" from outreach? This will not delete any other contacts."))return;
+ if(status==="Reviewed"&&!confirm("Confirm that you reviewed company, department, designation and source for "+c.name+"?"))return;
+ if(status==="Draft Ready"&&!confirm("Approve the complete invitation draft for "+c.name+"?"))return;
+ const candidate=state.candidate;
+ try{await request("review/update",{row:c.row,reviewId:c.id,expectedUpdated:c.updated,record,status,confirm:true});
+  if(candidate!==state.candidate)return;
+  await loadReviewQueue();alertUser(status==="Draft Ready"?"Draft saved; now approve for Swipe.":"Review updated.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+}
+function reviewDraftPrompt(){
+ const c=reviewCurrent();if(!c)return "";
+ const d=reviewFormData();
+ return [
+ "GARAMAAL — PERSON-SPECIFIC LINKEDIN INVITATION DRAFT. NO SHEET WRITES.",
+ "Candidate: "+state.candidate+"; review ID: "+c.id+"; contact: "+d.name+"; company: "+d.company+"; department: "+d.department+"; designation: "+d.designation+"; city: "+d.location+".",
+ "Primary networking purpose: "+(d.primary||"Not selected")+"; all selected intentions: "+(d.purposes.join("; ")||"None").concat("."),
+ "Source / verified details: "+(d.evidence||"No public citation available")+"; uncertainty notes: "+(d.notes||"None"),
+ "Existing candidate and department master introduction: "+(d.intro||"[blank]"),
+ "Existing closing: "+(d.closing||"[blank]"),
+ "Produce exactly THREE separate components (M Introduction, N Recipient-specific middle, O Closing). Blend multiple intentions naturally, prioritize the selected PRIMARY purpose, respect seniority, and do not ask for coffee unless selected.",
+ "You may propose shorter/intention-specific introduction and closing for THIS PERSON only; do not edit master templates or describe screenshot search keywords as verified facts.",
+ "The joined M+N+O with two line breaks between components must be at most 300 characters counting every space and newline. Show exact character count; do not invent career achievements, credentials, LinkedIn URLs or sources.",
+ "Return a copy-ready M/N/O proposal and verification caveats. I will paste into Social → Verify and approve before it moves to Swipe. Do not write any spreadsheet cell or send a LinkedIn message."
+ ].join("\n\n");
+}
+function updateReviewLength(){
+ const n=document.getElementById("rvCharCount");if(!n)return;
+ const total=reviewCompose(document.getElementById("rvIntro")?.value,document.getElementById("rvMiddle")?.value,document.getElementById("rvClosing")?.value).length;
+ n.textContent=total+" / 300 characters"+(total>300?" · Shorten before saving":"");
+ n.style.color=total>300?"#a92e36":"";
+}
+async function reviewPromote(){
+ if(state.readOnly)return alertUser("Social is read-only.");
+ const c=reviewCurrent();if(!c||c.status!=="Draft Ready")return alertUser("Save a reviewed 300-character message first.");
+ if(!confirm("Approve the prepared message and move "+c.name+" into Swipe? This writes a NEW Connections row, never sends to LinkedIn."))return;
+ const candidate=state.candidate;
+ try{await request("review/promote",{row:c.row,reviewId:c.id,expectedUpdated:c.updated,confirm:true});
+  if(candidate!==state.candidate)return;
+  await refresh();await loadReviewQueue();
+  alertUser("Approved contact added to Swipe. LinkedIn request must be sent manually.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+}
+
+function inboxView(){
+ return '<div class="research-space"><div class="heading"><h1>Research</h1><button class="btn small" id="refresh" aria-label="Refresh research">↻</button></div>'+
+ researchTabs()+
+ (state.researchMode==="followups"?followupsResearch():targetResearch()+sourceInbox())+
+ '</div>';
+}
+function openTemplateEditor(dept){
+ state.templateDepartment=dept||state.department||state.templateDepartment||"Deals";
+ const sel=document.getElementById("templateDepartment");
+ const names=[...new Set([...depts.consulting,...depts.wealth,"General","Deals","Financial Planning","Recruiter",...Object.keys(state.templates)])];
+ sel.innerHTML=names.sort().map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");
+ if(!names.includes(state.templateDepartment))state.templateDepartment="General";
+ sel.value=state.templateDepartment;
+ document.getElementById("templateCandidate").textContent=state.candidate+" · separate editable departmental introduction & closing";
+ populateTemplateEditor();
+ document.getElementById("templateDialog").showModal();
+}
+function populateTemplateEditor(){
+ const dept=document.getElementById("templateDepartment").value;
+ state.templateDepartment=dept;
+ const t=state.templates[dept]||suggestedTemplate(dept);
+ document.getElementById("templateIntro").value=t.introduction;
+ document.getElementById("templateClosing").value=t.closing;
+}
+async function saveTemplateEditor(){
+ const candidate=state.candidate,department=document.getElementById("templateDepartment").value,
+ introduction=document.getElementById("templateIntro").value,closing=document.getElementById("templateClosing").value;
+ if(!introduction.trim()||!closing.trim())return alertUser("Both editable template lines are required.");
+ if(!confirm("Save this "+department+" template for "+candidate+"? The unsent Swipe preview will use the updated introduction and closing. Existing saved Connections messages will NOT be overwritten."))return;
+ try{const saved=await request("templates/save",{department,introduction,closing,confirm:true});
+ if(state.candidate!==candidate)return;
+ state.templates[department]=saved;document.getElementById("templateDialog").close();
+ render();alertUser("Master template saved to Freshmaal for "+candidate+".");
+ }catch(e){alertUser(e.message)}
+}
+function render(){document.getElementById("app").innerHTML=(state.loadError?'<div class="preview-note" role="alert">Social data unavailable: '+esc(state.loadError)+'</div>':"")+(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():state.view==="verify"?verifyView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
+ const nav=[["dashboard","⌂","Dashboard"],["inbox","▣","Research"],["verify","✓","Verify"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"]];
+ for(const area of ["bottomNav","desktopNav"])document.getElementById(area).innerHTML=nav.map(([id,ic,label])=>'<button data-view="'+id+'" class="'+(id===state.view?"active":"")+'">'+(area==="bottomNav"?'<span class="sym">'+ic+'</span>':ic+" ")+label+'</button>').join("");
+ document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
+ document.getElementById("candP").classList.toggle("active",state.candidate==="Pooja");
+}
+let viewRequest=0;
+async function refresh(){
+ const candidate=state.candidate,requestId=++viewRequest;
+ state.busy=true;
+ try{
+  const [data,templateData]=await Promise.all([request("data"),request("templates/get")]);
+  if(state.candidate!==candidate||viewRequest!==requestId)return;
+  if(data.candidate!==candidate)throw Error("Selected candidate does not match server response.");
+  state.items=data.items||[];
+  state.templates=Object.fromEntries((templateData.templates||[]).map(t=>[t.department,t]));
+  state.readOnly=data.readOnly!==false;
+  document.getElementById("socialModeBadge").textContent=state.readOnly?"READ ONLY":"LIVE";
+  state.loadError="";
+  render();
+ }catch(e){
+  if(state.candidate!==candidate||viewRequest!==requestId)return;
+  state.items=[];
+  state.loadError=String(e.message||"Unknown network error");
+  render();
+ }finally{if(viewRequest===requestId)state.busy=false}
+}
+async function switchCandidate(candidate){
+ if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
+ state.candidate=candidate;
+ try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
+ state.items=[];state.reviewItems=[];state.reviewSelected="";state.reviewLoaded=false;state.query="";state.company="";state.department="";state.industry="all";
+ state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.catalogCompanies=[];state.catalogDepartments=[];state.photoResults=[];state.photoFailures=[];state.photoUploading=false;state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
+ document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
+ document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
+ document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
+ await refresh();
+ if(state.view==="inbox"&&state.candidate===candidate){await loadResearch();if(state.researchMode!=="followups")await loadInbox()}
+ if(state.view==="verify"&&state.candidate===candidate)await loadReviewQueue();
+}
+async function loadResearch(){
+ const candidate=state.candidate;
+ const calls=await Promise.allSettled([request("targets/list"),request("conversations/list")]);
+ if(candidate!==state.candidate)return;
+ if(calls[0].status==="fulfilled"){
+  state.targets=calls[0].value.targets||[];
+  state.catalogCompanies=calls[0].value.companies||[];
+  state.catalogDepartments=calls[0].value.departments||[];
+ }
+ else alertUser("Saved target searches could not be loaded: "+calls[0].reason.message);
+ if(calls[1].status==="fulfilled")state.conversations=calls[1].value.items||[];
+ else alertUser("Conversation queue could not be loaded: "+calls[1].reason.message);
+ if(state.view==="inbox")render();
+}
+async function saveResearchTarget(){
+ const company=document.getElementById("targetCompany")?.value.trim();
+ const department=document.getElementById("targetDepartment")?.value.trim();
+ const city=document.getElementById("targetCity")?.value.trim()||"Dublin";
+ if(!company||!department)return alertUser("Select an added company and department first.");
+ const selected=state.candidate;
+ try{
+  await request("targets/save",{company,department,city,confirm:true});
+  if(selected!==state.candidate)return;
+  state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
+  await loadResearch();alertUser("Search target saved for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
+}
+let editingResearchKind="";
+function openResearchOption(kind){
+ if(!["company","department"].includes(kind))return;
+ editingResearchKind=kind;
+ const title="Add "+kind;
+ document.getElementById("researchOptionTitle").textContent=title;
+ document.getElementById("researchOptionLabel").textContent=kind==="company"?"Company name":"Department name";
+ document.getElementById("researchOptionName").value="";
+ document.getElementById("researchOptionDialog").showModal();
+ document.getElementById("researchOptionName").focus();
+}
+async function saveResearchOption(){
+ const kind=editingResearchKind;
+ const name=document.getElementById("researchOptionName").value.trim();
+ if(!name||name.length<2)return alertUser("Enter at least two characters.");
+ if(state.readOnly)return alertUser("Research is read-only.");
+ const selected=state.candidate,button=document.getElementById("researchOptionSave");
+ button.disabled=true;
+ try{
+  const v=await request("targets/save",{catalogKind:kind,catalogName:name,confirm:true});
+  if(selected!==state.candidate)return;
+  document.getElementById("researchOptionDialog").close();
+  if(kind==="company")state.researchCompany=v.name;
+  else state.researchDepartment=v.name;
+  await loadResearch();
+  alertUser(v.existing?"Already saved; selected "+v.name+".":"Added "+v.name+" for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
+}
+function openResearchLocation(){
+ document.getElementById("researchLocationValue").value=state.researchCity||"Dublin";
+ document.getElementById("researchLocationDialog").showModal();
+ document.getElementById("researchLocationValue").focus();
+}
+function saveResearchLocation(){
+ const city=document.getElementById("researchLocationValue").value.trim();
+ if(!city||city.length>100)return alertUser("Enter a city, region or country (up to 100 characters).");
+ state.researchCity=city;
+ document.getElementById("researchLocationDialog").close();
+ const el=document.getElementById("targetCity");if(el)el.value=city;
+ const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=city;pin.setAttribute("aria-label","Change city or country: "+city)}
+ updateTargetUrl();
+}
+
+function screenshotToBase64(file){
+ return new Promise((resolve,reject)=>{
+  if(!file)return resolve({imageData:"",mimeType:""});
+  if(!["image/jpeg","image/png","image/webp"].includes(file.type))return reject(Error("Use a PNG, JPEG or WebP screenshot."));
+  if(file.size>3*1024*1024)return reject(Error("Screenshot must be under 3 MB."));
+  const reader=new FileReader();
+  reader.onload=()=>resolve({imageData:String(reader.result||"").split(",")[1]||"",mimeType:file.type});
+  reader.onerror=()=>reject(Error("Could not read the selected screenshot."));
+  reader.readAsDataURL(file);
+ });
+}
+function photoProgressBody(){
+ const entries=state.photoResults||[];
+ const total=state.photoBatchTotal||entries.length;
+ const current=state.photoCompleted||entries.length;
+ const progress=state.photoUploading?'<div role="status">Uploading '+current+' of '+total+' selected screenshots…</div>':'';
+ const rows=entries.map(r=>'<div class="'+(r.status==="saved"?'research-upload-ok':'research-upload-fail')+'">'+
+ (r.status==="saved"?'✓ Saved NEW: ':'✕ Failed: ')+esc(r.fileName)+
+ (r.status==="failed"?' — '+esc(r.reason||"Please retry."):'')+'</div>').join("");
+ const retry=!state.photoUploading&&state.photoFailures.length
+   ?'<button class="btn small" id="retryResearchPhotos">Retry '+state.photoFailures.length+' failed</button>':"";
+ return progress+rows+retry;
+}
+function photoProgressHTML(){return '<div id="researchPhotoProgress" class="research-upload-progress" aria-live="polite">'+photoProgressBody()+'</div>'}
+function updatePhotoProgress(){
+ const el=document.getElementById("researchPhotoProgress");
+ if(el)el.innerHTML=photoProgressBody();
+ const btn=document.getElementById("saveResearchImage");
+ if(btn)btn.disabled=state.photoUploading;
+}
+async function uploadResearchPhotos(files,context){
+ if(state.photoUploading)return;
+ if(!Array.isArray(files)||!files.length)return alertUser("Select screenshots first.");
+ if(files.length>10)return alertUser("Choose no more than 10 screenshots per batch.");
+ const {candidate,company,department,city}=context;
+ if(!company||!department)return alertUser("Select an added company and department before uploading.");
+ const problems=files.filter(f=>!["image/jpeg","image/png","image/webp"].includes(f?.type)||f.size>3*1024*1024);
+ if(problems.length)return alertUser("Each file must be PNG, JPG or WebP and no larger than 3 MB.");
+ if(candidate!==state.candidate)return;
+ state.photoUploading=true;state.photoBatchTotal=files.length;state.photoCompleted=0;state.photoFailures=[];state.photoResults=[];
+ updatePhotoProgress();
+ try{
+  // One owner Drive consent per batch; each selected image is still saved separately.
+  const driveAccessToken=await socialDriveToken();
+  for(const file of files){
+   if(candidate!==state.candidate)break;
+   try{
+    const image=await screenshotToBase64(file);
+    const result=await request("inbox/image",{candidate,company,department,city,...image,driveAccessToken,confirm:true});
+    if(result.saved)state.photoResults.push({fileName:file.name,status:"saved",id:result.file?.id,name:result.file?.name});
+    else throw Error("Google Drive did not confirm the file.");
+   }catch(e){
+    state.photoResults.push({fileName:file.name,status:"failed",reason:String(e.message||"Upload failed.")});
+    state.photoFailures.push({file,context});
+   }
+   state.photoCompleted++;
+   updatePhotoProgress();
+  }
+ }catch(e){
+  // If OAuth failed, none of these files were uploaded. Keep all for safe retry.
+  if(candidate===state.candidate){
+   state.photoFailures=files.map(file=>({file,context}));
+   state.photoResults=files.map(file=>({fileName:file.name,status:"failed",reason:String(e.message||"Drive permission failed.")}));
+   state.photoCompleted=files.length;
+  }
+ }finally{
+  if(candidate===state.candidate){
+   state.photoUploading=false;
+   updatePhotoProgress();
+   // Do not count photos as verified contacts: only refresh the source queue.
+   if(state.photoResults.some(x=>x.status==="saved"))await loadInbox();
+   alertUser(state.photoResults.filter(x=>x.status==="saved").length+" photo(s) saved as NEW; "+
+    state.photoFailures.length+" failed. Nothing imported to contacts.");
+  }
+ }
+}
+async function saveInitialResearchImage(){
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ if(state.photoUploading)return;
+ const company=document.getElementById("targetCompany")?.value?.trim()||"";
+ const department=document.getElementById("targetDepartment")?.value?.trim()||"";
+ const city=document.getElementById("targetCity")?.value?.trim()||"Dublin";
+ const files=Array.from(document.getElementById("initialScreenshot")?.files||[]);
+ if(!company||!department)return alertUser("Select an added company and department.");
+ if(!files.length)return alertUser("Choose 1 to 10 screenshots.");
+ if(files.length>10)return alertUser("Select a maximum of 10 images.");
+ if(!confirm("Save "+files.length+" unverified screenshot(s) in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
+ await uploadResearchPhotos(files,{candidate:state.candidate,company,department,city});
+}
+async function retryResearchPhotos(){
+ if(state.photoUploading||!state.photoFailures.length)return;
+ const failed=state.photoFailures.slice();
+ const candidate=state.candidate;
+ if(!failed.every(x=>x.context.candidate===candidate))return alertUser("This batch belongs to a different candidate.");
+ if(!confirm("Retry "+failed.length+" failed screenshot(s) for "+candidate+"? Already saved photos will not be re-uploaded."))return;
+ await uploadResearchPhotos(failed.map(x=>x.file),failed[0].context);
+}
+async function saveInitialResearchText(){
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ const company=document.getElementById("targetCompany")?.value?.trim()||"";
+ const department=document.getElementById("targetDepartment")?.value?.trim()||"General";
+ const pageUrl=document.getElementById("inboxUrl")?.value?.trim()||"";
+ const copied=document.getElementById("inboxText")?.value?.trim()||"";
+ const file=document.getElementById("researchTextFile")?.files?.[0]||null;
+ if(!company||!department)return alertUser("Choose an added company and department under Targets before saving a source.");
+ if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
+ if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
+ if(!file&&!copied&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
+ if(!confirm("Save this unverified research source in "+state.candidate+"'s private Drive folder?"))return;
+ const selected=state.candidate;
+ try{
+  // Start the OAuth popup before any awaited File.text() call, for mobile browsers.
+  const driveAccessToken=await socialDriveToken();
+  const pastedText=file?await file.text():copied;
+  if(pastedText.length>25000)return alertUser("Text must be below 25,000 characters.");
+  if(!pastedText&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
+  const result=await request("inbox/save",{company,department,pageUrl,pastedText,driveAccessToken});
+  if(selected!==state.candidate)return;
+  alertUser("Saved "+result.name+" as a research source.");
+  await loadInbox();
+ }catch(e){alertUser(e.message)}
+}
+async function saveChatSource(){
+ const contact=document.getElementById("chatContact")?.value.trim(),company=document.getElementById("chatCompany")?.value.trim();
+ const chatText=document.getElementById("chatTranscript")?.value.trim()||"";
+ const file=document.getElementById("chatScreenshot")?.files?.[0]||null;
+ if(!contact||!company)return alertUser("Contact name and company are required.");
+ if(!file&&!chatText)return alertUser("Paste a conversation or attach a screenshot.");
+ if(file&&chatText)return alertUser("Choose either a screenshot or pasted chat for this record.");
+ if(!confirm("Save this private LinkedIn conversation source to your "+state.candidate+" Drive folder?"))return;
+ try{
+  const driveAccessToken=await socialDriveToken();
+  const image=await screenshotToBase64(file);
+  const result=await request("conversations/save",{contact,company,chatText,...image,driveAccessToken,confirm:true});
+  await loadResearch();alertUser("Conversation saved to Drive. Copy the GPT follow-up prompt to prepare a reply.");
+  return result;
+ }catch(e){alertUser(e.message)}
+}
+async function saveChatDraft(markSent=false){
+ const c=state.conversations.find(x=>x.id===state.selectedConversation);if(!c)return;
+ const draft=markSent?c.draft:document.getElementById("conversationDraft")?.value||"";
+ const next=markSent?c.next:document.getElementById("conversationNext")?.value||"";
+ if(!draft.trim())return alertUser("Paste an approved follow-up draft first.");
+ if(!confirm(markSent?"Confirm you manually sent this follow-up on LinkedIn?":"Save this reviewed draft to Freshmaal?"))return;
+ try{
+  await request("conversations/draft",{id:c.id,draft,next,status:markSent?"sent":"draft",confirm:true});
+  await loadResearch();alertUser(markSent?"Follow-up marked sent (manual).":"Draft saved to Freshmaal.");
+ }catch(e){alertUser(e.message)}
+}
+function updateTargetUrl(){
+ const company=document.getElementById("targetCompany")?.value.trim()||"",department=document.getElementById("targetDepartment")?.value.trim()||"",
+ city=document.getElementById("targetCity")?.value.trim()||"Dublin";
+ state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
+ const url=linkedInPeopleUrl(company,department,city);
+ const anchor=document.getElementById("researchNow");if(anchor)anchor.href=url;
+ // Updating target selections changes Search Now, not the saved target list.
+ // Keep the full saved-target list, its scroll position and dropdown state intact.
+ const context=document.getElementById("sourceContext");if(context)context.textContent="For "+[company||"your chosen company",department,city].filter(Boolean).join(" · ")+" · "+state.candidate+" private Drive";
+}
+async function loadInbox(){
+ const candidate=state.candidate;
+ try{
+  const v=await request("inbox/list");
+  if(state.candidate!==candidate)return;
+  state.inbox=v.files||[];state.inboxLoad=true;render();
+ }catch(e){if(state.candidate===candidate)alertUser(e.message)}
+}
+async function updateStatus(key,status,next){if(state.readOnly){alertUser("Tracking is read-only. The request was not recorded.");return}if(!confirm("I have manually sent this request on LinkedIn. Record "+status+"?"))return;
+ try{await request("status",{key,status,next:next||"",confirm:true});state.selected="";state.swipeIndex=0;await refresh();alertUser("Status saved to Freshmaal.")}catch(e){alertUser(e.message)}}
+async function markFollow(key){if(state.readOnly){alertUser("Tracking is read-only. The follow-up was not recorded.");return}if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
+ try{await request("followup",{key,confirm:true});state.selected="";await refresh();alertUser("Follow-up saved.")}catch(e){alertUser(e.message)}}
+function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(s).then(()=>alertUser("Copied."),()=>prompt("Copy text",s));else prompt("Copy text",s)}
+let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
+document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
+ updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
+document.addEventListener("input",e=>{if(["rvIntro","rvMiddle","rvClosing"].includes(e.target.id)){updateReviewLength();return}
+ if(e.target.id==="legacyInvitationMiddle"){updateLegacyInvitationLength();return}
+ if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("change",e=>{
+ if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
+ if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
+ if(e.target.id==="companyFilter"){state.company=e.target.value;render()}
+ if(e.target.id==="departmentFilter"){state.department=e.target.value;render()}
+ if(e.target.id==="templateDepartment"){populateTemplateEditor();return}
+ if(e.target.id==="followVariant"){const c=state.items.find(x=>x.key===state.selected);if(c)document.getElementById("followText").textContent=makeMessage(c,Number(e.target.value),true)}
+});
+document.addEventListener("click",async e=>{
+ const search=e.target.closest("#researchNow");
+ if(search&&(!state.researchCompany||!state.researchDepartment)){e.preventDefault();alertUser("Choose an added company and department before searching.");return}
+ const b=e.target.closest("button");if(!b)return;const v=b.dataset;
+ if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}if(v.view==="verify")loadReviewQueue();return}
+ if(v.researchMode){state.researchMode=v.researchMode;state.selectedConversation="";render();if(v.researchMode!=="followups"&&!state.inboxLoad)loadInbox();return}
+ if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=t.city;pin.setAttribute("aria-label","Change city or country: "+t.city)}updateTargetUrl()}return}
+ if(v.conversation){state.selectedConversation=state.selectedConversation===v.conversation?"":v.conversation;render();return}
+ if(v.copyFollowprompt){copyText(conversationResearchPrompt(state.conversations.find(x=>x.id===v.copyFollowprompt)));return}
+ if(v.industry){state.orgOpen=!(state.orgOpen&&state.industry===v.industry);state.industry=v.industry;state.company="";state.department="";render();return}
+ if(v.company!==undefined){state.company=state.company===v.company?"":v.company;state.orgOpen=false;render();return}
+ if(v.person){state.selected=v.person;render();return}
+ if(v.copy!==undefined){copyText(v.copy);return}
+ if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
+ 
+ if(b.id==="researchAddCompany"||b.id==="researchAddDepartment"){openResearchOption(b.id==="researchAddCompany"?"company":"department");return}
+ if(b.id==="researchOptionSave"){await saveResearchOption();return}
+ if(b.id==="researchOptionClose"||b.id==="researchOptionCancel"){document.getElementById("researchOptionDialog").close();return}
+ if(b.id==="researchLocationOpen"){openResearchLocation();return}
+ if(b.id==="researchLocationSave"){saveResearchLocation();return}
+ if(b.id==="researchLocationClose"||b.id==="researchLocationCancel"){document.getElementById("researchLocationDialog").close();return}
+ if(b.id==="retryResearchPhotos"){await retryResearchPhotos();return}
+ if(b.id==="personalisationOpen"){openPersonalisationDialog();return}
+ if(b.id==="copyPersonalisationPrompt"){copyPersonalisationEditPrompt();return}
+ if(b.id==="personalisationClose"||b.id==="personalisationCancel"){document.getElementById("personalisationDialog").close();return}
+ if(v.reviewId){state.reviewSelected=v.reviewId;render();return}
+ if(b.id==="reviewReload"){await loadReviewQueue();return}
+ if(b.id==="reviewStageOpen"){document.getElementById("reviewStageDialog").showModal();return}
+ if(b.id==="reviewStageClose"||b.id==="reviewStageClose2"){document.getElementById("reviewStageDialog").close();return}
+ if(b.id==="reviewStageSave"){
+  if(state.readOnly)return alertUser("Social is read-only.");
+  const val=id=>document.getElementById(id)?.value.trim()||"";
+  const candidate=state.candidate;
+  const record={name:val("rstName"),company:val("rstCompany"),department:val("rstDepartment"),designation:val("rstDesignation"),location:val("rstLocation"),profile:val("rstProfile"),evidence:val("rstEvidence"),notes:val("rstNotes")};
+  if(!confirm("Stage "+record.name+" as an unverified screenshot contact?"))return;
+  try{await request("review/stage",{record,confirm:true});if(candidate!==state.candidate)return;document.getElementById("reviewStageDialog").close();await loadReviewQueue();alertUser("Pending contact staged; verify before messaging.");}catch(err){if(candidate===state.candidate)alertUser(err.message)}return
+ }
+ if(b.id==="rvSaveReview"){await reviewSaveStatus("Reviewed");return}
+ if(b.id==="rvSaveDraft"){await reviewSaveStatus("Draft Ready");return}
+ if(b.id==="rvReject"){await reviewSaveStatus("Rejected");return}
+ if(b.id==="rvApproveSwipe"){await reviewPromote();return}
+ if(b.id==="rvCopyDraftPrompt"){copyText(reviewDraftPrompt());return}
+ if(b.id==="saveTarget"){await saveResearchTarget();return}
+ if(b.id==="saveConversation"){await saveChatSource();return}
+ if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
+ if(b.id==="copyGeneralFollowPrompt"){copyText(conversationResearchPrompt({contact:document.getElementById("chatContact")?.value||"",company:document.getElementById("chatCompany")?.value||""}));return}
+ if(b.id==="saveConversationDraft"){await saveChatDraft(false);return}
+ if(b.id==="markConversationSent"){await saveChatDraft(true);return}
+ if(b.id==="editTemplate"){openTemplateEditor(v.department);return}
+ if(b.id==="reviewLegacyInvitation"){openLegacyInvitationReview();return}
+ if(b.id==="legacyInvitationSave"){await saveLegacyInvitationReview();return}
+ if(b.id==="legacyInvitationClose"||b.id==="legacyInvitationCancel"){document.getElementById("legacyInvitationDialog").close();return}
+ if(b.id==="templateClose"){document.getElementById("templateDialog").close();return}
+ if(b.id==="templateReset"){const p=suggestedTemplate(document.getElementById("templateDepartment").value);document.getElementById("templateIntro").value=p.introduction;document.getElementById("templateClosing").value=p.closing;return}
+ if(b.id==="templateSave"){await saveTemplateEditor();return}
+ if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
+ if(b.id==="refresh"){refresh();return}
+ if(b.id==="closeDetail"){state.selected="";render();return}
+ if(b.id==="addContact"){document.getElementById("importDialog").showModal();const completed=document.getElementById("importSourceComplete");if(completed)completed.checked=false;const s=document.getElementById("importSource");s.innerHTML='<option value="">No source file</option>'+state.inbox.filter(f=>f.status==="new").map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+'</option>').join("");return}
+ if(["importCancel","importClose"].includes(b.id)){document.getElementById("importDialog").close();return}
+ if(b.id==="saveStatus"){await updateStatus(state.selected,document.getElementById("statusPick").value,document.getElementById("nextDate").value);return}
+ if(b.id==="copyFollow"){const c=state.items.find(x=>x.key===state.selected);if(c)copyText(makeMessage(c,Number(document.getElementById("followVariant").value),true));return}
+ if(b.id==="markFollow"){await markFollow(state.selected);return}
+ if(b.id==="later"||b.id==="sent"){const x=swipeQueue()[state.swipeIndex];if(x){state.lastSwipe={key:x.key,before:x.relation?.status||"identified"};await updateStatus(x.key,b.id==="later"?"later":"sent","")}return}
+ if(b.id==="undo"&&state.lastSwipe){const {key,before}=state.lastSwipe;state.lastSwipe=null;await updateStatus(key,before,"");return}
+ if(b.id==="saveResearchImage"){await saveInitialResearchImage();return}
+ if(b.id==="saveInbox"){await saveInitialResearchText();return}
+ if(v.campaignIndex!==undefined){const idx=Number(v.campaignIndex);if(Number.isInteger(idx)&&idx>=0&&idx<campaignSteps.length){state.campaignIndex=idx;state.company=campaignSteps[idx].company;state.department=campaignSteps[idx].department;render()}return}
+ if(b.id==="nextCampaign"||b.id==="prevCampaign"){const diff=b.id==="nextCampaign"?1:-1;state.campaignIndex=Math.max(0,Math.min(campaignSteps.length-1,state.campaignIndex+diff));const step=currentCampaign();state.company=step.company;state.department=step.department;render();return}
+ if(b.id==="copyTargetSearch"){const step=currentCampaign();copyText([step.company,step.department,"Dublin"].join(" "));return}
+ if(b.id==="copyResearch"){copyText(researchPrompt());return}
+ if(b.id==="reloadInbox"){await loadInbox();return}
+ if(b.id==="importConfirm"){
+  const source=document.getElementById("importSource").value;
+  const sourceComplete=Boolean(source&&document.getElementById("importSourceComplete")?.checked);
+  const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",personalisedMiddle:parts[5]||"",profileVerified:false}});
+  if(!items.length)return alertUser("Paste some names first.");
+  if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
+  try{const driveAccessToken=source?await socialDriveToken():null;
+   const result=await request("import",{items,sourceFileId:source,sourceComplete,driveAccessToken,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" Source rename needs review.":source&&result.sourceMarkedUsed?" Source marked USED after verification.":source?" Source remains NEW until full review.":""));
+   document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
+  }catch(err){alertUser(err.message)}return
+ }
+});
+document.getElementById("candA").onclick=()=>switchCandidate("Abhishek");
+document.getElementById("candP").onclick=()=>switchCandidate("Pooja");
+// Visual input activity indicator only: no submit interception, API mutation or spreadsheet write.
+// Reflects changes in this browser, not simultaneous edits by other Google Sheets collaborators.
+(function(){
+ const badge=document.getElementById("socialModeBadge");let timer;
+ function showLocalEditing(e){
+  if(state.readOnly)return;
+  const field=e.target;
+  if(!field||!field.matches||!field.matches("input,textarea,select,[contenteditable]")||
+     field.readOnly||field.disabled||field.matches('input[type="hidden"]'))return;
+  if(field.id==="search"||field.id==="groupFilter"||field.id==="companyFilter"||field.id==="departmentFilter")return;
+  badge.textContent="EDITING";badge.classList.add("garamaal-editing");
+  badge.title="Local input detected. Nothing is written to Google Sheets without an explicit save or confirmation.";
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+   badge.textContent=state.readOnly?"READ ONLY":"LIVE";
+   badge.classList.remove("garamaal-editing");
+   badge.title="Google Sheets connection status; this does not show other users' editing activity.";
+  },2600);
+ }
+ document.addEventListener("input",showLocalEditing,true);
+ document.addEventListener("change",showLocalEditing,true);
+ document.addEventListener("keydown",e=>{if(e.key==="Enter")showLocalEditing(e)},true);
+})();
+refresh();
+</script></body></html>

@@ -18,6 +18,8 @@ class MockSheet{
     return{
       getValues(){return Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>self.get(row+i,col+j)))},
       getValue(){return self.get(row,col)},
+      getDisplayValue(){return String(self.get(row,col)||'')},
+      getDisplayValues(){return Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>String(self.get(row+i,col+j)||'')))},
       setValue(v){assert.equal(n*m,1);self.set(row,col,v);self.writes.push({row,col,v});return this},
       setValues(arr){for(let i=0;i<n;i++)for(let j=0;j<m;j++)self.set(row+i,col+j,arr[i][j]);self.writes.push({row,col,n,m,arr});return this},
       getDataValidation(){return null},
@@ -25,7 +27,7 @@ class MockSheet{
     }
   }
 }
-const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,53),regions={};
+const taaza=new MockSheet('Jobs',80,26),fresh=new MockSheet('Sheet1',80,60),regions={};
 taaza.set(1,1,'Company Name');taaza.set(1,2,'Designation');taaza.set(1,3,'Link');fresh.set(1,1,'Company Name');
 function taazaRow(row,name,url){taaza.set(row,1,name);taaza.set(row,2,`${name} Role`);taaza.set(row,3,url);taaza.set(row,4,'A full and verified job description of more than eighty characters with many responsibilities and qualifications.')}
 function freshRow(row,name,url){fresh.set(row,1,name);fresh.set(row,2,`${name} Role`);fresh.set(row,3,url);fresh.set(row,4,'A long and complete job description for analysis');fresh.set(row,38,85);fresh.set(row,39,row-2)}
@@ -181,8 +183,8 @@ const html=fs.readFileSync(__dirname+'/../Index.html','utf8');
 const script=html.match(/<script>([\s\S]+?)<\/script>/);
 assert.ok(script);
 new vm.Script(script[1],{filename:'Index.html'});
-assert.match(html,/Download CV/);assert.match(html,/Copy post-CV prompt/);
-assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-cv"/);
+assert.match(html,/CV and cover letter files/);assert.match(html,/Copy post-CV prompt/);
+assert.match(html,/data-action="copy-prompt"/);assert.match(html,/data-action="download-options"/);
 
 // Candidate preference states: Favorite stays visible in normal views, but can be
 // filtered independently of Not Interested for each person.

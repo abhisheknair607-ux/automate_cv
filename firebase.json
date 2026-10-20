@@ -8,6 +8,27 @@
     ],
     "rewrites": [
       {
+        "source": "/social",
+        "run": {
+          "serviceId": "automate-cv-social",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/social/bridge.js",
+        "run": {
+          "serviceId": "automate-cv-social",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/api/social/**",
+        "run": {
+          "serviceId": "automate-cv-social",
+          "region": "europe-west1"
+        }
+      },
+      {
         "source": "**",
         "run": {
           "serviceId": "automate-cv-dashboard",

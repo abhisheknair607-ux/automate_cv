@@ -15,6 +15,7 @@ const connections=require("./connections");
 const {jdClues}=require("./job_clues");
 const clueStore=require("./clue_store");
 const contactsStore=require("./contacts_store");
+const socialStore=require("./social_store");
 const {repairRankFormulas}=require("./rank_formulas");
 
 const BASE = path.resolve(__dirname,"..");
@@ -39,7 +40,7 @@ if(!READ_ONLY && Object.values(IDS).some(id=>LIVE_SHEET_IDS.has(id)) &&
   throw new Error("Production spreadsheet writes are locked pending explicit cutover approval");
 }
 if(!getApps().length)initializeApp({projectId:PROJECT||undefined});
-const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive.readonly"]});
+const auth = new GoogleAuth({scopes:["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive.readonly","https://www.googleapis.com/auth/drive.file"]});
 const app=express();
 app.disable("x-powered-by");
 app.set("trust proxy",1);
@@ -104,6 +105,7 @@ for(const [route,[file,mime]] of Object.entries(PWA_ASSETS)) {
   });
 }
 
+app.get("/social",(req,res)=>res.type("html").sendFile(path.join(__dirname,"social.html")));
 app.get("/",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   // Preserve existing authenticated dashboard; inject its Cloud Run transport.
@@ -233,6 +235,19 @@ app.post("/api/clues/save",async(req,res)=>{
   res.json({data:result});
  }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"Unable to save JD clues").slice(0,260)})}
 });
+// Read saved contacts without payment or requiring Web to remain checked.
+app.post("/api/connections/saved",async(req,res)=>{
+ try{
+  const job=await authorisedJob(req);
+  const access=await (await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  const saved=await contactsStore.read({token,spreadsheetId:IDS.fresh,job});
+  res.json({data:{contacts:saved.contacts,sheetUrl:saved.url,count:saved.contacts.length,
+    candidate:job.candidate,row:job.row}});
+ }catch(error){
+  res.status(error.httpCode||500).json({error:String(error.message||"Contacts unavailable").slice(0,230)});
+ }
+});
 app.post("/api/connections/preview",async(req,res)=>{
  try{
   const job=await authorisedJob(req),tier=String(req.body?.tier||"1-5");
@@ -280,6 +295,38 @@ app.post("/api/connections/research",async(req,res)=>{
     saveWarning:persistenceError}});
  }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
    res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
+});
+// Scoped Social/Research operations: require authenticated Garamaal user and
+// an explicit A/P workspace selection. Candidate records stay separated in storage.
+app.post("/api/social/*",async(req,res)=>{
+ try{
+  await authenticate(req); // Existing Garamaal Google sign-in still governs platform access.
+  // A/P is a workspace selector, not an email-based permission boundary.
+  const candidate=socialStore.selectedCandidate(req.body?.candidate);
+  const action=req.params[0],body=req.body||{};
+  if(!["data","status","followup","import","inbox/save","inbox/list"].includes(action))
+    return res.status(404).json({error:"Unknown Social operation"});
+  const write=["status","followup","import","inbox/save"].includes(action);
+  if(write&&READ_ONLY)throw Object.assign(Error("Social writes are disabled by the server's read-only gate."),{httpCode:403});
+  const access=await(await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  if(!token)throw Error("Google Sheets / Drive credentials unavailable.");
+  const base={token,candidate,id:IDS.fresh};
+  let data;
+  if(action==="data")data={candidate,...await socialStore.list(base)};
+  else if(action==="status")data=await socialStore.writeStatus({...base,key:body.key,status:body.status,next:body.next,
+     department:body.department,city:body.city,type:body.type,confirm:body.confirm});
+  else if(action==="followup")data=await socialStore.setFollowup({...base,key:body.key,confirm:body.confirm});
+  else if(action==="import")data=await socialStore.importContacts({...base,driveAccess:token,
+     items:body.items,confirm:body.confirm,sourceFileId:body.sourceFileId});
+  else if(action==="inbox/save")data=await socialStore.submitResearch({token,candidate,
+     company:body.company,department:body.department,pageUrl:body.pageUrl,pastedText:body.pastedText});
+  else if(action==="inbox/list")data=await socialStore.listResearch({token,candidate});
+  res.json({data});
+ }catch(error){
+  console.error("[social]",req.params[0],String(error.message||"error").slice(0,180));
+  res.status(error.httpCode||500).json({error:String(error.message||"Social operation failed").slice(0,300)});
+ }
 });
 app.post("/api/:method",async (req,res)=>{
   try {
