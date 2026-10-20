@@ -194,7 +194,7 @@ test("Compact merged Research UI keeps one metadata form and two predictable sta
  assert.equal(page.split('role="tab"').length-1,2,"Only Research and Chat Follow-ups sub-tabs remain");
  assert.match(page,/Saved targets/);
  assert.match(page,/Research queue/);
- assert.equal(h.getNode("socialModeBadge").textContent,"LIVE SHEET");
+ assert.equal(h.getNode("socialModeBadge").textContent,"LIVE");
  h.run('state.researchMode="followups";render()');
  page=h.getNode("app").innerHTML;
  for(const id of ["chatContact","chatCompany","chatTranscript","chatScreenshot","saveConversation","copyGeneralFollowPrompt"])
