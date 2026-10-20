@@ -52,6 +52,6 @@ test("Research source import prompt explicitly restricts columns and requires ve
 });
 test("Follow-up prompt defaults to no writes, or one approved SocialFollowups H cell",()=>{
  const h=mock(),prompt=h.run('conversationResearchPrompt({contact:"Jane",company:"EY",id:"abcdef",driveUrl:"https://drive.google.com/file/d/test/view"})');
- for(const expected of ["SocialFollowups","H Draft Reply","DEFAULT: NO SHEET WRITES","ONLY GPT-editable cell","Connections (A:O)","SocialTracking (A:K)","I:K are READ-ONLY"])assert.ok(prompt.includes(expected),"Missing: "+expected);
+ for(const expected of ["SocialFollowups","H Draft Reply","DEFAULT: NO SHEET WRITES","ONLY GPT-editable cell","Connections (A:O, including M=Invitation Introduction","SocialTracking (A:K)","I:K are READ-ONLY"])assert.ok(prompt.includes(expected),"Missing: "+expected);
  assert.match(prompt,/manually send/);
 });
