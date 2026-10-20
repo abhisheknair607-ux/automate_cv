@@ -409,7 +409,7 @@ function invitationPreview(c){
  const template=deptTemplate(department(c));
  const intro=templateText(template.introduction,c);
  const closing=templateText(template.closing,c);
- const text=[intro,middle,closing].join("\n\n");
+ const text=[intro,middle,closing].join("\n");
  return {text,kind:text===saved?"saved":"preview",
   note:text===saved?"Saved invitation matches the master template":"Latest master template preview · saved Connections!K is unchanged"};
 }
