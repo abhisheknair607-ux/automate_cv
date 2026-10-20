@@ -119,7 +119,7 @@ test("A/P selector is interactive and persists the same candidate as the Jobs ap
  assert.match(html, /setItem\("garamaal-social-candidate",candidate\)/);
  assert.match(html, /candA"\)\.onclick=\(\)=>switchCandidate\("Abhishek"\)/);
  assert.match(html, /candP"\)\.onclick=\(\)=>switchCandidate\("Pooja"\)/);
- assert.match(html, /state\.items=\[\];state\.query="";state\.company="";/);
+ assert.match(html, /state\.items=\[\];state\.reviewItems=\[\];state\.reviewSelected="";state\.reviewLoaded=false;state\.query="";state\.company="";/);
  assert.match(server,/await authenticate\(req\);/);
  assert.match(server,/selectedCandidate\(req\.body\?\.candidate\)/);
  assert.ok(!server.includes("socialStore.candidateFromEmail"));
