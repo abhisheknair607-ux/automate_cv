@@ -76,6 +76,32 @@ async function accessToken(){
 app.get("/health",(_req,res)=>res.json({
   ok:true,service:"garamaal-social",readOnly,release,credentialsConfigured:!!project&&!!allowed.size
 }));
+// Social-only preview /config. The shared browser bridge expects same-origin
+// public Firebase web settings, while the isolated Cloud Run image deliberately
+// has no Jobs configuration or secret environment variables. Read the existing
+// PUBLIC Firebase config from Garamaal Hosting and emit only SDK-safe fields.
+// This is a read-only request: Jobs routes, images and settings are untouched.
+async function publicFirebaseConfig(fetcher=fetch){
+  let response;
+  try {
+    response=await fetcher("https://garamaal.web.app/config",{
+      headers:{Accept:"application/json"},signal:AbortSignal.timeout(8000)
+    });
+  }catch{throw bad("Public Firebase configuration unavailable.",503)}
+  if(!response.ok)throw bad("Public Firebase configuration unavailable.",503);
+  const body=await response.json().catch(()=>({}));
+  const keys=["apiKey","authDomain","projectId","appId"];
+  if(keys.some(k=>typeof body[k]!=="string"||!body[k]||body[k].length>1024)
+     ||body.projectId!==project
+     ||!/^[A-Za-z0-9.-]+$/.test(body.authDomain))
+    throw bad("Public Firebase configuration is incomplete or mismatched.",503);
+  return Object.fromEntries(keys.map(k=>[k,body[k]]));
+}
+app.get("/config",async(_req,res)=>{
+ try{res.json(await publicFirebaseConfig())}
+ catch{res.status(503).json({error:"Social sign-in configuration unavailable."})}
+});
+
 app.get("/social",(_req,res)=>res.type("html").sendFile(path.join(__dirname,"social.html")));
 app.get("/social/bridge.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js")));
 
@@ -123,4 +149,4 @@ app.post("/api/social/*",async(req,res)=>{
 app.use((_req,res)=>res.status(404).type("text").send("Not found"));
 if(require.main===module)app.listen(Number(process.env.PORT||8080),"0.0.0.0",
   ()=>console.log("[garamaal-social] listening; write gate="+(readOnly?"read-only":"enabled")));
-module.exports={app,delegatedDriveToken};
+module.exports={app,delegatedDriveToken,publicFirebaseConfig};
