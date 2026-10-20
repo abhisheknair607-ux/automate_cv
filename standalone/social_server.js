@@ -127,7 +127,7 @@ app.post("/api/social/*",async(req,res)=>{
       next:payload.next,department:payload.department,city:payload.city,type:payload.type,confirm:payload.confirm});
     else if(action==="followup")data=await social.setFollowup({...base,key:payload.key,confirm:payload.confirm});
     else if(action==="import")data=await social.importContacts({...base,driveAccess,
-      items:payload.items,sourceFileId:payload.sourceFileId,confirm:payload.confirm});
+      items:payload.items,sourceFileId:payload.sourceFileId,sourceComplete:payload.sourceComplete===true,confirm:payload.confirm});
     else if(action==="inbox/save")data=await social.submitResearch({
       token:driveAccess,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
     else if(action==="inbox/list")data=await social.listResearch({token,candidate});
