@@ -97,21 +97,15 @@ test("Compact dashboard hides firm chips until one of the two industry buttons i
  h.run('state.industry="wealth";state.orgOpen=true;render()');
  assert.match(h.getNode("app").innerHTML,/data-company="Davy"/);
 });
-test("Research campaign order follows each corporate finance team for each firm",async()=>{
+test("Legacy campaign planner does not appear in the Research tab or alter saved targets",async()=>{
  const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
  await new Promise(resolve=>setImmediate(resolve));
- const labels=JSON.parse(h.run('JSON.stringify(campaignSteps.slice(0,10).map(x=>x.company+" "+x.department))'));
- assert.deepEqual(labels,[
-  "EY Deals","EY Transaction Services","EY Valuations",
-  "Deloitte Deals","Deloitte Transaction Services","Deloitte Valuations",
-  "KPMG Deals","KPMG Transaction Services","KPMG Valuations",
-  "PwC Deals"
- ]);
- h.run('state.view="inbox"; render()');
- assert.match(h.getNode("app").innerHTML,/EY · Deals/);
- assert.match(h.getNode("app").innerHTML,/nextCampaign/);
- h.run('state.campaignIndex=3;render()');
- assert.match(h.getNode("app").innerHTML,/Deloitte · Deals/);
+ h.run('state.view="inbox";state.researchMode="research";render()');
+ const research=h.getNode("app").innerHTML;
+ assert.doesNotMatch(research,/Consulting & Wealth Campaign planner/);
+ assert.doesNotMatch(research,/id="nextCampaign"|id="prevCampaign"|data-campaign-index=/);
+ assert.match(research,/id="researchSavedTargets"/);
+ assert.match(research,/id="researchTargetResults"/);
 });
 test("Individual coffee invitations remain optional and within LinkedIn character budget",async()=>{
  const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[item(candidate,"Demo Recruiter")]}));
@@ -187,8 +181,10 @@ test("Compact merged Research UI keeps one metadata form and two predictable sta
  assert.match(page,/class="research-space"/);
  assert.match(page,/class="research-tabs"/);
  assert.match(page,/class="research-action-grid"/);
- assert.match(page,/Campaign planner/);
- assert.match(page,/Outreach targets/);
+ assert.doesNotMatch(page,/Campaign planner/);
+ assert.doesNotMatch(page,/Outreach targets/);
+ assert.match(page,/id="researchSavedTargets"/);
+ assert.match(page,/class="research-queue-scroll"/);
  assert.match(page,/research-expand/);
  assert.match(page,/research-tip/);
  for(const id of ["researchNow","saveTarget","copyResearch","targetCompany","targetDepartment","targetCity","initialScreenshot","saveResearchImage","researchTextFile","inboxUrl","inboxText","saveInbox","reloadInbox"])
