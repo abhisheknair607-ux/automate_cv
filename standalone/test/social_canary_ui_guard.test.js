@@ -11,9 +11,8 @@ const html=fs.readFileSync(path.join(root,"social.html"),"utf8");
 test("Social release preflight and canary validate visible Research dropdown and bounded queue",()=>{
  for(const marker of ['id="researchSavedTargets"','class="research-queue-scroll"']){
   assert.ok(html.includes(marker),"Required live Research UI marker missing: "+marker);
-  const escaped=marker.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
-  assert.match(script,new RegExp("grep -Fq '"+escaped+"' \\"\\$ROOT/standalone/social\\.html\\""));
-  assert.match(script,new RegExp("grep -Fq '"+escaped+"' \\"\\$TMP/social\\.html\\""));
+  assert.ok(script.includes("grep -Fq '"+marker+"' \"$ROOT/standalone/social.html\""),"Source preflight must check "+marker);
+  assert.ok(script.includes("grep -Fq '"+marker+"' \"$TMP/social.html\""),"Preview HTML must check "+marker);
  }
  assert.doesNotMatch(script,/savedTargetRows\(query\)/,"No brittle old helper signature allowed in release script");
  assert.match(html,/function savedTargetRows\(\)/);
