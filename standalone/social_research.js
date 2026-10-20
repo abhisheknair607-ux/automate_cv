@@ -4,8 +4,9 @@
  * Sheet writes affect only SocialTargets / SocialFollowups, never Jobs/Sheet1.
  */
 const crypto=require("node:crypto");
-const TARGET_TAB="SocialTargets",CONVO_TAB="SocialFollowups";
+const TARGET_TAB="SocialTargets",CONVO_TAB="SocialFollowups",CATALOG_TAB="SocialResearchCatalog";
 const TARGET_HEAD=["Candidate","Company","Department","City","LinkedIn Search URL","Updated UTC"];
+const CATALOG_HEAD=["Candidate","Kind","Name","Added UTC"];
 const CONVO_HEAD=["Candidate","ID","Contact Name","Company","Source Type","Drive File ID","Drive URL","Draft Reply","Status","Next Follow-up","Updated UTC"];
 function err(s,httpCode=400){return Object.assign(Error(s),{httpCode})}
 // Google Drive returns a machine-readable error reason, but its free-form
@@ -63,10 +64,41 @@ async function ensure({token,id,tab,head,fetcher}){
 }
 async function listTargets({token,id,candidate,fetcher}){
  candidateCheck(candidate);
- const rows=await read({token,id,tab:TARGET_TAB,cols:"A1:F",fetcher});
+ const [rows,catalogRows]=await Promise.all([
+  read({token,id,tab:TARGET_TAB,cols:"A1:F",fetcher}),
+  read({token,id,tab:CATALOG_TAB,cols:"A1:D",fetcher})
+ ]);
  if(rows.length&&TARGET_HEAD.some((k,i)=>rows[0][i]!==k))throw err("SocialTargets columns changed.",409);
- return {targets:rows.slice(1).map((r,i)=>({row:i+2,candidate:r[0],company:r[1],department:r[2],city:r[3],searchUrl:r[4]||"",updated:r[5]}))
-   .filter(x=>x.candidate===candidateName(candidate))};
+ if(catalogRows.length&&CATALOG_HEAD.some((k,i)=>catalogRows[0][i]!==k))throw err("SocialResearchCatalog columns changed.",409);
+ const owner=candidateName(candidate);
+ const targets=rows.slice(1).map((r,i)=>({row:i+2,candidate:r[0],company:r[1],department:r[2],city:r[3],searchUrl:r[4]||"",updated:r[5]}))
+   .filter(x=>x.candidate===owner);
+ const saved=catalogRows.slice(1).filter(r=>r[0]===owner);
+ const unique=values=>[...new Map(values.filter(Boolean).map(v=>[v.toLowerCase(),v])).values()].sort((a,b)=>a.localeCompare(b));
+ return {
+  targets,
+  companies:unique([...targets.map(t=>t.company),...saved.filter(r=>r[1]==="company").map(r=>r[2])]),
+  departments:unique([...targets.map(t=>t.department),...saved.filter(r=>r[1]==="department").map(r=>r[2])])
+ };
+}
+async function saveCatalogName({token,id,candidate,kind,name,confirm,fetcher}){
+ candidateCheck(candidate);
+ if(confirm!==true)throw err("Confirm adding the Research dropdown option.");
+ if(!["company","department"].includes(kind))throw err("Choose company or department.");
+ name=value(name,120);
+ if(!name||name.length<2)throw err("Enter at least two characters for the new name.");
+ const before=await listTargets({token,id,candidate,fetcher});
+ const prop=kind==="company"?"companies":"departments";
+ const existing=before[prop].find(v=>v.toLowerCase()===name.toLowerCase());
+ if(existing)return {saved:true,existing:true,kind,name:existing};
+ await ensure({token,id,tab:CATALOG_TAB,head:CATALOG_HEAD,fetcher});
+ await api(sheet(id)+"/values/"+range(CATALOG_TAB,"A1:D")+
+  ":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,
+  {method:"POST",body:{values:[[candidateName(candidate),kind,name,new Date().toISOString()]]},fetcher});
+ const after=await listTargets({token,id,candidate,fetcher});
+ if(!after[prop].some(v=>v.toLowerCase()===name.toLowerCase()))
+  throw err("Research option could not be verified. Refresh.",409);
+ return {saved:true,existing:false,kind,name};
 }
 async function saveTarget({token,id,candidate,company,department,city,confirm,fetcher}){
  candidateCheck(candidate);
@@ -187,4 +219,4 @@ async function saveDraft({token,id,candidate,conversationId,draft,next,status="d
  await api(sheet(id)+"/values/"+range(CONVO_TAB,"A"+item.row+":K"+item.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[newRow]},fetcher});
  return {saved:true,status};
 }
-module.exports={safeDriveReason,uploadError,TARGET_HEAD,CONVO_HEAD,researchUrl,safeLink,safeImage,saveLeadScreenshot,listTargets,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};
+module.exports={safeDriveReason,uploadError,TARGET_HEAD,CATALOG_HEAD,CONVO_HEAD,listTargets,saveCatalogName,researchUrl,safeLink,safeImage,saveLeadScreenshot,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};
