@@ -34,7 +34,7 @@ test("New line-edit prompt is strictly scoped to one candidate Connections N cel
   "Jane Example","EY","column F",
   "Research public internet sources",
   "Please make the middle line less formal",
-  "ASK for my explicit approval",
+  "Ask for my explicit approval",
   "Never edit Connections A:M or O",
   "<=300 characters"
  ])assert.ok(prompt.includes(expected),"Expected constraint missing: "+expected);
@@ -48,10 +48,10 @@ test("New line-edit prompt is strictly scoped to one candidate Connections N cel
 test("Research source import prompt explicitly restricts columns and requires verified read-back",()=>{
  const h=mock();
  const prompt=h.run("researchPrompt()");
- for(const expected of ["Connections A:O only for NEW","J Evidence/source URLs","K composed","SocialTracking tab: append NEW rows in A:K","SocialTemplates (A:E)","SocialFollowups (A:K)","READ-ONLY","read back the edited cells"])assert.ok(prompt.includes(expected),"Missing: "+expected);
+ for(const expected of ["Connections A:O only for NEW","J Evidence/source URLs","K composed","SocialTracking tab: append NEW rows in A:K","SocialTemplates A:E","SocialFollowups (A:K)","READ-ONLY","read back the edited cells"])assert.ok(prompt.includes(expected),"Missing: "+expected);
 });
 test("Follow-up prompt defaults to no writes, or one approved SocialFollowups H cell",()=>{
  const h=mock(),prompt=h.run('conversationResearchPrompt({contact:"Jane",company:"EY",id:"abcdef",driveUrl:"https://drive.google.com/file/d/test/view"})');
- for(const expected of ["SocialFollowups","H Draft Reply","DEFAULT: NO SHEET WRITES","ONLY GPT-editable cell","Connections (A:L)","SocialTracking (A:K)","I:K are READ-ONLY"])assert.ok(prompt.includes(expected),"Missing: "+expected);
+ for(const expected of ["SocialFollowups","H Draft Reply","DEFAULT: NO SHEET WRITES","ONLY GPT-editable cell","Connections (A:O)","SocialTracking (A:K)","I:K are READ-ONLY"])assert.ok(prompt.includes(expected),"Missing: "+expected);
  assert.match(prompt,/manually send/);
 });
