@@ -9,7 +9,7 @@ test("Social-only guarded canary includes reviewed-queue module and does not dep
  assert.match(script,/for file in social_server\.js social_store\.js social_research\.js social_review\.js social\.html bridge\.js/);
  assert.match(docker,/COPY standalone\/social_review\.js/);
  assert.match(script,/--no-traffic --tag social-oauth-preview/);
- assert.match(script,/JOBS_UNCHANGED/);
+ assert.match(script,/SAFE STOP: Jobs revision\/traffic changed/);
  assert.doesNotMatch(script,/gcloud run deploy "\$JOBS"/);
  assert.doesNotMatch(script,/firebase deploy/);
 });
