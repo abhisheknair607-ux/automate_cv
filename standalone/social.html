@@ -188,6 +188,29 @@ body{background:#f5f7fb}
 .research-source-option .research-expand{margin:0}
 .research-source-option>.btn{align-self:flex-start;margin-top:auto}
 @media(max-width:700px){.research-source-grid{grid-template-columns:1fr}.research-source-option>.btn{width:100%}.research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Research-only strict selection, map-style location trigger, upload feedback */
+.research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;align-items:end;gap:8px}
+.research-select-row{display:flex;align-items:center;gap:5px;min-width:0}
+.research-select-row select{flex:1;min-width:0;min-height:39px;border:1px solid #dbe4ef;background:#fbfcfe;border-radius:10px;padding:9px 6px;font-size:12px;color:#193555}
+.research-select-add{width:35px;min-width:35px;height:39px;padding:0;border-radius:10px;background:#edf4ff;border:1px solid #cedff7;color:#2760b2;font-size:19px;font-weight:700}
+.research-location{display:flex;align-items:center;justify-content:center;width:44px;height:39px;background:#edf4ff;color:#2563eb;border:1px solid #cbdbf2;border-radius:11px}
+.research-location svg{width:21px;height:21px}
+.research-location:hover,.research-select-add:hover{background:#deebff}
+.research-form .research-location-field{margin-bottom:9px}
+.research-location-field>span{display:block;font-size:11px;margin-bottom:5px}
+.research-upload-progress{margin:6px 0 0;font-size:11px;color:#536d89;line-height:1.6}
+.research-upload-progress div{overflow-wrap:anywhere}
+.research-upload-ok{color:#14754a}.research-upload-fail{color:#9a4343}
+.research-upload-progress .btn{font-size:11px;margin-top:5px}
+.research-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media(max-width:700px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:6px}
+ .research-space .research-form .city{grid-column:auto}
+ .research-select-add{min-width:31px;width:31px}
+ .research-space .research-form .field{min-width:0}
+ .research-select-row select{font-size:11px;padding:8px 3px}
+}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -209,6 +232,19 @@ body{background:#f5f7fb}
  <div class="subtle">Use {{first_name}}, {{company}} or {{department}}. The three lines together must fit LinkedIn's 300-character invitation limit after GPT fills the middle.</div>
  <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
 </dialog>
+
+<dialog id="researchOptionDialog" aria-label="Add a company or department">
+ <div class="section-head"><b id="researchOptionTitle">Add option</b><button type="button" class="btn small" id="researchOptionClose" aria-label="Close">✕</button></div>
+ <label class="field"><span id="researchOptionLabel">Name</span><input id="researchOptionName" type="text" maxlength="120" autocomplete="off" placeholder="Type a new name"></label>
+ <div class="subtle">Saved in this candidate's Research dropdown only. No contacts will be imported.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchOptionCancel">Cancel</button><button type="button" class="btn primary" id="researchOptionSave">Add</button></div>
+</dialog>
+<dialog id="researchLocationDialog" aria-label="Choose research location">
+ <div class="section-head"><b>Research location</b><button type="button" class="btn small" id="researchLocationClose" aria-label="Close">✕</button></div>
+ <label class="field">City, region or country<input id="researchLocationValue" maxlength="100" placeholder="Dublin, Ireland or United Kingdom" autocomplete="off"></label>
+ <div class="subtle">Use any location name. It will become part of the LinkedIn People search.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchLocationCancel">Cancel</button><button type="button" class="btn primary" id="researchLocationSave">Use location</button></div>
+</dialog>
 <script src="/social/bridge.js"></script><script>
 "use strict";
 const firms={
@@ -225,7 +261,7 @@ const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=
 function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
 function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],catalogCompanies:[],catalogDepartments:[],photoResults:[],photoFailures:[],photoUploading:false,conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -347,12 +383,12 @@ function personDetail(c){return '<section class="card"><div class="section-head"
 function researchPrompt(){
  const chosen=Object.values(state.templates);
  const configurations=(chosen.length?chosen:["Deals","Corporate Finance","Valuations","Transfer Pricing","Wealth Management","Financial Planning"].map(suggestedTemplate))
-   .filter(t=>!state.department||t.department===state.department);
+   .filter(t=>!state.researchDepartment||t.department===state.researchDepartment);
  return [
  "GARAMAAL LINKEDIN RESEARCH / DEPARTMENT TEMPLATES / FRESHMAAL IMPORT",
  "Research folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
  "Candidate: "+state.candidate,
- "Target: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Any department"),
+ "Target: "+(state.researchCompany||"Select company")+" | "+(state.researchDepartment||"Select department")+" | "+(state.researchCity||"Dublin"),
  "Freshmaal spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
  "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
@@ -385,7 +421,7 @@ function linkedInPeopleUrl(company,dept,city){
 }
 function isLinkedInPeopleUrl(s){try{const u=new URL(s);return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)&&/^\/search\/results\/people\/?$/i.test(u.pathname)}catch{return false}}
 function selectedResearchUrl(){
- return linkedInPeopleUrl(state.researchCompany||state.company,state.researchDepartment||state.department,state.researchCity||"Dublin");
+ return linkedInPeopleUrl(state.researchCompany,state.researchDepartment,state.researchCity||"Dublin");
 }
 function researchTabs(){
  const names=[["research","01","Research"],["followups","02","Chat follow-ups"]];
@@ -399,12 +435,24 @@ function savedTargetRows(query){
  return matches.map(t=>'<div class="research-target-row research-target-mini"><button class="research-target-select" data-use-target="'+esc(t.row)+'" title="Use target"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></button>'+
  '<a class="research-target-open" title="Open LinkedIn People search" aria-label="Find '+esc(t.company)+' '+esc(t.department)+' on LinkedIn" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ LinkedIn</a></div>').join("");
 }
+function researchSelectOptions(kind,current){
+ const saved=kind==="company"?state.catalogCompanies:state.catalogDepartments;
+ const values=[...new Map([...saved,...state.targets.map(t=>kind==="company"?t.company:t.department)].filter(Boolean)
+   .map(v=>[v.toLowerCase(),v])).values()].sort((a,b)=>a.localeCompare(b));
+ // Existing saved/previously selected values remain selectable until the catalog loads.
+ if(current&&!values.some(v=>v.toLowerCase()===current.toLowerCase()))values.unshift(current);
+ return '<option value="">Select '+kind+'</option>'+values.map(v=>'<option value="'+esc(v)+'" '+(v===current?'selected':'')+'>'+esc(v)+'</option>').join("");
+}
+function researchLocationPin(city){
+ return '<button type="button" class="research-location" id="researchLocationOpen" aria-label="Change city or country: '+esc(city)+'" title="'+esc(city)+'">'+
+ '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></button>';
+}
 function targetResearch(){
- const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
  return '<section class="card research-card research-targets"><div class="research-card-head"><div><span class="research-eyebrow">01 · Discover</span><h2>Targets</h2></div><span class="research-meta">LinkedIn People</span></div>'+
- '<div class="research-form"><label class="field">Company<input id="targetCompany" placeholder="e.g. EY" value="'+esc(company)+'" autocomplete="off"></label>'+
- '<label class="field">Department<input id="targetDepartment" placeholder="Valuations" value="'+esc(dept)+'" autocomplete="off"></label>'+
- '<label class="field city">City<input id="targetCity" placeholder="Dublin" value="'+esc(city)+'" autocomplete="off"></label></div>'+
+ '<div class="research-form"><label class="field">Company<div class="research-select-row"><select id="targetCompany" aria-label="Choose company" required>'+researchSelectOptions("company",company)+'</select><button type="button" class="research-select-add" id="researchAddCompany" title="Add company" aria-label="Add company">+</button></div></label>'+
+ '<label class="field">Department<div class="research-select-row"><select id="targetDepartment" aria-label="Choose department" required>'+researchSelectOptions("department",dept)+'</select><button type="button" class="research-select-add" id="researchAddDepartment" title="Add department" aria-label="Add department">+</button></div></label>'+
+ '<div class="field city research-location-field"><span>Location</span>'+researchLocationPin(city)+'<input type="hidden" id="targetCity" value="'+esc(city)+'"></div></div>'+
  '<div class="research-action-grid"><a class="btn primary" id="researchNow" href="'+esc(selectedResearchUrl())+'" target="_blank" rel="noopener noreferrer">↗ Search Now</a>'+
  '<button class="btn" id="saveTarget">＋ Save Target</button></div>'+
  '<div class="research-targets-heading"><span>Saved targets <span class="count">'+state.targets.length+'</span></span><small id="targetMatchCount"></small></div>'+
@@ -412,11 +460,11 @@ function targetResearch(){
 }
 function sourceInbox(){
  const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or text file to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
- const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
  return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button></div>'+
  '<p class="research-source-context" id="sourceContext">For '+esc([company||"your chosen company",dept,city].filter(Boolean).join(" · "))+' · '+esc(state.candidate)+' private Drive</p>'+
- '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload an image<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPG or WebP · max 3 MB</small></label>'+
- '<button class="btn primary" id="saveResearchImage">＋ Save screenshot</button></div>'+
+ '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
+ '<button class="btn primary" id="saveResearchImage">＋ Upload photos</button>'+photoProgressHTML()+'</div>'+
  '<div class="research-source-option"><b>Text or TXT</b><label class="field research-file-field">Upload a TXT file<input id="researchTextFile" type="file" accept=".txt,text/plain"></label>'+
  '<label class="field">Or paste copied text<textarea id="inboxText" rows="3" placeholder="Paste names, roles, or LinkedIn results here."></textarea></label>'+
  '<details class="research-expand"><summary>Optional LinkedIn URL <span>▾</span></summary><div class="research-expand-body"><label class="field">Source URL<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label></div></details>'+
@@ -524,7 +572,7 @@ async function switchCandidate(candidate){
  state.candidate=candidate;
  try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
  state.items=[];state.query="";state.company="";state.department="";state.industry="all";
- state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
+ state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.catalogCompanies=[];state.catalogDepartments=[];state.photoResults=[];state.photoFailures=[];state.photoUploading=false;state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
@@ -535,7 +583,11 @@ async function loadResearch(){
  const candidate=state.candidate;
  const calls=await Promise.allSettled([request("targets/list"),request("conversations/list")]);
  if(candidate!==state.candidate)return;
- if(calls[0].status==="fulfilled")state.targets=calls[0].value.targets||[];
+ if(calls[0].status==="fulfilled"){
+  state.targets=calls[0].value.targets||[];
+  state.catalogCompanies=calls[0].value.companies||[];
+  state.catalogDepartments=calls[0].value.departments||[];
+ }
  else alertUser("Saved target searches could not be loaded: "+calls[0].reason.message);
  if(calls[1].status==="fulfilled")state.conversations=calls[1].value.items||[];
  else alertUser("Conversation queue could not be loaded: "+calls[1].reason.message);
@@ -545,13 +597,59 @@ async function saveResearchTarget(){
  const company=document.getElementById("targetCompany")?.value.trim();
  const department=document.getElementById("targetDepartment")?.value.trim();
  const city=document.getElementById("targetCity")?.value.trim()||"Dublin";
- if(!company||!department)return alertUser("Enter company and department.");
+ if(!company||!department)return alertUser("Select an added company and department first.");
+ const selected=state.candidate;
  try{
-  const result=await request("targets/save",{company,department,city,confirm:true});
+  await request("targets/save",{company,department,city,confirm:true});
+  if(selected!==state.candidate)return;
   state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
-  await loadResearch();alertUser("Search target saved for "+state.candidate+".");
- }catch(e){alertUser(e.message)}
+  await loadResearch();alertUser("Search target saved for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
 }
+let editingResearchKind="";
+function openResearchOption(kind){
+ if(!["company","department"].includes(kind))return;
+ editingResearchKind=kind;
+ const title="Add "+kind;
+ document.getElementById("researchOptionTitle").textContent=title;
+ document.getElementById("researchOptionLabel").textContent=kind==="company"?"Company name":"Department name";
+ document.getElementById("researchOptionName").value="";
+ document.getElementById("researchOptionDialog").showModal();
+ document.getElementById("researchOptionName").focus();
+}
+async function saveResearchOption(){
+ const kind=editingResearchKind;
+ const name=document.getElementById("researchOptionName").value.trim();
+ if(!name||name.length<2)return alertUser("Enter at least two characters.");
+ if(state.readOnly)return alertUser("Research is read-only.");
+ const selected=state.candidate,button=document.getElementById("researchOptionSave");
+ button.disabled=true;
+ try{
+  const v=await request("targets/save",{catalogKind:kind,catalogName:name,confirm:true});
+  if(selected!==state.candidate)return;
+  document.getElementById("researchOptionDialog").close();
+  if(kind==="company")state.researchCompany=v.name;
+  else state.researchDepartment=v.name;
+  await loadResearch();
+  alertUser(v.existing?"Already saved; selected "+v.name+".":"Added "+v.name+" for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
+}
+function openResearchLocation(){
+ document.getElementById("researchLocationValue").value=state.researchCity||"Dublin";
+ document.getElementById("researchLocationDialog").showModal();
+ document.getElementById("researchLocationValue").focus();
+}
+function saveResearchLocation(){
+ const city=document.getElementById("researchLocationValue").value.trim();
+ if(!city||city.length>100)return alertUser("Enter a city, region or country (up to 100 characters).");
+ state.researchCity=city;
+ document.getElementById("researchLocationDialog").close();
+ const el=document.getElementById("targetCity");if(el)el.value=city;
+ const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=city;pin.setAttribute("aria-label","Change city or country: "+city)}
+ updateTargetUrl();
+}
+
 function screenshotToBase64(file){
  return new Promise((resolve,reject)=>{
   if(!file)return resolve({imageData:"",mimeType:""});
@@ -563,22 +661,91 @@ function screenshotToBase64(file){
   reader.readAsDataURL(file);
  });
 }
-async function saveInitialResearchImage(){
- const company=document.getElementById("targetCompany")?.value?.trim()||"";
- const department=document.getElementById("targetDepartment")?.value?.trim()||"General";
- const city=document.getElementById("targetCity")?.value?.trim()||"Dublin";
- const file=document.getElementById("initialScreenshot")?.files?.[0]||null;
- if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
- if(!company||!file)return alertUser("Enter the company and choose a screenshot.");
- if(!confirm("Save this unverified initial research screenshot in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
- const selected=state.candidate;
+function photoProgressBody(){
+ const entries=state.photoResults||[];
+ const total=state.photoBatchTotal||entries.length;
+ const current=state.photoCompleted||entries.length;
+ const progress=state.photoUploading?'<div role="status">Uploading '+current+' of '+total+' selected screenshots…</div>':'';
+ const rows=entries.map(r=>'<div class="'+(r.status==="saved"?'research-upload-ok':'research-upload-fail')+'">'+
+ (r.status==="saved"?'✓ Saved NEW: ':'✕ Failed: ')+esc(r.fileName)+
+ (r.status==="failed"?' — '+esc(r.reason||"Please retry."):'')+'</div>').join("");
+ const retry=!state.photoUploading&&state.photoFailures.length
+   ?'<button class="btn small" id="retryResearchPhotos">Retry '+state.photoFailures.length+' failed</button>':"";
+ return progress+rows+retry;
+}
+function photoProgressHTML(){return '<div id="researchPhotoProgress" class="research-upload-progress" aria-live="polite">'+photoProgressBody()+'</div>'}
+function updatePhotoProgress(){
+ const el=document.getElementById("researchPhotoProgress");
+ if(el)el.innerHTML=photoProgressBody();
+ const btn=document.getElementById("saveResearchImage");
+ if(btn)btn.disabled=state.photoUploading;
+}
+async function uploadResearchPhotos(files,context){
+ if(state.photoUploading)return;
+ if(!Array.isArray(files)||!files.length)return alertUser("Select screenshots first.");
+ if(files.length>10)return alertUser("Choose no more than 10 screenshots per batch.");
+ const {candidate,company,department,city}=context;
+ if(!company||!department)return alertUser("Select an added company and department before uploading.");
+ const problems=files.filter(f=>!["image/jpeg","image/png","image/webp"].includes(f?.type)||f.size>3*1024*1024);
+ if(problems.length)return alertUser("Each file must be PNG, JPG or WebP and no larger than 3 MB.");
+ if(candidate!==state.candidate)return;
+ state.photoUploading=true;state.photoBatchTotal=files.length;state.photoCompleted=0;state.photoFailures=[];state.photoResults=[];
+ updatePhotoProgress();
  try{
+  // One owner Drive consent per batch; each selected image is still saved separately.
   const driveAccessToken=await socialDriveToken();
-  const image=await screenshotToBase64(file);
-  const result=await request("inbox/image",{company,department,city,...image,driveAccessToken,confirm:true});
-  if(state.candidate!==selected)return;
-  if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
- }catch(e){alertUser(e.message)}
+  for(const file of files){
+   if(candidate!==state.candidate)break;
+   try{
+    const image=await screenshotToBase64(file);
+    const result=await request("inbox/image",{candidate,company,department,city,...image,driveAccessToken,confirm:true});
+    if(result.saved)state.photoResults.push({fileName:file.name,status:"saved",id:result.file?.id,name:result.file?.name});
+    else throw Error("Google Drive did not confirm the file.");
+   }catch(e){
+    state.photoResults.push({fileName:file.name,status:"failed",reason:String(e.message||"Upload failed.")});
+    state.photoFailures.push({file,context});
+   }
+   state.photoCompleted++;
+   updatePhotoProgress();
+  }
+ }catch(e){
+  // If OAuth failed, none of these files were uploaded. Keep all for safe retry.
+  if(candidate===state.candidate){
+   state.photoFailures=files.map(file=>({file,context}));
+   state.photoResults=files.map(file=>({fileName:file.name,status:"failed",reason:String(e.message||"Drive permission failed.")}));
+   state.photoCompleted=files.length;
+  }
+ }finally{
+  if(candidate===state.candidate){
+   state.photoUploading=false;
+   updatePhotoProgress();
+   // Do not count photos as verified contacts: only refresh the source queue.
+   if(state.photoResults.some(x=>x.status==="saved"))await loadInbox();
+   alertUser(state.photoResults.filter(x=>x.status==="saved").length+" photo(s) saved as NEW; "+
+    state.photoFailures.length+" failed. Nothing imported to contacts.");
+  }
+ }
+}
+async function saveInitialResearchImage(){
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ if(state.photoUploading)return;
+ const company=document.getElementById("targetCompany")?.value?.trim()||"";
+ const department=document.getElementById("targetDepartment")?.value?.trim()||"";
+ const city=document.getElementById("targetCity")?.value?.trim()||"Dublin";
+ const files=Array.from(document.getElementById("initialScreenshot")?.files||[]);
+ if(!company||!department)return alertUser("Select an added company and department.");
+ if(!files.length)return alertUser("Choose 1 to 10 screenshots.");
+ if(files.length>10)return alertUser("Select a maximum of 10 images.");
+ if(!confirm("Save "+files.length+" unverified screenshot(s) in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
+ await uploadResearchPhotos(files,{candidate:state.candidate,company,department,city});
+}
+async function retryResearchPhotos(){
+ if(state.photoUploading||!state.photoFailures.length)return;
+ const failed=state.photoFailures.slice();
+ const candidate=state.candidate;
+ if(!failed.every(x=>x.context.candidate===candidate))return alertUser("This batch belongs to a different candidate.");
+ if(!confirm("Retry "+failed.length+" failed screenshot(s) for "+candidate+"? Already saved photos will not be re-uploaded."))return;
+ await uploadResearchPhotos(failed.map(x=>x.file),failed[0].context);
 }
 async function saveInitialResearchText(){
  if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
@@ -587,7 +754,7 @@ async function saveInitialResearchText(){
  const pageUrl=document.getElementById("inboxUrl")?.value?.trim()||"";
  const copied=document.getElementById("inboxText")?.value?.trim()||"";
  const file=document.getElementById("researchTextFile")?.files?.[0]||null;
- if(!company)return alertUser("Enter a company under Targets before saving a source.");
+ if(!company||!department)return alertUser("Choose an added company and department under Targets before saving a source.");
  if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
  if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
  if(!file&&!copied&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
@@ -658,8 +825,9 @@ function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.cl
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
-document.addEventListener("input",e=>{if(["targetCompany","targetDepartment","targetCity"].includes(e.target.id)){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("input",e=>{if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
 document.addEventListener("change",e=>{
+ if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
  if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
  if(e.target.id==="companyFilter"){state.company=e.target.value;render()}
  if(e.target.id==="departmentFilter"){state.department=e.target.value;render()}
@@ -667,10 +835,12 @@ document.addEventListener("change",e=>{
  if(e.target.id==="followVariant"){const c=state.items.find(x=>x.key===state.selected);if(c)document.getElementById("followText").textContent=makeMessage(c,Number(e.target.value),true)}
 });
 document.addEventListener("click",async e=>{
+ const search=e.target.closest("#researchNow");
+ if(search&&(!state.researchCompany||!state.researchDepartment)){e.preventDefault();alertUser("Choose an added company and department before searching.");return}
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
  if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}return}
  if(v.researchMode){state.researchMode=v.researchMode;state.selectedConversation="";render();if(v.researchMode!=="followups"&&!state.inboxLoad)loadInbox();return}
- if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;state.company=t.company;state.department=t.department;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}updateTargetUrl()}return}
+ if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=t.city;pin.setAttribute("aria-label","Change city or country: "+t.city)}updateTargetUrl()}return}
  if(v.conversation){state.selectedConversation=state.selectedConversation===v.conversation?"":v.conversation;render();return}
  if(v.copyFollowprompt){copyText(conversationResearchPrompt(state.conversations.find(x=>x.id===v.copyFollowprompt)));return}
  if(v.industry){state.orgOpen=!(state.orgOpen&&state.industry===v.industry);state.industry=v.industry;state.company="";state.department="";render();return}
@@ -679,6 +849,13 @@ document.addEventListener("click",async e=>{
  if(v.copy!==undefined){copyText(v.copy);return}
  if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
  
+ if(b.id==="researchAddCompany"||b.id==="researchAddDepartment"){openResearchOption(b.id==="researchAddCompany"?"company":"department");return}
+ if(b.id==="researchOptionSave"){await saveResearchOption();return}
+ if(b.id==="researchOptionClose"||b.id==="researchOptionCancel"){document.getElementById("researchOptionDialog").close();return}
+ if(b.id==="researchLocationOpen"){openResearchLocation();return}
+ if(b.id==="researchLocationSave"){saveResearchLocation();return}
+ if(b.id==="researchLocationClose"||b.id==="researchLocationCancel"){document.getElementById("researchLocationDialog").close();return}
+ if(b.id==="retryResearchPhotos"){await retryResearchPhotos();return}
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
  if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}

@@ -12,7 +12,7 @@ assert.ok(script,"Social page should have executable inline script");
 function createHarness(handler){
  const nodes=new Map();
  const getNode=id=>{
-  if(!nodes.has(id))nodes.set(id,{id,innerHTML:"",value:"",style:{},classList:{toggle(){},add(){},remove(){}},focus(){},setSelectionRange(){},addEventListener(){}});
+  if(!nodes.has(id))nodes.set(id,{id,innerHTML:"",value:"",style:{},classList:{toggle(){},add(){},remove(){}},focus(){},setSelectionRange(){},setAttribute(){},showModal(){this.open=true},close(){this.open=false},addEventListener(){}});
   return nodes.get(id);
  };
  const store=new Map();
@@ -219,7 +219,16 @@ test("Targets are above uploads and offer only Search Now and Save Target",async
  assert.match(top,/id="researchTargetResults"/);
  assert.doesNotMatch(top,/id="copyResearch"/);
  assert.doesNotMatch(top,/id="initialScreenshot"/);
- assert.equal((top.match(/<button[^>]+id=/g)||[]).length,1);
+ assert.equal((top.match(/<button[^>]+id=/g)||[]).length,4,"Only two add controls, location and Save Target");
+ assert.match(top,/id="researchAddCompany"/);
+ assert.match(top,/id="researchAddDepartment"/);
+ assert.match(top,/id="researchLocationOpen"/);
+ assert.match(top,/<select id="targetCompany"/);
+ assert.match(top,/<select id="targetDepartment"/);
+ assert.match(top,/type="hidden" id="targetCity"/);
+ assert.doesNotMatch(top,/<input id="targetCompany"/);
+ assert.doesNotMatch(top,/<input id="targetDepartment"/);
+ assert.match(page,/id="initialScreenshot" type="file"[^>]*multiple/);
  assert.match(page,/research-target-scroll/);
  assert.match(page,/id="researchTextFile"/);
 });

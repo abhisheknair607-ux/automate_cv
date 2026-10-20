@@ -135,7 +135,11 @@ app.post("/api/social/*",async(req,res)=>{
     else if(action==="templates/get")data=await social.getTemplates(base);
     else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
     else if(action==="targets/list")data=await research.listTargets(base);
-    else if(action==="targets/save")data=await research.saveTarget({...base,company:payload.company,department:payload.department,city:payload.city,confirm:payload.confirm});
+    else if(action==="targets/save"){
+      data=payload.catalogKind
+        ?await research.saveCatalogName({...base,kind:payload.catalogKind,name:payload.catalogName,confirm:payload.confirm})
+        :await research.saveTarget({...base,company:payload.company,department:payload.department,city:payload.city,confirm:payload.confirm});
+    }
     else if(action==="conversations/list")data=await research.listConversations(base);
     else if(action==="conversations/save")data=await research.saveConversation({...base,driveToken:driveAccess,contact:payload.contact,company:payload.company,chatText:payload.chatText,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
     else if(action==="conversations/draft")data=await research.saveDraft({...base,conversationId:payload.id,draft:payload.draft,next:payload.next,status:payload.status,confirm:payload.confirm});
