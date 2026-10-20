@@ -155,7 +155,7 @@ async function promote({token,id,candidate,row,reviewId,expectedUpdated,confirm,
  // identity and writes structured M:N:O plus composed legacy K.
  await importContact({token,id,candidate,items:[{
   name:item.name,company:item.company,title:item.designation,
-  department:item.department,profile:item.profile,profileVerified:false,
+  department:item.department,profile:item.profile,profileVerified:Boolean(item.profile),
   evidence:item.evidence||"Owner-reviewed screenshot extract; see SocialReviewQueue "+item.id,
   introduction:item.intro,personalisedMiddle:item.middle,closing:item.closing
  }],confirm:true});
