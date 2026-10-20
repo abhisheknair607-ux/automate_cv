@@ -12,6 +12,7 @@ const {initializeApp,getApps}=require("firebase-admin/app");
 const {getAuth}=require("firebase-admin/auth");
 const social=require("./social_store");
 const research=require("./social_research");
+const review=require("./social_review");
 
 const project=process.env.GOOGLE_CLOUD_PROJECT||process.env.FIREBASE_PROJECT_ID||"";
 const allowed=new Set(String(process.env.ALLOWED_EMAILS||"").split(",").map(x=>x.trim().toLowerCase()).filter(Boolean));
@@ -112,9 +113,9 @@ app.post("/api/social/*",async(req,res)=>{
       throw bad("Freshmaal sheet is not configured for Social.",503);
     const candidate=social.selectedCandidate(req.body?.candidate);
     const action=req.params[0]||"",payload=req.body||{};
-    const supported=["data","status","followup","import","inbox/save","inbox/list","inbox/image","templates/get","templates/save","targets/list","targets/save","conversations/list","conversations/save","conversations/draft"];
+    const supported=["data","status","followup","import","inbox/save","inbox/list","inbox/image","templates/get","templates/save","targets/list","targets/save","conversations/list","conversations/save","conversations/draft","review/list","review/stage","review/update","review/promote"];
     if(!supported.includes(action))return res.status(404).json({error:"Unknown Social operation."});
-    const write=["status","followup","import","inbox/save","inbox/image","templates/save","targets/save","conversations/save","conversations/draft"].includes(action);
+    const write=["status","followup","import","inbox/save","inbox/image","templates/save","targets/save","conversations/save","conversations/draft","review/stage","review/update","review/promote"].includes(action);
     if(write&&readOnly)throw bad("Social writes are disabled until release approval.",403);
     const delegatedRequired=["inbox/save","inbox/image","conversations/save"].includes(action)
       ||(action==="import"&&Boolean(payload.sourceFileId));
@@ -135,6 +136,10 @@ app.post("/api/social/*",async(req,res)=>{
     else if(action==="invitation/migrate")data=await social.migrateLegacyInvitation({...base,contactRow:payload.contactRow,name:payload.name,company:payload.company,previousMessage:payload.previousMessage,introduction:payload.introduction,middle:payload.middle,closing:payload.closing,confirm:payload.confirm});
     else if(action==="templates/get")data=await social.getTemplates(base);
     else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
+    else if(action==="review/list")data=await review.list(base);
+    else if(action==="review/stage")data=await review.stage({...base,record:payload.record,confirm:payload.confirm});
+    else if(action==="review/update")data=await review.update({...base,row:payload.row,reviewId:payload.reviewId,expectedUpdated:payload.expectedUpdated,record:payload.record,status:payload.status,confirm:payload.confirm});
+    else if(action==="review/promote")data=await review.promote({...base,row:payload.row,reviewId:payload.reviewId,expectedUpdated:payload.expectedUpdated,confirm:payload.confirm,importContact:social.importContacts});
     else if(action==="targets/list")data=await research.listTargets(base);
     else if(action==="targets/save"){
       data=payload.catalogKind
