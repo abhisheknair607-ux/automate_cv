@@ -53,9 +53,11 @@ test("Swipe renders structured fields and leaves legacy one-paragraph K intact",
  assert.match(prompt,/O Invitation Closing/);
  assert.match(prompt,/ONLY Connections!N/);
 });
-test("Research prompt instructs three separated column writes, no automated historic rewrites",()=>{
- assert.match(html,/M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing/);
- assert.match(html,/Do not auto-split old single-paragraph K/);
- assert.match(html,/Connections A:O/);
+test("Research screenshot intake writes Pending queue only; final import still uses M:N:O after review",()=>{
+ assert.match(html,/SocialReviewQueue A:T/);
+ assert.match(html,/NEVER write directly to Connections/);
+ assert.match(html,/K Review Status/);
+ assert.match(html,/L Networking Purposes/);
+ assert.match(html,/P Invitation Closing/);
  assert.match(html,/personalisedMiddle:parts\[5\]\|\|""/);
 });

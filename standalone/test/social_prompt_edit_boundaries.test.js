@@ -45,10 +45,11 @@ test("New line-edit prompt is strictly scoped to one candidate Connections N cel
  assert.match(other,/Connections!N52/);
  assert.match(other,/DO NOT MODIFY ANY CELL UNTIL I DO/);
 });
-test("Research source import prompt explicitly restricts columns and requires verified read-back",()=>{
- const h=mock();
- const prompt=h.run("researchPrompt()");
- for(const expected of ["Connections A:O only for NEW","J Evidence/source URLs","K composed","SocialTracking tab: append NEW rows in A:K","SocialTemplates (A:E)","SocialFollowups (A:K)","READ-ONLY","read back the edited cells"])assert.ok(prompt.includes(expected),"Missing: "+expected);
+test("Research screenshot prompt only appends Pending stage rows before in-app verification",()=>{
+ const h=mock(),prompt=h.run("researchPrompt()");
+ for(const expected of ["SocialReviewQueue A:T","ONLY ALLOWED WRITE","Pending","Company","Department","Designation","READ","ASK EXPLICIT APPROVAL","NEVER write directly to Connections"])
+  assert.ok(prompt.toUpperCase().includes(expected.toUpperCase()),"Missing: "+expected);
+ assert.match(prompt,/Do not generate, save, send or mark invitations as sent/);
 });
 test("Follow-up prompt defaults to no writes, or one approved SocialFollowups H cell",()=>{
  const h=mock(),prompt=h.run('conversationResearchPrompt({contact:"Jane",company:"EY",id:"abcdef",driveUrl:"https://drive.google.com/file/d/test/view"})');

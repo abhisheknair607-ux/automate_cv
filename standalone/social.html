@@ -320,11 +320,49 @@ body{background:#f5f7fb}
  .garamaal-header-controls .pill{padding:0 5px}
  .garamaal-header-controls .garamaal-header-status{font-size:8px;padding:3px 5px}
 }
+
+/* Candidate-owned screenshot verification workspace. Independent of Jobs and Social read-only flows. */
+.bottom button{min-width:0;flex:1;padding:2px 1px;font-size:9px}
+.bottom .sym{font-size:20px}
+.research-stage-guide{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px;border:1px solid #d7e4f5;border-radius:12px;background:#f1f6ff;font-size:11px;line-height:1.5;margin-bottom:12px}
+.verify-workspace{max-width:980px;margin:auto}
+.verify-workflow{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:5px;margin:0 0 13px}
+.verify-workflow span{background:#e8f0fb;border:1px solid #d7e6f6;border-radius:9px;padding:9px 4px;text-align:center;font-size:10px;font-weight:750;color:#345b86}
+.verify-layout{display:grid;grid-template-columns:minmax(220px,.85fr) minmax(0,1.25fr);gap:10px;align-items:start}
+.verify-queue{max-height:68vh;overflow:auto;padding:9px}
+.verify-person{width:100%;text-align:left;background:#fff;border:1px solid #e1e8f2;border-radius:12px;padding:11px;margin-bottom:7px;color:#243b5b}
+.verify-person.selected{border-color:#76a6f2;background:#eff5ff}
+.verify-person strong,.verify-person small{display:block}
+.verify-person small{font-size:11px;color:#6b7f9a;margin-top:4px}
+.verify-status{display:inline-block;padding:3px 7px;border:1px solid #d6e0eb;border-radius:7px;font-size:10px;font-weight:750;background:#f5f7fa;color:#516478;margin-top:5px}
+.verify-form .field{margin-bottom:9px}
+.verify-form .field label{display:block;margin-bottom:5px;font-weight:750;font-size:12px}
+.verify-form input,.verify-form select,.verify-form textarea{width:100%;min-width:0}
+.verify-purposes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.verify-purpose{display:flex;gap:5px;align-items:center;padding:8px 7px;border:1px solid #dfe7f1;border-radius:9px;background:#f7faff;font-size:11px}
+.verify-purpose input{width:15px;min-width:15px;min-height:15px}
+.verify-actions{display:flex;gap:7px;flex-wrap:wrap;padding-top:9px}
+.verify-actions button{flex:1 1 125px}
+.verify-draft{border-top:1px solid #dfe7ef;padding-top:13px;margin-top:12px}
+.verify-help{font-size:11px;color:#697f99;line-height:1.6}
+.verify-error{color:#8d333c;background:#fff4f4;border:1px solid #f2ccd0;border-radius:9px;padding:9px;margin:6px 0}
+@media(max-width:700px){.verify-layout{grid-template-columns:1fr}.verify-queue{max-height:195px}.verify-workflow span{font-size:9px;padding:8px 3px}.research-stage-guide{flex-direction:column;align-items:flex-start}.verify-purposes{grid-template-columns:1fr 1fr}}
 </style></head>
 <body>
 <header class="garamaal-unified-header"><span class="logo">Garam Mal</span><div class="row tight top-actions garamaal-header-controls"><div class="pair" id="candidatePair" aria-label="Social candidate"><button id="candA" class="active" aria-label="Abhishek workspace" title="Abhishek">A</button><button id="candP" aria-label="Pooja workspace" title="Pooja">P</button></div><span class="mini garamaal-cost-symbol" title="Costs are available in Jobs">$</span><a class="pill garamaal-job-link" href="/" title="Open Jobs">Job</a><span class="pill active garamaal-social-link" aria-current="page">Social</span><span class="preview garamaal-header-status" id="socialModeBadge" role="status" aria-live="polite" title="Google Sheets connection status">READ ONLY</span></div></header>
 <div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
 <nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
+<dialog id="reviewStageDialog" aria-label="Stage extracted screenshot contact"><div class="section-head"><b>Stage a screenshot result</b><button type="button" class="btn small" id="reviewStageClose">✕</button></div>
+<p class="verify-help">This creates a Pending row only. No invitation will be prepared or sent until you verify it.</p>
+<label class="field">Name<input id="rstName" placeholder="Person's full name"></label>
+<label class="field">Company<input id="rstCompany" placeholder="Visible current company"></label>
+<label class="field">Department<input id="rstDepartment" placeholder="May be uncertain"></label>
+<label class="field">Designation<input id="rstDesignation" placeholder="Visible job title"></label>
+<label class="field">Location<input id="rstLocation" value="Dublin"></label>
+<label class="field">Profile URL (optional)<input id="rstProfile"></label>
+<label class="field">Source / screenshot ID / evidence<textarea id="rstEvidence" rows="2"></textarea></label>
+<label class="field">Uncertainty notes<textarea id="rstNotes" rows="2"></textarea></label>
+<div class="btnrow"><button type="button" class="btn primary" id="reviewStageSave">Save Pending row</button><button type="button" class="btn" id="reviewStageClose2">Cancel</button></div></dialog>
 <dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
 <p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional) | Verified GPT middle line (optional). Introduction and closing are stored separately in Connections M:O.</p>
 <textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
@@ -388,7 +426,7 @@ const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=
 function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
 function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],catalogCompanies:[],catalogDepartments:[],photoResults:[],photoFailures:[],photoUploading:false,conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
+const state={view:"dashboard",candidate:initialCandidate,reviewItems:[],reviewSelected:"",reviewLoaded:false,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],catalogCompanies:[],catalogDepartments:[],photoResults:[],photoFailures:[],photoUploading:false,conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -644,30 +682,23 @@ function followups(){const choices=state.items.filter(x=>["accepted","replied"].
  return heading("Follow-ups")+'<section class="card"><div class="section-head"><b>GPT follow-up assistance</b><span class="tag">Copy prompt</span></div><p class="subtle">Use your saved LinkedIn conversations, accepted contacts and candidate background to draft reviewed follow-ups. This does not send anything.</p><button class="btn soft small" id="copyFollowupTabPrompt">▣ Copy Follow-up Prompt</button></section>'+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
 function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Edit template</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option><option value="3">Coffee chat</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
 function researchPrompt(){
- const chosen=Object.values(state.templates);
- const configurations=(chosen.length?chosen:["Deals","Corporate Finance","Valuations","Transfer Pricing","Wealth Management","Financial Planning"].map(suggestedTemplate))
-   .filter(t=>!state.researchDepartment||t.department===state.researchDepartment);
  return [
- "GARAMAAL LINKEDIN RESEARCH / DEPARTMENT TEMPLATES / FRESHMAAL IMPORT",
- "Research folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
- "Candidate: "+state.candidate,
- "Target: "+(state.researchCompany||"Select company")+" | "+(state.researchDepartment||"Select department")+" | "+(state.researchCity||"Dublin"),
- "Freshmaal spreadsheet (the ONLY spreadsheet in scope): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
- "EXACT SHEET / COLUMN ALLOWLIST: Connections A:O only for NEW approved candidate rows. A Company; B Name; C LinkedIn Profile; D Search; E Role applied for; F Candidate; G Freshmaal Row; H Vacancy Link; I Position; J Evidence/source URLs; K composed <=300-character invitation for compatibility; L Research UTC; M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing. These are THREE SEPARATE fields in the Google Sheet. Source intro and closing from the correct candidate/department SocialTemplates A:E, substitute safe placeholders and save three separate values. For NEW rows only, K is a composed copy of M+N+O. Never shift columns or rewrite headers.",
- "Existing Connections rows: A:I and L are READ-ONLY. Do not auto-split old single-paragraph K, rewrite K or backfill M:O. Where structured M and O already exist, only N (verified middle) or J (evidence) can be edited after explicit single-row approval. A legacy row with blank M:O needs separate per-contact reviewed migration. Verify A Company, B Name, F Candidate, K and M:O before writing. Candidate "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati")+". Reject ambiguous matches.",
- "SocialTracking tab: append NEW rows in A:K solely for confirmed new candidate contacts where needed. Never edit existing SocialTracking rows or statuses as part of research. SocialTemplates (A:E) is READ-ONLY for this prompt: consult the currently saved candidate+department template but never edit it. SocialTargets (A:F), SocialResearchCatalog (A:D), SocialFollowups (A:K), all job/CV tabs and all other spreadsheets are READ-ONLY. No schema changes, bulk rewrites, deletion, sorting or column shifts.",
- "Recheck Connections A:O headers and selected candidate before a write, use the smallest exact A1 range after approval, and read back the edited cells. If unable to access Sheet or web, propose edits only, no claims of success.",
- "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
- "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
- "Use the connected Google Drive account abhisheknair607@gmail.com for Research Drive and keep Abhishek and Pooja source folders separate. Process ONLY files whose names start NEW_ and match the selected candidate's _a_ or _p_ filename tag; never process USED_ files, even when still visible in the Drive folder. Track each unique Google Drive file ID and never reprocess the same ID within a run. Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp sources; screenshots and pasted text are unverified leads, not proof of role or LinkedIn identity. Read visible screenshots accurately and report illegible/incomplete images. Verify each name and role using trustworthy accessible public sources before import. Never invent profile URLs, mutual connections, projects, hiring status or achievements, and never scrape LinkedIn or bypass access.",
- "For each recipient, choose the appropriate department template and preserve the exact user-written INTRODUCTION with {{first_name}}, {{company}}, {{department}} replaced using VERIFIED facts. Compose the MIDDLE line separately with one short, specific, verifiable observation about the recipient's role/work, grounded in a cited URL. If you cannot verify a personalised detail, leave the middle line blank, mark the item for review and do not pretend it is researched.",
- "Append the exact template CLOSING unchanged. Introduction + verified middle + closing must together be no more than 300 characters. If they cannot fit without modifying user-owned template text, flag for manual review; never quietly truncate credentials. Never describe CFA or another qualification as completed/in progress unless supported by the candidate's verified evidence.",
- "Differentiate colleagues, internal recruiters and independent agency recruiters in the MIDDLE line, without changing the user's department intro or closing.",
- "For each NEW verified contact save M Introduction, N GPT Personalised Middle, O Closing, evidence to J and composed full invitation to K as compatibility only. Keep original A:L headers unchanged, candidate identity and linked job/vacancy rows intact. De-duplicate candidate+company+recipient. Do not overwrite existing rows without approval. K is a compatibility snapshot, NOT the editable source of truth for N.",
- "For each source keep an audit record of Drive file ID, original NEW_ filename, verified contacts, excluded/uncertain names and row references. Import only verified, approved contacts into candidate-specific Freshmaal Connections A:O (three parts MUST be in M/N/O), plus SocialTracking A:K where needed. Preserve existing rows, deduplicate candidate+company+person, and read back the actual values in J, K, M, N, O for every newly written row. If M and O do not match the selected master template and N is not the researched recipient-specific middle line, STOP and report a verification failure. Existing duplicates are only completed after their candidate, company and person are independently verified; never rewrite an existing legacy K message. ONLY AFTER every source item is processed, approved contacts are verified, and read-back succeeds, rename the exact Drive file NEW_ to USED_, preserving its suffix/extension. Never rename after partial processing, unavailable permissions or failed read-back. Report any failed rename by file ID, keep it NEW_ and do not claim success. Future runs ignore USED_ files. Never upload the file again or delete it.",
+ "GARAMAAL — LINKEDIN SCREENSHOT EXTRACTION → REVIEW QUEUE (NOT CONNECTIONS)",
+ "Candidate: "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati"),
+ "Research source folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
+ "Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp screenshot sources (only those explicitly supplied or accessible). Ignore USED_ files. Do not rename source files until the user approves processing; staging does not mean the contact was verified.",
+ "Search context is ONLY a lead, not verified evidence. The LinkedIn search may include wrong companies, departments, designations and cities: "+[state.researchCompany,state.researchDepartment,state.researchCity||"Dublin"].filter(Boolean).join(" | "),
+ "Freshmaal (only spreadsheet): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+ "ONLY ALLOWED WRITE: append new user-approved, unverified extracted people to SocialReviewQueue A:T. NEVER write directly to Connections, SocialTracking, SocialTemplates, SocialTargets, Jobs or any other Sheet.",
+ "Required exact SocialReviewQueue A:T mapping: A Candidate, B Review ID, C Person Name, D Company, E Department, F Designation, G Location, H LinkedIn Profile, I Evidence / Source, J Source File ID, K Review Status, L Networking Purposes, M Primary Purpose, N Invitation Introduction, O Invitation Middle, P Invitation Closing, Q Search URL, R Connections Row, S Updated UTC, T Review Notes.",
+ "For EACH visible result capture only actual details supported by the screenshot or independently accessible public evidence. If a field is unclear, leave it blank or explicitly mark uncertainty in Review Notes. Never assume the person's employer, transaction-department membership, seniority or Dublin location from the original SEARCH KEYWORDS alone.",
+ "Set A to the exact full candidate name; B to a fresh unique review ID (e.g. REV-20261020-001); K exactly Pending; S ISO UTC timestamp. Leave L, M, N, O, P, R blank (intentions, message and import must be approved in-app). Use I and J to reference screenshot/source and any public citations. Never fabricate direct LinkedIn profile URLs; leave H blank unless the profile URL is directly evidenced.",
+ "Categorize each result in T as strong match, related, out of target, or requires verification; document independently what company, department, designation, city and seniority are actually known. This category is preliminary, not an auto-approval.",
+ "Deduplicate existing SocialReviewQueue by candidate + person + company + source before appending. Read exact A:T headers, do not add/delete columns, do not overwrite an existing row, and do not alter a status other than newly appended Pending.",
+ "Show me a reviewable table with each person's visible and inferred fields, sources and uncertainty. ASK EXPLICIT APPROVAL before any Sheets write. If you cannot access files, public sources or Google Sheets, give a pending-stage proposal only; do not claim the Sheet is updated.",
+ "NEXT STEPS: I will open Social → Verify to edit company, department and designation, choose networking intentions, approve message components within 300 characters, and finally move approved contacts to Swipe. Do not generate, save, send or mark invitations as sent during screenshot intake."
  ].join("\n\n");
 }
-
 function campaignContactCount(step){
  return state.items.filter(c=>norm(c.company)===norm(step.company)&&norm(department(c))===norm(step.department)).length;
 }
@@ -729,9 +760,9 @@ function targetResearch(){
 function sourceInbox(){
  const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or text file to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
  const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
- return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button></div>'+
+ return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Screenshot-to-Sheet Prompt</button></div>'+
  '<p class="research-source-context" id="sourceContext">For '+esc([company||"your chosen company",dept,city].filter(Boolean).join(" · "))+' · '+esc(state.candidate)+' private Drive</p>'+
- '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
+ '<div class="research-stage-guide"><strong>Upload → Stage in Sheet → Verify in app → Prepare message → Send manually</strong><button type="button" class="btn small" data-view="verify">Open Verify Contacts →</button></div><div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
  '<button class="btn primary" id="saveResearchImage">＋ Upload photos</button>'+photoProgressHTML()+'</div>'+
  '<div class="research-source-option"><b>Text or TXT</b><label class="field research-file-field">Upload a TXT file<input id="researchTextFile" type="file" accept=".txt,text/plain"></label>'+
  '<label class="field">Or paste copied text<textarea id="inboxText" rows="3" placeholder="Paste names, roles, or LinkedIn results here."></textarea></label>'+
@@ -777,6 +808,114 @@ function followupsResearch(){
  '<div class="research-tip"><span>Save a private source, copy the GPT prompt, then review and manually send any reply. Screenshots: max 3 MB.</span></div></section>'+
  '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Saved conversations</span><h2>Follow-up queue</h2></div><span class="count">'+state.conversations.length+'</span></div>'+conversationCards()+'</section>';
 }
+
+const REVIEW_PURPOSES=["Just connect","Coffee chat","Senior leader — connect only","Inspired by profile","Looking for a mentor","Career or industry insights","Exploring opportunities","UCD / alumni connection"];
+function reviewCurrent(){return state.reviewItems.find(x=>x.id===state.reviewSelected);}
+function reviewCompose(intro,middle,closing){return [intro,middle,closing].map(x=>String(x||"").replace(/^\n+|\n+$/g,"")).filter(Boolean).join("\n\n");}
+function reviewField(id,label,value,kind="input",readonly=false){
+ const prefix='<div class="field"><label for="'+id+'">'+esc(label)+'</label>';
+ const body=kind==="textarea"?'<textarea id="'+id+'" rows="3" '+(readonly?"readonly":"")+'>'+esc(value||"")+'</textarea>':
+ '<input id="'+id+'" value="'+esc(value||"")+'" '+(readonly?"readonly":"")+' />';
+ return prefix+body+'</div>';
+}
+function reviewFormData(){
+ const read=id=>document.getElementById(id)?.value||"";
+ return {name:read("rvName").trim(),company:read("rvCompany").trim(),
+ department:read("rvDepartment").trim(),designation:read("rvDesignation").trim(),
+ location:read("rvLocation").trim(),profile:read("rvProfile").trim(),
+ evidence:read("rvEvidence").trim(),notes:read("rvNotes").trim(),
+ purposes:[...document.querySelectorAll('.verify-purpose input:checked')].map(el=>el.value),
+ primary:read("rvPrimary"),intro:read("rvIntro"),middle:read("rvMiddle"),closing:read("rvClosing")};
+}
+function verifyView(){
+ const records=state.reviewItems||[],current=reviewCurrent()||records.find(x=>x.status==="Pending")||records[0];
+ if(current&&!state.reviewSelected)state.reviewSelected=current.id;
+ const c=reviewCurrent()||current;
+ const queued=records.filter(x=>x.status==="Pending").length,ready=records.filter(x=>x.status==="Draft Ready").length;
+ const summary='<div class="heading"><h1>Verify contacts</h1><div class="btnrow"><button class="btn small" id="reviewReload">↻ Refresh</button><button class="btn small primary" id="reviewStageOpen">＋ Stage person</button></div></div>'+
+  '<div class="verify-workflow"><span>1 Upload screenshot</span><span>2 Verify details</span><span>3 Approve message</span><span>4 Send via Swipe</span></div>'+
+  '<p class="verify-help">Screenshots first go into the pending Sheet queue. Review the actual employer, department, designation and evidence here. The search keywords are never taken as proof. '+queued+' pending · '+ready+' draft(s) ready.</p>';
+ const people='<div class="card verify-queue"><div class="section-head"><b>Screenshot review queue</b><span class="small muted">'+records.length+' contacts</span></div>'+
+  (records.length?records.map(r=>'<button class="verify-person '+(c?.id===r.id?'selected':'')+'" data-review-id="'+esc(r.id)+'"><strong>'+esc(r.name)+'</strong><small>'+esc([r.company,r.department,r.designation,r.location].filter(Boolean).join(" · "))+'</small><span class="verify-status">'+esc(r.status)+'</span></button>').join(""):'<p class="verify-help">No pending extracted contacts yet. Upload a screenshot in Research, copy its screenshot-to-Sheet prompt, or stage one manually.</p>')+'</div>';
+ if(!c)return '<div class="verify-workspace">'+summary+'<div class="verify-layout">'+people+'<section class="card"><b>Awaiting screenshot extraction</b><p class="verify-help">Click Stage person to enter one result manually, or return to Research and run the approved GPT staging prompt.</p><button class="btn" data-view="inbox">← Research</button></section></div></div>';
+ const locked=c.status==="Imported";
+ const tmpl=state.templates[c.department]||state.templates.General||suggestedTemplate(c.department||"General");
+ const draftPerson={name:c.name,company:c.company,relation:{department:c.department},title:c.designation};
+ const intro=c.intro||templateText(tmpl.introduction,draftPerson),closing=c.closing||templateText(tmpl.closing,draftPerson);
+ const intentUI=REVIEW_PURPOSES.map(p=>'<label class="verify-purpose"><input type="checkbox" value="'+esc(p)+'" '+(c.purposes?.includes(p)?"checked":"")+' '+(locked?"disabled":"")+'><span>'+esc(p)+'</span></label>').join("");
+ const primary='<div class="field"><label for="rvPrimary">Primary networking purpose</label><select id="rvPrimary" '+(locked?"disabled":"")+'><option value="">Choose primary purpose</option>'+REVIEW_PURPOSES.map(p=>'<option value="'+esc(p)+'" '+(c.primary===p?"selected":"")+'>'+esc(p)+'</option>').join("")+'</select></div>';
+ const opts='<div class="section-head"><b>'+esc(c.name)+'</b><span class="verify-status">'+esc(c.status)+'</span></div><p class="verify-help">Source: '+esc(c.sourceFileId||"User supplied")+' · Sheet row '+c.row+'. Only this candidate’s review row may change.</p>';
+ const details=reviewField("rvName","Person name",c.name)+reviewField("rvCompany","Company — verify",c.company)+reviewField("rvDepartment","Department — verify",c.department)+reviewField("rvDesignation","Designation / seniority — verify",c.designation)+reviewField("rvLocation","Location",c.location)+reviewField("rvProfile","Verified LinkedIn profile URL (optional)",c.profile)+reviewField("rvEvidence","Evidence / screenshot or public source",c.evidence,"textarea")+reviewField("rvNotes","Review notes / uncertainties",c.notes,"textarea");
+ const drafting='<div class="verify-draft"><div class="section-head"><b>3 · Invitation message</b><button class="btn small" id="rvCopyDraftPrompt">▣ GPT prompt</button></div>'+
+  '<p class="verify-help">Choose purposes above. Copy the GPT prompt, then paste a proposed introduction, personalized middle and closing here. You may shorten the master intro/closing for this person only; the shared master never changes.</p>'+
+  reviewField("rvIntro","Introduction (M)",intro,"textarea")+
+  reviewField("rvMiddle","Personalized middle (N)",c.middle,"textarea")+
+  reviewField("rvClosing","Closing (O)",closing,"textarea")+
+  '<p class="verify-help" id="rvCharCount" aria-live="polite">'+reviewCompose(intro,c.middle,closing).length+' / 300 characters</p></div>';
+ const actions='<div class="verify-actions">'+(locked?'<button class="btn" disabled>Already in Swipe</button>':
+  '<button class="btn" id="rvSaveReview">✓ Save verification</button><button class="btn" id="rvSaveDraft">▣ Save draft</button><button class="btn primary" id="rvApproveSwipe" '+(c.status==="Draft Ready"?"":"disabled title=\"Save the draft first\"")+'>Approve → Swipe</button><button class="btn" id="rvReject">Exclude</button>')+'</div>';
+ return '<div class="verify-workspace">'+summary+'<div class="verify-layout">'+people+'<section class="card verify-form">'+opts+details+
+  '<div class="verify-draft"><div class="section-head"><b>Networking intentions</b><span class="small muted">Select multiple</span></div><div class="verify-purposes">'+intentUI+'</div>'+primary+'</div>'+
+  drafting+actions+'</section></div></div>';
+}
+async function loadReviewQueue(){
+ const candidate=state.candidate;
+ try{
+  const result=await request("review/list");
+  if(state.candidate!==candidate)return;
+  state.reviewItems=result.items||[];
+  if(!state.reviewItems.some(x=>x.id===state.reviewSelected))state.reviewSelected=state.reviewItems.find(x=>x.status==="Pending")?.id||state.reviewItems[0]?.id||"";
+  state.reviewLoaded=true;if(state.view==="verify")render();
+ }catch(e){if(state.candidate===candidate)alertUser(e.message)}
+}
+async function reviewSaveStatus(status){
+ if(state.readOnly)return alertUser("Social review is read-only.");
+ const c=reviewCurrent();
+ if(!c)return;
+ const record=reviewFormData();
+ if(status==="Rejected"&&!confirm("Exclude "+c.name+" from outreach? This will not delete any other contacts."))return;
+ if(status==="Reviewed"&&!confirm("Confirm that you reviewed company, department, designation and source for "+c.name+"?"))return;
+ if(status==="Draft Ready"&&!confirm("Approve the complete invitation draft for "+c.name+"?"))return;
+ const candidate=state.candidate;
+ try{await request("review/update",{row:c.row,reviewId:c.id,expectedUpdated:c.updated,record,status,confirm:true});
+  if(candidate!==state.candidate)return;
+  await loadReviewQueue();alertUser(status==="Draft Ready"?"Draft saved; now approve for Swipe.":"Review updated.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+}
+function reviewDraftPrompt(){
+ const c=reviewCurrent();if(!c)return "";
+ const d=reviewFormData();
+ return [
+ "GARAMAAL — PERSON-SPECIFIC LINKEDIN INVITATION DRAFT. NO SHEET WRITES.",
+ "Candidate: "+state.candidate+"; review ID: "+c.id+"; contact: "+d.name+"; company: "+d.company+"; department: "+d.department+"; designation: "+d.designation+"; city: "+d.location+".",
+ "Primary networking purpose: "+(d.primary||"Not selected")+"; all selected intentions: "+(d.purposes.join("; ")||"None").concat("."),
+ "Source / verified details: "+(d.evidence||"No public citation available")+"; uncertainty notes: "+(d.notes||"None"),
+ "Existing candidate and department master introduction: "+(d.intro||"[blank]"),
+ "Existing closing: "+(d.closing||"[blank]"),
+ "Produce exactly THREE separate components (M Introduction, N Recipient-specific middle, O Closing). Blend multiple intentions naturally, prioritize the selected PRIMARY purpose, respect seniority, and do not ask for coffee unless selected.",
+ "You may propose shorter/intention-specific introduction and closing for THIS PERSON only; do not edit master templates or describe screenshot search keywords as verified facts.",
+ "The joined M+N+O with two line breaks between components must be at most 300 characters counting every space and newline. Show exact character count; do not invent career achievements, credentials, LinkedIn URLs or sources.",
+ "Return a copy-ready M/N/O proposal and verification caveats. I will paste into Social → Verify and approve before it moves to Swipe. Do not write any spreadsheet cell or send a LinkedIn message."
+ ].join("\n\n");
+}
+function updateReviewLength(){
+ const n=document.getElementById("rvCharCount");if(!n)return;
+ const total=reviewCompose(document.getElementById("rvIntro")?.value,document.getElementById("rvMiddle")?.value,document.getElementById("rvClosing")?.value).length;
+ n.textContent=total+" / 300 characters"+(total>300?" · Shorten before saving":"");
+ n.style.color=total>300?"#a92e36":"";
+}
+async function reviewPromote(){
+ if(state.readOnly)return alertUser("Social is read-only.");
+ const c=reviewCurrent();if(!c||c.status!=="Draft Ready")return alertUser("Save a reviewed 300-character message first.");
+ if(!confirm("Approve the prepared message and move "+c.name+" into Swipe? This writes a NEW Connections row, never sends to LinkedIn."))return;
+ const candidate=state.candidate;
+ try{await request("review/promote",{row:c.row,reviewId:c.id,expectedUpdated:c.updated,confirm:true});
+  if(candidate!==state.candidate)return;
+  await refresh();await loadReviewQueue();
+  alertUser("Approved contact added to Swipe. LinkedIn request must be sent manually.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+}
+
 function inboxView(){
  return '<div class="research-space"><div class="heading"><h1>Research</h1><button class="btn small" id="refresh" aria-label="Refresh research">↻</button></div>'+
  researchTabs()+
@@ -812,8 +951,8 @@ async function saveTemplateEditor(){
  render();alertUser("Master template saved to Freshmaal for "+candidate+".");
  }catch(e){alertUser(e.message)}
 }
-function render(){document.getElementById("app").innerHTML=(state.loadError?'<div class="preview-note" role="alert">Social data unavailable: '+esc(state.loadError)+'</div>':"")+(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
- const nav=[["dashboard","⌂","Dashboard"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"],["inbox","▣","Research"]];
+function render(){document.getElementById("app").innerHTML=(state.loadError?'<div class="preview-note" role="alert">Social data unavailable: '+esc(state.loadError)+'</div>':"")+(state.view==="swipe"?swipe():state.view==="followups"?followups():state.view==="inbox"?inboxView():state.view==="verify"?verifyView():dashboard())+(state.selected&&state.items.some(c=>c.key===state.selected)?personDetail(state.items.find(c=>c.key===state.selected)):"");
+ const nav=[["dashboard","⌂","Dashboard"],["inbox","▣","Research"],["verify","✓","Verify"],["swipe","⇄","Swipe"],["followups","↗","Follow-ups"]];
  for(const area of ["bottomNav","desktopNav"])document.getElementById(area).innerHTML=nav.map(([id,ic,label])=>'<button data-view="'+id+'" class="'+(id===state.view?"active":"")+'">'+(area==="bottomNav"?'<span class="sym">'+ic+'</span>':ic+" ")+label+'</button>').join("");
  document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",state.candidate==="Pooja");
@@ -843,13 +982,14 @@ async function switchCandidate(candidate){
  if(!["Abhishek","Pooja"].includes(candidate)||candidate===state.candidate)return;
  state.candidate=candidate;
  try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
- state.items=[];state.query="";state.company="";state.department="";state.industry="all";
+ state.items=[];state.reviewItems=[];state.reviewSelected="";state.reviewLoaded=false;state.query="";state.company="";state.department="";state.industry="all";
  state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.catalogCompanies=[];state.catalogDepartments=[];state.photoResults=[];state.photoFailures=[];state.photoUploading=false;state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
  await refresh();
  if(state.view==="inbox"&&state.candidate===candidate){await loadResearch();if(state.researchMode!=="followups")await loadInbox()}
+ if(state.view==="verify"&&state.candidate===candidate)await loadReviewQueue();
 }
 async function loadResearch(){
  const candidate=state.candidate;
@@ -1097,7 +1237,8 @@ function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.cl
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
-document.addEventListener("input",e=>{if(e.target.id==="legacyInvitationMiddle"){updateLegacyInvitationLength();return}
+document.addEventListener("input",e=>{if(["rvIntro","rvMiddle","rvClosing"].includes(e.target.id)){updateReviewLength();return}
+ if(e.target.id==="legacyInvitationMiddle"){updateLegacyInvitationLength();return}
  if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
 document.addEventListener("change",e=>{
  if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
@@ -1111,7 +1252,7 @@ document.addEventListener("click",async e=>{
  const search=e.target.closest("#researchNow");
  if(search&&(!state.researchCompany||!state.researchDepartment)){e.preventDefault();alertUser("Choose an added company and department before searching.");return}
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
- if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}return}
+ if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}if(v.view==="verify")loadReviewQueue();return}
  if(v.researchMode){state.researchMode=v.researchMode;state.selectedConversation="";render();if(v.researchMode!=="followups"&&!state.inboxLoad)loadInbox();return}
  if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=t.city;pin.setAttribute("aria-label","Change city or country: "+t.city)}updateTargetUrl()}return}
  if(v.conversation){state.selectedConversation=state.selectedConversation===v.conversation?"":v.conversation;render();return}
@@ -1132,6 +1273,23 @@ document.addEventListener("click",async e=>{
  if(b.id==="personalisationOpen"){openPersonalisationDialog();return}
  if(b.id==="copyPersonalisationPrompt"){copyPersonalisationEditPrompt();return}
  if(b.id==="personalisationClose"||b.id==="personalisationCancel"){document.getElementById("personalisationDialog").close();return}
+ if(v.reviewId){state.reviewSelected=v.reviewId;render();return}
+ if(b.id==="reviewReload"){await loadReviewQueue();return}
+ if(b.id==="reviewStageOpen"){document.getElementById("reviewStageDialog").showModal();return}
+ if(b.id==="reviewStageClose"||b.id==="reviewStageClose2"){document.getElementById("reviewStageDialog").close();return}
+ if(b.id==="reviewStageSave"){
+  if(state.readOnly)return alertUser("Social is read-only.");
+  const val=id=>document.getElementById(id)?.value.trim()||"";
+  const candidate=state.candidate;
+  const record={name:val("rstName"),company:val("rstCompany"),department:val("rstDepartment"),designation:val("rstDesignation"),location:val("rstLocation"),profile:val("rstProfile"),evidence:val("rstEvidence"),notes:val("rstNotes")};
+  if(!confirm("Stage "+record.name+" as an unverified screenshot contact?"))return;
+  try{await request("review/stage",{record,confirm:true});if(candidate!==state.candidate)return;document.getElementById("reviewStageDialog").close();await loadReviewQueue();alertUser("Pending contact staged; verify before messaging.");}catch(err){if(candidate===state.candidate)alertUser(err.message)}return
+ }
+ if(b.id==="rvSaveReview"){await reviewSaveStatus("Reviewed");return}
+ if(b.id==="rvSaveDraft"){await reviewSaveStatus("Draft Ready");return}
+ if(b.id==="rvReject"){await reviewSaveStatus("Rejected");return}
+ if(b.id==="rvApproveSwipe"){await reviewPromote();return}
+ if(b.id==="rvCopyDraftPrompt"){copyText(reviewDraftPrompt());return}
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
  if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
