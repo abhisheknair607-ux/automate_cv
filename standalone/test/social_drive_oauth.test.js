@@ -39,7 +39,8 @@ test("OAuth tokens never modify the shared Jobs bridge and Social remains an iso
   const bridge=fs.readFileSync(path.resolve(__dirname,"../bridge.js"),"utf8");
   const server=fs.readFileSync(path.resolve(__dirname,"../social_server.js"),"utf8");
   const html=fs.readFileSync(path.resolve(__dirname,"../../webapp/Index.html"),"utf8");
-  assert.match(social,/reauthenticateWithPopup/);
+  assert.match(social,/auth\.signInWithPopup\(provider\)/);
+  assert.match(social,/result\.credential\|\|sdk\.auth\.GoogleAuthProvider\.credentialFromResult/);
   assert.match(social,/provider.addScope\("https:\/\/www.googleapis.com\/auth\/drive"\)/);
   assert.match(social,/async function socialDriveToken/);
   assert.match(social,/NEW_.*USED_/s);
