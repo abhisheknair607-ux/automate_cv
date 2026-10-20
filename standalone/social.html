@@ -383,12 +383,12 @@ function personDetail(c){return '<section class="card"><div class="section-head"
 function researchPrompt(){
  const chosen=Object.values(state.templates);
  const configurations=(chosen.length?chosen:["Deals","Corporate Finance","Valuations","Transfer Pricing","Wealth Management","Financial Planning"].map(suggestedTemplate))
-   .filter(t=>!state.department||t.department===state.department);
+   .filter(t=>!state.researchDepartment||t.department===state.researchDepartment);
  return [
  "GARAMAAL LINKEDIN RESEARCH / DEPARTMENT TEMPLATES / FRESHMAAL IMPORT",
  "Research folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
  "Candidate: "+state.candidate,
- "Target: "+(state.company||"Selected Irish companies")+" | "+(state.department||"Any department"),
+ "Target: "+(state.researchCompany||"Select company")+" | "+(state.researchDepartment||"Select department")+" | "+(state.researchCity||"Dublin"),
  "Freshmaal spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
  "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
@@ -661,7 +661,7 @@ function screenshotToBase64(file){
   reader.readAsDataURL(file);
  });
 }
-function photoProgressHTML(){
+function photoProgressBody(){
  const entries=state.photoResults||[];
  const total=state.photoBatchTotal||entries.length;
  const current=state.photoCompleted||entries.length;
@@ -671,11 +671,12 @@ function photoProgressHTML(){
  (r.status==="failed"?' — '+esc(r.reason||"Please retry."):'')+'</div>').join("");
  const retry=!state.photoUploading&&state.photoFailures.length
    ?'<button class="btn small" id="retryResearchPhotos">Retry '+state.photoFailures.length+' failed</button>':"";
- return '<div id="researchPhotoProgress" class="research-upload-progress" aria-live="polite">'+progress+rows+retry+'</div>';
+ return progress+rows+retry;
 }
+function photoProgressHTML(){return '<div id="researchPhotoProgress" class="research-upload-progress" aria-live="polite">'+photoProgressBody()+'</div>'}
 function updatePhotoProgress(){
  const el=document.getElementById("researchPhotoProgress");
- if(el){const html=photoProgressHTML(),temp=document.createElement("div");temp.innerHTML=html;el.innerHTML=temp.firstElementChild?temp.firstElementChild.innerHTML:"";}
+ if(el)el.innerHTML=photoProgressBody();
  const btn=document.getElementById("saveResearchImage");
  if(btn)btn.disabled=state.photoUploading;
 }
@@ -824,8 +825,9 @@ function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.cl
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
-document.addEventListener("input",e=>{if(["targetCompany","targetDepartment","targetCity"].includes(e.target.id)){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("input",e=>{if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
 document.addEventListener("change",e=>{
+ if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
  if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
  if(e.target.id==="companyFilter"){state.company=e.target.value;render()}
  if(e.target.id==="departmentFilter"){state.department=e.target.value;render()}
@@ -833,10 +835,12 @@ document.addEventListener("change",e=>{
  if(e.target.id==="followVariant"){const c=state.items.find(x=>x.key===state.selected);if(c)document.getElementById("followText").textContent=makeMessage(c,Number(e.target.value),true)}
 });
 document.addEventListener("click",async e=>{
+ const search=e.target.closest("#researchNow");
+ if(search&&(!state.researchCompany||!state.researchDepartment)){e.preventDefault();alertUser("Choose an added company and department before searching.");return}
  const b=e.target.closest("button");if(!b)return;const v=b.dataset;
  if(v.view){state.view=v.view;state.selected="";state.filterVisible=false;state.swipeIndex=0;render();if(v.view==="inbox"){loadResearch();if(state.researchMode!=="followups")loadInbox()}return}
  if(v.researchMode){state.researchMode=v.researchMode;state.selectedConversation="";render();if(v.researchMode!=="followups"&&!state.inboxLoad)loadInbox();return}
- if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;state.company=t.company;state.department=t.department;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}updateTargetUrl()}return}
+ if(v.useTarget){const t=state.targets.find(x=>String(x.row)===String(v.useTarget));if(t){state.researchCompany=t.company;state.researchDepartment=t.department;state.researchCity=t.city;for(const [id,value] of [["targetCompany",t.company],["targetDepartment",t.department],["targetCity",t.city]]){const el=document.getElementById(id);if(el)el.value=value}const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=t.city;pin.setAttribute("aria-label","Change city or country: "+t.city)}updateTargetUrl()}return}
  if(v.conversation){state.selectedConversation=state.selectedConversation===v.conversation?"":v.conversation;render();return}
  if(v.copyFollowprompt){copyText(conversationResearchPrompt(state.conversations.find(x=>x.id===v.copyFollowprompt)));return}
  if(v.industry){state.orgOpen=!(state.orgOpen&&state.industry===v.industry);state.industry=v.industry;state.company="";state.department="";render();return}
@@ -845,6 +849,13 @@ document.addEventListener("click",async e=>{
  if(v.copy!==undefined){copyText(v.copy);return}
  if(b.id==="closeOrgs"){state.orgOpen=false;render();return}
  
+ if(b.id==="researchAddCompany"||b.id==="researchAddDepartment"){openResearchOption(b.id==="researchAddCompany"?"company":"department");return}
+ if(b.id==="researchOptionSave"){await saveResearchOption();return}
+ if(b.id==="researchOptionClose"||b.id==="researchOptionCancel"){document.getElementById("researchOptionDialog").close();return}
+ if(b.id==="researchLocationOpen"){openResearchLocation();return}
+ if(b.id==="researchLocationSave"){saveResearchLocation();return}
+ if(b.id==="researchLocationClose"||b.id==="researchLocationCancel"){document.getElementById("researchLocationDialog").close();return}
+ if(b.id==="retryResearchPhotos"){await retryResearchPhotos();return}
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
  if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
