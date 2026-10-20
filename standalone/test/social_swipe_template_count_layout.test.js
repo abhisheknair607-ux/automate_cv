@@ -43,7 +43,8 @@ test("Legacy records preview master but sent invitations remain unchanged",()=>{
  h.run("state.items=["+person+"]");
  h.run("state.items[0].message='One old unstructured invitation.';state.items[0].introduction='';state.items[0].personalisedMiddle='';state.items[0].closing=''");
  assert.equal(h.run("invitationPreview(state.items[0]).kind"),"legacy");
- assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW INTRO/);\n assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW CLOSE/);
+ assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW INTRO/);
+ assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW CLOSE/);
  h.run("state.items[0].message='Hi Jane, old opening.\\nPersonalised proof.\\nOld ending.';state.items[0].relation.status='sent'");
  assert.equal(h.run("invitationPreview(state.items[0]).kind"),"sent");
  assert.equal(h.run("invitationPreview(state.items[0]).text"),"Hi Jane, old opening.\nPersonalised proof.\nOld ending.");
