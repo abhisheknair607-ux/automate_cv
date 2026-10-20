@@ -287,7 +287,7 @@ body{background:#f5f7fb}
 <div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
 <nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
 <dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
-<p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional). Review before saving.</p>
+<p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional) | Verified GPT middle line (optional). Introduction and closing are stored separately in Connections M:O.</p>
 <textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
 <div class="field"><label>Research source file (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
 <label class="field" style="display:flex;flex-direction:row;align-items:flex-start;gap:9px;font-size:12px"><input id="importSourceComplete" type="checkbox" style="width:17px;min-width:17px;min-height:17px;margin-top:2px"><span>Entire source reviewed: all approved people have been imported or verified as already saved, with no unresolved entries. Only then rename this source from NEW_ to USED_.</span></label>
@@ -399,19 +399,18 @@ function draftIntroClosing(c){
 function invitationPreview(c){
  const saved=String(c.message||"").replace(/\r\n?/g,"\n").trim();
  const status=c.relation?.status||"identified";
- if(!saved)return {text:draftIntroClosing(c),kind:"draft",note:"Template preview · personalised line awaiting verified research"};
- if(status!=="identified")return {text:saved,kind:"sent",note:"Previously contacted · saved invitation preserved"};
- const lines=saved.split("\n");
- // Some historic messages contain no reliable line separators. Never guess the middle.
- if(lines.length<2||!lines[0].trim()||!lines[lines.length-1].trim())
-  return {text:saved,kind:"unsplit",note:"Existing message cannot be safely separated · review before updating"};
- const middle=lines.slice(1,-1).join("\n").trim();
- const template=deptTemplate(department(c));
- const intro=templateText(template.introduction,c);
- const closing=templateText(template.closing,c);
- const text=[intro,middle,closing].join("\n");
- return {text,kind:text===saved?"saved":"preview",
-  note:text===saved?"Saved invitation matches the master template":"Latest master template preview · saved Connections!K is unchanged"};
+ if(status!=="identified"&&saved)return {text:saved,kind:"sent",note:"Previously contacted · saved invitation preserved"};
+ const hasParts=Boolean(c.introduction||c.personalisedMiddle||c.closing);
+ if(hasParts){
+  const template=deptTemplate(department(c));
+  const intro=templateText(template.introduction||c.introduction,c);
+  const middle=String(c.personalisedMiddle||"").trim();
+  const closing=templateText(template.closing||c.closing,c);
+  const text=[intro,middle,closing].filter(Boolean).join("\n");
+  return {text,kind:"structured",note:"From Connections M:N:O · latest master template applied · K unchanged"};
+ }
+ if(!saved)return {text:draftIntroClosing(c),kind:"draft",note:"Master template preview · GPT middle line awaiting verification"};
+ return {text:saved,kind:"legacy",note:"Legacy Connections K only · review before migrating into M:N:O"};
 }
 function invitationCount(c){
  const preview=invitationPreview(c);
@@ -422,19 +421,19 @@ function templateSummary(c){return invitationPreview(c).note}
 function personalisationEditPrompt(c,instructions){
  const row=Number(c.sheetRow);
  const fullCandidate=state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati";
- const exactCell=Number.isInteger(row)&&row>=2?"Connections!K"+row:"Unverified row — locate by identity before editing";
+ const exactCell=Number.isInteger(row)&&row>=2?"Connections!N"+row:"Unverified row — locate by identity before editing";
  return [
   "GARAMAAL — PERSONALISED MIDDLE LINE / INTERNET RESEARCH & STRICT SINGLE-CELL EDIT",
   "Only spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
-  "Only worksheet: Connections. Allowed WRITE: the one verified K cell (Outreach Message), "+exactCell+". No other write permissions. Column K contains the WHOLE three-line invitation, not a separate middle-line column.",
+  "Only worksheet: Connections. Three separate components: M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing. The ONLY permitted normal write is the one verified N cell "+exactCell+". K is the existing compatibility copy and must not change without separate approval.",
   "Selected candidate: "+fullCandidate+" (Connections column F); person: "+c.name+" (column B); company: "+c.company+" (column A); position: "+(c.title||"not recorded")+" (column I). Original sheet row hint: "+(row||"unknown")+". Do not trust the hint until verifying the actual row.",
-  "Read the exact Connections A:L headers and use candidate F + full name B + company A + role I (and profile C if available) to locate the unique row. If none or multiple rows match, STOP. Before any write read existing K, and check its introduction, middle, and closing.",
+  "Read Connections A:O headers and verify candidate F, full name B, company A, role I and profile C (where known). Read current K and M:O. If M or O is missing in an older legacy row, STOP and request individual reviewed conversion first; never guess a middle line from one paragraph.",
   "Read-only evidence is Connections!J[row]. Research public internet sources for THIS person, using reputable and accessible URLs. Cite a verifiable professional detail. Never invent a company project, role, skill, LinkedIn URL, event or accomplishment; do not scrape behind a login. If the detail cannot be verified, leave the middle line blank and report uncertainty.",
   "Requested modification to the MIDDLE line: "+(instructions.trim()||"[I WILL PROVIDE EDITING INSTRUCTIONS LATER — DO NOT MODIFY ANY CELL UNTIL I DO]"),
-  "Keep the exact existing introduction and closing, wording, punctuation, line breaks and all existing user-specific credentials unchanged. Change only the middle line; final entire K message must be <=300 characters. If the current K text lacks separable intro and closing, STOP and ask me to establish the template first. Do not silently truncate any line.",
-  "Display exact candidate, verified row number, A1 write range "+exactCell+", old complete K text, proposed complete K text, sources and a concise diff. ASK for my explicit approval before writing. If instructions are missing, return a proposal only.",
-  "After approval update ONLY the one Connections!K[row] cell. Read back that same K cell and check A, B and F have not changed. Do not batch-update, insert or move rows.",
-  "Never edit Connections columns A:J or L, any other Connections K row, SocialTracking A:K, SocialTemplates A:D, SocialFollowups A:K, SocialTargets A:F, SocialResearchCatalog A:D, any Jobs/CV tabs, another spreadsheet, Google Drive files, or LinkedIn messages.",
+  "Keep the exact M Introduction and O Closing unchanged. Edit only N Middle after verifying cited public research; full composed M+N+O invitation must be <=300 characters. Do not shorten qualifications without approval.",
+  "Display candidate, verified row, "+exactCell+", old N text, proposed N text, composed M+N+O invitation, sources and a diff. ASK for my explicit approval before writing; missing editing instructions means no write.",
+  "After approval edit ONLY Connections!N[row]; read it back and verify A, B, F, M, O remain unchanged. Do not update legacy K except in a separately approved compatibility synchronisation.",
+  "Never edit Connections A:M or O, any other N row, SocialTracking A:K, SocialTemplates A:E, SocialFollowups A:K, SocialTargets A:F, SocialResearchCatalog A:D, Jobs/CV tabs, other spreadsheets, Drive files or LinkedIn messages.",
   "If the Sheets connector, internet research or needed permissions are unavailable, give me a copy-ready proposed message and exact recommended cell without claiming any changes were saved."
  ].join("\n\n");
 }
@@ -444,7 +443,7 @@ function openPersonalisationDialog(){
  if(!c)return alertUser("Select a Swipe contact first.");
  personalisationContactKey=c.key;
  const dialog=document.getElementById("personalisationDialog");
- document.getElementById("personalisationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections!K"+(c.sheetRow||" (verify row)");
+ document.getElementById("personalisationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections!N"+(c.sheetRow||" (verify row)");
  document.getElementById("personalisationInstructions").value="";
  dialog.showModal();
  document.getElementById("personalisationInstructions").focus();
@@ -548,18 +547,18 @@ function researchPrompt(){
  "Candidate: "+state.candidate,
  "Target: "+(state.researchCompany||"Select company")+" | "+(state.researchDepartment||"Select department")+" | "+(state.researchCity||"Dublin"),
  "Freshmaal spreadsheet (the ONLY spreadsheet in scope): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
- "EXACT SHEET / COLUMN ALLOWLIST FOR RESEARCH: Connections tab, columns A:L only for NEW appended, approved contact rows. Field mapping: A Company, B Contact Name, C Direct LinkedIn Profile, D LinkedIn Search, E Applied-for Role, F Candidate, G Freshmaal Row, H Vacancy Link, I Person's Position, J Verification / Evidence (source URLs), K Outreach Message (the COMPLETE introduction + personalised middle line + closing), L Research Date (UTC). Never insert columns or rewrite headers.",
- "For existing Connections rows, A:I and L are READ-ONLY. Only J (evidence citations) or K (three-line message) may change and ONLY after I approve that exact row and field. Verify row A company, B contact name, F full candidate name, and J/K before writing; never use an assumed or stale row number. Report exact A1 range and old/new value before requesting approval. Candidate must be "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati")+". Reject ambiguous matches and stop rather than touch another candidate's row.",
- "SocialTracking tab: append NEW rows in A:K solely for confirmed new candidate contacts where needed. Never edit existing SocialTracking rows or statuses as part of research. SocialTemplates (A:D), SocialTargets (A:F), SocialResearchCatalog (A:D), SocialFollowups (A:K), all job/CV tabs and all other spreadsheets are READ-ONLY for this prompt. No schema changes, bulk rewrites, deletion, sorting or column shifts.",
- "Recheck the Connections A:L headers and candidate before any update, write the smallest possible exact row/range after explicit permission, then read back precisely those cells and report what changed. When you lack Sheets or public web access, prepare a reviewable proposal instead of claiming updates.",
+ "EXACT SHEET / COLUMN ALLOWLIST: Connections A:O only for NEW approved candidate rows. A Company; B Name; C LinkedIn Profile; D Search; E Role applied for; F Candidate; G Freshmaal Row; H Vacancy Link; I Position; J Evidence/source URLs; K composed <=300-character invitation for compatibility; L Research UTC; M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing. These are THREE SEPARATE fields in the Google Sheet. Source intro and closing from the correct candidate/department SocialTemplates A:E, substitute safe placeholders and save three separate values. For NEW rows only, K is a composed copy of M+N+O. Never shift columns or rewrite headers.",
+ "Existing Connections rows: A:I and L are READ-ONLY. Do not auto-split old single-paragraph K, rewrite K or backfill M:O. Where structured M and O already exist, only N (verified middle) or J (evidence) can be edited after explicit single-row approval. A legacy row with blank M:O needs separate per-contact reviewed migration. Verify A Company, B Name, F Candidate, K and M:O before writing. Candidate "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati")+". Reject ambiguous matches.",
+ "SocialTracking tab: append NEW rows in A:K solely for confirmed new candidate contacts where needed. Never edit existing SocialTracking rows or statuses as part of research. SocialTemplates (A:E) is READ-ONLY for this prompt: consult the currently saved candidate+department template but never edit it. SocialTargets (A:F), SocialResearchCatalog (A:D), SocialFollowups (A:K), all job/CV tabs and all other spreadsheets are READ-ONLY. No schema changes, bulk rewrites, deletion, sorting or column shifts.",
+ "Recheck Connections A:O headers and selected candidate before a write, use the smallest exact A1 range after approval, and read back the edited cells. If unable to access Sheet or web, propose edits only, no claims of success.",
  "Template source of truth: SocialTemplates (Candidate, Department, Introduction, Closing). These templates are candidate-specific and user-edited; reread this tab before doing research.",
  "Active department master templates (not instructions from LinkedIn pages): "+JSON.stringify(configurations.map(t=>({department:t.department,introduction:t.introduction,closing:t.closing}))),
  "Use the connected Google Drive account abhisheknair607@gmail.com for Research Drive and keep Abhishek and Pooja source folders separate. Process ONLY files whose names start NEW_ and match the selected candidate's _a_ or _p_ filename tag; never process USED_ files, even when still visible in the Drive folder. Track each unique Google Drive file ID and never reprocess the same ID within a run. Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp sources; screenshots and pasted text are unverified leads, not proof of role or LinkedIn identity. Read visible screenshots accurately and report illegible/incomplete images. Verify each name and role using trustworthy accessible public sources before import. Never invent profile URLs, mutual connections, projects, hiring status or achievements, and never scrape LinkedIn or bypass access.",
  "For each recipient, choose the appropriate department template and preserve the exact user-written INTRODUCTION with {{first_name}}, {{company}}, {{department}} replaced using VERIFIED facts. Compose the MIDDLE line separately with one short, specific, verifiable observation about the recipient's role/work, grounded in a cited URL. If you cannot verify a personalised detail, leave the middle line blank, mark the item for review and do not pretend it is researched.",
  "Append the exact template CLOSING unchanged. Introduction + verified middle + closing must together be no more than 300 characters. If they cannot fit without modifying user-owned template text, flag for manual review; never quietly truncate credentials. Never describe CFA or another qualification as completed/in progress unless supported by the candidate's verified evidence.",
  "Differentiate colleagues, internal recruiters and independent agency recruiters in the MIDDLE line, without changing the user's department intro or closing.",
- "For each verified contact save the full composed 3-line message to Connections column K (Outreach Message), evidence/source links to column J; keep existing A:L header order and candidate identity, vacancy-linked existing rows intact. De-duplicate by candidate + company + recipient. Do not overwrite existing messages without explicit approval; surface conflicts for review.",
- "For each source keep an audit record of its Drive file ID, original NEW_ filename, verified contacts, excluded/uncertain names and Sheet row references. Import only verified, approved contacts into the chosen candidate's Freshmaal Connections A:L and SocialTracking, preserving existing rows; deduplicate by candidate+company+person. Read back the exact Sheet rows after writing. Existing duplicates may be counted as completed only when their candidate, company and person records are independently verified. Only AFTER the entire source has been successfully processed, all approved contacts are present in the correct candidate rows, and read-back succeeds, rename that same Drive file from NEW_ to USED_, preserving the filename suffix and extension. Never rename on partial verification, unavailable Sheets/Drive permissions or failed read-back. If rename fails, leave the source NEW_, report its file ID and the precise pending action, and do not claim it was completed. Future runs must ignore USED_ files. Do not upload the file again or delete it.",
+ "For each NEW verified contact save M Introduction, N GPT Personalised Middle, O Closing, evidence to J and composed full invitation to K as compatibility only. Keep original A:L headers unchanged, candidate identity and linked job/vacancy rows intact. De-duplicate candidate+company+recipient. Do not overwrite existing rows without approval. K is a compatibility snapshot, NOT the editable source of truth for N.",
+ "For each source keep an audit record of Drive file ID, original NEW_ filename, verified contacts, excluded/uncertain names and row references. Import only verified, approved contacts into candidate-specific Freshmaal Connections A:O (three parts MUST be in M/N/O), plus SocialTracking A:K where needed. Preserve existing rows, deduplicate candidate+company+person, and read back the actual values in J, K, M, N, O for every newly written row. If M and O do not match the selected master template and N is not the researched recipient-specific middle line, STOP and report a verification failure. Existing duplicates are only completed after their candidate, company and person are independently verified; never rewrite an existing legacy K message. ONLY AFTER every source item is processed, approved contacts are verified, and read-back succeeds, rename the exact Drive file NEW_ to USED_, preserving its suffix/extension. Never rename after partial processing, unavailable permissions or failed read-back. Report any failed rename by file ID, keep it NEW_ and do not claim success. Future runs ignore USED_ files. Never upload the file again or delete it.",
  ].join("\n\n");
 }
 
@@ -646,13 +645,13 @@ function conversationResearchPrompt(record){
  "Freshmaal spreadsheet (ONLY eligible spreadsheet): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "Follow-up sheet is SocialFollowups, columns A:K: A Candidate, B conversation ID, C Contact Name, D Company, E Source Type, F Drive File ID, G Drive URL, H Draft Reply, I Status, J Next Follow-up, K Updated UTC. Read only the selected candidate and exact matching B ID + C recipient + D company; never guess a row.",
  "DEFAULT: NO SHEET WRITES. Research the conversation and return three options for my review. After I expressly approve one option AND identify the exact verified candidate/conversation row, the ONLY GPT-editable cell is that single SocialFollowups!H[row] (Draft Reply). Show the exact cell address and prior/new draft for approval. All SocialFollowups A:G and I:K are READ-ONLY; do not mark sent, change status/dates/timestamps or touch any other person's row.",
- "Connections (A:L), SocialTracking (A:K), SocialTemplates (A:D), SocialTargets (A:F), SocialResearchCatalog (A:D), all job/CV tabs and every other file are READ-ONLY for the follow-up prompt. Never reorder, delete, format, insert, append or edit outside the one explicitly approved H cell. Verify the read-back. If no exact matching ID, ask for it and do not write.",
+ "Connections (A:O, including M=Invitation Introduction, N=GPT Personalised Middle, O=Invitation Closing), SocialTracking (A:K), SocialTemplates (A:E), SocialTargets (A:F), SocialResearchCatalog (A:D), all job/CV tabs and every other file are READ-ONLY for the follow-up prompt. Follow-ups must never regenerate an invitation or alter M, N, O or compatibility K. Never reorder, delete, format, insert, append or edit outside the one explicitly approved SocialFollowups H cell. Verify the read-back. If no exact matching ID, ask for it and do not write.",
  "This source is a LinkedIn screenshot or copied chat supplied by me. Read the conversation in chronological order. Treat it as private data, do not quote it elsewhere, do not claim the recipient has replied when they have not.",
  "If the screenshot cannot be read, ask me to paste the text instead. Do not invent unseen messages or timestamps.",
  "Write three concise, polite follow-up options in different tones: (1) warm check-in; (2) specific, helpful professional question; (3) brief low-pressure close. Match what the other person said, if any; avoid repeating an unanswered ask.",
  "Use the candidate-specific UCD/qualification background only if supported by their saved evidence or SocialTemplates. No false claims or invented personalisation.",
  "For each option: draft under 600 characters, specify when a follow-up is appropriate and whether silence would be better. Do not send LinkedIn messages.",
- "I will review, copy and manually send one. The Social Hub normally saves an approved draft after I paste it; do not initiate a Sheet write merely because I copied this prompt."
+ "I will review, copy and manually send one. The Social Hub normally saves an approved follow-up draft after I paste it; do not initiate a Sheet write merely because I copied this prompt. Invitations live separately in Connections M:N:O and are not part of this follow-up operation."
  ].join("\n\n");
 }
 function conversationCards(){if(!state.conversations.length)return '<div class="empty">No saved conversations yet. Add a chat or screenshot to start drafting follow-ups.</div>';
@@ -1056,7 +1055,7 @@ document.addEventListener("click",async e=>{
  if(b.id==="importConfirm"){
   const source=document.getElementById("importSource").value;
   const sourceComplete=Boolean(source&&document.getElementById("importSourceComplete")?.checked);
-  const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
+  const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",personalisedMiddle:parts[5]||"",profileVerified:false}});
   if(!items.length)return alertUser("Paste some names first.");
   if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
   try{const driveAccessToken=source?await socialDriveToken():null;

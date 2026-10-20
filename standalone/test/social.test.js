@@ -31,7 +31,7 @@ test("Candidate identity and conservative contact deduplication",()=>{
  assert.equal(social.uniqueContacts(entries,"Pooja").length,1);
 });
 function fakeSheets(){
- let rows=[social.CONTACT_HEADERS],tracking=[],hasTracking=false,writes=[];
+ let rows=[[...social.CONTACT_HEADERS,...social.COMPONENT_HEADERS]],tracking=[],hasTracking=false,writes=[];
  const mock=async(raw,options={})=>{
   const url=decodeURIComponent(String(raw)),method=options.method||"GET",body=options.body?JSON.parse(options.body):{};
   const ok=data=>({ok:true,status:200,json:async()=>data});
@@ -39,6 +39,7 @@ function fakeSheets(){
   writes.push({url,method});
   if(url.includes("fields=sheets(properties(title))"))return ok({sheets:[{properties:{title:"Connections"}},...(hasTracking?[{properties:{title:"SocialTracking"}}]:[])]});
   if(url.includes(":batchUpdate")){hasTracking=true;return ok({replies:[{}]})}
+  if(url.includes("/values/")&&url.includes("SocialTemplates")){if(method==="GET")return ok({values:[]});}
   if(url.includes("/values/")&&url.includes("Connections")){
    if(method==="GET")return ok({values:rows});
    if(method==="POST"){rows.push(...body.values);return ok({updates:{updatedRows:body.values.length}})}
@@ -59,12 +60,16 @@ test("Verified import writes to Connections and a separate SocialTracking tab wi
  try{
   const res=await social.importContacts({token:"test",driveAccess:"test",id:"testsheet",
    candidate:"Pooja",confirm:true,items:[{name:"Demo Person",company:"EY",title:"Valuations Manager",department:"Valuations",
-    profile:"https://linkedin.com/in/demo-person",profileVerified:false,message:"Hi Demo"}]});
+    profile:"https://linkedin.com/in/demo-person",profileVerified:false,personalisedMiddle:"Verified research detail"}]});
   assert.equal(res.saved,1);
   assert.equal(res.verified,true);
   assert.equal(db.rows().length,2);
   assert.equal(db.rows()[1][5],"Pooja Krishna Tirupati");
   assert.equal(db.rows()[1][2],"","Unverified profile must remain blank");
+  assert.match(db.rows()[1][12],/Hi Demo/,"Introduction stored in M");
+  assert.equal(db.rows()[1][13],"Verified research detail","Middle line stored in N");
+  assert.match(db.rows()[1][14],/connecting/,"Closing stored in O");
+  assert.equal(db.rows()[1][10],social.composeInvitation(...db.rows()[1].slice(12,15)),"K retains compatible joined copy");
   assert.equal(db.tracking()[1][7],"Valuations");
   assert.equal(db.tracking()[1][2],"identified");
   const again=await social.importContacts({token:"test",id:"testsheet",candidate:"Pooja",confirm:true,

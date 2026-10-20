@@ -1,0 +1,60 @@
+"use strict";
+const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
+const store=require("../social_store");
+const html=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
+const script=html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+test("Additive M:O schema retains old 12 header fields and canonical names",()=>{
+ assert.equal(store.CONTACT_HEADERS.length,12);
+ assert.deepEqual(store.COMPONENT_HEADERS,["Invitation Introduction","GPT Personalised Middle","Invitation Closing"]);
+ assert.equal(store.CONTACT_HEADERS[10],"Outreach Message");
+ assert.equal(store.CONTACT_HEADERS[11],"Research Date (UTC)");
+ assert.equal(store.composeInvitation("Hi Jane","Verified role detail","Thanks"),"Hi Jane\nVerified role detail\nThanks");
+ assert.equal(store.fillTemplate("Hi {{first_name}} at {{company}} in {{department}}",{name:"Jane Doe",company:"EY",department:"Deals"}),"Hi Jane at EY in Deals");
+});
+test("Connection reads include three structured values; imports require installed M:O and append exactly A:O",()=>{
+ const src=fs.readFileSync(path.resolve(__dirname,"../social_store.js"),"utf8");
+ assert.match(src,/values\(token,id,"Connections","A1:O"\)/);
+ assert.match(src,/values\(token,id,"Connections","A1:O1"\)/);
+ assert.match(src,/three-part invitation headers not installed/);
+ assert.match(src,/range\("Connections","A1:O"\)\+":append/);
+ assert.match(src,/row\[12\]===c\.introduction/);
+ assert.match(src,/row\[13\]===c\.personalisedMiddle/);
+ assert.match(src,/row\[14\]===c\.closing/);
+ assert.match(src,/Supply the verified GPT middle in its separate field/);
+ assert.match(src,/const intro=clean\(p\.introduction\|\|fillTemplate/);
+});
+test("Swipe renders structured fields and leaves legacy one-paragraph K intact",()=>{
+ const nodes=new Map();
+ const get=id=>{if(!nodes.has(id))nodes.set(id,{value:"",innerHTML:"",textContent:"",style:{},classList:{add(){},remove(){},toggle(){}},addEventListener(){}});return nodes.get(id)};
+ class Provider{addScope(){}setCustomParameters(){}}
+ const user={uid:"owner",email:"abhisheknair607@gmail.com"};
+ const auth={currentUser:user};
+ const f=()=>auth;f.GoogleAuthProvider=Provider;
+ const ctx=vm.createContext({window:{firebase:{apps:[{}],auth:f},__cvStandalone:{requestSpecial:async()=>({readOnly:true,candidate:"Abhishek",items:[]})}},document:{getElementById:get,addEventListener(){}},localStorage:{getItem(){return null},setItem(){}},navigator:{},confirm:()=>false,prompt:()=>"",setTimeout,clearTimeout,console});
+ new vm.Script(script).runInContext(ctx);
+ const run=t=>vm.runInContext(t,ctx);
+ run("state.candidate='Abhishek';state.templates={Deals:{introduction:'Hi {{first_name}}, CURRENT MASTER',closing:'CURRENT CLOSE'}};");
+ const base='{name:"Angela Example",company:"BDO",title:"Director",message:"Hello Angela, historical unstructured message.",relation:{status:"identified",department:"Deals"}}';
+ run("state.items=["+base+"];");
+ assert.equal(run("invitationPreview(state.items[0]).kind"),"legacy");
+ assert.equal(run("invitationPreview(state.items[0]).text"),"Hello Angela, historical unstructured message.");
+ run("state.items[0].introduction='OLD MASTER';state.items[0].personalisedMiddle='Verified leadership detail';state.items[0].closing='OLD CLOSE'");
+ const structured=run("invitationPreview(state.items[0])");
+ assert.equal(structured.kind,"structured");
+ assert.match(structured.text,/Hi Angela, CURRENT MASTER/);
+ assert.match(structured.text,/Verified leadership detail/);
+ assert.match(structured.text,/CURRENT CLOSE/);
+ assert.doesNotMatch(structured.text,/historical unstructured/);
+ assert.equal(run("state.items[0].message"),"Hello Angela, historical unstructured message.");
+ const prompt=run("personalisationEditPrompt({...state.items[0],sheetRow:21},'Make middle warmer')");
+ assert.match(prompt,/Connections!N21/);
+ assert.match(prompt,/M Invitation Introduction/);
+ assert.match(prompt,/O Invitation Closing/);
+ assert.match(prompt,/ONLY Connections!N/);
+});
+test("Research prompt instructs three separated column writes, no automated historic rewrites",()=>{
+ assert.match(html,/M Invitation Introduction; N GPT Personalised Middle; O Invitation Closing/);
+ assert.match(html,/Do not auto-split old single-paragraph K/);
+ assert.match(html,/Connections A:O/);
+ assert.match(html,/personalisedMiddle:parts\[5\]\|\|""/);
+});
