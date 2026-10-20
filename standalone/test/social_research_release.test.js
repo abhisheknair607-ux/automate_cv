@@ -95,8 +95,8 @@ test("Research Sources has initial screenshots and separate conversation uploads
  assert.match(html,/id="saveResearchImage"/);
  assert.match(html,/id="researchTextFile"/);
  assert.match(html,/inbox\/image/);
- assert.match(html,/Read all candidate-scoped NEW_ \.txt, \.png, \.jpg and \.webp sources/);
- assert.match(html,/Freshmaal Connections/);
+ assert.match(html,/Read all candidate-scoped NEW_ \.txt, \.png, \.jpg and \.webp screenshot sources/);
+ assert.match(html,/SocialReviewQueue A:T/);
  const bridge=fs.readFileSync(path.resolve(__dirname,"../bridge.js"),"utf8");
  assert.match(bridge,/social\/inbox\/image/);
  const server=fs.readFileSync(path.resolve(__dirname,"../social_server.js"),"utf8");
