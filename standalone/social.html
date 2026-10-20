@@ -989,6 +989,7 @@ async function switchCandidate(candidate){
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
  await refresh();
  if(state.view==="inbox"&&state.candidate===candidate){await loadResearch();if(state.researchMode!=="followups")await loadInbox()}
+ if(state.view==="verify"&&state.candidate===candidate)await loadReviewQueue();
 }
 async function loadResearch(){
  const candidate=state.candidate;
