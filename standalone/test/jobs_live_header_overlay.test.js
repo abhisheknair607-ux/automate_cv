@@ -46,3 +46,19 @@ test("No event handler, candidate source, cost logic, CV run or backend code is 
  assert.doesNotMatch(out,/getBootstrap\(|getCvQueue\(|getStats\(/);
  assert.match(out,/document\.addEventListener\("keydown",e=>\{if\(e\.key==="Enter"\)onLocalEdit\(e\)\},true\)/);
 });
+
+test("Jobs canary release script is syntactically valid, immutable-image-based and cannot promote traffic",()=>{
+ const fs=require("node:fs"),path=require("node:path"),cp=require("node:child_process");
+ const file=path.resolve(__dirname,"../maintenance/deploy-jobs-header-preview-guarded.sh");
+ const shell=fs.readFileSync(file,"utf8");
+ const syntax=cp.spawnSync("bash",["-n",file],{encoding:"utf8"});
+ assert.equal(syntax.status,0,syntax.stderr);
+ for(const check of [
+  "JOBS_HEADER_PREVIEW_CONFIRM","LIVE_JOBS_IMAGE_UI_ONLY",
+  "imageDigest","FROM %s AS running_jobs","COPY --from=patcher /work/Index.html /app/webapp/Index.html",
+  "--no-traffic --tag jobs-header-preview","JOBS_PRODUCTION_UNCHANGED",
+  "SOCIAL_UNCHANGED_VERIFIED","cmp \"$TMP/live-$file\" \"$TMP/preview-$file\""
+ ])assert.ok(shell.includes(check),"Missing canary safety guard: "+check);
+ assert.doesNotMatch(shell,/--to-revisions|--to-latest|GARAMAAL_SOCIAL_OAUTH_PROMOTE/);
+ assert.doesNotMatch(shell,/cp .*[\/]webapp\/Index\.html/);
+});
