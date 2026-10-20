@@ -17,7 +17,7 @@ function harness(){
  new vm.Script(script,{filename:"social.html"}).runInContext(ctx);
  return {run:code=>vm.runInContext(code,ctx),node};
 }
-const person=JSON.stringify({name:"Jane Example",company:"EY",title:"Senior Consultant",key:"0123456789abcdef01234567",profile:"",message:"Hi Jane, old opening.\nOne verified role detail.\nOld ending.",relation:{status:"identified",department:"Deals",city:"Dublin"}});
+const person=JSON.stringify({name:"Jane Example",company:"EY",title:"Senior Consultant",key:"0123456789abcdef01234567",profile:"",message:"Hi Jane, old opening.\nOne verified role detail.\nOld ending.",relation:{status:"identified",department:"Deals",city:"Dublin"},introduction:"Hi Jane, old opening.",personalisedMiddle:"One verified role detail.",closing:"Old ending."});
 test("Editing a master template changes existing unsent Swipe preview without editing saved Connections K",()=>{
  const h=harness();
  h.run("state.candidate='Abhishek';state.view='swipe';state.readOnly=false");
@@ -31,8 +31,8 @@ test("Editing a master template changes existing unsent Swipe preview without ed
  assert.equal(h.run("state.items[0].message"),"Hi Jane, old opening.\nOne verified role detail.\nOld ending.");
  const markup=h.node("app").innerHTML;
  assert.match(markup,/id="swipeInvitationText"/);
- assert.match(markup,/Latest master template preview/);
- assert.match(markup,/saved Connections!K is unchanged/);
+ assert.match(markup,/latest master template applied/);
+ assert.match(markup,/K unchanged/);
  assert.match(markup,/Copy invitation/);
  assert.match(markup,/aria-label="Invitation character count"/);
  assert.match(markup,/\d+ \/ 300/);
@@ -41,8 +41,8 @@ test("Unknown single-line records and already-sent invitations remain unchanged"
  const h=harness();
  h.run("state.candidate='Abhishek';state.templates={Deals:{introduction:'NEW INTRO',closing:'NEW CLOSE'}}");
  h.run("state.items=["+person+"]");
- h.run("state.items[0].message='One old unstructured invitation.'");
- assert.equal(h.run("invitationPreview(state.items[0]).kind"),"unsplit");
+ h.run("state.items[0].message='One old unstructured invitation.';state.items[0].introduction='';state.items[0].personalisedMiddle='';state.items[0].closing=''");
+ assert.equal(h.run("invitationPreview(state.items[0]).kind"),"legacy");
  assert.equal(h.run("invitationPreview(state.items[0]).text"),"One old unstructured invitation.");
  h.run("state.items[0].message='Hi Jane, old opening.\\nPersonalised proof.\\nOld ending.';state.items[0].relation.status='sent'");
  assert.equal(h.run("invitationPreview(state.items[0]).kind"),"sent");
