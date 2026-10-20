@@ -273,6 +273,13 @@ body{background:#f5f7fb}
  <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
 </dialog>
 
+<dialog id="personalisationDialog" aria-label="Edit a personalized outreach line via GPT">
+ <div class="section-head"><b>🗒️ Personalised line · GPT edit prompt</b><button type="button" class="btn small" id="personalisationClose" aria-label="Close">✕</button></div>
+ <div class="subtle" id="personalisationRecipient">Selected Swipe contact</div>
+ <label class="field">What would you like to change?<textarea id="personalisationInstructions" rows="4" maxlength="2400" placeholder="e.g. Make the middle line more natural and specific to this person's verified work; keep the rest unchanged."></textarea></label>
+ <p class="subtle">This copies a research-and-edit prompt. GPT must first verify the exact candidate's Connections row and obtain your approval before editing column K. No automatic edits or messages are sent.</p>
+ <div class="btnrow"><button class="btn primary" id="copyPersonalisationPrompt">▣ Copy GPT edit prompt</button><button class="btn" id="personalisationCancel">Cancel</button></div>
+</dialog>
 <dialog id="researchOptionDialog" aria-label="Add a company or department">
  <div class="section-head"><b id="researchOptionTitle">Add option</b><button type="button" class="btn small" id="researchOptionClose" aria-label="Close">✕</button></div>
  <label class="field"><span id="researchOptionLabel">Name</span><input id="researchOptionName" type="text" maxlength="120" autocomplete="off" placeholder="Type a new name"></label>
@@ -360,7 +367,43 @@ function draftIntroClosing(c){
  return [templateText(template.introduction,c),"",templateText(template.closing,c)].join("\n");
 }
 function templateSummary(c){return c.message?"Researched message saved in Freshmaal":"Template draft · GPT research line not yet available"}
-
+function personalisationEditPrompt(c,instructions){
+ const row=Number(c.sheetRow);
+ const fullCandidate=state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati";
+ const exactCell=Number.isInteger(row)&&row>=2?"Connections!K"+row:"Unverified row — locate by identity before editing";
+ return [
+  "GARAMAAL — PERSONALISED MIDDLE LINE / INTERNET RESEARCH & STRICT SINGLE-CELL EDIT",
+  "Only spreadsheet: https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
+  "Only worksheet: Connections. Allowed WRITE: the one verified K cell (Outreach Message), "+exactCell+". No other write permissions. Column K contains the WHOLE three-line invitation, not a separate middle-line column.",
+  "Selected candidate: "+fullCandidate+" (Connections column F); person: "+c.name+" (column B); company: "+c.company+" (column A); position: "+(c.title||"not recorded")+" (column I). Original sheet row hint: "+(row||"unknown")+". Do not trust the hint until verifying the actual row.",
+  "Read the exact Connections A:L headers and use candidate F + full name B + company A + role I (and profile C if available) to locate the unique row. If none or multiple rows match, STOP. Before any write read existing K, and check its introduction, middle, and closing.",
+  "Read-only evidence is Connections!J[row]. Research public internet sources for THIS person, using reputable and accessible URLs. Cite a verifiable professional detail. Never invent a company project, role, skill, LinkedIn URL, event or accomplishment; do not scrape behind a login. If the detail cannot be verified, leave the middle line blank and report uncertainty.",
+  "Requested modification to the MIDDLE line: "+(instructions.trim()||"[I WILL PROVIDE EDITING INSTRUCTIONS LATER — DO NOT MODIFY ANY CELL UNTIL I DO]"),
+  "Keep the exact existing introduction and closing, wording, punctuation, line breaks and all existing user-specific credentials unchanged. Change only the middle line; final entire K message must be <=300 characters. If the current K text lacks separable intro and closing, STOP and ask me to establish the template first. Do not silently truncate any line.",
+  "Display exact candidate, verified row number, A1 write range "+exactCell+", old complete K text, proposed complete K text, sources and a concise diff. ASK for my explicit approval before writing. If instructions are missing, return a proposal only.",
+  "After approval update ONLY the one Connections!K[row] cell. Read back that same K cell and check A, B and F have not changed. Do not batch-update, insert or move rows.",
+  "Never edit Connections columns A:J or L, any other Connections K row, SocialTracking A:K, SocialTemplates A:D, SocialFollowups A:K, SocialTargets A:F, SocialResearchCatalog A:D, any Jobs/CV tabs, another spreadsheet, Google Drive files, or LinkedIn messages.",
+  "If the Sheets connector, internet research or needed permissions are unavailable, give me a copy-ready proposed message and exact recommended cell without claiming any changes were saved."
+ ].join("\n\n");
+}
+let personalisationContactKey="";
+function openPersonalisationDialog(){
+ const c=swipeQueue()[state.swipeIndex];
+ if(!c)return alertUser("Select a Swipe contact first.");
+ personalisationContactKey=c.key;
+ const dialog=document.getElementById("personalisationDialog");
+ document.getElementById("personalisationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections!K"+(c.sheetRow||" (verify row)");
+ document.getElementById("personalisationInstructions").value="";
+ dialog.showModal();
+ document.getElementById("personalisationInstructions").focus();
+}
+function copyPersonalisationEditPrompt(){
+ const c=state.items.find(x=>x.key===personalisationContactKey);
+ if(!c||!swipeQueue().some(x=>x.key===c.key))return alertUser("Contact changed. Reopen the prompt from Swipe.");
+ const input=document.getElementById("personalisationInstructions").value;
+ copyText(personalisationEditPrompt(c,input));
+ document.getElementById("personalisationDialog").close();
+}
 function coffeeInvite(c){
  const first=String(c.name||"there").split(" ")[0];
  const title=department(c);
@@ -396,7 +439,7 @@ function companies(){return [...new Set([...firms.consulting,...firms.wealth,...
 function departments(){return [...new Set([...depts.consulting,...depts.wealth,...state.items.map(c=>department(c))])].sort()}
 function filterHTML(){return '<div class="filter-panel"><div class="grid3"><label class="field">Industry<select id="groupFilter"><option value="all">All industries</option><option value="consulting" '+(state.industry==="consulting"?"selected":"")+'>Consulting & Deals</option><option value="wealth" '+(state.industry==="wealth"?"selected":"")+'>Wealth & Planning</option></select></label><label class="field">Company<select id="companyFilter">'+options(companies(),state.company)+'</select></label><label class="field">Department<select id="departmentFilter">'+options(departments(),state.department)+'</select></label></div></div>'}
 function filterBar(){return '<div class="search"><input id="search" aria-label="Search people, organisations and departments" placeholder="⌕ Search people or company" value="'+esc(state.query)+'"><button class="btn '+(state.filterVisible?"soft":"")+'" id="filterButton" title="Search filters">☷ '+(state.filterVisible?"Hide":"Filter")+'</button></div>'+(state.filterVisible?filterHTML():"")}
-function heading(title){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button></div></div>'}
+function heading(title,withLinePrompt=false){return '<div class="heading"><h1>'+title+'</h1><div class="btnrow"><button class="btn small" id="refresh" aria-label="Refresh">↻</button><button class="btn primary small" id="addContact">＋ Add</button>'+(withLinePrompt?'<button class="btn small" id="personalisationOpen" title="Edit GPT personalised middle line" aria-label="Edit GPT personalised middle line">🗒️</button>':"")+'</div></div>'}
 function statGrid(){const m=stats();return '<div class="stats"><div class="stat"><label>People</label><strong>'+m.total+'</strong></div><div class="stat"><label>Requests ↗</label><strong>'+m.sent+'</strong></div><div class="stat"><label>Accepted ✓</label><strong>'+m.accepted+'</strong></div><div class="stat"><label>Follow-ups ↗</label><strong>'+m.due+'</strong></div></div>'}
 function organizationCard(){
  const active=state.industry==="wealth"?"wealth":state.industry==="consulting"?"consulting":"";
@@ -413,7 +456,7 @@ function peopleList(){const v=activeItems();return '<section class="card dashboa
 function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
 function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"identified")==="identified")}
 function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
- const top=heading("Discover & swipe")+filterBar()+(state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
+ const top=heading("Discover & swipe",true)+filterBar()+(state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
  if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
  const href=c.profile||safeLinkedInSearch(c.search);
  return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
@@ -905,6 +948,9 @@ document.addEventListener("click",async e=>{
  if(b.id==="researchLocationSave"){saveResearchLocation();return}
  if(b.id==="researchLocationClose"||b.id==="researchLocationCancel"){document.getElementById("researchLocationDialog").close();return}
  if(b.id==="retryResearchPhotos"){await retryResearchPhotos();return}
+ if(b.id==="personalisationOpen"){openPersonalisationDialog();return}
+ if(b.id==="copyPersonalisationPrompt"){copyPersonalisationEditPrompt();return}
+ if(b.id==="personalisationClose"||b.id==="personalisationCancel"){document.getElementById("personalisationDialog").close();return}
  if(b.id==="saveTarget"){await saveResearchTarget();return}
  if(b.id==="saveConversation"){await saveChatSource();return}
  if(b.id==="copyFollowupTabPrompt"){copyText(conversationResearchPrompt({contact:"",company:""}));return}
