@@ -31,7 +31,7 @@ test("Candidate identity and conservative contact deduplication",()=>{
  assert.equal(social.uniqueContacts(entries,"Pooja").length,1);
 });
 function fakeSheets(){
- let rows=[social.CONTACT_HEADERS],tracking=[],hasTracking=false,writes=[];
+ let rows=[[...social.CONTACT_HEADERS,...social.COMPONENT_HEADERS]],tracking=[],hasTracking=false,writes=[];
  const mock=async(raw,options={})=>{
   const url=decodeURIComponent(String(raw)),method=options.method||"GET",body=options.body?JSON.parse(options.body):{};
   const ok=data=>({ok:true,status:200,json:async()=>data});
@@ -39,6 +39,7 @@ function fakeSheets(){
   writes.push({url,method});
   if(url.includes("fields=sheets(properties(title))"))return ok({sheets:[{properties:{title:"Connections"}},...(hasTracking?[{properties:{title:"SocialTracking"}}]:[])]});
   if(url.includes(":batchUpdate")){hasTracking=true;return ok({replies:[{}]})}
+  if(url.includes("/values/")&&url.includes("SocialTemplates")){if(method==="GET")return ok({values:[]});}
   if(url.includes("/values/")&&url.includes("Connections")){
    if(method==="GET")return ok({values:rows});
    if(method==="POST"){rows.push(...body.values);return ok({updates:{updatedRows:body.values.length}})}
