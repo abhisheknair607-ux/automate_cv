@@ -34,7 +34,7 @@ test("Unexpected header changes, repeat overlays and missing controls fail close
  const amended=patch(html);
  assert.throws(()=>patch(amended),/already patched/i);
  assert.throws(()=>patch(html.replace('id="expenseToggle"','id="expenseBroken"')),/legacy control missing/i);
- assert.throws(()=>patch(html.replace('class="top-actions"','class="top-actions-new"')),/action container changed/i);
+ assert.throws(()=>patch(html.replace('class="top-actions"','class="top-actions-new"')),/header differs from reviewed baseline/i);
  assert.throws(()=>patch(html.replace('</header>','<a id="socialHeaderLink">Social</a></header>')),/differs from reviewed baseline/i);
  assert.throws(()=>patch(html+header),/one legacy Jobs topbar required/i);
 });
