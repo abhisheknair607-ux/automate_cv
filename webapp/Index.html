@@ -322,12 +322,45 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
  .topbar .garamaal-social-head-link{font-size:10px;padding:5px}
  .topbar #cv-account-switch{max-width:103px}
 }
+
+/* Shared Garamaal nav look only. Preserve native Jobs handlers; existing auth bridge still injects G. */
+.topbar.garamaal-unified-header{height:58px;min-height:58px;background:#fff;border-bottom:1px solid #dce4ef;padding:0 24px}
+.garamaal-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;flex-wrap:nowrap}
+.garamaal-header-controls #candidateToggle{order:1;flex:none;padding:3px;gap:2px;border:1px solid #e0e9f5;border-radius:11px}
+.garamaal-header-controls #candidateToggle button{height:32px;min-width:31px;padding:6px 8px;font-size:12px;font-weight:800;border-radius:8px}
+.garamaal-header-controls #expenseToggle{order:2;flex:none;min-width:33px;width:33px;height:34px;min-height:34px;border:1px solid #dce4ef;border-radius:10px;background:#f2f5fa;color:#34516f;font-size:12px}
+.garamaal-header-controls #cv-account-switch{order:3;position:relative;flex:none;min-width:33px!important;width:33px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:0!important;border:1px solid #dce4ef!important;border-radius:10px!important;background:#f2f5fa!important;color:#285283!important}
+.garamaal-header-controls #cv-account-switch::before{content:"G";font-size:13px;line-height:1;font-weight:850}
+.garamaal-header-controls #jobHeaderLink{order:4}
+.garamaal-header-controls #socialHeaderLink{order:5}
+.garamaal-header-controls #modeBadge{order:6}
+.garamaal-header-controls #avatar{order:7;display:none}
+.garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{display:inline-flex;align-items:center;justify-content:center;min-width:0;min-height:34px;padding:0 10px;font-size:12px;font-weight:800;white-space:nowrap;border-radius:10px;background:#f2f5fa;color:#34516f;border:1px solid #dce4ef;box-shadow:none}
+.garamaal-header-controls .garamaal-job-head-link.active{background:#e6efff;border-color:#b8cef6;color:#1d55a0}
+.garamaal-header-controls #modeBadge{display:inline-flex!important;align-items:center;justify-content:center;min-height:28px;max-width:none;padding:5px 8px;border-radius:999px;border:1px solid #d8e4d7;background:#eef8ef;color:#27714b;font-size:10px;font-weight:850;white-space:nowrap;letter-spacing:.01em}
+.garamaal-header-controls #modeBadge::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;background:currentColor;border-radius:50%}
+.garamaal-header-controls #modeBadge.garamaal-editing{background:#fff2cf!important;color:#94590c!important;border-color:#e4bf76!important;box-shadow:0 0 0 2px #f1d9a144}
+@media(max-width:720px){
+ .topbar.garamaal-unified-header{height:52px;min-height:52px;padding:0 8px}
+ .garamaal-header-controls{width:100%;justify-content:space-between;gap:4px}
+ .garamaal-header-controls #candidateToggle{padding:2px}
+ .garamaal-header-controls #candidateToggle button{height:29px;min-width:27px;padding:5px 6px;font-size:11px}
+ .garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{padding:0 7px;min-height:32px;font-size:11px}
+ .garamaal-header-controls #expenseToggle{height:32px;min-height:32px;width:30px;min-width:30px}
+ .garamaal-header-controls #cv-account-switch{height:32px!important;width:30px!important;min-width:30px!important}
+ .garamaal-header-controls #modeBadge{padding:4px 6px;font-size:9px;min-height:25px}
+}
+@media(max-width:365px){
+ .garamaal-header-controls{gap:2px}
+ .garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{padding:0 5px}
+ .garamaal-header-controls #modeBadge{font-size:8px;padding:3px 5px}
+}
 </style>
 </head>
 <body>
 <div class="shell">
  <aside class="sidebar"><div class="brand"><div class="brandmark">G</div><div><strong>Garamaal</strong><small>JOB CONTROL CENTRE</small></div></div><nav id="deskNav"></nav><div class="side-bottom">Connected architecture<span>Taaza → Freshmaal → CV automation</span><span style="margin-top:8px">Separate overlay · No ranking API</span></div></aside>
- <div class="main"><header class="topbar"><div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div><div class="top-actions"><div id="candidateToggle" class="switch" aria-label="Candidate workspace"></div><button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button><a id="socialHeaderLink" href="/social" class="btn garamaal-social-head-link" aria-label="Open Social Networking Hub" title="Social Networking Hub">👥 Social</a><span id="modeBadge" class="demo">PREVIEW</span><div id="avatar" class="avatar">A</div></div></header><main id="content" class="container" aria-live="polite"></main></div>
+ <div class="main"><header class="topbar garamaal-unified-header"><div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div><div class="top-actions garamaal-header-controls"><div id="candidateToggle" class="switch" aria-label="Candidate workspace"></div><button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button><a id="jobHeaderLink" class="btn garamaal-job-head-link active" href="/" aria-current="page" title="Jobs">Job</a><a id="socialHeaderLink" href="/social" class="btn garamaal-social-head-link" aria-label="Open Social Networking Hub" title="Social Networking Hub">Social</a><span id="modeBadge" class="demo garamaal-header-status" role="status" aria-live="polite" title="Google Sheets connection status">PREVIEW</span><div id="avatar" class="avatar">A</div></div></header><main id="content" class="container" aria-live="polite"></main></div>
 </div>
 <div class="mobilebar" id="mobileNav"></div>
 <div id="drawerMount"></div><div id="expenseMount"></div><div id="connectionsMount"></div><div id="downloadMount"></div><div id="toastMount" role="status" aria-live="polite"></div>
@@ -495,7 +528,7 @@ async function loadMore(){
  finally{if(prior===state.data&&request===state.listRequest){state.loadingMore=false;const bar=document.querySelector('.pagination');if(bar)bar.outerHTML=pagination()}}
 }
 async function fetchStats(){const person=state.candidate;try{const v=await run('getStats',person,{quiet:true});if(person===state.candidate){state.stats=v;if(state.section==='dashboard')render()}}catch(e){if(state.section==='dashboard')toast(e.message||String(e),true)}}
-function navRender(){applyCandidateTheme();const n=()=>navigation.map(x=>`<button class="nav-btn ${state.section===x.id?'active':''}" data-action="nav" data-value="${x.id}">${icon(x.icon)}<span>${x.label}</span></button>`).join('');document.getElementById('deskNav').innerHTML=n();document.getElementById('mobileNav').innerHTML=n().replaceAll('class="nav-btn','class="mobile-btn nav-btn');document.getElementById('candidateToggle').innerHTML=['Abhishek','Pooja'].map((x,i)=>`<button class="${state.candidate===x?'active':''}" data-action="candidate" data-value="${x}" aria-label="Switch to ${x}" title="${x}">${i===0?'A':'B'}</button>`).join('');document.getElementById('crumbTitle').textContent=navigation.find(x=>x.id===state.section).label;document.getElementById('avatar').textContent=state.candidate[0];document.getElementById('modeBadge').textContent=DEMO?'DEMO ONLY':'GOOGLE SHEETS LIVE';if(!DEMO)document.getElementById('modeBadge').style.cssText='background:#e8f9ed;color:#14783c'}
+function navRender(){applyCandidateTheme();const n=()=>navigation.map(x=>`<button class="nav-btn ${state.section===x.id?'active':''}" data-action="nav" data-value="${x.id}">${icon(x.icon)}<span>${x.label}</span></button>`).join('');document.getElementById('deskNav').innerHTML=n();document.getElementById('mobileNav').innerHTML=n().replaceAll('class="nav-btn','class="mobile-btn nav-btn');document.getElementById('candidateToggle').innerHTML=['Abhishek','Pooja'].map((x,i)=>`<button class="${state.candidate===x?'active':''}" data-action="candidate" data-value="${x}" aria-label="Switch to ${x}" title="${x}">${i===0?'A':'P'}</button>`).join('');document.getElementById('crumbTitle').textContent=navigation.find(x=>x.id===state.section).label;document.getElementById('avatar').textContent=state.candidate[0];document.getElementById('modeBadge').textContent=DEMO?'PREVIEW':'LIVE';if(!DEMO)document.getElementById('modeBadge').style.cssText='background:#e8f9ed;color:#14783c'}
 function title(head,sub,button){return `<div class="heading"><div><h1>${h(head)}</h1></div>${button||''}</div>`}
 function isAppInstalled(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
 function kpi(label,value,sublabel,i){return `<div class="kpi"><i>${icon(i)}</i><label>${label}</label><strong>${value}</strong><small>${sublabel}</small></div>`}
@@ -879,6 +912,27 @@ document.addEventListener('submit',e=>{if(e.target.id==='addForm'){e.preventDefa
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.download-pop'))closeDownloadOptions();else if(document.querySelector('.expense-pop'))expenseClose();else if(state.detail)closeDetail()}});
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
+// Passive local typing indicator; never intercepts Jobs controls, submissions or Sheets writes.
+(function(){
+ const badge=document.getElementById('modeBadge');let timer;
+ function showLocalEditing(e){
+  if(DEMO)return;
+  const field=e.target;
+  if(!field||!field.matches||!field.matches('input,textarea,select,[contenteditable]')||
+     field.readOnly||field.disabled||field.matches('input[type="hidden"]'))return;
+  if(field.matches('input[type="search"]')||field.id==='search')return;
+  badge.textContent='EDITING';badge.classList.add('garamaal-editing');
+  badge.title='Local input detected. You must explicitly save or confirm to change Google Sheets.';
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+   badge.textContent='LIVE';badge.classList.remove('garamaal-editing');
+   badge.title="Google Sheets connection status, not other users' editing activity.";
+  },2600);
+ }
+ document.addEventListener('input',showLocalEditing,true);
+ document.addEventListener('change',showLocalEditing,true);
+ document.addEventListener('keydown',e=>{if(e.key==='Enter')showLocalEditing(e)},true);
+})();
 init();
 if(!DEMO){
   if('serviceWorker' in navigator && location.protocol==='https:'){
