@@ -211,6 +211,45 @@ body{background:#f5f7fb}
  .research-space .research-form .field{min-width:0}
  .research-select-row select{font-size:11px;padding:8px 3px}
 }
+
+/* Social Research layout: equal target fields, full-width actions, bounded lists. */
+.research-space .research-form{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 48px;gap:12px;align-items:end}
+.research-space .research-form>.field{min-width:0;margin-bottom:0}
+.research-select-row{display:grid;grid-template-columns:minmax(0,1fr) 40px;gap:7px}
+.research-select-row select{width:100%;height:43px;min-height:43px;padding:10px}
+.research-select-add{width:40px;min-width:40px;height:43px}
+.research-location{height:43px;width:48px}
+.research-form .research-location-field{margin-bottom:0}
+.research-space .research-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));max-width:none;width:100%;gap:12px;margin-top:13px}
+.research-space .research-action-grid .btn{width:100%;display:flex;align-items:center;justify-content:center;min-height:43px}
+.research-target-dropdown{margin-top:13px}
+.research-target-dropdown>summary{display:flex;align-items:center;justify-content:space-between;gap:10px;cursor:pointer;list-style:none;padding:10px 12px;border-radius:10px;border:1px solid #e2eaf5;background:#f7faff;font-size:12px;font-weight:750;color:#385c86}
+.research-target-dropdown>summary::-webkit-details-marker{display:none}
+.research-target-dropdown>summary .count{margin-left:4px}
+.research-dropdown-hint{font-size:10px;font-weight:550;color:#73859c;text-align:right}
+.research-target-dropdown[open]>summary{border-radius:10px 10px 0 0;border-bottom:0}
+.research-target-dropdown .research-target-scroll{border-radius:0 0 10px 10px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable}
+.research-target-dropdown .research-target-mini{min-height:48px}
+.research-queue-scroll{max-height:280px;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-gutter:stable;border:1px solid #e4ecf5;border-radius:10px;padding:0 9px;background:#fbfcfe}
+.research-queue-scroll .research-target-row{min-height:56px}
+.research-queue-scroll:focus-visible,.research-target-dropdown .research-target-scroll:focus-visible{outline:2px solid #7dabf7;outline-offset:2px}
+@media(max-width:700px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 43px;gap:7px}
+ .research-space .research-form .city{grid-column:auto}
+ .research-select-row{grid-template-columns:minmax(0,1fr) 31px;gap:4px}
+ .research-select-add{width:31px;min-width:31px;height:41px}
+ .research-select-row select{height:41px;min-height:41px;font-size:11px;padding:7px 5px}
+ .research-location{width:43px;height:41px}
+ .research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ .research-space .research-action-grid .btn{min-height:41px}
+ .research-dropdown-hint{font-size:9px}
+}
+@media(max-width:390px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) 43px}
+ .research-space .research-form>.field:first-child{grid-column:1;grid-row:1}
+ .research-space .research-form>.field:nth-child(2){grid-column:1;grid-row:2}
+ .research-space .research-form>.research-location-field{grid-column:2;grid-row:2}
+}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -430,10 +469,11 @@ function researchTabs(){
  names.map(([id,num,label])=>'<button type="button" role="tab" aria-selected="'+(state.researchMode===id?"true":"false")+'" class="research-tab '+(state.researchMode===id?"active":"")+'" data-research-mode="'+id+'"><span class="research-tab-number">'+num+'</span><span>'+label+'</span></button>').join("")+
  '</div>';
 }
-function savedTargetRows(query){
- const matches=state.targets.filter(t=>!query||t.company.toLowerCase().includes(query.toLowerCase().trim()));
- if(!matches.length)return '<div class="research-empty research-target-none">'+(state.targets.length?'No saved companies match your search.':'No saved targets yet. Save a company and department above.')+'</div>';
- return matches.map(t=>'<div class="research-target-row research-target-mini"><button class="research-target-select" data-use-target="'+esc(t.row)+'" title="Use target"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></button>'+
+function savedTargetRows(){
+ // A selected company must never hide unrelated saved targets. Latest first.
+ const targets=state.targets.slice().sort((a,b)=>String(b.updated||"").localeCompare(String(a.updated||""))||Number(b.row||0)-Number(a.row||0));
+ if(!targets.length)return '<div class="research-empty research-target-none">No saved targets yet. Save a company and department above.</div>';
+ return targets.map(t=>'<div class="research-target-row research-target-mini"><button class="research-target-select" data-use-target="'+esc(t.row)+'" title="Use target"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></button>'+
  '<a class="research-target-open" title="Open LinkedIn People search" aria-label="Find '+esc(t.company)+' '+esc(t.department)+' on LinkedIn" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ LinkedIn</a></div>').join("");
 }
 function researchSelectOptions(kind,current){
@@ -456,8 +496,8 @@ function targetResearch(){
  '<div class="field city research-location-field"><span>Location</span>'+researchLocationPin(city)+'<input type="hidden" id="targetCity" value="'+esc(city)+'"></div></div>'+
  '<div class="research-action-grid"><a class="btn primary" id="researchNow" href="'+esc(selectedResearchUrl())+'" target="_blank" rel="noopener noreferrer">↗ Search Now</a>'+
  '<button class="btn" id="saveTarget">＋ Save Target</button></div>'+
- '<div class="research-targets-heading"><span>Saved targets <span class="count">'+state.targets.length+'</span></span><small id="targetMatchCount"></small></div>'+
- '<div class="research-target-scroll" id="researchTargetResults" role="region" aria-label="Scroll saved target companies and departments">'+savedTargetRows(company)+'</div></section>';
+ '<details class="research-target-dropdown" id="researchSavedTargets" open><summary><span>Saved targets <span class="count">'+state.targets.length+'</span></span><span class="research-dropdown-hint">Latest first · scroll for more <span aria-hidden="true">⌄</span></span></summary>'+
+ '<div class="research-target-scroll" id="researchTargetResults" role="region" tabindex="0" aria-label="Scrollable saved target companies and departments">'+savedTargetRows()+'</div></details></section>';
 }
 function sourceInbox(){
  const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or text file to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
@@ -472,7 +512,8 @@ function sourceInbox(){
  '<button class="btn" id="saveInbox">＋ Save as TXT</button></div></div>'+
  '<div class="research-tip"><strong>Next step</strong><span>Uploads use the approved Google account. GPT processes NEW_ files only and renames them USED_ after verified import. Nothing is automatically messaged.</span></div></section>'+
  '<section class="card research-card research-saved"><div class="research-card-head"><div><span class="research-eyebrow">Candidate inbox</span><h2>Research queue</h2></div><div class="research-card-utility"><span class="count">'+state.inbox.length+'</span><button class="research-icon-button" id="reloadInbox" title="Refresh research queue" aria-label="Refresh research queue">↻</button></div></div>'+
- '<div class="research-target-list">'+files+'</div><div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
+ '<div class="research-queue-scroll" role="region" tabindex="0" aria-label="Scrollable research queue, five latest files visible"><div class="research-target-list">'+files+'</div></div>'+
+ '<div class="research-footer"><button class="btn small" id="addContact">＋ Import verified names</button></div></section>';
 }
 function conversationResearchPrompt(record){
  return [
@@ -508,8 +549,7 @@ function followupsResearch(){
 function inboxView(){
  return '<div class="research-space"><div class="heading"><h1>Research</h1><button class="btn small" id="refresh" aria-label="Refresh research">↻</button></div>'+
  researchTabs()+
- (state.researchMode==="followups"?followupsResearch():targetResearch()+sourceInbox()+
- '<details class="research-campaign"><summary>Consulting & Wealth Campaign planner <span>▾</span></summary>'+legacyInboxView()+'</details>')+
+ (state.researchMode==="followups"?followupsResearch():targetResearch()+sourceInbox())+
  '</div>';
 }
 function openTemplateEditor(dept){
@@ -806,8 +846,8 @@ function updateTargetUrl(){
  state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
  const url=linkedInPeopleUrl(company,department,city);
  const anchor=document.getElementById("researchNow");if(anchor)anchor.href=url;
- const list=document.getElementById("researchTargetResults");if(list)list.innerHTML=savedTargetRows(company);
- const count=document.getElementById("targetMatchCount");if(count)count.textContent=state.targets.filter(t=>!company||t.company.toLowerCase().includes(company.toLowerCase())).length+" shown";
+ // Updating target selections changes Search Now, not the saved target list.
+ // Keep the full saved-target list, its scroll position and dropdown state intact.
  const context=document.getElementById("sourceContext");if(context)context.textContent="For "+[company||"your chosen company",department,city].filter(Boolean).join(" · ")+" · "+state.candidate+" private Drive";
 }
 async function loadInbox(){
