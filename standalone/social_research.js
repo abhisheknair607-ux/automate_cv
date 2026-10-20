@@ -143,9 +143,9 @@ async function uploadDrive({token,candidate,filename,content,mimeType,fetcher=fe
 }
 function safeImage({imageData,mimeType}){
  if(!["image/jpeg","image/png","image/webp"].includes(mimeType))throw err("Only JPEG, PNG and WebP screenshots are accepted.");
- if(typeof imageData!=="string"||imageData.length>4200000||!/^[A-Za-z0-9+/]+={0,2}$/.test(imageData))throw err("Screenshot must be under 1 MB.");
+ if(typeof imageData!=="string"||imageData.length>4200000||!/^[A-Za-z0-9+/]+={0,2}$/.test(imageData))throw err("Screenshot must be under 3 MB.");
  const buffer=Buffer.from(imageData,"base64");
- if(buffer.length<100||buffer.length>3*1024*1024)throw err("Screenshot must be between 100 bytes and 1 MB.");
+ if(buffer.length<100||buffer.length>3*1024*1024)throw err("Screenshot must be between 100 bytes and 3 MB.");
  const png=buffer.length>8&&buffer.subarray(0,8).equals(Buffer.from("89504e470d0a1a0a","hex"));
  const jpg=buffer.length>3&&buffer[0]===0xff&&buffer[1]===0xd8&&buffer[2]===0xff;
  const webp=buffer.length>12&&buffer.toString("ascii",0,4)==="RIFF"&&buffer.toString("ascii",8,12)==="WEBP";
