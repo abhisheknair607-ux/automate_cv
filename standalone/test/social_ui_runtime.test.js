@@ -17,11 +17,12 @@ function createHarness(handler){
  };
  const store=new Map();
  const GoogleAuthProvider=class {addScope(){} setCustomParameters(){}};
- GoogleAuthProvider.credentialFromResult=()=>({accessToken:"mock-owner-drive-token-123456"});
- const firebaseAuth=()=>({currentUser:{
-  email:"abhisheknair607@gmail.com",
-  reauthenticateWithPopup:async()=>({user:{email:"abhisheknair607@gmail.com"}})
- }});
+ GoogleAuthProvider.credentialFromResult=()=>null;
+ const firebaseSession={uid:"owner123",email:"abhisheknair607@gmail.com"};
+ const authInstance={currentUser:firebaseSession,signInWithPopup:async()=>({
+  user:firebaseSession,credential:{accessToken:"mock-owner-drive-token-123456"}
+ })};
+ const firebaseAuth=()=>authInstance;
  firebaseAuth.GoogleAuthProvider=GoogleAuthProvider;
  const firebase={apps:[{}],auth:firebaseAuth};
  const context=vm.createContext({

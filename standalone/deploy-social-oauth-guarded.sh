@@ -11,7 +11,7 @@ for bin in git gcloud python3 curl; do command -v "$bin" >/dev/null || { echo "S
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo 'SAFE STOP: source checkout has uncommitted changes'; exit 2; }
 grep -q 'function savedTargetRows(query)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: Research UI missing'; exit 2; }
-grep -q 'reauthenticateWithPopup' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: owner OAuth UI missing'; exit 2; }
+grep -q 'auth.signInWithPopup(provider)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: owner OAuth popup missing'; exit 2; }
 grep -q 'delegatedDriveToken(payload,sessionEmail)' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: owner credential verification missing'; exit 2; }
 grep -q 'app.get("/config"' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: Social preview Firebase config route missing'; exit 2; }
 SHA="$(git -C "$ROOT" rev-parse HEAD)"
@@ -110,7 +110,7 @@ print('SOCIAL_AUTH_CONFIG_OK: isolated Social preview can initialise the existin
 PY
 curl -fsS --max-time 25 "$PREVIEW_URL/social" >"$TMP/social.html"
 grep -q 'function savedTargetRows(query)' "$TMP/social.html" || { echo 'SAFE STOP: Research UI missing from preview'; exit 5; }
-grep -q 'reauthenticateWithPopup' "$TMP/social.html" || { echo 'SAFE STOP: new OAuth UI missing from canary'; exit 5; }
+grep -q 'auth.signInWithPopup(provider)' "$TMP/social.html" || { echo 'SAFE STOP: OAuth popup token flow missing from canary'; exit 5; }
 grep -q 'USED_' "$TMP/social.html" || { echo 'SAFE STOP: processed-file prompt missing'; exit 5; }
 curl -fsS --max-time 25 "$PREVIEW_URL/social/bridge.js" >/dev/null
 for route in / /api/listJobs /api/download; do

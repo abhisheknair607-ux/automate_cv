@@ -235,20 +235,31 @@ async function request(p,data={}){return await window.__cvStandalone.requestSpec
 async function socialDriveToken(){
  const owner="abhisheknair607@gmail.com";
  const sdk=window.firebase;
- const user=sdk?.apps?.length?sdk.auth().currentUser:null;
- if(!user||String(user.email||"").toLowerCase()!==owner)
+ const auth=sdk?.apps?.length?sdk.auth():null;
+ const user=auth?.currentUser;
+ if(!user||String(user.email||"").trim().toLowerCase()!==owner)
   throw Error("Sign into Social as "+owner+" to upload to Research Drive.");
  const provider=new sdk.auth.GoogleAuthProvider();
  provider.addScope("https://www.googleapis.com/auth/drive");
- provider.setCustomParameters({prompt:"consent select_account"});
+ provider.setCustomParameters({prompt:"consent select_account",login_hint:owner});
  let result;
- try{result=await user.reauthenticateWithPopup(provider)}
- catch(e){throw Error("Google Drive authorization was not completed: "+String(e?.message||"Retry Google sign-in."))}
- if(String(result?.user?.email||"").toLowerCase()!==owner)
-  throw Error("The Google Drive account must be "+owner+".");
- const credential=sdk.auth.GoogleAuthProvider.credentialFromResult(result);
- if(!credential?.accessToken)throw Error("Google did not grant Drive access. Check the consent screen.");
- return credential.accessToken;
+ try{
+  // Compat Firebase's documented sign-in popup returns result.credential.
+  // Reauthentication can return a user without a reusable Google API token.
+  result=await auth.signInWithPopup(provider);
+ }catch(e){
+  const code=String(e?.code||"");
+  throw Error("Google Drive permission could not be completed"+(code?" ("+code+")":"")+". Try again.");
+ }
+ if(String(result?.user?.email||"").trim().toLowerCase()!==owner ||
+    auth.currentUser?.uid!==user.uid)
+  throw Error("Google account mismatch. Sign in with "+owner+" before uploading.");
+ const credential=result.credential||sdk.auth.GoogleAuthProvider.credentialFromResult(result);
+ const token=credential?.accessToken;
+ if(typeof token!=="string"||!token)
+  throw Error("Google sign-in completed without a Drive access token. Check OAuth consent permissions for "+owner+".");
+ // This token is passed only with the current Social upload; never persist it.
+ return token;
 }
 function norm(s){return String(s||"").toLowerCase()}
 function safeLinkedInSearch(raw){try{const u=new URL(String(raw||""));return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)?u.href:""}catch{return ""}}
