@@ -10,7 +10,9 @@ JOBS=automate-cv-dashboard
 for bin in git gcloud python3 curl; do command -v "$bin" >/dev/null || { echo "SAFE STOP: missing $bin"; exit 2; }; done
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo 'SAFE STOP: source checkout has uncommitted changes'; exit 2; }
-grep -q 'function savedTargetRows(query)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: Research UI missing'; exit 2; }
+# Check stable user-facing UI markers, not the JS helper signature (changed by UI refactor).
+grep -Fq 'id="researchSavedTargets"' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: Saved Targets dropdown missing'; exit 2; }
+grep -Fq 'class="research-queue-scroll"' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: bounded Research queue missing'; exit 2; }
 grep -q 'auth.signInWithPopup(provider)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: owner OAuth popup missing'; exit 2; }
 grep -q 'delegatedDriveToken(payload,sessionEmail)' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: owner credential verification missing'; exit 2; }
 grep -q 'app.get("/config"' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: Social preview Firebase config route missing'; exit 2; }
@@ -109,7 +111,8 @@ assert x['projectId']==sys.argv[2] and all(x.values()),'SAFE STOP: Social sign-i
 print('SOCIAL_AUTH_CONFIG_OK: isolated Social preview can initialise the existing Firebase bridge')
 PY
 curl -fsS --max-time 25 "$PREVIEW_URL/social" >"$TMP/social.html"
-grep -q 'function savedTargetRows(query)' "$TMP/social.html" || { echo 'SAFE STOP: Research UI missing from preview'; exit 5; }
+grep -Fq 'id="researchSavedTargets"' "$TMP/social.html" || { echo 'SAFE STOP: Saved Targets dropdown missing from preview'; exit 5; }
+grep -Fq 'class="research-queue-scroll"' "$TMP/social.html" || { echo 'SAFE STOP: bounded Research queue missing from preview'; exit 5; }
 grep -q 'auth.signInWithPopup(provider)' "$TMP/social.html" || { echo 'SAFE STOP: OAuth popup token flow missing from canary'; exit 5; }
 grep -q 'USED_' "$TMP/social.html" || { echo 'SAFE STOP: processed-file prompt missing'; exit 5; }
 curl -fsS --max-time 25 "$PREVIEW_URL/social/bridge.js" >/dev/null
