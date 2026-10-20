@@ -110,7 +110,7 @@ print('SOCIAL_AUTH_CONFIG_OK: isolated Social preview can initialise the existin
 PY
 curl -fsS --max-time 25 "$PREVIEW_URL/social" >"$TMP/social.html"
 grep -q 'function savedTargetRows(query)' "$TMP/social.html" || { echo 'SAFE STOP: Research UI missing from preview'; exit 5; }
-grep -q 'reauthenticateWithPopup' "$TMP/social.html" || { echo 'SAFE STOP: new OAuth UI missing from canary'; exit 5; }
+grep -q 'auth.signInWithPopup(provider)' "$TMP/social.html" || { echo 'SAFE STOP: OAuth popup token flow missing from canary'; exit 5; }
 grep -q 'USED_' "$TMP/social.html" || { echo 'SAFE STOP: processed-file prompt missing'; exit 5; }
 curl -fsS --max-time 25 "$PREVIEW_URL/social/bridge.js" >/dev/null
 for route in / /api/listJobs /api/download; do
