@@ -166,11 +166,11 @@ test("Research and Follow-ups have distinct GPT prompts in the merged view",asyn
  assert.match(h.getNode("app").innerHTML,/id="copyFollowupTabPrompt"/);
  const research=h.run('researchPrompt()');
  const follow=h.run('conversationResearchPrompt({contact:"Test Person",company:"EY"})');
- assert.match(research,/FRESHMAAL IMPORT/);
+ assert.match(research,/SCREENSHOT EXTRACTION → REVIEW QUEUE/);
  assert.match(research,/Read all candidate-scoped NEW_/);
  assert.match(follow,/FOLLOW-UP RESEARCH/);
  assert.match(follow,/Do not send LinkedIn messages/);
- assert.doesNotMatch(follow,/FRESHMAAL IMPORT/);
+ assert.doesNotMatch(follow,/SCREENSHOT EXTRACTION → REVIEW QUEUE/);
 });
 
 test("Compact merged Research UI keeps one metadata form and two predictable stages",async()=>{
