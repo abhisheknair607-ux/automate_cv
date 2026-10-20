@@ -421,7 +421,7 @@ function linkedInPeopleUrl(company,dept,city){
 }
 function isLinkedInPeopleUrl(s){try{const u=new URL(s);return u.protocol==="https:"&&/(^|\.)linkedin\.com$/i.test(u.hostname)&&/^\/search\/results\/people\/?$/i.test(u.pathname)}catch{return false}}
 function selectedResearchUrl(){
- return linkedInPeopleUrl(state.researchCompany||state.company,state.researchDepartment||state.department,state.researchCity||"Dublin");
+ return linkedInPeopleUrl(state.researchCompany,state.researchDepartment,state.researchCity||"Dublin");
 }
 function researchTabs(){
  const names=[["research","01","Research"],["followups","02","Chat follow-ups"]];
@@ -460,7 +460,7 @@ function targetResearch(){
 }
 function sourceInbox(){
  const files=state.inboxLoad?state.inbox.map(f=>'<div class="research-target-row"><div class="research-target-info"><strong>'+esc(f.mimeType?.startsWith("image/")?"▧  ":"▣  ")+esc(f.name)+'</strong><small>'+(f.status==="new"?"Awaiting verification":"Reviewed")+" · "+esc(f.mimeType?.startsWith("image/")?"Image":"Text")+'</small></div><a class="btn small" target="_blank" rel="noopener noreferrer" href="'+esc(f.url)+'">View ↗</a></div>').join("")||'<div class="research-empty"><strong>No research files yet</strong><span>Upload a screenshot or text file to begin.</span></div>':'<div class="subtle">Loading candidate inbox…</div>';
- const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
  return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button></div>'+
  '<p class="research-source-context" id="sourceContext">For '+esc([company||"your chosen company",dept,city].filter(Boolean).join(" · "))+' · '+esc(state.candidate)+' private Drive</p>'+
  '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
@@ -754,7 +754,7 @@ async function saveInitialResearchText(){
  const pageUrl=document.getElementById("inboxUrl")?.value?.trim()||"";
  const copied=document.getElementById("inboxText")?.value?.trim()||"";
  const file=document.getElementById("researchTextFile")?.files?.[0]||null;
- if(!company)return alertUser("Enter a company under Targets before saving a source.");
+ if(!company||!department)return alertUser("Choose an added company and department under Targets before saving a source.");
  if(file&&copied)return alertUser("Choose either a TXT file or pasted text.");
  if(file&&(!/\.txt$/i.test(file.name)||file.size>100000))return alertUser("Choose a .txt file smaller than 100 KB.");
  if(!file&&!copied&&!pageUrl)return alertUser("Upload TXT, paste text, or add a LinkedIn URL.");
