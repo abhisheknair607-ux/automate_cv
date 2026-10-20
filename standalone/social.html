@@ -430,6 +430,60 @@ function invitationPreview(c){
  if(saved)return {text:composeInvitationParts(intro,"",closing),kind:"legacy",note:"Master-template preview · existing personalised line needs review; original K preserved"};
  return {text:composeInvitationParts(intro,"",closing),kind:"draft",note:"Master-template preview · GPT personalised middle line not yet available"};
 }
+let legacyReviewKey="";
+function legacyReviewContact(){
+ return state.items.find(c=>c.key===legacyReviewKey&&
+   (c.relation?.status||"identified")==="identified"&&
+   !c.introduction&&!c.personalisedMiddle&&!c.closing&&c.message);
+}
+function openLegacyInvitationReview(){
+ const c=swipeQueue()[state.swipeIndex];
+ if(!c||!c.message||c.introduction||c.personalisedMiddle||c.closing)
+  return alertUser("This contact no longer requires legacy conversion.");
+ legacyReviewKey=c.key;
+ const template=deptTemplate(department(c));
+ document.getElementById("legacyInvitationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections row "+c.sheetRow;
+ document.getElementById("legacyInvitationOriginal").value=c.message;
+ document.getElementById("legacyInvitationIntro").value=templateText(template.introduction,c);
+ document.getElementById("legacyInvitationMiddle").value="";
+ document.getElementById("legacyInvitationClosing").value=templateText(template.closing,c);
+ updateLegacyInvitationLength();
+ document.getElementById("legacyInvitationDialog").showModal();
+}
+function updateLegacyInvitationLength(){
+ const intro=document.getElementById("legacyInvitationIntro")?.value||"";
+ const middle=document.getElementById("legacyInvitationMiddle")?.value||"";
+ const closing=document.getElementById("legacyInvitationClosing")?.value||"";
+ const count=composeInvitationParts(intro,middle,closing).length;
+ const label=document.getElementById("legacyInvitationLength");
+ if(label)label.textContent=count+" / 300 characters"+(count>300?" · Please shorten the message before saving.":"");
+ const button=document.getElementById("legacyInvitationSave");
+ if(button)button.disabled=count>300;
+}
+async function saveLegacyInvitationReview(){
+ if(state.readOnly)return alertUser("Social is read-only.");
+ const c=legacyReviewContact();
+ if(!c)return alertUser("Contact changed or was already reviewed; refresh.");
+ const candidate=state.candidate;
+ const intro=document.getElementById("legacyInvitationIntro").value;
+ const middle=document.getElementById("legacyInvitationMiddle").value;
+ const closing=document.getElementById("legacyInvitationClosing").value;
+ if(composeInvitationParts(intro,middle,closing).length>300)return alertUser("Invitation exceeds 300 characters.");
+ if(!confirm("Save three verified invitation components in Connections M:O for "+c.name+"? The original K message stays unchanged."))return;
+ const button=document.getElementById("legacyInvitationSave");button.disabled=true;
+ try{
+  const out=await request("invitation/migrate",{
+   contactRow:c.sheetRow,name:c.name,company:c.company,previousMessage:c.message,
+   introduction:intro,middle,closing,confirm:true
+  });
+  if(candidate!==state.candidate)return;
+  if(!out.saved||!out.originalMessagePreserved)throw Error("Migration verification failed.");
+  document.getElementById("legacyInvitationDialog").close();
+  await refresh();
+  alertUser("Three invitation components saved. Old K preserved.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
+}
 function invitationCount(c){
  const preview=invitationPreview(c);
  const length=preview.text.length;
@@ -1009,7 +1063,8 @@ function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.cl
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
-document.addEventListener("input",e=>{if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("input",e=>{if(e.target.id==="legacyInvitationMiddle"){updateLegacyInvitationLength();return}
+ if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
 document.addEventListener("change",e=>{
  if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
  if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
