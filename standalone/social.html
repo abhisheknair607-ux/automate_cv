@@ -686,6 +686,7 @@ function researchPrompt(){
  "GARAMAAL — LINKEDIN SCREENSHOT EXTRACTION → REVIEW QUEUE (NOT CONNECTIONS)",
  "Candidate: "+(state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati"),
  "Research source folder: "+(state.candidate==="Abhishek"?"https://drive.google.com/drive/folders/14VD_l0B_OUKXySY8iFT8YyphVtSDLTlo":"https://drive.google.com/drive/folders/1tje5rYUj8aoYLtxCM7VDA9ym0sq5gaSc"),
+ "Read all candidate-scoped NEW_ .txt, .png, .jpg and .webp screenshot sources (only those explicitly supplied or accessible). Ignore USED_ files. Do not rename source files until the user approves processing; staging does not mean the contact was verified.",
  "Search context is ONLY a lead, not verified evidence. The LinkedIn search may include wrong companies, departments, designations and cities: "+[state.researchCompany,state.researchDepartment,state.researchCity||"Dublin"].filter(Boolean).join(" | "),
  "Freshmaal (only spreadsheet): https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit",
  "ONLY ALLOWED WRITE: append new user-approved, unverified extracted people to SocialReviewQueue A:T. NEVER write directly to Connections, SocialTracking, SocialTemplates, SocialTargets, Jobs or any other Sheet.",
