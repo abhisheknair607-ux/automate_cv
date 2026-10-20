@@ -661,22 +661,90 @@ function screenshotToBase64(file){
   reader.readAsDataURL(file);
  });
 }
-async function saveInitialResearchImage(){
- const company=document.getElementById("targetCompany")?.value?.trim()||"";
- const department=document.getElementById("targetDepartment")?.value?.trim()||"General";
- const city=document.getElementById("targetCity")?.value?.trim()||"Dublin";
- const file=document.getElementById("initialScreenshot")?.files?.[0]||null;
- if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
- if(!company||!file)return alertUser("Enter the company and choose a screenshot.");
- if(!confirm("Save this unverified initial research screenshot in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
- const selected=state.candidate;
+function photoProgressHTML(){
+ const entries=state.photoResults||[];
+ const total=state.photoBatchTotal||entries.length;
+ const current=state.photoCompleted||entries.length;
+ const progress=state.photoUploading?'<div role="status">Uploading '+current+' of '+total+' selected screenshots…</div>':'';
+ const rows=entries.map(r=>'<div class="'+(r.status==="saved"?'research-upload-ok':'research-upload-fail')+'">'+
+ (r.status==="saved"?'✓ Saved NEW: ':'✕ Failed: ')+esc(r.fileName)+
+ (r.status==="failed"?' — '+esc(r.reason||"Please retry."):'')+'</div>').join("");
+ const retry=!state.photoUploading&&state.photoFailures.length
+   ?'<button class="btn small" id="retryResearchPhotos">Retry '+state.photoFailures.length+' failed</button>':"";
+ return '<div id="researchPhotoProgress" class="research-upload-progress" aria-live="polite">'+progress+rows+retry+'</div>';
+}
+function updatePhotoProgress(){
+ const el=document.getElementById("researchPhotoProgress");
+ if(el){const html=photoProgressHTML(),temp=document.createElement("div");temp.innerHTML=html;el.innerHTML=temp.firstElementChild?temp.firstElementChild.innerHTML:"";}
+ const btn=document.getElementById("saveResearchImage");
+ if(btn)btn.disabled=state.photoUploading;
+}
+async function uploadResearchPhotos(files,context){
+ if(state.photoUploading)return;
+ if(!Array.isArray(files)||!files.length)return alertUser("Select screenshots first.");
+ if(files.length>10)return alertUser("Choose no more than 10 screenshots per batch.");
+ const {candidate,company,department,city}=context;
+ if(!company||!department)return alertUser("Select an added company and department before uploading.");
+ const problems=files.filter(f=>!["image/jpeg","image/png","image/webp"].includes(f?.type)||f.size>3*1024*1024);
+ if(problems.length)return alertUser("Each file must be PNG, JPG or WebP and no larger than 3 MB.");
+ if(candidate!==state.candidate)return;
+ state.photoUploading=true;state.photoBatchTotal=files.length;state.photoCompleted=0;state.photoFailures=[];state.photoResults=[];
+ updatePhotoProgress();
  try{
+  // One owner Drive consent per batch; each selected image is still saved separately.
   const driveAccessToken=await socialDriveToken();
-  const image=await screenshotToBase64(file);
-  const result=await request("inbox/image",{company,department,city,...image,driveAccessToken,confirm:true});
-  if(state.candidate!==selected)return;
-  if(result.saved){await loadInbox();alertUser("Screenshot saved as NEW. Use the GPT research/import prompt to verify and add contacts to Freshmaal.")}
- }catch(e){alertUser(e.message)}
+  for(const file of files){
+   if(candidate!==state.candidate)break;
+   try{
+    const image=await screenshotToBase64(file);
+    const result=await request("inbox/image",{candidate,company,department,city,...image,driveAccessToken,confirm:true});
+    if(result.saved)state.photoResults.push({fileName:file.name,status:"saved",id:result.file?.id,name:result.file?.name});
+    else throw Error("Google Drive did not confirm the file.");
+   }catch(e){
+    state.photoResults.push({fileName:file.name,status:"failed",reason:String(e.message||"Upload failed.")});
+    state.photoFailures.push({file,context});
+   }
+   state.photoCompleted++;
+   updatePhotoProgress();
+  }
+ }catch(e){
+  // If OAuth failed, none of these files were uploaded. Keep all for safe retry.
+  if(candidate===state.candidate){
+   state.photoFailures=files.map(file=>({file,context}));
+   state.photoResults=files.map(file=>({fileName:file.name,status:"failed",reason:String(e.message||"Drive permission failed.")}));
+   state.photoCompleted=files.length;
+  }
+ }finally{
+  if(candidate===state.candidate){
+   state.photoUploading=false;
+   updatePhotoProgress();
+   // Do not count photos as verified contacts: only refresh the source queue.
+   if(state.photoResults.some(x=>x.status==="saved"))await loadInbox();
+   alertUser(state.photoResults.filter(x=>x.status==="saved").length+" photo(s) saved as NEW; "+
+    state.photoFailures.length+" failed. Nothing imported to contacts.");
+  }
+ }
+}
+async function saveInitialResearchImage(){
+ if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
+ if(state.photoUploading)return;
+ const company=document.getElementById("targetCompany")?.value?.trim()||"";
+ const department=document.getElementById("targetDepartment")?.value?.trim()||"";
+ const city=document.getElementById("targetCity")?.value?.trim()||"Dublin";
+ const files=Array.from(document.getElementById("initialScreenshot")?.files||[]);
+ if(!company||!department)return alertUser("Select an added company and department.");
+ if(!files.length)return alertUser("Choose 1 to 10 screenshots.");
+ if(files.length>10)return alertUser("Select a maximum of 10 images.");
+ if(!confirm("Save "+files.length+" unverified screenshot(s) in the "+state.candidate+" private Drive folder? No contacts will be added yet."))return;
+ await uploadResearchPhotos(files,{candidate:state.candidate,company,department,city});
+}
+async function retryResearchPhotos(){
+ if(state.photoUploading||!state.photoFailures.length)return;
+ const failed=state.photoFailures.slice();
+ const candidate=state.candidate;
+ if(!failed.every(x=>x.context.candidate===candidate))return alertUser("This batch belongs to a different candidate.");
+ if(!confirm("Retry "+failed.length+" failed screenshot(s) for "+candidate+"? Already saved photos will not be re-uploaded."))return;
+ await uploadResearchPhotos(failed.map(x=>x.file),failed[0].context);
 }
 async function saveInitialResearchText(){
  if(state.readOnly)return alertUser("Research saving is disabled while Social is read-only.");
