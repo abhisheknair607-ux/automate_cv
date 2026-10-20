@@ -34,12 +34,12 @@ test("Screenshot data must match allowed binary signatures",()=>{
  const actual=Buffer.concat([Buffer.from("89504e470d0a1a0a","hex"),Buffer.alloc(145)]).toString("base64");
  assert.equal(research.safeImage({imageData:actual,mimeType:"image/png"}).length,153);
 });
-test("New Research subviews coexist with campaign planner, coffee chat and Firebase bridge",()=>{
+test("New Research subviews preserve coffee chat and Firebase bridge without legacy campaign planner",()=>{
  const html=fs.readFileSync(path.resolve(__dirname,"../social.html"),"utf8");
  const snippet=html.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
  assert.ok(snippet);
  assert.doesNotThrow(()=>new vm.Script(snippet));
- for(const element of ["Campaign planner","coffeeInvite","id=\"targetCompany\"","id=\"targetDepartment\"",
+ for(const element of ["coffeeInvite","id=\"targetCompany\"","id=\"targetDepartment\"",
  "id=\"targetCity\"","id=\"chatTranscript\"","id=\"chatScreenshot\"","function openTemplateEditor","function researchTabs","function legacyInboxView"])
   assert.ok(html.includes(element),element+" absent");
  assert.ok(!html.includes('id="targetLink"'),"Manual LinkedIn filter URL must not return");
