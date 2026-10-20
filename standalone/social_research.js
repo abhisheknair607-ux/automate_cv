@@ -8,6 +8,21 @@ const TARGET_TAB="SocialTargets",CONVO_TAB="SocialFollowups";
 const TARGET_HEAD=["Candidate","Company","Department","City","LinkedIn Search URL","Updated UTC"];
 const CONVO_HEAD=["Candidate","ID","Contact Name","Company","Source Type","Drive File ID","Drive URL","Draft Reply","Status","Next Follow-up","Updated UTC"];
 function err(s,httpCode=400){return Object.assign(Error(s),{httpCode})}
+// Google Drive returns a machine-readable error reason, but its free-form
+// message can contain private folder names/IDs. Expose only known-safe reasons.
+function safeDriveReason(body){
+ const e=body?.error||{};
+ const reason=String(e?.errors?.[0]?.reason||e?.details?.[0]?.reason||"");
+ const allowed=new Set(["storageQuotaExceeded","insufficientPermissions",
+  "insufficientFilePermissions","appNotAuthorizedToFile","accessNotConfigured",
+  "rateLimitExceeded","userRateLimitExceeded","ACCESS_TOKEN_SCOPE_INSUFFICIENT"]);
+ return allowed.has(reason)?reason:"";
+}
+function uploadError(response,body,kind){
+ const reason=safeDriveReason(body);
+ const suffix=" (HTTP "+response.status+(reason?"; "+reason:"")+").";
+ return err("Could not save "+kind+" to candidate Drive folder"+suffix,response.status===403?403:502);
+}
 function value(v,max=160){const s=String(v||"").trim().replace(/\u0000/g,"");if(s.length>max)throw err("Text is too long (max "+max+").");return s}
 const candidateName=c=>c==="Pooja"?"Pooja Krishna Tirupati":c==="Abhishek"?"Abhishek Nair":"";
 function candidateCheck(c){if(!candidateName(c))throw err("Choose Abhishek or Pooja.");return c}
@@ -91,7 +106,7 @@ async function uploadDrive({token,candidate,filename,content,mimeType,fetcher=fe
   method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary},body:payload
  });
  const data=await response.json().catch(()=>({}));
- if(!response.ok||!data.id)throw err("Could not securely upload conversation to Drive.",response.status===403?403:502);
+ if(!response.ok||!data.id)throw uploadError(response,data,mimeType.startsWith("image/")?"screenshot":"conversation");
  return {id:data.id,name:data.name||filename,url:data.webViewLink||"https://drive.google.com/file/d/"+data.id+"/view"};
 }
 function safeImage({imageData,mimeType}){
@@ -172,4 +187,4 @@ async function saveDraft({token,id,candidate,conversationId,draft,next,status="d
  await api(sheet(id)+"/values/"+range(CONVO_TAB,"A"+item.row+":K"+item.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[newRow]},fetcher});
  return {saved:true,status};
 }
-module.exports={TARGET_HEAD,CONVO_HEAD,researchUrl,safeLink,safeImage,saveLeadScreenshot,listTargets,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};
+module.exports={safeDriveReason,uploadError,TARGET_HEAD,CONVO_HEAD,researchUrl,safeLink,safeImage,saveLeadScreenshot,listTargets,saveTarget,listConversations,saveConversation,saveDraft,uploadDrive,driveFolder};

@@ -35,6 +35,7 @@ assert a!=p and re.fullmatch(r'[A-Za-z0-9_-]{20,}',a) and re.fullmatch(r'[A-Za-z
 t=[z for z in x['status'].get('traffic',[]) if z.get('percent',0)>0]
 assert len(t)==1 and t[0].get('percent')==100,'SAFE STOP: unexpected active Social traffic distribution'
 print('SOCIAL_PREFLIGHT_OK: auth, existing storage IDs, isolated service and write gate verified')
+print('LIVE_SOCIAL_RELEASE: '+env.get('SOCIAL_GIT_SHA','unlabelled'))
 PY
 SA="$(python3 - "$TMP/social-before.json" <<'PY'
 import json,sys
@@ -79,13 +80,13 @@ PY
 PREVIEW_URL="$(python3 - "$TMP/social-preview.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
-print(next(t['url'] for t in x['status']['traffic'] if t.get('tag')=='social-edit-preview'))
+print(next(t['url'] for t in x['status']['traffic'] if t.get('tag')=='social-oauth-preview'))
 PY
 )"
 PREVIEW_REV="$(python3 - "$TMP/social-preview.json" <<'PY'
 import json,sys
 x=json.load(open(sys.argv[1]))
-print(next(t['revisionName'] for t in x['status']['traffic'] if t.get('tag')=='social-edit-preview'))
+print(next(t['revisionName'] for t in x['status']['traffic'] if t.get('tag')=='social-oauth-preview'))
 PY
 )"
 curl -fsS --max-time 25 "$PREVIEW_URL/health" >"$TMP/health.json"

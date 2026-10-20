@@ -1,4 +1,5 @@
 "use strict";
+const {safeDriveReason}=require("./social_research");
 /* Social backend: Freshmaal Contacts A:L + separate SocialTracking rows + opt-in Drive Research Inbox.
  * All writes require Firebase-authenticated, candidate-mapped callers and production write gate.
  * The service deliberately does NOT scrape or log in to LinkedIn.
@@ -258,7 +259,12 @@ async function submitResearch({token,candidate,company,department,pageUrl,pasted
  "--"+boundary+"\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n"+body+"\r\n--"+boundary+"--";
  const r=await fetch("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink",{
  method:"POST",headers:{Authorization:"Bearer "+token,"Content-Type":"multipart/related; boundary="+boundary},body:payload});
- const data=await r.json().catch(()=>({}));if(!r.ok)throw bad("Could not save TXT to candidate Drive folder (HTTP "+r.status+").",502);
+ const data=await r.json().catch(()=>({}));
+  if(!r.ok){
+   const reason=safeDriveReason(data);
+   throw bad("Could not save TXT to candidate Drive folder (HTTP "+r.status+(reason?"; "+reason:"")+").",r.status===403?403:502);
+  }
+  if(!data.id)throw bad("Drive did not confirm saving the TXT file.",502);
  return {id:data.id,name:data.name,url:data.webViewLink||"https://drive.google.com/file/d/"+data.id+"/view"};
 }
 async function listResearch({token,candidate}){
