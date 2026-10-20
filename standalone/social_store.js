@@ -124,8 +124,45 @@ function fillTemplate(s,p){
  return String(s||"").replace(/\{\{(first_name|company|department)\}\}/g,(_,k)=>k==="first_name"?first:k==="company"?p.company||"":p.department||"");
 }
 function composeInvitation(introduction,middle,closing){
- if(!introduction&&!middle&&!closing)return "";
- return [introduction,middle,closing].filter(Boolean).join("\n");
+ // Retain blank lines INSIDE template paragraphs. Use an explicit paragraph gap
+ // BETWEEN components and do not compress the person's own text.
+ const block=v=>String(v||"").replace(/\r\n?/g,"\n").replace(/^\n+|\n+$/g,"");
+ return [block(introduction),block(middle),block(closing)].filter(Boolean).join("\n\n");
+}
+async function migrateLegacyInvitation({token,id,candidate,contactRow,name,company,previousMessage,introduction,middle,closing,confirm}){
+ candidate=selectedCandidate(candidate);
+ if(confirm!==true)throw bad("Explicitly confirm the reviewed invitation migration.");
+ const row=Number(contactRow);
+ if(!Number.isSafeInteger(row)||row<2)throw bad("A valid Connections row is required.");
+ const all=await allContacts(token,id);
+ const record=all.find(c=>c.sheetRow===row);
+ if(!record||record.candidate!==candidate||norm(record.name)!==norm(name)||norm(record.company)!==norm(company))
+  throw bad("Contact identity or candidate changed. Refresh before saving.",409);
+ if(record.introduction||record.personalisedMiddle||record.closing)
+  throw bad("Contact is already structured. Refresh; no cells changed.",409);
+ if(!record.message||record.message!==String(previousMessage||""))
+  throw bad("Original invitation changed. Refresh; no cells changed.",409);
+ const header=await values(token,id,"Connections","M1:O1");
+ if(COMPONENT_HEADERS.some((h,i)=>String(header[0]?.[i]||"")!==h))
+  throw bad("Invitation column headers have changed.",409);
+ const intro=String(introduction||"").replace(/\r\n?/g,"\n").trim();
+ const personalised=String(middle||"").replace(/\r\n?/g,"\n").trim();
+ const close=String(closing||"").replace(/\r\n?/g,"\n").trim();
+ if(!intro||!close)throw bad("Both introduction and closing are required.");
+ if([intro,personalised,close].some(v=>v.length>260))throw bad("An invitation component exceeds 260 characters.");
+ if([intro,personalised,close].some(v=>/^[=+@-]/.test(v)))throw bad("A component cannot start with a Sheet formula.");
+ const composed=composeInvitation(intro,personalised,close);
+ if(composed.length>300)throw bad("The complete reviewed invitation exceeds 300 characters.");
+ // Touch ONLY M:O for the exact verified candidate/contact. Historical K stays
+ // byte-for-byte unchanged, allowing subsequent audit or manual rollback.
+ await api(sheetUrl(id)+"/values/"+range("Connections","M"+row+":O"+row)+"?valueInputOption=RAW",
+  token,{method:"PUT",body:{values:[[intro,personalised,close]]}});
+ const updated=await values(token,id,"Connections","A"+row+":O"+row);
+ const cells=updated[0]||[];
+ if(cells[0]!==record.company||cells[1]!==record.name||canonicalCandidate(cells[5])!==candidate||
+    cells[10]!==record.message||cells[12]!==intro||String(cells[13]||"")!==personalised||cells[14]!==close)
+  throw bad("The three-part save could not be fully verified. Refresh before trying again.",409);
+ return {saved:true,contactRow:row,candidate,introduction:intro,personalisedMiddle:personalised,closing:close,originalMessagePreserved:true};
 }
 async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId,sourceComplete=false}){
  if(confirm!==true)throw bad("Approve the contact import first.");
@@ -316,4 +353,4 @@ async function markUsed({token,candidate,fileId,verifiedCount,confirm}){
  const data=await driveRequest("https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(fileId)+"?fields=id,name",token,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
  return {saved:true,file:data.name||name};
 }
-module.exports={selectedCandidate,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS,COMPONENT_HEADERS,composeInvitation,fillTemplate,DEPARTMENTS,TEMPLATE_HEADERS,defaultTemplate,checkTemplateText,getTemplates,saveTemplate};
+module.exports={migrateLegacyInvitation,selectedCandidate,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS,COMPONENT_HEADERS,composeInvitation,fillTemplate,DEPARTMENTS,TEMPLATE_HEADERS,defaultTemplate,checkTemplateText,getTemplates,saveTemplate};

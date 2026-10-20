@@ -280,6 +280,11 @@ body{background:#f5f7fb}
  .swipe-card .swipe-actions{gap:6px}
  .swipe-card .swipe-actions>.btn{font-size:11px;padding:10px 3px}
 }
+
+/* Reusable legacy conversion entry, no changes to Jobs UI. */
+.swipe-legacy-review{display:block;width:100%;border:1px solid #c3d6ef;background:#eef5ff;color:#244d8a;padding:10px 12px;text-align:center;border-radius:11px}
+#legacyInvitationDialog .field textarea{white-space:pre-wrap;font-size:12px;line-height:1.6}
+#legacyInvitationDialog #legacyInvitationOriginal{background:#f1f4f9}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -303,6 +308,17 @@ body{background:#f5f7fb}
  <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
 </dialog>
 
+<dialog id="legacyInvitationDialog" aria-label="Review an old invitation and save three separate components">
+ <div class="section-head"><b>Review old invitation</b><button class="btn small" id="legacyInvitationClose" type="button">✕</button></div>
+ <div class="subtle" id="legacyInvitationRecipient"></div>
+ <label class="field">Original saved invitation · Connections K (read-only)<textarea id="legacyInvitationOriginal" readonly rows="5"></textarea></label>
+ <label class="field">1. Current master introduction · will be stored in M<textarea id="legacyInvitationIntro" readonly rows="4"></textarea></label>
+ <label class="field">2. Verified personalised middle · will be stored in N<textarea id="legacyInvitationMiddle" rows="3" maxlength="260" placeholder="Paste only the verified, person-specific observation from your original message. Leave blank if not verified."></textarea></label>
+ <label class="field">3. Current master closing · will be stored in O<textarea id="legacyInvitationClosing" readonly rows="2"></textarea></label>
+ <div class="subtle">Preview preserves blank lines. The historical K message will not be changed. Check that the personalised middle is accurate before confirming.</div>
+ <div class="subtle" id="legacyInvitationLength" aria-live="polite"></div>
+ <div class="btnrow"><button class="btn primary" type="button" id="legacyInvitationSave">Save reviewed M:N:O</button><button class="btn" type="button" id="legacyInvitationCancel">Cancel</button></div>
+</dialog>
 <dialog id="personalisationDialog" aria-label="Edit a personalized outreach line via GPT">
  <div class="section-head"><b>🗒️ Personalised line · GPT edit prompt</b><button type="button" class="btn small" id="personalisationClose" aria-label="Close">✕</button></div>
  <div class="subtle" id="personalisationRecipient">Selected Swipe contact</div>
@@ -392,25 +408,81 @@ function deptTemplate(dept){return state.templates[dept]||state.templates["Gener
 function templateText(text,c){return String(text||"").replace(/{{(first_name|company|department)}}/g,(_,token)=>
  token==="first_name"?String(c.name||"there").trim().split(/\s+/)[0]:
  token==="company"?c.company||"":department(c))}
+function composeInvitationParts(intro,middle,closing){
+ const block=v=>String(v||"").replace(/\r\n?/g,"\n").replace(/^\n+|\n+$/g,"");
+ return [block(intro),block(middle),block(closing)].filter(Boolean).join("\n\n");
+}
 function draftIntroClosing(c){
  const template=deptTemplate(department(c));
- return [templateText(template.introduction,c),"",templateText(template.closing,c)].join("\n");
+ return composeInvitationParts(templateText(template.introduction,c),"",templateText(template.closing,c));
 }
 function invitationPreview(c){
  const saved=String(c.message||"").replace(/\r\n?/g,"\n").trim();
  const status=c.relation?.status||"identified";
  if(status!=="identified"&&saved)return {text:saved,kind:"sent",note:"Previously contacted · saved invitation preserved"};
- const hasParts=Boolean(c.introduction||c.personalisedMiddle||c.closing);
- if(hasParts){
-  const template=deptTemplate(department(c));
-  const intro=templateText(template.introduction||c.introduction,c);
-  const middle=String(c.personalisedMiddle||"").trim();
-  const closing=templateText(template.closing||c.closing,c);
-  const text=[intro,middle,closing].filter(Boolean).join("\n");
-  return {text,kind:"structured",note:"From Connections M:N:O · latest master template applied · K unchanged"};
+ const template=deptTemplate(department(c));
+ const intro=templateText(template.introduction||c.introduction,c);
+ const closing=templateText(template.closing||c.closing,c);
+ if(c.introduction||c.personalisedMiddle||c.closing){
+  const text=composeInvitationParts(intro,c.personalisedMiddle,closing);
+  return {text,kind:"structured",note:"Current master introduction + verified Connections N + master closing · K preserved"};
  }
- if(!saved)return {text:draftIntroClosing(c),kind:"draft",note:"Master template preview · GPT middle line awaiting verification"};
- return {text:saved,kind:"legacy",note:"Legacy Connections K only · review before migrating into M:N:O"};
+ if(saved)return {text:composeInvitationParts(intro,"",closing),kind:"legacy",note:"Master-template preview · existing personalised line needs review; original K preserved"};
+ return {text:composeInvitationParts(intro,"",closing),kind:"draft",note:"Master-template preview · GPT personalised middle line not yet available"};
+}
+let legacyReviewKey="";
+function legacyReviewContact(){
+ return state.items.find(c=>c.key===legacyReviewKey&&
+   (c.relation?.status||"identified")==="identified"&&
+   !c.introduction&&!c.personalisedMiddle&&!c.closing&&c.message);
+}
+function openLegacyInvitationReview(){
+ const c=swipeQueue()[state.swipeIndex];
+ if(!c||!c.message||c.introduction||c.personalisedMiddle||c.closing)
+  return alertUser("This contact no longer requires legacy conversion.");
+ legacyReviewKey=c.key;
+ const template=deptTemplate(department(c));
+ document.getElementById("legacyInvitationRecipient").textContent=state.candidate+" · "+c.name+" · "+c.company+" · Connections row "+c.sheetRow;
+ document.getElementById("legacyInvitationOriginal").value=c.message;
+ document.getElementById("legacyInvitationIntro").value=templateText(template.introduction,c);
+ document.getElementById("legacyInvitationMiddle").value="";
+ document.getElementById("legacyInvitationClosing").value=templateText(template.closing,c);
+ updateLegacyInvitationLength();
+ document.getElementById("legacyInvitationDialog").showModal();
+}
+function updateLegacyInvitationLength(){
+ const intro=document.getElementById("legacyInvitationIntro")?.value||"";
+ const middle=document.getElementById("legacyInvitationMiddle")?.value||"";
+ const closing=document.getElementById("legacyInvitationClosing")?.value||"";
+ const count=composeInvitationParts(intro,middle,closing).length;
+ const label=document.getElementById("legacyInvitationLength");
+ if(label)label.textContent=count+" / 300 characters"+(count>300?" · Please shorten the message before saving.":"");
+ const button=document.getElementById("legacyInvitationSave");
+ if(button)button.disabled=count>300;
+}
+async function saveLegacyInvitationReview(){
+ if(state.readOnly)return alertUser("Social is read-only.");
+ const c=legacyReviewContact();
+ if(!c)return alertUser("Contact changed or was already reviewed; refresh.");
+ const candidate=state.candidate;
+ const intro=document.getElementById("legacyInvitationIntro").value;
+ const middle=document.getElementById("legacyInvitationMiddle").value;
+ const closing=document.getElementById("legacyInvitationClosing").value;
+ if(composeInvitationParts(intro,middle,closing).length>300)return alertUser("Invitation exceeds 300 characters.");
+ if(!confirm("Save three verified invitation components in Connections M:O for "+c.name+"? The original K message stays unchanged."))return;
+ const button=document.getElementById("legacyInvitationSave");button.disabled=true;
+ try{
+  const out=await request("invitation/migrate",{
+   contactRow:c.sheetRow,name:c.name,company:c.company,previousMessage:c.message,
+   introduction:intro,middle,closing,confirm:true
+  });
+  if(candidate!==state.candidate)return;
+  if(!out.saved||!out.originalMessagePreserved)throw Error("Migration verification failed.");
+  document.getElementById("legacyInvitationDialog").close();
+  await refresh();
+  alertUser("Three invitation components saved. Old K preserved.");
+ }catch(e){if(candidate===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
 }
 function invitationCount(c){
  const preview=invitationPreview(c);
@@ -516,7 +588,7 @@ function swipe(){
  const invitation=invitationCount(c);
  const limitLabel=invitation.withinLimit?"Within LinkedIn’s 300-character limit":"Over limit · shorten before copying";
  const tools='<div class="swipe-tool-grid"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button>'+
-  '<button class="btn small" data-copy="'+esc(invitation.text)+'" '+(invitation.withinLimit?"":'disabled title="Invitation exceeds 300 characters"')+'>▣ Copy invitation</button>'+
+  '<button class="btn small" data-copy="'+esc(invitation.text)+'" '+(invitation.withinLimit&&invitation.kind!=="legacy"?"":'disabled title="'+(invitation.kind==="legacy"?"Review the legacy personalised line first":"Invitation exceeds 300 characters")+'"')+'>▣ Copy invitation</button>'+
   '<button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+
   (href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':'<span class="swipe-tool-placeholder" aria-hidden="true"></span>')+'</div>';
  return top+'<div class="subtle swipe-progress">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div>'+
@@ -528,7 +600,7 @@ function swipe(){
  '<div class="swipe-message-footer"><span class="swipe-message-status">'+esc(invitation.note)+'</span>'+
  '<span class="swipe-count '+(invitation.withinLimit?"":"over")+'" aria-label="Invitation character count">'+invitation.length+' / 300</span></div>'+
  (invitation.withinLimit?"":'<div class="swipe-limit-warning" role="status">'+limitLabel+'</div>')+
- '</div>'+tools+
+ '</div>'+(invitation.kind==="legacy"?'<button class="btn small swipe-legacy-review" id="reviewLegacyInvitation">Review old message &amp; save three parts →</button>':"")+tools+
  '<div class="swipe-sent-hint">Only mark sent after you actually send the request on LinkedIn.</div>'+
  '<div class="swipe-actions"><button class="btn" id="later">← Later</button>'+
  '<button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button>'+
@@ -991,7 +1063,8 @@ function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.cl
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
-document.addEventListener("input",e=>{if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
+document.addEventListener("input",e=>{if(e.target.id==="legacyInvitationMiddle"){updateLegacyInvitationLength();return}
+ if(e.target.id==="targetCity"){updateTargetUrl();return}if(e.target.id==="search"){state.query=e.target.value;const pos=e.target.selectionStart;render();const t=document.getElementById("search");if(t){t.focus();t.setSelectionRange(pos,pos)}}});
 document.addEventListener("change",e=>{
  if(["targetCompany","targetDepartment"].includes(e.target.id)){updateTargetUrl();return}
  if(e.target.id==="groupFilter"){state.industry=e.target.value;state.company="";state.department="";render()}
@@ -1032,6 +1105,9 @@ document.addEventListener("click",async e=>{
  if(b.id==="saveConversationDraft"){await saveChatDraft(false);return}
  if(b.id==="markConversationSent"){await saveChatDraft(true);return}
  if(b.id==="editTemplate"){openTemplateEditor(v.department);return}
+ if(b.id==="reviewLegacyInvitation"){openLegacyInvitationReview();return}
+ if(b.id==="legacyInvitationSave"){await saveLegacyInvitationReview();return}
+ if(b.id==="legacyInvitationClose"||b.id==="legacyInvitationCancel"){document.getElementById("legacyInvitationDialog").close();return}
  if(b.id==="templateClose"){document.getElementById("templateDialog").close();return}
  if(b.id==="templateReset"){const p=suggestedTemplate(document.getElementById("templateDepartment").value);document.getElementById("templateIntro").value=p.introduction;document.getElementById("templateClosing").value=p.closing;return}
  if(b.id==="templateSave"){await saveTemplateEditor();return}

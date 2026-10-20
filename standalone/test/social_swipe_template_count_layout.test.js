@@ -31,19 +31,20 @@ test("Editing a master template changes existing unsent Swipe preview without ed
  assert.equal(h.run("state.items[0].message"),"Hi Jane, old opening.\nOne verified role detail.\nOld ending.");
  const markup=h.node("app").innerHTML;
  assert.match(markup,/id="swipeInvitationText"/);
- assert.match(markup,/latest master template applied/);
- assert.match(markup,/K unchanged/);
+ assert.match(markup,/Current master introduction/);
+ assert.match(markup,/K preserved/);
  assert.match(markup,/Copy invitation/);
  assert.match(markup,/aria-label="Invitation character count"/);
  assert.match(markup,/\d+ \/ 300/);
 });
-test("Unknown single-line records and already-sent invitations remain unchanged",()=>{
+test("Legacy records preview master but sent invitations remain unchanged",()=>{
  const h=harness();
  h.run("state.candidate='Abhishek';state.templates={Deals:{introduction:'NEW INTRO',closing:'NEW CLOSE'}}");
  h.run("state.items=["+person+"]");
  h.run("state.items[0].message='One old unstructured invitation.';state.items[0].introduction='';state.items[0].personalisedMiddle='';state.items[0].closing=''");
  assert.equal(h.run("invitationPreview(state.items[0]).kind"),"legacy");
- assert.equal(h.run("invitationPreview(state.items[0]).text"),"One old unstructured invitation.");
+ assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW INTRO/);
+ assert.match(h.run("invitationPreview(state.items[0]).text"),/NEW CLOSE/);
  h.run("state.items[0].message='Hi Jane, old opening.\\nPersonalised proof.\\nOld ending.';state.items[0].relation.status='sent'");
  assert.equal(h.run("invitationPreview(state.items[0]).kind"),"sent");
  assert.equal(h.run("invitationPreview(state.items[0]).text"),"Hi Jane, old opening.\nPersonalised proof.\nOld ending.");
