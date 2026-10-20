@@ -13,6 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 grep -q 'function savedTargetRows(query)' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: Research UI missing'; exit 2; }
 grep -q 'reauthenticateWithPopup' "$ROOT/standalone/social.html" || { echo 'SAFE STOP: owner OAuth UI missing'; exit 2; }
 grep -q 'delegatedDriveToken(payload,sessionEmail)' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: owner credential verification missing'; exit 2; }
+grep -q 'app.get("/config"' "$ROOT/standalone/social_server.js" || { echo 'SAFE STOP: Social preview Firebase config route missing'; exit 2; }
 SHA="$(git -C "$ROOT" rev-parse HEAD)"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
@@ -98,6 +99,14 @@ assert x.get('readOnly') is False,'SAFE STOP: Social still read-only'
 assert x.get('release')==sys.argv[2],'SAFE STOP: Social release SHA mismatch'
 assert x.get('credentialsConfigured') is True,'SAFE STOP: Social auth credentials missing'
 print('EDITABLE_CANARY_HEALTH_OK')
+PY
+curl -fsS --max-time 25 "$PREVIEW_URL/config" >"$TMP/public-firebase-config.json"
+python3 - "$TMP/public-firebase-config.json" "$PROJECT" <<'PY'
+import json,sys
+x=json.load(open(sys.argv[1]))
+assert set(x)=={'apiKey','authDomain','projectId','appId'},'SAFE STOP: unexpected or missing public Firebase keys'
+assert x['projectId']==sys.argv[2] and all(x.values()),'SAFE STOP: Social sign-in config invalid'
+print('SOCIAL_AUTH_CONFIG_OK: isolated Social preview can initialise the existing Firebase bridge')
 PY
 curl -fsS --max-time 25 "$PREVIEW_URL/social" >"$TMP/social.html"
 grep -q 'function savedTargetRows(query)' "$TMP/social.html" || { echo 'SAFE STOP: Research UI missing from preview'; exit 5; }
