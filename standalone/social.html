@@ -188,6 +188,29 @@ body{background:#f5f7fb}
 .research-source-option .research-expand{margin:0}
 .research-source-option>.btn{align-self:flex-start;margin-top:auto}
 @media(max-width:700px){.research-source-grid{grid-template-columns:1fr}.research-source-option>.btn{width:100%}.research-space .research-action-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Research-only strict selection, map-style location trigger, upload feedback */
+.research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;align-items:end;gap:8px}
+.research-select-row{display:flex;align-items:center;gap:5px;min-width:0}
+.research-select-row select{flex:1;min-width:0;min-height:39px;border:1px solid #dbe4ef;background:#fbfcfe;border-radius:10px;padding:9px 6px;font-size:12px;color:#193555}
+.research-select-add{width:35px;min-width:35px;height:39px;padding:0;border-radius:10px;background:#edf4ff;border:1px solid #cedff7;color:#2760b2;font-size:19px;font-weight:700}
+.research-location{display:flex;align-items:center;justify-content:center;width:44px;height:39px;background:#edf4ff;color:#2563eb;border:1px solid #cbdbf2;border-radius:11px}
+.research-location svg{width:21px;height:21px}
+.research-location:hover,.research-select-add:hover{background:#deebff}
+.research-form .research-location-field{margin-bottom:9px}
+.research-location-field>span{display:block;font-size:11px;margin-bottom:5px}
+.research-upload-progress{margin:6px 0 0;font-size:11px;color:#536d89;line-height:1.6}
+.research-upload-progress div{overflow-wrap:anywhere}
+.research-upload-ok{color:#14754a}.research-upload-fail{color:#9a4343}
+.research-upload-progress .btn{font-size:11px;margin-top:5px}
+.research-modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+@media(max-width:700px){
+ .research-space .research-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 44px;gap:6px}
+ .research-space .research-form .city{grid-column:auto}
+ .research-select-add{min-width:31px;width:31px}
+ .research-space .research-form .field{min-width:0}
+ .research-select-row select{font-size:11px;padding:8px 3px}
+}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -209,6 +232,19 @@ body{background:#f5f7fb}
  <div class="subtle">Use {{first_name}}, {{company}} or {{department}}. The three lines together must fit LinkedIn's 300-character invitation limit after GPT fills the middle.</div>
  <div class="btnrow"><button class="btn primary" id="templateSave">Save master template</button><button class="btn" id="templateReset">Restore suggested wording</button></div>
 </dialog>
+
+<dialog id="researchOptionDialog" aria-label="Add a company or department">
+ <div class="section-head"><b id="researchOptionTitle">Add option</b><button type="button" class="btn small" id="researchOptionClose" aria-label="Close">✕</button></div>
+ <label class="field"><span id="researchOptionLabel">Name</span><input id="researchOptionName" type="text" maxlength="120" autocomplete="off" placeholder="Type a new name"></label>
+ <div class="subtle">Saved in this candidate's Research dropdown only. No contacts will be imported.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchOptionCancel">Cancel</button><button type="button" class="btn primary" id="researchOptionSave">Add</button></div>
+</dialog>
+<dialog id="researchLocationDialog" aria-label="Choose research location">
+ <div class="section-head"><b>Research location</b><button type="button" class="btn small" id="researchLocationClose" aria-label="Close">✕</button></div>
+ <label class="field">City, region or country<input id="researchLocationValue" maxlength="100" placeholder="Dublin, Ireland or United Kingdom" autocomplete="off"></label>
+ <div class="subtle">Use any location name. It will become part of the LinkedIn People search.</div>
+ <div class="research-modal-actions"><button type="button" class="btn" id="researchLocationCancel">Cancel</button><button type="button" class="btn primary" id="researchLocationSave">Use location</button></div>
+</dialog>
 <script src="/social/bridge.js"></script><script>
 "use strict";
 const firms={
@@ -225,7 +261,7 @@ const campaignSteps=campaignFirms.flatMap(company=>campaignTeams.map(department=
 function currentCampaign(){return campaignSteps[state.campaignIndex]||campaignSteps[0]}
 function campaignSearchUrl(step){return "https://www.linkedin.com/search/results/people/?keywords="+encodeURIComponent([step.company,step.department,"Dublin"].join(" "))}
 const initialCandidate=(()=>{try{return localStorage.getItem("garamaal-social-candidate")==="Pooja"?"Pooja":"Abhishek"}catch{return "Abhishek"}})();
-const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
+const state={view:"dashboard",candidate:initialCandidate,items:[],query:"",company:"",department:"",industry:"all",filterVisible:false,orgOpen:false,campaignIndex:0,swipeIndex:0,selected:"",inbox:[],inboxLoad:false,templates:{},templateDepartment:"Deals",targets:[],catalogCompanies:[],catalogDepartments:[],photoResults:[],photoFailures:[],photoUploading:false,conversations:[],researchMode:"research",selectedConversation:"",researchCompany:"",researchDepartment:"",researchCity:"Dublin",lastSwipe:null,followVariant:0,busy:false,loadError:"",readOnly:true};
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const dateNow=()=>new Date().toISOString().slice(0,10);
 const alertUser=s=>{const n=document.getElementById("toast");n.textContent=s;n.style.display="block";clearTimeout(alertUser.timer);alertUser.timer=setTimeout(()=>n.style.display="none",4000)};
@@ -524,7 +560,7 @@ async function switchCandidate(candidate){
  state.candidate=candidate;
  try{localStorage.setItem("garamaal-social-candidate",candidate)}catch{}
  state.items=[];state.query="";state.company="";state.department="";state.industry="all";
- state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
+ state.selected="";state.swipeIndex=0;state.campaignIndex=0;state.orgOpen=false;state.lastSwipe=null;state.inbox=[];state.inboxLoad=false;state.templates={};state.targets=[];state.catalogCompanies=[];state.catalogDepartments=[];state.photoResults=[];state.photoFailures=[];state.photoUploading=false;state.conversations=[];state.selectedConversation="";state.researchCompany="";state.researchDepartment="";state.researchCity="Dublin";state.loadError="";state.readOnly=true;
  document.getElementById("app").innerHTML='<div class="card">Loading '+esc(candidate)+' contacts…</div>';
  document.getElementById("candA").classList.toggle("active",candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",candidate==="Pooja");
