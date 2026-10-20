@@ -132,6 +132,7 @@ app.post("/api/social/*",async(req,res)=>{
       token:driveAccess,candidate,company:payload.company,department:payload.department,pageUrl:payload.pageUrl,pastedText:payload.pastedText});
     else if(action==="inbox/list")data=await social.listResearch({token,candidate});
     else if(action==="inbox/image")data=await research.saveLeadScreenshot({token:driveAccess,candidate,company:payload.company,department:payload.department,city:payload.city,imageData:payload.imageData,mimeType:payload.mimeType,confirm:payload.confirm});
+    else if(action==="invitation/migrate")data=await social.migrateLegacyInvitation({...base,contactRow:payload.contactRow,name:payload.name,company:payload.company,previousMessage:payload.previousMessage,introduction:payload.introduction,middle:payload.middle,closing:payload.closing,confirm:payload.confirm});
     else if(action==="templates/get")data=await social.getTemplates(base);
     else if(action==="templates/save")data=await social.saveTemplate({...base,department:payload.department,introduction:payload.introduction,closing:payload.closing,confirm:payload.confirm});
     else if(action==="targets/list")data=await research.listTargets(base);
