@@ -54,7 +54,7 @@ PY
 mkdir -p "$TMP/build/standalone"
 cp "$ROOT/package.json" "$TMP/build/package.json"
 cp "$ROOT/Dockerfile.social" "$TMP/build/Dockerfile"
-for file in social_server.js social_store.js social_research.js social.html bridge.js; do cp "$ROOT/standalone/$file" "$TMP/build/standalone/$file"; done
+for file in social_server.js social_store.js social_research.js social_review.js social.html bridge.js; do cp "$ROOT/standalone/$file" "$TMP/build/standalone/$file"; done
 echo 'Building isolated Social-only 0%-traffic owner OAuth canary; Jobs image is not built or deployed.'
 gcloud run deploy "$SOCIAL" --project="$PROJECT" --region="$REGION" --source="$TMP/build" \
   --service-account="$SA" --no-traffic --tag social-oauth-preview \
