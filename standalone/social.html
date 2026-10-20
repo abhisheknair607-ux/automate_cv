@@ -285,10 +285,44 @@ body{background:#f5f7fb}
 .swipe-legacy-review{display:block;width:100%;border:1px solid #c3d6ef;background:#eef5ff;color:#244d8a;padding:10px 12px;text-align:center;border-radius:11px}
 #legacyInvitationDialog .field textarea{white-space:pre-wrap;font-size:12px;line-height:1.6}
 #legacyInvitationDialog #legacyInvitationOriginal{background:#f1f4f9}
+
+/* Garamaal unified navigation design only: all pre-existing candidate and authentication handlers remain unchanged.
+   The existing bridge injects #cv-account-switch into .top-actions; CSS alone places it after $. */
+.garamaal-unified-header{min-height:58px;padding:9px max(14px,calc((100vw - 1080px)/2));background:#fff;border-bottom:1px solid #dce4ef}
+.garamaal-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;flex-wrap:nowrap}
+.garamaal-header-controls #candidatePair{order:1;flex:none;padding:3px;gap:2px;border:1px solid #e0e9f5;border-radius:11px}
+.garamaal-header-controls #candidatePair button{height:32px;min-width:31px;padding:6px 8px;font-size:12px;border-radius:8px}
+.garamaal-header-controls .garamaal-cost-symbol{order:2}
+.garamaal-header-controls #cv-account-switch{order:3;position:relative;flex:none;min-width:33px!important;width:33px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:0!important;border:1px solid #dce4ef!important;border-radius:10px!important;background:#f2f5fa!important;color:#285283!important}
+.garamaal-header-controls #cv-account-switch::before{content:"G";font-size:13px;line-height:1;font-weight:850}
+.garamaal-header-controls .garamaal-job-link{order:4}
+.garamaal-header-controls .garamaal-social-link{order:5}
+.garamaal-header-controls #socialModeBadge{order:6}
+.garamaal-header-controls .garamaal-cost-symbol,.garamaal-header-controls .pill{display:inline-flex;align-items:center;justify-content:center;min-height:34px;padding:0 10px;font-size:12px;font-weight:800;white-space:nowrap;border-radius:10px;background:#f2f5fa;color:#34516f;border:1px solid #dce4ef;box-shadow:none}
+.garamaal-header-controls .garamaal-cost-symbol{width:33px;min-width:33px;padding:0}
+.garamaal-header-controls .pill.active{background:#e6efff;border-color:#b8cef6;color:#1d55a0}
+.garamaal-header-controls .garamaal-header-status{display:inline-flex;align-items:center;justify-content:center;min-height:28px;padding:5px 8px;border-radius:999px;border:1px solid #d8e4d7;background:#eef8ef;color:#27714b;font-size:10px;font-weight:850;white-space:nowrap;letter-spacing:.01em}
+.garamaal-header-controls .garamaal-header-status::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;background:currentColor;border-radius:50%}
+.garamaal-header-controls .garamaal-header-status.garamaal-editing{background:#fff2cf!important;color:#94590c!important;border-color:#e4bf76!important;box-shadow:0 0 0 2px #f1d9a144}
+@media(max-width:700px){
+ .garamaal-unified-header{padding:7px 8px;min-height:52px;gap:0}
+ .garamaal-unified-header .logo{display:none}
+ .garamaal-header-controls{width:100%;justify-content:space-between;gap:4px}
+ .garamaal-header-controls #candidatePair{padding:2px}
+ .garamaal-header-controls #candidatePair button{height:29px;min-width:27px;padding:5px 6px;font-size:11px}
+ .garamaal-header-controls .pill{padding:0 7px;min-height:32px;font-size:11px}
+ .garamaal-header-controls .garamaal-cost-symbol{height:32px;min-height:32px;width:30px;min-width:30px}
+ .garamaal-header-controls #cv-account-switch{height:32px!important;width:30px!important;min-width:30px!important}
+ .garamaal-header-controls .garamaal-header-status{padding:4px 6px;font-size:9px;min-height:25px}
+}
+@media(max-width:365px){
+ .garamaal-header-controls{gap:2px}
+ .garamaal-header-controls .pill{padding:0 5px}
+ .garamaal-header-controls .garamaal-header-status{font-size:8px;padding:3px 5px}
+}
 </style></head>
 <body>
-<header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
-<div class="row tight"><span class="mini" title="Costs remain in the Jobs dashboard">$</span><div class="pair" id="candidatePair"><button id="candA" class="active">A</button><button id="candP">P</button></div><span class="preview" id="socialModeBadge">READ ONLY</span></div></header>
+<header class="garamaal-unified-header"><span class="logo">Garam Mal</span><div class="row tight top-actions garamaal-header-controls"><div class="pair" id="candidatePair" aria-label="Social candidate"><button id="candA" class="active" aria-label="Abhishek workspace" title="Abhishek">A</button><button id="candP" aria-label="Pooja workspace" title="Pooja">P</button></div><span class="mini garamaal-cost-symbol" title="Costs are available in Jobs">$</span><a class="pill garamaal-job-link" href="/" title="Open Jobs">Job</a><span class="pill active garamaal-social-link" aria-current="page">Social</span><span class="preview garamaal-header-status" id="socialModeBadge" role="status" aria-live="polite" title="Google Sheets connection status">READ ONLY</span></div></header>
 <div class="topview" id="desktopNav"></div><main><div id="app"><div class="card">Signing in and loading Freshmaal contacts…</div></div></main>
 <nav class="bottom" id="bottomNav"></nav><div id="toast" role="status"></div>
 <dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
@@ -795,7 +829,7 @@ async function refresh(){
   state.items=data.items||[];
   state.templates=Object.fromEntries((templateData.templates||[]).map(t=>[t.department,t]));
   state.readOnly=data.readOnly!==false;
-  document.getElementById("socialModeBadge").textContent=state.readOnly?"READ ONLY":"LIVE SHEET";
+  document.getElementById("socialModeBadge").textContent=state.readOnly?"READ ONLY":"LIVE";
   state.loadError="";
   render();
  }catch(e){
@@ -1142,5 +1176,28 @@ document.addEventListener("click",async e=>{
 });
 document.getElementById("candA").onclick=()=>switchCandidate("Abhishek");
 document.getElementById("candP").onclick=()=>switchCandidate("Pooja");
+// Visual input activity indicator only: no submit interception, API mutation or spreadsheet write.
+// Reflects changes in this browser, not simultaneous edits by other Google Sheets collaborators.
+(function(){
+ const badge=document.getElementById("socialModeBadge");let timer;
+ function showLocalEditing(e){
+  if(state.readOnly)return;
+  const field=e.target;
+  if(!field||!field.matches||!field.matches("input,textarea,select,[contenteditable]")||
+     field.readOnly||field.disabled||field.matches('input[type="hidden"]'))return;
+  if(field.id==="search"||field.id==="groupFilter"||field.id==="companyFilter"||field.id==="departmentFilter")return;
+  badge.textContent="EDITING";badge.classList.add("garamaal-editing");
+  badge.title="Local input detected. Nothing is written to Google Sheets without an explicit save or confirmation.";
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+   badge.textContent=state.readOnly?"READ ONLY":"LIVE";
+   badge.classList.remove("garamaal-editing");
+   badge.title="Google Sheets connection status; this does not show other users' editing activity.";
+  },2600);
+ }
+ document.addEventListener("input",showLocalEditing,true);
+ document.addEventListener("change",showLocalEditing,true);
+ document.addEventListener("keydown",e=>{if(e.key==="Enter")showLocalEditing(e)},true);
+})();
 refresh();
 </script></body></html>
