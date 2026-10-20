@@ -435,12 +435,24 @@ function savedTargetRows(query){
  return matches.map(t=>'<div class="research-target-row research-target-mini"><button class="research-target-select" data-use-target="'+esc(t.row)+'" title="Use target"><strong>'+esc(t.company)+'</strong><small>'+esc(t.department)+' · '+esc(t.city)+'</small></button>'+
  '<a class="research-target-open" title="Open LinkedIn People search" aria-label="Find '+esc(t.company)+' '+esc(t.department)+' on LinkedIn" target="_blank" rel="noopener noreferrer" href="'+esc(linkedInPeopleUrl(t.company,t.department,t.city))+'">↗ LinkedIn</a></div>').join("");
 }
+function researchSelectOptions(kind,current){
+ const saved=kind==="company"?state.catalogCompanies:state.catalogDepartments;
+ const values=[...new Map([...saved,...state.targets.map(t=>kind==="company"?t.company:t.department)].filter(Boolean)
+   .map(v=>[v.toLowerCase(),v])).values()].sort((a,b)=>a.localeCompare(b));
+ // Existing saved/previously selected values remain selectable until the catalog loads.
+ if(current&&!values.some(v=>v.toLowerCase()===current.toLowerCase()))values.unshift(current);
+ return '<option value="">Select '+kind+'</option>'+values.map(v=>'<option value="'+esc(v)+'" '+(v===current?'selected':'')+'>'+esc(v)+'</option>').join("");
+}
+function researchLocationPin(city){
+ return '<button type="button" class="research-location" id="researchLocationOpen" aria-label="Change city or country: '+esc(city)+'" title="'+esc(city)+'">'+
+ '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 10c0 5-8 12-8 12S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></button>';
+}
 function targetResearch(){
- const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
+ const company=state.researchCompany||"",dept=state.researchDepartment||"",city=state.researchCity||"Dublin";
  return '<section class="card research-card research-targets"><div class="research-card-head"><div><span class="research-eyebrow">01 · Discover</span><h2>Targets</h2></div><span class="research-meta">LinkedIn People</span></div>'+
- '<div class="research-form"><label class="field">Company<input id="targetCompany" placeholder="e.g. EY" value="'+esc(company)+'" autocomplete="off"></label>'+
- '<label class="field">Department<input id="targetDepartment" placeholder="Valuations" value="'+esc(dept)+'" autocomplete="off"></label>'+
- '<label class="field city">City<input id="targetCity" placeholder="Dublin" value="'+esc(city)+'" autocomplete="off"></label></div>'+
+ '<div class="research-form"><label class="field">Company<div class="research-select-row"><select id="targetCompany" aria-label="Choose company" required>'+researchSelectOptions("company",company)+'</select><button type="button" class="research-select-add" id="researchAddCompany" title="Add company" aria-label="Add company">+</button></div></label>'+
+ '<label class="field">Department<div class="research-select-row"><select id="targetDepartment" aria-label="Choose department" required>'+researchSelectOptions("department",dept)+'</select><button type="button" class="research-select-add" id="researchAddDepartment" title="Add department" aria-label="Add department">+</button></div></label>'+
+ '<div class="field city research-location-field"><span>Location</span>'+researchLocationPin(city)+'<input type="hidden" id="targetCity" value="'+esc(city)+'"></div></div>'+
  '<div class="research-action-grid"><a class="btn primary" id="researchNow" href="'+esc(selectedResearchUrl())+'" target="_blank" rel="noopener noreferrer">↗ Search Now</a>'+
  '<button class="btn" id="saveTarget">＋ Save Target</button></div>'+
  '<div class="research-targets-heading"><span>Saved targets <span class="count">'+state.targets.length+'</span></span><small id="targetMatchCount"></small></div>'+
@@ -451,8 +463,8 @@ function sourceInbox(){
  const company=state.researchCompany||state.company||"",dept=state.researchDepartment||state.department||"",city=state.researchCity||"Dublin";
  return '<section class="card research-card research-sources"><div class="research-card-head"><div><span class="research-eyebrow">02 · Upload</span><h2>Research sources</h2></div><button class="btn soft small" id="copyResearch">▣ Copy Research Prompt</button></div>'+
  '<p class="research-source-context" id="sourceContext">For '+esc([company||"your chosen company",dept,city].filter(Boolean).join(" · "))+' · '+esc(state.candidate)+' private Drive</p>'+
- '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload an image<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp"><small>PNG, JPG or WebP · max 3 MB</small></label>'+
- '<button class="btn primary" id="saveResearchImage">＋ Save screenshot</button></div>'+
+ '<div class="research-source-grid"><div class="research-source-option"><b>Screenshot</b><label class="field research-file-field">Upload screenshots<input id="initialScreenshot" type="file" accept="image/png,image/jpeg,image/webp" multiple><small>Up to 10 images · PNG, JPG or WebP · max 3 MB each</small></label>'+
+ '<button class="btn primary" id="saveResearchImage">＋ Upload photos</button>'+photoProgressHTML()+'</div>'+
  '<div class="research-source-option"><b>Text or TXT</b><label class="field research-file-field">Upload a TXT file<input id="researchTextFile" type="file" accept=".txt,text/plain"></label>'+
  '<label class="field">Or paste copied text<textarea id="inboxText" rows="3" placeholder="Paste names, roles, or LinkedIn results here."></textarea></label>'+
  '<details class="research-expand"><summary>Optional LinkedIn URL <span>▾</span></summary><div class="research-expand-body"><label class="field">Source URL<input id="inboxUrl" placeholder="https://www.linkedin.com/company/..."></label></div></details>'+
