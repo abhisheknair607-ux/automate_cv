@@ -6,6 +6,7 @@ const {safeDriveReason}=require("./social_research");
  */
 const crypto=require("node:crypto");
 const CONTACT_HEADERS=["Company","Contact Name","Direct LinkedIn Profile","LinkedIn Search","Applied-for Role","Candidate","Freshmaal Row","Vacancy Link","Person's Position","Verification / Evidence","Outreach Message","Research Date (UTC)"];
+const COMPONENT_HEADERS=["Invitation Introduction","GPT Personalised Middle","Invitation Closing"];
 const TRACK_HEADERS=["Candidate","Contact Key","Status","Request Sent UTC","Accepted UTC","Follow-up Sent UTC","Next Follow-up","Department","City","Contact Type","Updated UTC"];
 const MAX_BATCH=50;
 function bad(message,status=400){return Object.assign(new Error(message),{httpCode:status})}
@@ -55,11 +56,15 @@ function parseContact(row,index){
  profile:validProfile(row[2]),search:String(row[3]||"").trim(),job:String(row[4]||""),
  candidate:canonicalCandidate(row[5]),freshRow:String(row[6]||""),vacancy:String(row[7]||""),
  title:String(row[8]||"").trim(),evidence:String(row[9]||""),message:String(row[10]||""),
- date:String(row[11]||"")};
+ date:String(row[11]||""),introduction:String(row[12]||""),personalisedMiddle:String(row[13]||""),closing:String(row[14]||"")};
 }
 async function allContacts(token,id){
- const rows=await values(token,id,"Connections","A1:L");
- if(rows.length&&CONTACT_HEADERS.some((h,i)=>String(rows[0][i]||"")!==h))throw bad("Freshmaal Connections A:L headers changed. No data was modified.",409);
+ const rows=await values(token,id,"Connections","A1:O");
+ if(rows.length&&CONTACT_HEADERS.some((h,i)=>String(rows[0][i]||"")!==h))
+  throw bad("Freshmaal Connections A:L headers changed. No data was modified.",409);
+ if(rows.length&&rows[0].slice(12,15).some(Boolean)&&
+    COMPONENT_HEADERS.some((h,i)=>String(rows[0][i+12]||"")!==h))
+  throw bad("Freshmaal Connections M:O invitation headers changed. No data was modified.",409);
  return rows.slice(1).map((r,i)=>parseContact(r,i+1)).filter(c=>c.name&&c.company&&c.candidate);
 }
 function trackingRow(r,candidate){return {row:r.row||0,candidate,key:String(r.cells?.[1]||""),status:String(r.cells?.[2]||"identified"),
@@ -114,11 +119,25 @@ async function setFollowup({token,id,candidate,key,confirm}){
  await api(sheetUrl(id)+"/values/"+range("SocialTracking","F"+track.row+":G"+track.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[[now,""]]}});
  return {saved:true,followupSent:now};
 }
+function fillTemplate(s,p){
+ const first=String(p.name||"").trim().split(/\s+/)[0];
+ return String(s||"").replace(/\{\{(first_name|company|department)\}\}/g,(_,k)=>k==="first_name"?first:k==="company"?p.company||"":p.department||"");
+}
+function composeInvitation(introduction,middle,closing){
+ if(!introduction&&!middle&&!closing)return "";
+ return [introduction,middle,closing].filter(Boolean).join("\n");
+}
 async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId,sourceComplete=false}){
  if(confirm!==true)throw bad("Approve the contact import first.");
  if(!Array.isArray(items)||items.length<1||items.length>MAX_BATCH)throw bad("Import between 1 and "+MAX_BATCH+" contacts.");
  const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));
  const names=new Set(existing.filter(c=>c.candidate===candidate).map(c=>norm(c.company)+"|"+norm(c.name)));
+ // Preserve A:L for all legacy readers. New M:O fields must be installed before writing new structured rows.
+ const headers=await values(token,id,"Connections","A1:O1");
+ if(COMPONENT_HEADERS.some((v,i)=>String(headers[0]?.[i+12]||"")!==v))
+  throw bad("Connections M:O three-part invitation headers not installed. No contacts were imported.",409);
+ const library=(await getTemplates({token,id,candidate})).templates;
+ const templateMap=new Map(library.map(t=>[norm(t.department),t]));
  const now=new Date().toISOString(),rows=[],added=[],tracked=[];
  for(const p of items){
   const name=clean(p.name,100),company=clean(p.company,120),title=clean(p.title,140);
@@ -129,15 +148,28 @@ async function importContacts({token,driveAccess,id,candidate,items,confirm,sour
   const nk=norm(company)+"|"+norm(name);if(keys.has(key)||names.has(nk))continue;keys.add(key);names.add(nk);
   const evidence=clean(p.evidence||"User-submitted contact; role and LinkedIn identity not independently verified",400);
   const direct=profile&&p.profileVerified===true?profile:"";
-  const message=clean(p.message||"",300);
-  rows.push([company,name,direct,searchLink(c),"Networking",fullName(candidate),"","",title,evidence,message,now]);
+  const legacyMessage=clean(p.message||"",300);
+  const dept=clean(p.department||"",100);
+  const explicitParts=[p.introduction,p.personalisedMiddle,p.middle,p.closing].some(v=>String(v||"").trim());
+  const isLegacy=!!legacyMessage&&!explicitParts;
+  // Existing paragraph messages remain intact; their missing parts cannot be safely inferred.
+  const template=templateMap.get(norm(dept))||templateMap.get("general")||defaultTemplate(candidate,dept||"General");
+  const rawIntro=explicitParts&&p.introduction?String(p.introduction):fillTemplate(template.introduction,{name,company,department:dept});
+  const rawMiddle=String(p.personalisedMiddle||p.middle||"");
+  const rawClosing=explicitParts&&p.closing?String(p.closing):fillTemplate(template.closing,{name,company,department:dept});
+  const intro=isLegacy?"":clean(rawIntro,300),middle=isLegacy?"":clean(rawMiddle,300),closing=isLegacy?"":clean(rawClosing,300);
+  const message=isLegacy?legacyMessage:clean(composeInvitation(intro,middle,closing),300);
+  if(!isLegacy&&message.length>300)throw bad("Three-part invitation exceeds 300 characters; revise before import.",400);
+  rows.push([company,name,direct,searchLink(c),"Networking",fullName(candidate),"","",title,evidence,message,now,intro,middle,closing]);
   added.push({name,company,key});
   tracked.push([fullName(candidate),key,"identified","","","","",clean(p.department||"",100),clean(p.city||"Dublin",80),clean(p.contactType||"Employee",45),now]);
  }
  if(!rows.length)return {saved:0,skipped:items.length,verified:true,sourceMarkedUsed:false};
- await api(sheetUrl(id)+"/values/"+range("Connections","A1:L")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:rows}});
+ await api(sheetUrl(id)+"/values/"+range("Connections","A1:O")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:rows}});
  const after=uniqueContacts(await allContacts(token,id),candidate);
- const allSaved=added.every(x=>after.some(c=>contactKey(c)===x.key));
+ const allSaved=added.every(x=>after.some(c=>contactKey(c)===x.key&&
+  rows.some(row=>row[0]===c.company&&row[1]===c.name&&row[12]===c.introduction&&
+  row[13]===c.personalisedMiddle&&row[14]===c.closing)));
  if(!allSaved)throw bad("Contacts may have been written but verification failed. Do not mark the research file used.",409);
  await ensureTracking(token,id);
  const prior=await allTracking(token,id,candidate),priorKeys=new Set(prior.map(x=>x.key));
@@ -284,4 +316,4 @@ async function markUsed({token,candidate,fileId,verifiedCount,confirm}){
  const data=await driveRequest("https://www.googleapis.com/drive/v3/files/"+encodeURIComponent(fileId)+"?fields=id,name",token,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({name})});
  return {saved:true,file:data.name||name};
 }
-module.exports={selectedCandidate,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS,DEPARTMENTS,TEMPLATE_HEADERS,defaultTemplate,checkTemplateText,getTemplates,saveTemplate};
+module.exports={selectedCandidate,canonicalCandidate,contactKey,validProfile,uniqueContacts,searchLink,fullName,list,writeStatus,setFollowup,importContacts,submitResearch,listResearch,markUsed,TRACK_HEADERS,CONTACT_HEADERS,COMPONENT_HEADERS,composeInvitation,fillTemplate,DEPARTMENTS,TEMPLATE_HEADERS,defaultTemplate,checkTemplateText,getTemplates,saveTemplate};
