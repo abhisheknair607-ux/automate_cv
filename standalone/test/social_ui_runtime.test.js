@@ -59,7 +59,7 @@ test("Social renders Dashboard, Swipe, Follow-ups and Research without a runtime
  h.run('state.view="followups"; render()');
  assert.match(h.getNode("app").innerHTML,/Sample User/);
  h.run('state.view="inbox"; render()');
- assert.match(h.getNode("app").innerHTML,/Outreach targets/);
+ assert.match(h.getNode("app").innerHTML,/Saved targets/);
 });
 test("Social A/P switch isolates candidate lists and does not change Jobs selection",async()=>{
  const h=createHarness(async (method,{candidate})=>({candidate,items:[item(candidate,candidate==="Abhishek"?"Person A":"Person P")]}));
