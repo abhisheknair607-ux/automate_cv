@@ -7,7 +7,7 @@ PROJECT=abhishek-cv-automation
 REGION=europe-west1
 JOBS=automate-cv-dashboard
 SOCIAL=automate-cv-social
-[[ "$JOBS_HEADER_PREVIEW_CONFIRM" == "LIVE_JOBS_IMAGE_UI_ONLY" ]] || {
+[[ "${JOBS_HEADER_PREVIEW_CONFIRM:-}" == "LIVE_JOBS_IMAGE_UI_ONLY" ]] || {
   echo "SAFE STOP: set JOBS_HEADER_PREVIEW_CONFIRM=LIVE_JOBS_IMAGE_UI_ONLY";exit 2;
 }
 for exe in gcloud git node python3 curl; do command -v "$exe" >/dev/null || {
