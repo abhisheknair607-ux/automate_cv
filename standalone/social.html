@@ -583,7 +583,11 @@ async function loadResearch(){
  const candidate=state.candidate;
  const calls=await Promise.allSettled([request("targets/list"),request("conversations/list")]);
  if(candidate!==state.candidate)return;
- if(calls[0].status==="fulfilled")state.targets=calls[0].value.targets||[];
+ if(calls[0].status==="fulfilled"){
+  state.targets=calls[0].value.targets||[];
+  state.catalogCompanies=calls[0].value.companies||[];
+  state.catalogDepartments=calls[0].value.departments||[];
+ }
  else alertUser("Saved target searches could not be loaded: "+calls[0].reason.message);
  if(calls[1].status==="fulfilled")state.conversations=calls[1].value.items||[];
  else alertUser("Conversation queue could not be loaded: "+calls[1].reason.message);
@@ -593,13 +597,59 @@ async function saveResearchTarget(){
  const company=document.getElementById("targetCompany")?.value.trim();
  const department=document.getElementById("targetDepartment")?.value.trim();
  const city=document.getElementById("targetCity")?.value.trim()||"Dublin";
- if(!company||!department)return alertUser("Enter company and department.");
+ if(!company||!department)return alertUser("Select an added company and department first.");
+ const selected=state.candidate;
  try{
-  const result=await request("targets/save",{company,department,city,confirm:true});
+  await request("targets/save",{company,department,city,confirm:true});
+  if(selected!==state.candidate)return;
   state.researchCompany=company;state.researchDepartment=department;state.researchCity=city;
-  await loadResearch();alertUser("Search target saved for "+state.candidate+".");
- }catch(e){alertUser(e.message)}
+  await loadResearch();alertUser("Search target saved for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
 }
+let editingResearchKind="";
+function openResearchOption(kind){
+ if(!["company","department"].includes(kind))return;
+ editingResearchKind=kind;
+ const title="Add "+kind;
+ document.getElementById("researchOptionTitle").textContent=title;
+ document.getElementById("researchOptionLabel").textContent=kind==="company"?"Company name":"Department name";
+ document.getElementById("researchOptionName").value="";
+ document.getElementById("researchOptionDialog").showModal();
+ document.getElementById("researchOptionName").focus();
+}
+async function saveResearchOption(){
+ const kind=editingResearchKind;
+ const name=document.getElementById("researchOptionName").value.trim();
+ if(!name||name.length<2)return alertUser("Enter at least two characters.");
+ if(state.readOnly)return alertUser("Research is read-only.");
+ const selected=state.candidate,button=document.getElementById("researchOptionSave");
+ button.disabled=true;
+ try{
+  const v=await request("targets/save",{catalogKind:kind,catalogName:name,confirm:true});
+  if(selected!==state.candidate)return;
+  document.getElementById("researchOptionDialog").close();
+  if(kind==="company")state.researchCompany=v.name;
+  else state.researchDepartment=v.name;
+  await loadResearch();
+  alertUser(v.existing?"Already saved; selected "+v.name+".":"Added "+v.name+" for "+selected+".");
+ }catch(e){if(selected===state.candidate)alertUser(e.message)}
+ finally{button.disabled=false}
+}
+function openResearchLocation(){
+ document.getElementById("researchLocationValue").value=state.researchCity||"Dublin";
+ document.getElementById("researchLocationDialog").showModal();
+ document.getElementById("researchLocationValue").focus();
+}
+function saveResearchLocation(){
+ const city=document.getElementById("researchLocationValue").value.trim();
+ if(!city||city.length>100)return alertUser("Enter a city, region or country (up to 100 characters).");
+ state.researchCity=city;
+ document.getElementById("researchLocationDialog").close();
+ const el=document.getElementById("targetCity");if(el)el.value=city;
+ const pin=document.getElementById("researchLocationOpen");if(pin){pin.title=city;pin.setAttribute("aria-label","Change city or country: "+city)}
+ updateTargetUrl();
+}
+
 function screenshotToBase64(file){
  return new Promise((resolve,reject)=>{
   if(!file)return resolve({imageData:"",mimeType:""});
