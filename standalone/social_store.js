@@ -114,7 +114,7 @@ async function setFollowup({token,id,candidate,key,confirm}){
  await api(sheetUrl(id)+"/values/"+range("SocialTracking","F"+track.row+":G"+track.row)+"?valueInputOption=RAW",token,{method:"PUT",body:{values:[[now,""]]}});
  return {saved:true,followupSent:now};
 }
-async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId}){
+async function importContacts({token,driveAccess,id,candidate,items,confirm,sourceFileId,sourceComplete=false}){
  if(confirm!==true)throw bad("Approve the contact import first.");
  if(!Array.isArray(items)||items.length<1||items.length>MAX_BATCH)throw bad("Import between 1 and "+MAX_BATCH+" contacts.");
  const existing=await allContacts(token,id),keys=new Set(uniqueContacts(existing,candidate).map(c=>contactKey(c)));
@@ -144,7 +144,7 @@ async function importContacts({token,driveAccess,id,candidate,items,confirm,sour
  const newTracking=tracked.filter(x=>!priorKeys.has(x[1]));
  if(newTracking.length)await api(sheetUrl(id)+"/values/"+range("SocialTracking","A1:K")+":append?valueInputOption=RAW&insertDataOption=INSERT_ROWS",token,{method:"POST",body:{values:newTracking}});
  let sourceMarkedUsed=false,renameWarning="";
- if(sourceFileId){try{await markUsed({token:driveAccess,candidate,fileId:sourceFileId,verifiedCount:rows.length,confirm:true});sourceMarkedUsed=true}catch(e){renameWarning=String(e.message||e).slice(0,200)}}
+ if(sourceFileId&&sourceComplete===true){try{await markUsed({token:driveAccess,candidate,fileId:sourceFileId,verifiedCount:rows.length,confirm:true});sourceMarkedUsed=true}catch(e){renameWarning=String(e.message||e).slice(0,200)}}
  return {saved:rows.length,skipped:items.length-rows.length,verified:true,sourceMarkedUsed,renameWarning};
 }
 // Per-candidate department template library. Intro/closing are user-owned.

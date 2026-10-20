@@ -220,7 +220,8 @@ body{background:#f5f7fb}
 <dialog id="importDialog"><div class="section-head"><b>Import contacts</b><button class="btn small" id="importClose">✕</button></div>
 <p class="subtle">One per line: Name | Company | Position | Department | LinkedIn URL (optional). Review before saving.</p>
 <textarea id="bulkText" style="min-height:170px" placeholder="Jane Doe | EY | Valuations Director | Valuations |&#10;Alex Sample | Davy | Financial Planner | Financial Planning |"></textarea>
-<div class="field"><label>Source Research Inbox TXT (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
+<div class="field"><label>Research source file (optional)</label><select id="importSource"><option value="">No source file</option></select></div>
+<label class="field" style="display:flex;flex-direction:row;align-items:flex-start;gap:9px;font-size:12px"><input id="importSourceComplete" type="checkbox" style="width:17px;min-width:17px;min-height:17px;margin-top:2px"><span>Entire source reviewed: all approved people have been imported or verified as already saved, with no unresolved entries. Only then rename this source from NEW_ to USED_.</span></label>
 <div class="btnrow"><button class="btn primary" id="importConfirm">Import to Freshmaal</button><button class="btn" id="importCancel">Cancel</button></div></dialog>
 <dialog id="templateDialog" aria-label="Edit department outreach template">
  <div class="section-head"><b>✎ Department master template</b><button class="btn small" id="templateClose">✕</button></div>
@@ -869,7 +870,7 @@ document.addEventListener("click",async e=>{
  if(b.id==="filterButton"){state.filterVisible=!state.filterVisible;render();return}
  if(b.id==="refresh"){refresh();return}
  if(b.id==="closeDetail"){state.selected="";render();return}
- if(b.id==="addContact"){document.getElementById("importDialog").showModal();const s=document.getElementById("importSource");s.innerHTML='<option value="">No source file</option>'+state.inbox.filter(f=>f.status==="new").map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+'</option>').join("");return}
+ if(b.id==="addContact"){document.getElementById("importDialog").showModal();const completed=document.getElementById("importSourceComplete");if(completed)completed.checked=false;const s=document.getElementById("importSource");s.innerHTML='<option value="">No source file</option>'+state.inbox.filter(f=>f.status==="new").map(f=>'<option value="'+esc(f.id)+'">'+esc(f.name)+'</option>').join("");return}
  if(["importCancel","importClose"].includes(b.id)){document.getElementById("importDialog").close();return}
  if(b.id==="saveStatus"){await updateStatus(state.selected,document.getElementById("statusPick").value,document.getElementById("nextDate").value);return}
  if(b.id==="copyFollow"){const c=state.items.find(x=>x.key===state.selected);if(c)copyText(makeMessage(c,Number(document.getElementById("followVariant").value),true));return}
@@ -885,11 +886,12 @@ document.addEventListener("click",async e=>{
  if(b.id==="reloadInbox"){await loadInbox();return}
  if(b.id==="importConfirm"){
   const source=document.getElementById("importSource").value;
+  const sourceComplete=Boolean(source&&document.getElementById("importSourceComplete")?.checked);
   const items=document.getElementById("bulkText").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(x=>{const parts=x.split("|").map(p=>p.trim());return {name:parts[0],company:parts[1]||state.company,title:parts[2]||"",department:parts[3]||state.department,profile:parts[4]||"",profileVerified:false}});
   if(!items.length)return alertUser("Paste some names first.");
   if(!confirm("Import "+items.length+" reviewed contacts into Freshmaal Connections?"))return;
   try{const driveAccessToken=source?await socialDriveToken():null;
-   const result=await request("import",{items,sourceFileId:source,driveAccessToken,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" TXT rename needs review.":""));
+   const result=await request("import",{items,sourceFileId:source,sourceComplete,driveAccessToken,confirm:true});alertUser(result.saved+" saved, "+result.skipped+" already present."+(result.renameWarning?" Source rename needs review.":source&&result.sourceMarkedUsed?" Source marked USED after verification.":source?" Source remains NEW until full review.":""));
    document.getElementById("importDialog").close();state.selected="";await refresh();if(state.view==="inbox")await loadInbox()
   }catch(err){alertUser(err.message)}return
  }
