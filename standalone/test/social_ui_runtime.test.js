@@ -232,22 +232,28 @@ test("Targets are above uploads and offer only Search Now and Save Target",async
  assert.match(page,/research-target-scroll/);
  assert.match(page,/id="researchTextFile"/);
 });
-test("EY department matches appear together in filtered saved targets",async()=>{
+test("saved targets show every company in a latest-first dropdown independent of selected company",async()=>{
  const h=createHarness(async(_method,{candidate})=>({candidate,readOnly:true,items:[]}));
  await new Promise(resolve=>setImmediate(resolve));
- h.run('state.view="inbox";state.researchMode="research";state.targets=[{row:2,company:"EY",department:"Deals",city:"Dublin"},{row:3,company:"EY",department:"Valuations",city:"Dublin"},{row:4,company:"Davy",department:"Wealth",city:"Dublin"}];render()');
- const matches=h.run('savedTargetRows("EY")');
+ h.run('state.view="inbox";state.researchMode="research";state.targets=[{row:2,company:"EY",department:"Deals",city:"Dublin",updated:"2026-10-18"},{row:3,company:"EY",department:"Valuations",city:"Dublin",updated:"2026-10-19"},{row:4,company:"Davy",department:"Wealth",city:"Dublin",updated:"2026-10-20"}];render()');
+ const matches=h.run("savedTargetRows()");
  assert.match(matches,/Deals/);
  assert.match(matches,/Valuations/);
- assert.doesNotMatch(matches,/Davy/);
- assert.equal((matches.match(/data-use-target=/g)||[]).length,2);
+ assert.match(matches,/Davy/);
+ assert.equal((matches.match(/data-use-target=/g)||[]).length,3);
  assert.match(matches,/linkedin.com\/search\/results\/people\/\?keywords=/);
+ assert.ok(matches.indexOf("Davy")<matches.indexOf("Valuations"),"Latest saved target is first");
+ const before=matches;
  h.getNode("targetCompany").value="Davy";
  h.getNode("targetDepartment").value="Wealth";
  h.getNode("targetCity").value="Dublin";
  h.run("updateTargetUrl()");
- assert.match(h.getNode("researchTargetResults").innerHTML,/Davy/);
- assert.doesNotMatch(h.getNode("researchTargetResults").innerHTML,/Valuations/);
+ assert.equal(h.run("savedTargetRows()"),before,"Changing selectors must not filter the list");
+ const rendered=h.getNode("app").innerHTML;
+ assert.match(rendered,/id="researchSavedTargets" open/);
+ assert.match(rendered,/role="region" tabindex="0" aria-label="Scrollable saved target/);
+ assert.doesNotMatch(rendered,/Consulting & Wealth Campaign planner/);
+ assert.match(rendered,/class="research-queue-scroll"/);
 });
 test("TXT file is read locally and posted as private candidate text, without AI generation",async()=>{
  const saved=[];
