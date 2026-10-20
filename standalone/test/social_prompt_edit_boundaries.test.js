@@ -25,30 +25,30 @@ test("Swipe has the notepad after Add, but dashboard headings remain unchanged",
  assert.match(html,/id="personalisationInstructions"/);
  assert.match(html,/id="copyPersonalisationPrompt"/);
 });
-test("New line-edit prompt is strictly scoped to one candidate Connections K cell",()=>{
+test("New line-edit prompt is strictly scoped to one candidate Connections N cell",()=>{
  const h=mock();
  const prompt=h.run('personalisationEditPrompt({name:"Jane Example",company:"EY",title:"Director",sheetRow:42},"Please make the middle line less formal.")');
  for(const expected of [
   "1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc",
-  "Connections!K42","Abhishek Nair",
+  "Connections!N42","Abhishek Nair",
   "Jane Example","EY","column F",
   "Research public internet sources",
   "Please make the middle line less formal",
   "ASK for my explicit approval",
-  "Never edit Connections columns A:J or L",
+  "Never edit Connections A:M or O",
   "<=300 characters"
  ])assert.ok(prompt.includes(expected),"Expected constraint missing: "+expected);
  assert.ok(!prompt.includes("Pooja Krishna Tirupati (Connections column F)"));
  h.run('state.candidate="Pooja"');
  const other=h.run('personalisationEditPrompt({name:"Jane Example",company:"EY",title:"Director",sheetRow:52},"")');
  assert.match(other,/Pooja Krishna Tirupati/);
- assert.match(other,/Connections!K52/);
+ assert.match(other,/Connections!N52/);
  assert.match(other,/DO NOT MODIFY ANY CELL UNTIL I DO/);
 });
 test("Research source import prompt explicitly restricts columns and requires verified read-back",()=>{
  const h=mock();
  const prompt=h.run("researchPrompt()");
- for(const expected of ["Connections tab, columns A:L only for NEW","J Verification / Evidence","K Outreach Message","SocialTracking tab: append NEW rows in A:K","SocialTemplates (A:D)","SocialFollowups (A:K)","READ-ONLY","read back precisely those cells"])assert.ok(prompt.includes(expected),"Missing: "+expected);
+ for(const expected of ["Connections A:O only for NEW","J Evidence/source URLs","K composed","SocialTracking tab: append NEW rows in A:K","SocialTemplates (A:E)","SocialFollowups (A:K)","READ-ONLY","read back the edited cells"])assert.ok(prompt.includes(expected),"Missing: "+expected);
 });
 test("Follow-up prompt defaults to no writes, or one approved SocialFollowups H cell",()=>{
  const h=mock(),prompt=h.run('conversationResearchPrompt({contact:"Jane",company:"EY",id:"abcdef",driveUrl:"https://drive.google.com/file/d/test/view"})');
