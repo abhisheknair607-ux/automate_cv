@@ -250,6 +250,36 @@ body{background:#f5f7fb}
  .research-space .research-form>.field:nth-child(2){grid-column:1;grid-row:2}
  .research-space .research-form>.research-location-field{grid-column:2;grid-row:2}
 }
+
+/* Social-only Swipe card: compact, consistently aligned controls and invitation feedback. */
+.swipe-card{min-height:0;height:auto;width:100%;max-width:610px;margin:0 auto;gap:12px;padding:16px;border-radius:18px;background:linear-gradient(145deg,#fff 15%,#f5f8fe);box-shadow:0 8px 24px #243d6611}
+.swipe-card .spacer{display:none;flex:0}
+.swipe-card .swipe-contact{display:flex;flex-direction:column;align-items:flex-start;gap:3px;border-bottom:1px solid #e8edf5;padding-bottom:12px;min-width:0}
+.swipe-card .swipe-contact h2{font-size:22px;margin:8px 0 2px;line-height:1.2;overflow-wrap:anywhere}
+.swipe-card .swipe-contact p{margin:0;line-height:1.4}
+.swipe-card .swipe-message{min-width:0}
+.swipe-card .swipe-message-title{font-size:11px;color:#61748e;font-weight:750;margin:0 0 6px}
+.swipe-card .swipe-message .note{margin:0;padding:12px 13px;min-height:82px;background:#fff;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px;line-height:1.48;border-radius:12px}
+.swipe-card .swipe-message-footer{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin:7px 1px 0}
+.swipe-card .swipe-message-status{color:#657990;font-size:10px;line-height:1.45;min-width:0;flex:1}
+.swipe-card .swipe-count{white-space:nowrap;font-size:11px;font-weight:750;font-variant-numeric:tabular-nums;color:#36678e}
+.swipe-card .swipe-count.over{color:#b42335}
+.swipe-card .swipe-limit-warning{font-size:11px;color:#a12e3b;margin-top:5px}
+.swipe-card .swipe-tool-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.swipe-card .swipe-tool-grid>.btn{display:flex;align-items:center;justify-content:center;min-width:0;width:100%;padding:10px 6px;min-height:39px;white-space:normal;text-align:center}
+.swipe-card .swipe-sent-hint{color:#73839a;font-size:10px;margin:0}
+.swipe-card .swipe-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.swipe-card .swipe-actions>.btn{min-width:0;min-height:43px;padding:10px 5px;border-radius:11px}
+.swipe-progress{max-width:610px;margin:0 auto 8px}
+@media(max-width:700px){
+ .swipe-card{min-height:0;padding:13px;gap:10px;border-radius:16px}
+ .swipe-card .swipe-contact h2{font-size:20px}
+ .swipe-card .swipe-message .note{font-size:12px;min-height:76px}
+ .swipe-card .swipe-tool-grid{gap:6px}
+ .swipe-card .swipe-tool-grid>.btn{font-size:10px;padding:9px 4px}
+ .swipe-card .swipe-actions{gap:6px}
+ .swipe-card .swipe-actions>.btn{font-size:11px;padding:10px 3px}
+}
 </style></head>
 <body>
 <header><div class="row tight"><span class="logo">Garam Mal</span><a class="pill" href="/">🗒️ Jobs</a><span class="pill active">👥 Social</span></div>
@@ -366,7 +396,29 @@ function draftIntroClosing(c){
  const template=deptTemplate(department(c));
  return [templateText(template.introduction,c),"",templateText(template.closing,c)].join("\n");
 }
-function templateSummary(c){return c.message?"Researched message saved in Freshmaal":"Template draft · GPT research line not yet available"}
+function invitationPreview(c){
+ const saved=String(c.message||"").replace(/\r\n?/g,"\n").trim();
+ const status=c.relation?.status||"identified";
+ if(!saved)return {text:draftIntroClosing(c),kind:"draft",note:"Template preview · personalised line awaiting verified research"};
+ if(status!=="identified")return {text:saved,kind:"sent",note:"Previously contacted · saved invitation preserved"};
+ const lines=saved.split("\n");
+ // Some historic messages contain no reliable line separators. Never guess the middle.
+ if(lines.length<2||!lines[0].trim()||!lines[lines.length-1].trim())
+  return {text:saved,kind:"unsplit",note:"Existing message cannot be safely separated · review before updating"};
+ const middle=lines.slice(1,-1).join("\n").trim();
+ const template=deptTemplate(department(c));
+ const intro=templateText(template.introduction,c);
+ const closing=templateText(template.closing,c);
+ const text=[intro,middle,closing].join("\n\n");
+ return {text,kind:text===saved?"saved":"preview",
+  note:text===saved?"Saved invitation matches the master template":"Latest master template preview · saved Connections!K is unchanged"};
+}
+function invitationCount(c){
+ const preview=invitationPreview(c);
+ const length=preview.text.length;
+ return {...preview,length,withinLimit:length<=300};
+}
+function templateSummary(c){return invitationPreview(c).note}
 function personalisationEditPrompt(c,instructions){
  const row=Number(c.sheetRow);
  const fullCandidate=state.candidate==="Abhishek"?"Abhishek Nair":"Pooja Krishna Tirupati";
@@ -420,7 +472,7 @@ function makeMessage(c,variation=0,followup=false){
  "Thank you for connecting, "+first+". I’m interested in learning more about the work your team does at "+company+".",coffeeInvite(c)][variation]||"Thanks for connecting.";
  return base;
  }
- return c.message||draftIntroClosing(c);
+ return invitationPreview(c).text;
 }
 function stats(){
  const total=state.items.length;
@@ -455,11 +507,34 @@ function organizationCard(){
 function peopleList(){const v=activeItems();return '<section class="card dashboard-search"><div class="section-head"><b>People & follow-ups</b><span class="small muted">'+v.length+' contacts</span></div>'+filterBar()+v.slice(0,25).map(c=>'<div class="person"><div><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+' · '+esc(c.company)+'</small><small>'+esc(department(c))+'</small></div><div style="text-align:right"><span class="tag '+esc(c.relation?.status||"")+'">'+esc(c.relation?.status||"identified")+'</span><div><button data-person="'+esc(c.key)+'" class="btn small" style="margin-top:4px">Open ↗</button></div></div></div>').join("")+(v.length>25?'<div class="subtle">Showing the first 25. Narrow your search to find anyone.</div>':"")+(v.length?"":'<div class="empty">No matching contacts. Import a name or change filters.</div>')+'</section>'}
 function dashboard(){return heading("Networking")+statGrid()+organizationCard()+peopleList()}
 function swipeQueue(){return activeItems().filter(c=>(c.relation?.status||"identified")==="identified")}
-function swipe(){const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));const c=list[state.swipeIndex];
- const top=heading("Discover & swipe",true)+filterBar()+(state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
+function swipe(){
+ const list=swipeQueue();state.swipeIndex=Math.min(state.swipeIndex,Math.max(0,list.length-1));
+ const c=list[state.swipeIndex];
+ const top=heading("Discover & swipe",true)+filterBar()+
+  (state.readOnly?'<div class="preview-note" role="status">Read-only preview: Sent and Later cannot be recorded yet.</div>':"");
  if(!c)return top+'<div class="card empty">No people remaining for these filters.<div style="margin-top:10px"><button class="btn" id="addContact">＋ Import contacts</button></div></div>';
  const href=c.profile||safeLinkedInSearch(c.search);
- return top+'<div class="subtle">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div><div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span><h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · Dublin</p><div class="spacer"></div><div class="note">'+esc(makeMessage(c))+'</div><div class="btnrow"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy invitation</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+(href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':"")+'</div><div class="subtle" style="margin-top:12px">Only mark sent after you actually send the request on LinkedIn.</div><div class="swipe-actions"><button class="btn" id="later">← Later</button><button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button><button class="btn good" id="sent">Sent ✓ →</button></div></div>'}
+ const invitation=invitationCount(c);
+ const limitLabel=invitation.withinLimit?"Within LinkedIn’s 300-character limit":"Over limit · shorten before copying";
+ const tools='<div class="swipe-tool-grid"><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Template</button>'+
+  '<button class="btn small" data-copy="'+esc(invitation.text)+'" '+(invitation.withinLimit?"":'disabled title="Invitation exceeds 300 characters"')+'>▣ Copy invitation</button>'+
+  '<button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button>'+
+  (href?'<a class="btn small primary" target="_blank" rel="noopener noreferrer" href="'+esc(href)+'">↗ LinkedIn</a>':'<span class="swipe-tool-placeholder" aria-hidden="true"></span>')+'</div>';
+ return top+'<div class="subtle swipe-progress">'+(state.swipeIndex+1)+' of '+list.length+' · Swipe left = Later, right = Request sent</div>'+
+ '<div class="swipe-card" id="swipeCard" data-key="'+esc(c.key)+'">'+
+ '<div class="swipe-contact"><span class="tag">'+esc(contactKind(c))+' · '+esc(department(c))+'</span>'+
+ '<h2>'+esc(c.name)+'</h2><p>'+esc(c.title)+'</p><p class="muted">'+esc(c.company)+' · '+esc(c.relation?.city||"Dublin")+'</p></div>'+
+ '<div class="swipe-message"><div class="swipe-message-title">Invitation preview</div>'+
+ '<div class="note" id="swipeInvitationText">'+esc(invitation.text)+'</div>'+
+ '<div class="swipe-message-footer"><span class="swipe-message-status">'+esc(invitation.note)+'</span>'+
+ '<span class="swipe-count '+(invitation.withinLimit?"":"over")+'" aria-label="Invitation character count">'+invitation.length+' / 300</span></div>'+
+ (invitation.withinLimit?"":'<div class="swipe-limit-warning" role="status">'+limitLabel+'</div>')+
+ '</div>'+tools+
+ '<div class="swipe-sent-hint">Only mark sent after you actually send the request on LinkedIn.</div>'+
+ '<div class="swipe-actions"><button class="btn" id="later">← Later</button>'+
+ '<button class="btn soft" id="undo" '+(!state.lastSwipe?"disabled":"")+'>↶ Undo</button>'+
+ '<button class="btn good" id="sent">Sent ✓ →</button></div></div>';
+}
 function followups(){const choices=state.items.filter(x=>["accepted","replied"].includes(x.relation?.status));
  return heading("Follow-ups")+'<section class="card"><div class="section-head"><b>GPT follow-up assistance</b><span class="tag">Copy prompt</span></div><p class="subtle">Use your saved LinkedIn conversations, accepted contacts and candidate background to draft reviewed follow-ups. This does not send anything.</p><button class="btn soft small" id="copyFollowupTabPrompt">▣ Copy Follow-up Prompt</button></section>'+'<div class="card"><div class="section-head"><b>Accepted & replied</b><span class="count">'+choices.length+'</span></div>'+choices.map(x=>'<div class="person"><div><strong>'+esc(x.name)+'</strong><small>'+esc(x.company)+' · '+esc(department(x))+'</small><small>'+esc(x.relation?.followupSent?"Follow-up sent":"Follow-up pending")+'</small></div><button data-person="'+esc(x.key)+'" class="btn small">Message ↗</button></div>').join("")+(choices.length?"":'<div class="empty">No accepted contacts recorded yet. You can mark acceptance from Dashboard.</div>')+'</div>'}
 function personDetail(c){return '<section class="card"><div class="section-head"><b>'+esc(c.name)+'</b><button class="btn small" id="closeDetail">✕</button></div><p class="subtle">'+esc(c.title)+' · '+esc(c.company)+' · '+esc(department(c))+'</p><div class="field"><label>Status</label><select id="statusPick">'+["identified","sent","accepted","replied","later"].map(s=>'<option value="'+s+'" '+(c.relation?.status===s?"selected":"")+'>'+s+'</option>').join("")+'</select></div><label class="field">Next follow-up<input id="nextDate" type="date" value="'+esc(c.relation?.next||"")+'"></label><button class="btn soft" id="saveStatus">Save status ✓</button><div class="field" style="margin-top:14px"><label>Introduction</label><div class="note">'+esc(makeMessage(c))+'</div><button class="btn small" data-copy="'+esc(makeMessage(c))+'">▣ Copy introduction</button><button class="btn small" id="editTemplate" data-department="'+esc(department(c))+'">✎ Edit template</button><button class="btn small" data-copy="'+esc(coffeeInvite(c))+'">☕ Coffee chat</button></div><div class="field"><label>Follow-up variations</label><select id="followVariant"><option value="0">Friendly thank-you</option><option value="1">Ask for advice</option><option value="2">Learn about team</option><option value="3">Coffee chat</option></select><div class="note" id="followText">'+esc(makeMessage(c,0,true))+'</div><div class="btnrow"><button class="btn small" id="copyFollow">▣ Copy follow-up</button><button class="btn good" id="markFollow" '+(!["accepted","replied"].includes(c.relation?.status)?"disabled":"")+'>✓ I sent it</button></div></div><div class="subtle">'+(c.profile?'<a href="'+esc(c.profile)+'" target="_blank" rel="noopener noreferrer">LinkedIn profile ↗</a>':'Only a LinkedIn search link is available')+'</div></section>'}
@@ -625,7 +700,7 @@ async function saveTemplateEditor(){
  const candidate=state.candidate,department=document.getElementById("templateDepartment").value,
  introduction=document.getElementById("templateIntro").value,closing=document.getElementById("templateClosing").value;
  if(!introduction.trim()||!closing.trim())return alertUser("Both editable template lines are required.");
- if(!confirm("Save this "+department+" template for "+candidate+"? Existing saved LinkedIn notes will not change."))return;
+ if(!confirm("Save this "+department+" template for "+candidate+"? The unsent Swipe preview will use the updated introduction and closing. Existing saved Connections messages will NOT be overwritten."))return;
  try{const saved=await request("templates/save",{department,introduction,closing,confirm:true});
  if(state.candidate!==candidate)return;
  state.templates[department]=saved;document.getElementById("templateDialog").close();
