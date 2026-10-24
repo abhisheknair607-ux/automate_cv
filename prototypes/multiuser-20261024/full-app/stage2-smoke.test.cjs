@@ -67,9 +67,9 @@ function click(env,action,value=""){
  const target={closest(){return {dataset:{action,value}}}};
  return env.listeners.click({target});
 }
-test("Sign-in, seven main screens and five profile sections render",()=>{
+test("Home opens by default and seven screens and five profile sections render",()=>{
  const env=makeContext();
- assert.match(env.display.innerHTML,/Continue with Google/);
+ assert.match(env.display.innerHTML,/What do/);
  signInSample(env,"a");
  for(const page of ["home","jobs","social","profile","rank","usage","account"]){
   env.state.view=page;env.render();
