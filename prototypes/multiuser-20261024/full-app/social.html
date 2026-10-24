@@ -377,12 +377,33 @@ body{background:#f5f7fb}
  <div class="subtle">Use any location name. It will become part of the LinkedIn People search.</div>
  <div class="research-modal-actions"><button type="button" class="btn" id="researchLocationCancel">Cancel</button><button type="button" class="btn primary" id="researchLocationSave">Use location</button></div>
 </dialog>
+<style>
+/* Stage 2 offline visual refinements: preserve every original workflow. */
+.mu-social-banner{padding:5px 11px;font-size:10px;line-height:1.35}
+button,.btn,input,select,textarea{touch-action:manipulation}
+button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid #83aff0;outline-offset:2px}
+@media(max-width:700px){
+ .mu-social-banner{padding:5px 9px;font-size:9px}
+ button,.btn,.chip{min-height:40px}
+ input,select,textarea{font-size:16px}
+ .person{gap:7px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
 <script>
 /* Deliberately non-networked Social bridge for the UX review. */
 window.__cvStandalone={
  requestSpecial:async function(path,arg){
   const c=arg&&arg.candidate==="Pooja"?"Pooja":"Abhishek";
-  if(path==="social/data")return {candidate:c,items:[],readOnly:true};
+  if(path==="social/data"){
+   const entries=c==="Pooja"?
+    [{key:"sample-p-1",name:"Jamie Example",title:"Financial Planning Manager",company:"Sample Wealth",relation:{status:"identified",city:"Dublin",department:"Financial Planning",sent:false},personalisedMiddle:"I would appreciate hearing about your career in planning."},
+     {key:"sample-p-2",name:"Morgan Demo",title:"Wealth Management Director",company:"Demo Advisory",relation:{status:"accepted",city:"Dublin",department:"Wealth Management",sent:true,next:"2026-10-20",followupSent:false}}]:
+    [{key:"sample-a-1",name:"Alex Example",title:"Corporate Finance Partner",company:"Example Partners",relation:{status:"identified",city:"Dublin",department:"Corporate Finance",sent:false},personalisedMiddle:"I would value hearing about your approach to transaction work."},
+     {key:"sample-a-2",name:"Sam Demo",title:"Transfer Pricing Manager",company:"Demo Advisory",relation:{status:"identified",city:"London",department:"Transfer Pricing",sent:false},personalisedMiddle:"I would value hearing about your work in transfer pricing."},
+     {key:"sample-a-3",name:"Casey Sample",title:"Valuations Manager",company:"Example Partners",relation:{status:"accepted",city:"Dublin",department:"Valuations",sent:true,next:"2026-10-20",followupSent:false}}];
+   return {candidate:c,items:entries,readOnly:true};
+  }
   if(path==="social/templates/get")return {templates:[]};
   if(path==="social/targets/list")return {targets:[],companies:[],departments:[]};
   if(path==="social/conversations/list")return {items:[]};
@@ -1113,7 +1134,7 @@ async function updateStatus(key,status,next){if(state.readOnly){alertUser("Track
  try{await request("status",{key,status,next:next||"",confirm:true});state.selected="";state.swipeIndex=0;await refresh();alertUser("Status saved to Freshmaal.")}catch(e){alertUser(e.message)}}
 async function markFollow(key){if(state.readOnly){alertUser("Tracking is read-only. The follow-up was not recorded.");return}if(!confirm("Confirm you sent this follow-up manually on LinkedIn?"))return;
  try{await request("followup",{key,confirm:true});state.selected="";await refresh();alertUser("Follow-up saved.")}catch(e){alertUser(e.message)}}
-function copyText(s){if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(s).then(()=>alertUser("Copied."),()=>prompt("Copy text",s));else prompt("Copy text",s)}
+function copyText(s){alertUser("Preview-only: live-contact prompts and links are not copied from this sample design.");return; if(navigator.clipboard&&window.isSecureContext)navigator.clipboard.writeText(s).then(()=>alertUser("Copied."),()=>prompt("Copy text",s));else prompt("Copy text",s)}
 let gestureX=0;document.addEventListener("touchstart",e=>{if(e.target.closest("#swipeCard"))gestureX=e.changedTouches[0].screenX},{passive:true});
 document.addEventListener("touchend",e=>{const c=e.target.closest("#swipeCard");if(!c||!gestureX)return;const delta=e.changedTouches[0].screenX-gestureX;gestureX=0;if(Math.abs(delta)<95)return;const x=swipeQueue()[state.swipeIndex];if(!x)return;const before=x.relation?.status||"identified";state.lastSwipe={key:x.key,before};
  updateStatus(x.key,delta>0?"sent":"later","")},{passive:true});
