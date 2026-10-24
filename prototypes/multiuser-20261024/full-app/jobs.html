@@ -924,6 +924,13 @@ document.addEventListener('submit',e=>{if(e.target.id==='addForm'){e.preventDefa
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.download-pop'))closeDownloadOptions();else if(document.querySelector('.expense-pop'))expenseClose();else if(state.detail)closeDetail()}});
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
+// Parent shell navigation for this isolated Jobs design copy only.
+window.addEventListener("message",event=>{
+  if(event.source!==window.parent||event.data?.kind!=="garamaal-prototype")return;
+  const requested=event.data.page;
+  if(!["dashboard","discovery","fresh","add"].includes(requested))return;
+  nav(requested);
+});
 // Passive local typing indicator; never intercepts Jobs controls, submissions or Sheets writes.
 (function(){
  const badge=document.getElementById('modeBadge');let timer;
