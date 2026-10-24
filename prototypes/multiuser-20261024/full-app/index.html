@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#132a49">
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; form-action 'none'; worker-src 'none'; frame-src 'self' file:">
+<title>Garamaal — Multi-user App | Stage 1 Design Copy</title>
+<style>
+:root{--navy:#132a49;--blue:#2563eb;--ink:#14243a;--muted:#61718a;--line:#dce5ef;--bg:#f5f7fb;--soft:#edf4ff;--white:#fff;--green:#147d53;--radius:14px}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+button,input,textarea,select{font:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid #78aaf5;outline-offset:2px}
+button:disabled{opacity:.5;cursor:not-allowed}
+h1,h2,h3,p{margin-top:0}
+h1{font-size:clamp(24px,4vw,32px);line-height:1.16;letter-spacing:-.04em;margin-bottom:8px}
+h2{font-size:17px;letter-spacing:-.015em;margin-bottom:8px}
+a{color:var(--blue)}
+.screen{min-height:100dvh}
+.layout{display:grid;grid-template-columns:226px minmax(0,1fr)}
+.side{height:100dvh;position:sticky;top:0;background:var(--navy);color:white;padding:21px 12px;display:flex;flex-direction:column}
+.brand{font-weight:850;font-size:25px;letter-spacing:-.055em;padding:1px 11px 18px}
+.brand small{display:block;letter-spacing:.14em;color:#b2c7e4;font-size:9px}
+.sidenav{display:grid;gap:3px}
+.navlink{display:flex;align-items:center;gap:12px;border:0;border-radius:10px;padding:12px 13px;background:transparent;color:#bfd0e6;text-align:left;font-weight:700;width:100%;min-height:44px}
+.navlink:hover,.navlink[aria-current=page]{background:#2c496b;color:#fff}
+.navicon{font-size:18px;line-height:1;width:23px;text-align:center}
+.sidefoot{margin-top:auto;border:1px solid #536e90;color:#bdcee3;border-radius:11px;padding:12px;font-size:11px}
+.main{min-width:0}
+.top{position:sticky;top:0;z-index:5;background:white;border-bottom:1px solid var(--line);height:62px;padding:0 24px;display:flex;gap:12px;justify-content:space-between;align-items:center}
+.topright{display:flex;align-items:center;gap:9px}
+.avatar{border-radius:50%;background:#e9f2ff;color:#245a9f;font-weight:850;width:34px;height:34px;display:grid;place-items:center}
+.container{max-width:1220px;margin:auto;padding:26px 24px 110px}
+.card{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:19px;box-shadow:0 4px 22px #16294e08}
+.grid{display:grid;gap:16px}
+.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+.three{grid-template-columns:repeat(3,minmax(0,1fr))}
+.row{display:flex;align-items:center;gap:10px;justify-content:space-between;flex-wrap:wrap}
+.eyebrow{color:#5576a6;text-transform:uppercase;letter-spacing:.12em;font-size:11px;font-weight:830}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.micro{font-size:11px;color:#79879a}
+.btn{border:1px solid #cfdceb;background:white;color:#27558f;border-radius:10px;font-size:12px;font-weight:780;padding:9px 13px;min-height:44px}
+.btn.primary{background:var(--blue);color:white;border-color:var(--blue)}
+.btn.soft{background:var(--soft)}
+.pill{background:#e9f2ff;color:#23589c;border-radius:50px;padding:5px 10px;font-size:11px;font-weight:760}
+.note{background:#fff8e4;border:1px solid #e7d7a9;border-radius:11px;padding:12px;color:#765922;font-size:12px;margin:16px 0}
+.note strong{display:block}
+.progress{height:8px;border-radius:20px;background:#e2ebf5;overflow:hidden;margin:11px 0}
+.progress div{height:100%;background:#3776df;width:64%}
+.kpi{font-size:29px;font-weight:850;letter-spacing:-.04em}
+.profile-layout{display:grid;grid-template-columns:225px minmax(0,1fr);gap:16px;align-items:start}
+.tabs{display:grid;gap:5px}
+.tabs button{width:100%;text-align:left;padding:11px 12px;border:0;background:transparent;color:#58708e;font-weight:740;border-radius:9px;min-height:43px}
+.tabs button[aria-selected=true]{background:var(--soft);color:#245eb2}
+.form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.field{display:block}
+.field span{display:block;font-size:12px;font-weight:750;color:#49617c;margin-bottom:5px}
+.field input,.field textarea,.field select{display:block;width:100%;border:1px solid #cbd9e8;border-radius:9px;padding:10px;min-height:44px;color:var(--ink);background:white}
+.field textarea{min-height:86px;resize:vertical}
+.full{grid-column:1/-1}
+.experience{border:1px solid #dbe5f0;border-radius:12px;margin-top:15px;padding:15px}
+.achievement{border:1px dashed #b4cbe5;border-radius:12px;margin:12px 0;padding:14px;background:#fcfdff}
+.proof{border:1px solid #c9e4d4;background:#f0faf3;color:#315d43;border-radius:10px;padding:12px;font-size:12px;margin:12px 0}
+.section-divider{border:0;border-top:1px solid #e2e9f1;margin:18px 0}
+.frame-card{border:1px solid var(--line);border-radius:13px;overflow:hidden;background:white}
+.frame-header{padding:12px 14px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.frame-card iframe{display:block;border:0;width:100%;height:calc(100dvh - 235px);min-height:520px;background:var(--bg)}
+.subnav{display:flex;overflow-x:auto;gap:8px;padding:5px 0 12px}
+.subnav button{white-space:nowrap}
+.paper{white-space:pre-wrap;overflow-wrap:anywhere;background:#f6f9fd;border:1px solid var(--line);padding:12px;border-radius:10px;font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;max-height:320px;overflow-y:auto}
+.loginbg{display:grid;place-items:center;min-height:100dvh;background:radial-gradient(circle at 15% 20%,#dceaff,transparent 45%),var(--bg);padding:22px}
+.login{max-width:900px;width:100%;display:grid;grid-template-columns:1fr 1fr;border-radius:18px;border:1px solid var(--line);overflow:hidden;background:white;box-shadow:0 12px 56px #15345c1b}
+.loginleft{background:linear-gradient(130deg,#132a49,#326098);padding:34px;color:white;display:flex;flex-direction:column;justify-content:center}
+.loginleft h1{font-size:35px}
+.loginleft p{color:#d5e2f2}
+.loginright{padding:35px;display:grid;gap:13px;align-content:center}
+.loginright .btn{width:100%}
+.previewflag{position:fixed;z-index:12;bottom:10px;right:10px;background:#fff9e5;border:1px solid #e4d4a1;color:#795c1a;border-radius:25px;padding:7px 12px;font-size:11px;font-weight:830}
+.bottomnav{display:none}
+.inline-list{padding-left:18px;color:#526782}
+@media(max-width:960px){.profile-layout{grid-template-columns:1fr}.tabs{display:grid;grid-template-columns:repeat(5,minmax(132px,1fr));overflow:auto}.tabs button{text-align:center}.three{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){
+.layout{display:block}.side{display:none}.top{padding:0 12px;height:57px}.container{padding:19px 12px 105px}
+.card{padding:15px}.three,.two,.form,.login{grid-template-columns:1fr}.full{grid-column:auto}
+.loginleft,.loginright{padding:24px}.loginleft h1{font-size:27px}
+.frame-card iframe{height:75dvh;min-height:410px}
+.bottomnav{position:fixed;bottom:0;left:0;right:0;z-index:10;background:white;border-top:1px solid var(--line);display:flex;justify-content:space-around;gap:2px;padding:5px 3px calc(5px + env(safe-area-inset-bottom))}
+.bottomnav button{background:none;border:0;color:#62758c;font-size:10px;font-weight:750;min-height:45px;min-width:50px;padding:4px}
+.bottomnav button[aria-current=page]{color:var(--blue)}
+.bottomnav b{font-size:18px;display:block;line-height:22px}
+.previewflag{right:7px;bottom:calc(66px + env(safe-area-inset-bottom))}
+}
+@media(max-width:390px){.topright .pill{display:none}.bottomnav button{min-width:44px}.tabs{grid-template-columns:repeat(5,117px)}}
+</style>
+</head>
+<body><div id="root"></div><div class="previewflag">STAGE 1 · DESIGN COPY</div>
+<script>
+"use strict";
+const NAV=[["home","Dashboard","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social Hub","◇"],["rank","My Rankings","▤"],["usage","Usage & Credits","◷"],["account","Account","⚙"]];
+const TABS=["Work Experience","Education","Achievements","Interests","Skills"];
+const DEMO_JOBS=[{id:"sample-job-1",employer:"Example Capital",title:"Corporate Finance Analyst",jd:"Financial modelling, valuation, Excel, transaction analysis and clear stakeholder communication."},{id:"sample-job-2",employer:"Sample Wealth",title:"Wealth Planner",jd:"Provide planning support, client suitability review and wealth reporting."}];
+const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",lastMessage:""};
+function safe(t){return String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function model(uid){return {name:uid==="a"?"Abhishek (sample)":uid==="p"?"Pooja (sample)":"New member (sample)",headline:"Financial services professional",goals:"Corporate Finance / Wealth Management",location:"Dublin, Ireland",saves:0,ranking:{},experience:[{company:"Example Advisory",title:"Associate",start:"2025-01",end:"",location:"Dublin",summary:"Client advisory and workflow improvements.",achievements:[{challenge:"Manual client reporting required a clearer review process.",action:"Coordinated a new review checklist and case tracking workflow.",result:"Made reporting more consistent.",metric:"",unit:"",evidence:"Self-reported; verify before using a figure",bullet:"Improved client case reporting by coordinating a review checklist and introducing consistent tracking."}]}],education:[{school:"Example University",degree:"MSc Finance",dates:"2023–2024"}],achievements:[{name:"Professional development",detail:"Add qualifications, dates and supporting documents."}],interests:[{name:"Private wealth",detail:"Career interest"}],skills:[{name:"Financial modelling",level:"Advanced"}]}}
+function p(){return app.profiles[app.uid]}
+function btn(label,action,value="",cl=""){return '<button class="btn '+cl+'" type="button" data-action="'+safe(action)+'" data-value="'+safe(value)+'">'+label+'</button>'}
+function field(path,label,value,type="text",full=false){return '<label class="field '+(full?"full":"")+'"><span>'+safe(label)+'</span>'+(type==="textarea"?'<textarea data-path="'+safe(path)+'" aria-label="'+safe(label)+'">'+safe(value||"")+'</textarea>':'<input type="'+safe(type)+'" data-path="'+safe(path)+'" aria-label="'+safe(label)+'" value="'+safe(value||"")+'">')+'</label>'}
+function pageTitle(title,subtitle){return '<div class="eyebrow">My workspace</div><div class="row"><div><h1>'+safe(title)+'</h1><p class="muted small">'+safe(subtitle)+'</p></div><span class="pill">Private user data · planned</span></div>'}
+function note(msg){return '<div class="note"><strong>Design-only version</strong>'+safe(msg||"All screens use sample information. No live Google, OpenAI, LinkedIn, GitHub Actions, Sheets or Drive requests are made.")+'</div>'}
+function login(){return '<main class="loginbg"><div class="login"><div class="loginleft"><strong style="font-size:26px">Garamaal.</strong><h1>Your career, all in one place.</h1><p>Discover shared opportunities, and keep profiles, CVs, rankings and professional relationships separate for every user.</p><p class="small">Future path: Google → Firebase Auth UID → private workspace and spending controls.</p></div><div class="loginright"><div class="eyebrow">Welcome to Garamaal</div><h2>Sign in to your workspace</h2><p class="muted small">These sign-ins are illustrative. They do not access or modify either person's real account.</p>'+btn("Continue with Google — simulation","enter","n","primary")+btn("Explore Abhishek’s sample","enter","a")+btn("Explore Pooja’s sample","enter","p")+'<div class="micro">Future: invitations, ownership rules, terms, profile onboarding, credit limits and API usage.</div></div></div></main>'}
+function shell(content){const menu=NAV.map(([id,label,ic])=>'<button class="navlink" data-nav="'+id+'" '+(app.view===id?'aria-current="page"':'')+'><span class="navicon">'+ic+'</span>'+label+'</button>').join("");
+const mobile=[["home","Home","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social","◇"],["account","More","⚙"]].map(([id,l,ic])=>'<button data-nav="'+id+'" '+(app.view===id?'aria-current="page"':'')+'><b>'+ic+'</b>'+l+'</button>').join("");
+return '<div class="layout screen"><aside class="side"><div class="brand">Garamaal<small>Career Control Centre</small></div><nav class="sidenav" aria-label="Main navigation">'+menu+'</nav><div class="sidefoot">Stage 1 · UI-only branch<br>Original Jobs and Social code retained in separate offline copies.</div></aside><div class="main"><header class="top"><strong>Garamaal <span class="muted">/ '+safe(NAV.find(x=>x[0]===app.view)?.[1])+'</span></strong><div class="topright"><span class="pill">Preview only</span><span class="avatar">'+safe(p().name.slice(0,1))+'</span>'+btn("Sign out","signout")+'</div></header><main class="container">'+content+'</main></div></div><nav class="bottomnav" aria-label="Mobile navigation">'+mobile+'</nav>'}
+function home(){return pageTitle("Your career dashboard","Existing Jobs features, now within an account-first design")+note("The complete original Jobs and Social pages are available in their own tabs, preserving their controls and flow. All data is mocked.")+'<div class="grid three" style="margin:14px 0"><div class="card"><div class="kpi">168</div><span class="small muted">Jobs shown in legacy demo</span></div><div class="card"><div class="kpi">2</div><span class="small muted">Shared sample vacancies</span></div><div class="card"><div class="kpi">0</div><span class="small muted">Paid CV runs in this copy</span></div></div><div class="grid two"><section class="card"><div class="row"><span class="pill">Your Profile</span><strong>64%</strong></div><h2 style="margin-top:12px">Strengthen your career evidence</h2><p class="small muted">Keep employer history, relevant skills and evidence-backed results in your own profile.</p><div class="progress"><div></div></div>'+btn("Open my profile","goto","profile","primary")+'</section><section class="card"><h2>Existing workflows</h2><p class="small muted">Keep Dashboard, Discovery, Make CV, Add Job, Research, Swipe and Follow-ups exactly where they already function.</p><div class="row">'+btn("Browse Jobs","goto","jobs","primary")+btn("Social Hub","goto","social")+'</div></section></div><div class="card" style="margin-top:16px"><h2>Rank only my jobs</h2><p class="small muted">For the initial multi-user plan, each member can take a scoped prompt to their personal ChatGPT, then return a validated score without consuming your ranking API budget.</p>'+btn("Try ranking preview","goto","rank","soft")+'</div>'}
+function experience(x,i){return '<div class="experience"><div class="row"><strong>'+safe(x.company||"New employer")+'</strong><span class="pill">Role '+(i+1)+'</span></div><div class="form" style="margin-top:12px">'+field("experience:"+i+":company","Company",x.company)+field("experience:"+i+":title","Designation",x.title)+field("experience:"+i+":start","Start date",x.start,"month")+field("experience:"+i+":end","End date (blank = present)",x.end,"month")+field("experience:"+i+":location","Location",x.location)+field("experience:"+i+":summary","Role overview / unedited source notes",x.summary,"textarea",true)+'</div><hr class="section-divider"><div class="row"><strong>STAR results and evidence</strong>'+btn("+ Achievement","add-ach",i)+'</div>'+x.achievements.map((a,j)=>'<section class="achievement"><h3 style="font-size:14px">Achievement '+(j+1)+'</h3><div class="form">'+field("ach:"+i+":"+j+":challenge","Situation / challenge",a.challenge,"textarea",true)+field("ach:"+i+":"+j+":action","Action",a.action,"textarea",true)+field("ach:"+i+":"+j+":result","Outcome",a.result,"textarea",true)+field("ach:"+i+":"+j+":metric","Numeric value (optional)",a.metric)+field("ach:"+i+":"+j+":unit","Unit, baseline / timeframe",a.unit)+field("ach:"+i+":"+j+":evidence","Evidence / status",a.evidence,"textarea",true)+field("ach:"+i+":"+j+":bullet","Preferred CV bullet (optional)",a.bullet,"textarea",true)+'</div></section>').join("")+'<div class="proof">STAR quality rule: results must be evidence-backed. Numbers are optional and cannot be fabricated to satisfy formatting; CV bullets remain user-reviewable.</div></div>'}
+function profile(){const d=p(),t=app.section;let body="";
+if(t==="Work Experience")body='<div class="row"><div><h2>Work Experience</h2><p class="muted small">One card for each company and role, with repeatable achievements.</p></div>'+btn("+ Role","add-exp","","primary")+'</div>'+d.experience.map(experience).join("")+'<div class="card" style="margin-top:14px"><h2>Original CV import (future)</h2><p class="small muted">Paste a complete career history once. A proposed extraction must be reviewed and approved before structured records become trusted.</p>'+field("paste:original","Raw text","", "textarea",true)+'</div>';
+if(t==="Education")body='<h2>Education</h2>'+d.education.map((x,i)=>'<div class="experience form">'+field("edu:"+i+":school","Institution",x.school)+field("edu:"+i+":degree","Qualification",x.degree)+field("edu:"+i+":dates","Dates",x.dates)+'</div>').join("")+btn("+ Education","add-edu");
+if(t==="Achievements")body='<h2>Achievements</h2>'+d.achievements.map((x,i)=>'<div class="experience form">'+field("award:"+i+":name","Award / certification / project",x.name)+field("award:"+i+":detail","Details and supporting evidence",x.detail,"textarea",true)+'</div>').join("")+btn("+ Achievement","add-award");
+if(t==="Interests")body='<h2>Interests and career goals</h2><div class="form">'+field("root:goals","Target roles / sectors",d.goals,"textarea",true)+field("root:location","Preferred location",d.location)+field("root:headline","Professional headline",d.headline)+'</div>';
+if(t==="Skills")body='<h2>Skills</h2>'+d.skills.map((x,i)=>'<div class="experience form">'+field("skill:"+i+":name","Skill",x.name)+field("skill:"+i+":level","Level or context",x.level)+'</div>').join("")+btn("+ Skill","add-skill");
+return pageTitle("My career profile","Five reusable sections with evidence, separate for each user")+note("This first pass stores edited fields in memory only. Changing between the two sample personas swaps the entire model, without storing real career records.")+'<div class="card" style="margin:14px 0"><div class="row"><strong>Profile completion (example)</strong><span class="pill">64%</span></div><div class="progress"><div></div></div><span class="micro">Later: verified source files, user-owned Firestore, audit trail, profile-version snapshots, upload approvals.</span></div><div class="profile-layout"><nav class="card tabs" aria-label="Profile sections" role="tablist">'+TABS.map(v=>'<button role="tab" aria-selected="'+(t===v)+'" data-tab="'+safe(v)+'">'+safe(v)+'</button>').join("")+'</nav><section class="card" aria-live="polite">'+body+'<hr class="section-divider"><div class="row">'+btn("Save draft — preview","save","","primary")+'<span class="micro">'+d.saves+' saved previews (not cloud-backed)</span></div></section></div>'}
+function original(kind){const src=kind==="social"?"social.html":"jobs.html";const kindTitle=kind==="social"?"Social Networking Hub":"Jobs, Discovery & Make CV";return pageTitle(kindTitle,kind==="social"?"Preserved Research, Swipe, Follow-ups and contact tools":"Preserved current Jobs frontend, including model tiers and application controls")+note("This is the full original UI running in an isolated iframe with network calls disabled; its old A/P selector is not future user authentication.")+'<div class="frame-card"><div class="frame-header"><strong>'+safe(kindTitle)+' · offline reference</strong><div class="row">'+(kind==="jobs"?btn("Dashboard","job-nav","dashboard")+btn("Discovery","job-nav","discovery")+btn("Make CV","job-nav","fresh")+btn("Add Job","job-nav","add"):"")+'</div></div><iframe id="legacy-frame" src="'+src+'" title="'+safe(kindTitle)+' complete HTML reference" sandbox="allow-scripts allow-forms allow-modals" referrerpolicy="no-referrer"></iframe></div>'}
+function rank(){const d=p(),job=DEMO_JOBS[0];const prompt="Rank only this user’s selected job. Score Profile Fit and Career Fit 0–100, weigh 55%/45%, explain evidence and gaps without making up facts. Return JSON with keys jobId, profileFit, careerFit, rationale.\\nUSER PROFILE: "+JSON.stringify({headline:d.headline,careerGoals:d.goals,experience:d.experience.map(x=>({role:x.title,summary:x.summary,results:x.achievements.map(a=>({action:a.action,result:a.result,metric:a.metric}))}))})+"\\nJOB DESCRIPTION: "+JSON.stringify(job);
+const values=Object.values(d.ranking);
+return pageTitle("My job rankings","Personal scores from my profile, not other members' scores")+note("Your own ChatGPT ranking prompt is the planned low-API-cost path. Direct write access requires a scoped connector and availability testing; this preview only copies and imports text.")+'<div class="grid two"><div class="card"><h2>1. Rank in your ChatGPT</h2><p class="small muted">Compact selected profile evidence + one JD. No Garamaal ranking API model call.</p><div class="paper">'+safe(prompt)+'</div>'+btn("Copy my prompt","copy-prompt","","primary")+'</div><div class="card"><h2>2. Import only my score</h2><p class="small muted">Provide valid JSON; this preview recalculates 55/45 and saves it only to this sample user.</p><label class="field"><span>Paste JSON output</span><textarea id="ranking-json" placeholder=\'{"jobId":"sample-job-1","profileFit":85,"careerFit":74,"rationale":"..."}\'></textarea></label><div style="margin-top:10px">'+btn("Validate and import","rank-import","","primary")+'</div><hr class="section-divider"><h2>My scores</h2>'+(values.length?values.map(x=>'<div class="achievement"><strong>'+safe(x.jobId)+'</strong> · '+x.score.toFixed(1)+'/100<p class="small muted">'+safe(x.rationale)+'</p></div>').join(""):'<p class="small muted">No personal scores have been imported.</p>')+'</div></div>'}
+function usage(){return pageTitle("Usage & credits","Personal billing, failed-run costs and safe spending limits")+note("Credit balances are examples. Financial enforcement and provider reconciliation are not implemented; only a backend can ensure charges are authorised.")+'<div class="grid three"><div class="card"><div class="kpi">€0.00</div><span class="small muted">Prepaid balance (sample)</span></div><div class="card"><div class="kpi">€0.00</div><span class="small muted">Reserved</span></div><div class="card"><div class="kpi">€0.00</div><span class="small muted">Spent in this demo</span></div></div><div class="card" style="margin-top:16px"><h2>Planned payment safeguards</h2><ol class="inline-list"><li>Check account identity and job ownership.</li><li>Estimate the maximum cost and reserve prepaid credit.</li><li>Reject requests above the per-user limit.</li><li>Run queue with idempotent retry protection.</li><li>Record model tokens, compute time and partial failures.</li><li>Settle actual costs, refund unused reserves and provide receipts.</li></ol><p class="small muted">No API key or payment secret belongs in HTML.</p></div>'}
+function account(){return pageTitle("Account, privacy & connections","UID ownership and explicit integrations, before inviting friends")+note("The selected preview account is not a verified Firebase sign-in; this interface never claims to enforce real user privacy.")+'<div class="grid two"><div class="card"><h2>'+safe(p().name)+'</h2><p class="small muted">Local preview UID: '+safe(app.uid)+'</p><p>All future requests must use a server-verified Firebase UID, not a manually switched name or client-provided identity.</p>'+btn("Sign out of preview","signout")+'</div><div class="card"><h2>Future integrations</h2><p class="small"><strong>Google:</strong> Firebase Auth and legacy Drive/Sheets migration</p><p class="small"><strong>Firestore:</strong> private profiles, rankings, application statuses</p><p class="small"><strong>Private documents:</strong> original CVs, supporting proofs and generated outputs</p><p class="small"><strong>ChatGPT:</strong> manual copy/import first; tightly scoped OAuth write connector later</p><p class="small"><strong>OpenAI API:</strong> central key kept server-side with user-level prepaid limits</p></div></div><div class="card" style="margin-top:16px"><h2>Page inventory</h2><p class="small muted">Dashboard · Original Jobs Dashboard / Discovery / Make CV / Add Job · Profile · Social Research / Swipe / Follow-ups · Rankings · Credits · Account. Their original functions will be migrated gradually after identity and security foundations are built.</p></div>'}
+function render(){document.getElementById("root").innerHTML=app.uid?shell(app.view==="home"?home():app.view==="profile"?profile():app.view==="jobs"||app.view==="social"?original(app.view):app.view==="rank"?rank():app.view==="usage"?usage():account()):login()}
+function update(el){let path=el.dataset.path;if(!path)return;const seg=path.split(":"),d=p(),v=el.value;let obj=null;
+if(seg[0]==="root"){d[seg[1]]=v;return}
+if(seg[0]==="experience")obj=d.experience[+seg[1]];
+if(seg[0]==="ach")obj=d.experience[+seg[1]]?.achievements[+seg[2]];
+if(seg[0]==="edu")obj=d.education[+seg[1]];
+if(seg[0]==="award")obj=d.achievements[+seg[1]];
+if(seg[0]==="skill")obj=d.skills[+seg[1]];
+if(obj)obj[seg.at(-1)]=v;
+}
+document.addEventListener("input",event=>{if(app.uid&&event.target.dataset.path)update(event.target)});
+document.addEventListener("click",async event=>{
+const hit=event.target.closest("[data-action],[data-nav],[data-tab]");if(!hit)return;
+if(hit.dataset.nav){app.view=hit.dataset.nav;render();window.scrollTo(0,0);return}
+if(hit.dataset.tab){app.section=hit.dataset.tab;render();return}
+const act=hit.dataset.action,val=hit.dataset.value;
+if(act==="enter"){app.uid="sample-"+val;if(!app.profiles[app.uid])app.profiles[app.uid]=model(val);app.view="home";render();return}
+if(act==="signout"){app.uid=null;render();return}
+if(!app.uid)return;
+const d=p();
+if(act==="goto"){app.view=val;render();return}
+if(act==="add-exp")d.experience.push({company:"",title:"",start:"",end:"",location:"",summary:"",achievements:[]});
+else if(act==="add-ach")d.experience[+val].achievements.push({challenge:"",action:"",result:"",metric:"",unit:"",evidence:"",bullet:""});
+else if(act==="add-edu")d.education.push({school:"",degree:"",dates:""});
+else if(act==="add-award")d.achievements.push({name:"",detail:""});
+else if(act==="add-skill")d.skills.push({name:"",level:""});
+else if(act==="save"){d.saves++;alert("Saved only in browser memory for this prototype. Nothing has been written to the cloud.")}
+else if(act==="copy-prompt"){const pre=document.querySelector(".paper");try{await navigator.clipboard.writeText(pre.textContent);alert("Copied. Paste into your ChatGPT to rank this job.")}catch(_){alert("Clipboard unavailable. Select and copy the prompt manually.")}return}
+else if(act==="rank-import"){try{const raw=JSON.parse(document.getElementById("ranking-json").value);if(raw.jobId!=="sample-job-1"||![raw.profileFit,raw.careerFit].every(n=>typeof n==="number"&&Number.isFinite(n)&&n>=0&&n<=100)||typeof raw.rationale!=="string"||raw.rationale.length>1200)throw Error("Expected jobId sample-job-1, numeric 0–100 fit scores and a short rationale.");d.ranking[raw.jobId]={jobId:raw.jobId,profileFit:raw.profileFit,careerFit:raw.careerFit,score:.55*raw.profileFit+.45*raw.careerFit,rationale:raw.rationale};alert("Saved to this preview account only.")}catch(e){alert(e.message)}}
+else if(act==="job-nav"){const frame=document.getElementById("legacy-frame");if(frame)frame.contentWindow?.postMessage({kind:"garamaal-prototype",page:val},"*");return}
+render();
+});
+window.addEventListener("message",event=>{if(event.data?.kind==="garamaal-prototype"&&["jobs","social"].includes(event.data.go)&&event.source===document.getElementById("legacy-frame")?.contentWindow){app.view=event.data.go;render()}});
+render();
+</script>
+</body>
+</html>
