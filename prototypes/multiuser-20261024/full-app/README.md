@@ -1,11 +1,19 @@
 # Garamaal — Complete Web App, Multi-User Design Copy
 
-**Stage:** 1 — Complete frontend reference + multi-user design shell  
-**Status:** REVIEW READY (not approved, deployed, or connected to a real multi-user backend)  
+**Stage:** 2 — Mobile-first UI/UX review built on Stage 1  
+**Status:** Stage 2 implementation ready for device visual review (not deployed or backend-connected)  
 **Date:** 24 October 2026  
 **Branch:** `prototype/multiuser-profile-plan-20261024`
 
 > Important: All edits are NEW FILES under `prototypes/multiuser-20261024/` on this isolated branch. The original `webapp/Index.html`, `standalone/social.html`, server, worker, sheets, Drive evidence and deployments have not been changed. The prototype must NOT be deployed as production.
+
+## Current checkpoint: Stage 2 — Mobile UI/UX review
+
+- [**Stage 2 UX change log, responsive diagram and review checklist**](./STAGE2_UX_REVIEW.md)
+- [Stage 2 smoke-test source](./stage2-smoke.test.cjs) (run in a checked-out branch with Node: `node --test prototypes/multiuser-20261024/full-app/stage2-smoke.test.cjs`)
+- Refined safe-area mobile navigation, More menu, collapsible Work Experience / STAR fields, job-specific ChatGPT score import and immersive desktop Jobs integration.
+- Social has fictional, read-only sample contacts. **Real Google/Firestore/OpenAI services remain unavailable in this copy.**
+- The items below record the original Stage 1 baseline and remain part of the change history.
 
 ## Files
 
