@@ -62,6 +62,8 @@ test("Jobs Swipe includes only passed Discovery entries with complete JD",async(
  assert.ok(eligible.every(j=>j.jdComplete&&j.discoveryPassed&&j.jd.length>80));
  await click(t,"swipe-job","interested");
  assert.equal(t.state.profiles["sample-a"].jobPreferences["ready-fin-001"],"interested");
+ assert.equal(t.state.profiles["sample-p"].weeklyTarget,8);
+ assert.notEqual(t.state.profiles["sample-p"].reminders,t.state.profiles["sample-a"].reminders);
  await click(t,"swipe-job","not-interested");
  assert.equal(t.state.profiles["sample-a"].jobPreferences["ready-wealth-002"],"not-interested");
  assert.match(t.nodes.root.innerHTML,/Transfer Pricing/);
@@ -86,12 +88,12 @@ test("Social bottom navigation includes five requested destinations",()=>{
 });
 test("Local reminders and separate social vs Jobs goals",async()=>{
  const t=setup();t.state.view="stats";t.render();
- const before=t.state.reminders.length;
+ const before=t.state.profiles[t.state.uid].reminders.length;
  await click(t,"add-reminder");
- assert.equal(t.state.reminders.length,before+1);
- assert.equal(t.state.reminders.at(-1).text,"Review application");
- await click(t,"change-target","jobs:1");assert.equal(t.state.weeklyTarget,9);
- await click(t,"change-target","social:1");assert.equal(t.state.networkTarget,6);
+ assert.equal(t.state.profiles[t.state.uid].reminders.length,before+1);
+ assert.equal(t.state.profiles[t.state.uid].reminders.at(-1).text,"Review application");
+ await click(t,"change-target","jobs:1");assert.equal(t.state.profiles[t.state.uid].weeklyTarget,9);
+ await click(t,"change-target","social:1");assert.equal(t.state.profiles[t.state.uid].networkTarget,6);
 });
 test("No production HTML in source folders changed by Stage 2.2",()=>{
  for(const file of ["jobs.html","social.html"])assert.ok(source(file).length>110000);
