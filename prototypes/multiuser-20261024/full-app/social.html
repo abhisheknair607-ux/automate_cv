@@ -391,6 +391,23 @@ button:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style>
 <script>
+if(window.parent!==window)document.documentElement.classList.add("mu-social-embedded");
+</script>
+<style>
+/* Stage 2.2: keep Research, Swipe and Follow-ups intact; remove duplicate navigation only when embedded. */
+.mu-social-embedded .mu-social-banner,
+.mu-social-embedded > body > header,
+.mu-social-embedded #bottomNav,
+.mu-social-embedded #desktopNav{display:none!important}
+.mu-social-embedded main{max-width:none!important;padding:7px 10px 20px!important}
+.mu-social-embedded .heading{margin-bottom:9px!important}
+.mu-social-embedded .heading h1{font-size:19px!important}
+.mu-social-embedded .card{margin-bottom:10px!important}
+.mu-social-embedded .stats{gap:7px!important}
+.mu-social-embedded .research-space{padding-top:0!important}
+@media(max-width:700px){.mu-social-embedded main{padding:7px 8px 13px!important}.mu-social-embedded input,.mu-social-embedded textarea,.mu-social-embedded select{font-size:16px}}
+</style>
+<script>
 /* Deliberately non-networked Social bridge for the UX review. */
 window.__cvStandalone={
  requestSpecial:async function(path,arg){
@@ -859,6 +876,15 @@ function render(){document.getElementById("app").innerHTML=(state.loadError?'<di
  document.getElementById("candA").classList.toggle("active",state.candidate==="Abhishek");
  document.getElementById("candP").classList.toggle("active",state.candidate==="Pooja");
 }
+window.addEventListener("message",async event=>{
+ if(event.source!==window.parent||event.data?.kind!=="garamaal-prototype")return;
+ const page=event.data.page;
+ if(!["dashboard","swipe","followups","inbox"].includes(page))return;
+ const cand=event.data.candidate;
+ if(cand&&["Abhishek","Pooja"].includes(cand)&&cand!==state.candidate)await switchCandidate(cand);
+ state.view=page;state.selected="";render();
+ if(page==="inbox"){await loadResearch();if(state.researchMode!=="followups")await loadInbox();}
+});
 let viewRequest=0;
 async function refresh(){
  const candidate=state.candidate,requestId=++viewRequest;
