@@ -4,7 +4,7 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex,nofollow"><meta name="theme-color" content="#132a49">
 <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; object-src 'none'; form-action 'none'; worker-src 'none'; frame-src 'self' file:">
-<title>Garamaal — Multi-user App | Stage 2 Review Copy</title>
+<title>Garamaal — Home and Swipe Design Preview</title>
 <style>
 :root{--navy:#132a49;--blue:#2563eb;--ink:#14243a;--muted:#61718a;--line:#dce5ef;--bg:#f5f7fb;--soft:#edf4ff;--white:#fff;--green:#147d53;--radius:14px}
 *{box-sizing:border-box}
@@ -198,15 +198,122 @@ body{font-size:14px;line-height:1.48}
 }
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
 
+
+/* Stage 2.2 | reference-inspired bold home launcher and compact two-hub navigation */
+:root{--funk-lime:#dbff56;--funk-purple:#c879ed;--funk-ink:#191919}
+#root{min-height:100dvh}
+.stage22 .layout{display:block!important}
+.stage22 .side{display:none!important}
+.stage22 .main{width:100%;min-height:100dvh}
+.stage22 .container{max-width:1000px;padding:13px 16px calc(101px + env(safe-area-inset-bottom))}
+.stage22.launch-home{background:#191919;color:#fff;min-height:100dvh}
+.stage22.launch-home .main{background:#191919}
+.stage22.launch-home .top{max-width:680px;margin:0 auto;position:relative;background:#191919;color:#fff;border:0;height:54px;padding:0 18px}
+.stage22.launch-home .container{max-width:680px;padding:10px 18px 42px}
+.stage22.launch-home .top .avatar{background:var(--funk-lime);color:#171717}
+.stage22.launch-home .bottomnav{display:none!important}
+.launch-title{font-size:clamp(39px,9.5vw,62px);line-height:.99;letter-spacing:-.065em;font-weight:930;color:#fff;margin:18px 0 25px}
+.launch-title em{color:var(--funk-purple);font-family:"Segoe Print","Brush Script MT",cursive;font-weight:780;white-space:nowrap;letter-spacing:-.05em}
+.launch-actions{display:grid;gap:13px}
+.launch-action{position:relative;isolation:isolate;overflow:hidden;width:100%;min-height:136px;border:0;border-radius:28px;text-align:left;padding:16px 20px;color:#181818;display:flex;align-items:center;gap:16px;transition:transform .15s}
+.launch-action:active{transform:scale(.987)}.launch-action:focus-visible{outline:3px solid #fff;outline-offset:4px}
+.launch-action.lime{background:var(--funk-lime)}.launch-action.purple{background:var(--funk-purple)}.launch-action.white{background:#fff}
+.launch-symbol{width:55px;height:55px;flex:0 0 55px;border-radius:50%;display:grid;place-items:center;background:#191919;color:#fff;font-size:27px;z-index:1}
+.launch-copy{z-index:1;max-width:68%;line-height:1.2}
+.launch-copy strong{font-size:clamp(22px,4.8vw,30px);letter-spacing:-.045em;line-height:1.02;font-weight:900;display:block}
+.launch-copy small{font-size:12px;display:block;font-weight:650;margin-top:7px}
+.launch-art{position:absolute;right:0;top:13%;font-size:74px;line-height:1;transform:rotate(-15deg);text-shadow:3px 5px #2d2d2d19}
+.launch-art.ticket{font-size:18px;line-height:1.03;top:46%;right:-2%;padding:9px 11px;background:var(--funk-lime);border:3px dashed #171717;transform:rotate(9deg);font-weight:950;text-align:center}
+.launch-art.round{border:6px solid #171717;border-radius:100%;width:103px;height:103px;display:grid;place-items:center;background:#fff;top:42%;right:-4%;font-size:45px;transform:rotate(18deg)}
+.launch-micro{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:-5px 0 18px}
+.launch-micro button{min-height:38px;border:1px solid #505050;background:#2a2a2a;color:#fff;border-radius:999px;font-size:11px;font-weight:730;padding:8px 12px}
+.launch-footer{margin:29px 5px 0;display:flex;align-items:center;justify-content:space-between;gap:12px;color:#fff;font-weight:900;font-size:clamp(20px,5vw,30px);line-height:1.07;letter-spacing:-.04em}
+.launch-footer button{border:0;background:transparent;color:var(--funk-lime);font-size:44px;cursor:pointer;min-width:55px;min-height:50px}
+.launch-disclaimer{font-size:10px;color:#b4b4b4;margin-top:14px;text-align:center}
+.stage22.hub-page .top{height:50px;background:var(--white);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:8;padding:0 10px;gap:7px}
+.stage22.hub-page .top strong{font-size:15px;color:var(--ink)}
+.stage22 .top .return{border:0;background:transparent;min-height:42px;min-width:41px;cursor:pointer;color:var(--ink);font-size:25px;border-radius:9px}
+.stage22.launch-home .top .return{color:#fff}
+.stage22 .top .avatar{border:0;cursor:pointer}
+.stage22 .top .topright .pill,.stage22 .top .topright .btn{display:none!important}
+.stage22.hub-page .bottomnav{display:flex!important;position:fixed;z-index:9;bottom:0;left:0;right:0;width:100%;justify-content:space-around;align-items:center;gap:0;padding:5px 3px calc(5px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid #d9e3ed;box-shadow:0 -4px 20px #15294a13}
+.stage22.hub-page .bottomnav button{flex:1;min-width:0;max-width:155px;background:transparent;border:0;border-radius:11px;font-size:10px;min-height:53px;padding:5px 2px;color:#657690;line-height:1.12;font-weight:710}
+.stage22.hub-page .bottomnav button b{font-size:21px;line-height:24px;display:block;margin-bottom:3px}
+.stage22.hub-page .bottomnav button.active{background:#edf4ff;color:#2055ac;font-weight:850}
+.stage22.hub-page .bottomnav button.spotlight b{border-radius:100%;background:var(--funk-purple);color:#151515;border:3px solid #fff;display:grid;place-items:center;height:42px;width:42px;margin:-15px auto 1px;font-size:24px;box-shadow:0 3px 8px #33233c20}
+.stage22.hub-page .feature-page .container{max-width:none;padding:0 0 calc(72px + env(safe-area-inset-bottom))}
+.stage22.hub-page .frame-card{border:0;border-radius:0;background:transparent}
+.stage22.hub-page .frame-card iframe{height:calc(100dvh - 131px - env(safe-area-inset-bottom));min-height:340px;border:0}
+.stage22.hub-page .feature-top,.stage22.hub-page .frame-header,.stage22.hub-page .frame-card + .micro{display:none!important}
+.stage22.hub-page .profile-submit{bottom:calc(79px + env(safe-area-inset-bottom))}
+.stage22.hub-page .mobile-more{z-index:11}
+.stage22.hub-page .mobile-more .sheet{padding:16px 14px calc(95px + env(safe-area-inset-bottom));max-width:550px;margin:0 auto}
+.stage22.hub-page .mobile-more .sheet nav{grid-template-columns:1fr}
+.stage22.hub-page .mobile-more .sheet nav button{min-height:52px}
+.hub-title{font-size:17px;font-weight:850;line-height:1.15;margin:5px 0 10px}
+.hub-topactions{display:flex;align-items:center;gap:7px;justify-content:space-between;margin:0 0 10px}
+.hub-topactions .btn{min-height:37px;padding:6px 10px}
+.hub-swipe{max-width:630px;margin:auto}
+.hub-swipe .row{margin-bottom:10px}
+.job-swipe-card{background:#fff;border:1px solid #d9e4ef;border-radius:23px;overflow:hidden;box-shadow:0 15px 28px #152e5715;touch-action:pan-y}
+.job-swipe-hero{min-height:147px;background:#191919;padding:21px;position:relative;color:#fff}
+.job-swipe-hero h2{font-size:clamp(24px,5vw,31px);margin:10px 0 7px;color:#fff;max-width:80%;line-height:1.09}
+.job-swipe-hero p{font-size:12px;color:#d4d4d4;margin:0}
+.job-swipe-hero .art{position:absolute;right:14px;top:17px;color:var(--funk-lime);font-size:48px;transform:rotate(13deg)}
+.job-swipe-details{padding:16px}
+.job-swipe-chips{display:flex;gap:6px;flex-wrap:wrap}
+.job-swipe-chips .pill{font-size:10px;background:#f0f3fa;color:#394d66}
+.job-swipe-details h3{font-size:13px;margin:14px 0 5px}
+.job-swipe-details ul{padding-left:19px;margin:5px 0 9px;font-size:12px;line-height:1.5}
+.job-swipe-details li{margin:5px 0}
+.job-swipe-details details{border-top:1px solid #e0e7f0;margin-top:13px}
+.job-swipe-details summary{cursor:pointer;padding:13px 0;min-height:44px;color:#2864b3;font-size:12px;font-weight:850}
+.job-swipe-details .jd-full{white-space:pre-line;max-height:40dvh;overflow:auto;font-size:12px;line-height:1.56;color:#48566c;padding:0 0 10px}
+.job-swipe-controls{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:11px 0 0}
+.job-swipe-controls button{min-height:58px;border-radius:15px;border:1px solid #cfdbeb;font-size:14px;font-weight:850;cursor:pointer}
+.job-swipe-controls .pass{background:#fff;color:#334963}
+.job-swipe-controls .save{background:var(--funk-lime);color:#171717;border-color:var(--funk-lime)}
+.job-swipe-hint{text-align:center;color:#6c7a8d;font-size:11px;margin:10px 0}
+.job-swipe-finish{text-align:center;padding:40px 14px}
+.job-swipe-finish h2{font-size:23px}
+.small-stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.small-stat-grid .card{padding:11px}
+.small-stat-grid .kpi{font-size:clamp(17px,4.8vw,27px)}
+.small-stat-grid .micro{font-size:10px}
+.reminder-list{display:grid;gap:8px;margin:12px 0}
+.reminder-entry{display:flex;align-items:center;justify-content:space-between;gap:9px;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}
+.reminder-entry .small{margin:0}
+.dashboard-mini{font-size:12px;color:#516783}
+@media(min-width:800px){.stage22.hub-page .bottomnav{max-width:890px;margin:0 auto;border-radius:15px 15px 0 0}}
+@media(max-width:540px){
+ .stage22.launch-home .top{padding:0 15px}
+ .stage22.launch-home .container{padding:0 14px 36px}
+ .launch-title{margin:14px 0 23px;font-size:clamp(36px,10.7vw,50px)}
+ .launch-actions{gap:12px}
+ .launch-action{min-height:131px;border-radius:24px;padding:13px 15px;gap:14px}
+ .launch-symbol{width:51px;height:51px;flex-basis:51px;font-size:25px}
+ .launch-copy strong{font-size:24px}
+ .launch-copy small{font-size:11px}
+ .launch-art{font-size:54px}
+ .launch-art.round{width:88px;height:88px;font-size:36px}
+ .launch-art.ticket{font-size:15px}
+ .stage22.hub-page .container{padding:11px 11px calc(94px + env(safe-area-inset-bottom))}
+ .stage22.hub-page .feature-page .container{padding:0 0 calc(70px + env(safe-area-inset-bottom))}
+ .stage22.hub-page .frame-card iframe{height:calc(100dvh - 127px - env(safe-area-inset-bottom))}
+ .job-swipe-hero{min-height:135px;padding:18px}
+ .job-swipe-details{padding:13px}
+}
+@media(max-width:350px){.launch-action{min-height:120px}.launch-symbol{width:44px;height:44px;flex-basis:44px}.launch-copy strong{font-size:21px}.stage22.hub-page .bottomnav button{font-size:9px}}
+
 </style>
 </head>
-<body><div id="root"></div><div class="previewflag">STAGE 2 · DESIGN COPY</div>
+<body><div id="root"></div><div class="previewflag">UX CONCEPT · DESIGN ONLY</div>
 <script>
 "use strict";
 const NAV=[["home","Dashboard","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social Hub","◇"],["rank","My Rankings","▤"],["usage","Usage & Credits","◷"],["account","Account","⚙"]];
 const TABS=["Work Experience","Education","Achievements","Interests","Skills"];
 const DEMO_JOBS=[{id:"sample-job-1",employer:"Example Capital",title:"Corporate Finance Analyst",jd:"Financial modelling, valuation, Excel, transaction analysis and clear stakeholder communication."},{id:"sample-job-2",employer:"Sample Wealth",title:"Wealth Planner",jd:"Provide planning support, client suitability review and wealth reporting."}];
-const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",lastMessage:"",moreOpen:false,rankJobId:"sample-job-1",dirty:false,openExperience:0,openAchievementKey:""};
+const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",socialPage:"dashboard",lastMessage:"",moreOpen:false,rankJobId:"sample-job-1",dirty:false,openExperience:0,openAchievementKey:"",swipeIndex:0,viewedHome:true,reminders:[{id:1,text:"Review shortlisted jobs",done:false},{id:2,text:"Follow up on new connections",done:false}],weeklyTarget:8};
 function safe(t){return String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function model(uid){return {name:uid==="a"?"Abhishek (sample)":uid==="p"?"Pooja (sample)":"New member (sample)",headline:"Financial services professional",goals:"Corporate Finance / Wealth Management",location:"Dublin, Ireland",saves:0,ranking:{},experience:[{company:"Example Advisory",title:"Associate",start:"2025-01",end:"",location:"Dublin",summary:"Client advisory and workflow improvements.",achievements:[{challenge:"Manual client reporting required a clearer review process.",action:"Coordinated a new review checklist and case tracking workflow.",result:"Made reporting more consistent.",metric:"",unit:"",evidence:"Self-reported; verify before using a figure",bullet:"Improved client case reporting by coordinating a review checklist and introducing consistent tracking."}]}],education:[{school:"Example University",degree:"MSc Finance",dates:"2023–2024"}],achievements:[{name:"Professional development",detail:"Add qualifications, dates and supporting documents."}],interests:[{name:"Private wealth",detail:"Career interest"}],skills:[{name:"Financial modelling",level:"Advanced"}]}}
 function p(){return app.profiles[app.uid]}
