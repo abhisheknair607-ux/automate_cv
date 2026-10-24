@@ -62,8 +62,6 @@ test("Jobs Swipe includes only passed Discovery entries with complete JD",async(
  assert.ok(eligible.every(j=>j.jdComplete&&j.discoveryPassed&&j.jd.length>80));
  await click(t,"swipe-job","interested");
  assert.equal(t.state.profiles["sample-a"].jobPreferences["ready-fin-001"],"interested");
- assert.equal(t.state.profiles["sample-p"].weeklyTarget,8);
- assert.notEqual(t.state.profiles["sample-p"].reminders,t.state.profiles["sample-a"].reminders);
  await click(t,"swipe-job","not-interested");
  assert.equal(t.state.profiles["sample-a"].jobPreferences["ready-wealth-002"],"not-interested");
  assert.match(t.nodes.root.innerHTML,/Transfer Pricing/);
@@ -77,6 +75,8 @@ test("Job decisions are strictly sample-user-specific",async()=>{
  await click(t,"swipe-job","interested");
  t.state.uid="sample-p";t.state.profiles["sample-p"]=vm.runInContext('model("p")',t.sandbox);t.render();
  assert.equal(t.state.profiles["sample-p"].jobPreferences["ready-fin-001"],undefined);
+ assert.equal(t.state.profiles["sample-p"].weeklyTarget,8);
+ assert.notEqual(t.state.profiles["sample-p"].reminders,t.state.profiles["sample-a"].reminders);
  assert.equal(t.state.profiles["sample-a"].jobPreferences["ready-fin-001"],"interested");
 });
 test("Social bottom navigation includes five requested destinations",()=>{
