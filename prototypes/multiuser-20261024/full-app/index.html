@@ -315,7 +315,7 @@ const TABS=["Work Experience","Education","Achievements","Interests","Skills"];
 const DEMO_JOBS=[{id:"sample-job-1",employer:"Example Capital",title:"Corporate Finance Analyst",jd:"Financial modelling, valuation, Excel, transaction analysis and clear stakeholder communication."},{id:"sample-job-2",employer:"Sample Wealth",title:"Wealth Planner",jd:"Provide planning support, client suitability review and wealth reporting."}];
 const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",socialPage:"dashboard",lastMessage:"",moreOpen:false,rankJobId:"sample-job-1",dirty:false,openExperience:0,openAchievementKey:"",swipeIndex:0,viewedHome:true,reminders:[{id:1,text:"Review shortlisted jobs",done:false},{id:2,text:"Follow up on new connections",done:false}],weeklyTarget:8};
 function safe(t){return String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-function model(uid){return {name:uid==="a"?"Abhishek (sample)":uid==="p"?"Pooja (sample)":"New member (sample)",headline:"Financial services professional",goals:"Corporate Finance / Wealth Management",location:"Dublin, Ireland",saves:0,ranking:{},experience:[{company:"Example Advisory",title:"Associate",start:"2025-01",end:"",location:"Dublin",summary:"Client advisory and workflow improvements.",achievements:[{challenge:"Manual client reporting required a clearer review process.",action:"Coordinated a new review checklist and case tracking workflow.",result:"Made reporting more consistent.",metric:"",unit:"",evidence:"Self-reported; verify before using a figure",bullet:"Improved client case reporting by coordinating a review checklist and introducing consistent tracking."}]}],education:[{school:"Example University",degree:"MSc Finance",dates:"2023–2024"}],achievements:[{name:"Professional development",detail:"Add qualifications, dates and supporting documents."}],interests:[{name:"Private wealth",detail:"Career interest"}],skills:[{name:"Financial modelling",level:"Advanced"}]}}
+function model(uid){return {name:uid==="a"?"Abhishek (sample)":uid==="p"?"Pooja (sample)":"New member (sample)",jobPreferences:{},headline:"Financial services professional",goals:"Corporate Finance / Wealth Management",location:"Dublin, Ireland",saves:0,ranking:{},experience:[{company:"Example Advisory",title:"Associate",start:"2025-01",end:"",location:"Dublin",summary:"Client advisory and workflow improvements.",achievements:[{challenge:"Manual client reporting required a clearer review process.",action:"Coordinated a new review checklist and case tracking workflow.",result:"Made reporting more consistent.",metric:"",unit:"",evidence:"Self-reported; verify before using a figure",bullet:"Improved client case reporting by coordinating a review checklist and introducing consistent tracking."}]}],education:[{school:"Example University",degree:"MSc Finance",dates:"2023–2024"}],achievements:[{name:"Professional development",detail:"Add qualifications, dates and supporting documents."}],interests:[{name:"Private wealth",detail:"Career interest"}],skills:[{name:"Financial modelling",level:"Advanced"}]}}
 function p(){return app.profiles[app.uid]}
 function btn(label,action,value="",cl=""){return '<button class="btn '+cl+'" type="button" data-action="'+safe(action)+'" data-value="'+safe(value)+'">'+label+'</button>'}
 function field(path,label,value,type="text",full=false){return '<label class="field '+(full?"full":"")+'"><span>'+safe(label)+'</span>'+(type==="textarea"?'<textarea data-path="'+safe(path)+'" aria-label="'+safe(label)+'">'+safe(value||"")+'</textarea>':'<input type="'+safe(type)+'" data-path="'+safe(path)+'" aria-label="'+safe(label)+'" value="'+safe(value||"")+'">')+'</label>'}
@@ -379,11 +379,11 @@ function profile(){
 }
 function original(kind){
  const src=kind==="social"?"social.html":"jobs.html";
- const title=kind==="social"?"Social Networking Hub":"Jobs · Discovery · Make CV";
- return '<div class="feature-top">'+btn("← Back to dashboard","goto","home","soft")+'<span class="pill">'+(kind==="social"?"Research · Swipe · Follow-ups":"Dashboard · Discovery · CV · Add job")+'</span></div>'+
- '<div class="frame-card"><div class="frame-header"><strong>'+safe(title)+' <span class="micro">· Preserved reference</span></strong><div class="row">'+(kind==="jobs"?btn("Dashboard","job-nav","dashboard")+btn("Discovery","job-nav","discovery")+btn("Make CV","job-nav","fresh")+btn("Add Job","job-nav","add"):"")+'</div><a class="btn" href="'+src+'" target="_blank" rel="noopener noreferrer">Open full page ↗</a></div>'+
- '<iframe id="legacy-frame" src="'+src+'" title="'+safe(title)+' full preserved feature page" sandbox="allow-scripts allow-forms allow-modals" referrerpolicy="no-referrer" loading="eager"></iframe></div>'+
- '<p class="micro" style="padding:10px">Network connections are blocked in this preview. The original A/P switch is legacy UI, not multi-user authorisation.</p>';
+ const page=kind==="jobs"?app.jobsPage:app.socialPage;
+ if(kind==="jobs"&&page==="swipe")return jobSwipe();
+ if(kind==="social"&&page==="stats")return statsPage("social");
+ if(kind==="jobs"&&page==="more")return '<div class="card"><h3>Jobs tools</h3><div class="grid two">'+btn("＋ Add job","hub-tab","add","primary")+btn("My statistics","goto","stats")+btn("My rankings","goto","rank")+btn("Usage & credits","goto","usage")+'</div></div>';
+ return '<div class="frame-card"><iframe id="legacy-frame" src="'+src+'" title="'+safe(kind==="jobs"?"Original Jobs workspace":"Original Social workspace")+'" sandbox="allow-scripts allow-forms allow-modals" loading="eager" referrerpolicy="no-referrer"></iframe></div>';
 }
 
 const DISCOVERY_READY_SAMPLES=[
@@ -428,7 +428,7 @@ const values=Object.values(d.ranking);
 return pageTitle("My job rankings","Personal scores from my profile, not other members' scores")+note("Your own ChatGPT ranking prompt is the planned low-API-cost path. Direct write access requires a scoped connector and availability testing; this preview only copies and imports text.")+'<div class="grid two"><div class="card"><h2>1. Rank in your ChatGPT</h2><label class="field"><span>Choose a sample vacancy</span><select id="rank-job-select">'+DEMO_JOBS.map(j=>'<option value="'+safe(j.id)+'" '+(j.id===job.id?"selected":"")+'>'+safe(j.employer+" · "+j.title)+'</option>').join("")+'</select></label><p class="small muted">Compact selected profile evidence + one JD. No Garamaal ranking API model call.</p><div class="paper">'+safe(prompt)+'</div>'+btn("Copy my prompt","copy-prompt","","primary")+'</div><div class="card"><h2>2. Import only my score</h2><p class="small muted">Provide valid JSON; this preview recalculates 55/45 and saves it only to this sample user.</p><label class="field"><span>Paste JSON output</span><textarea id="ranking-json" placeholder="Paste JSON for the selected job"></textarea></label><div style="margin-top:10px">'+btn("Validate and import","rank-import","","primary")+'</div><hr class="section-divider"><h2>My scores</h2>'+(values.length?values.map(x=>'<div class="achievement"><strong>'+safe(x.jobId)+'</strong> · '+x.score.toFixed(1)+'/100<p class="small muted">'+safe(x.rationale)+'</p></div>').join(""):'<p class="small muted">No personal scores have been imported.</p>')+'</div></div>'}
 function usage(){return pageTitle("Usage & credits","Personal billing, failed-run costs and safe spending limits")+note("Credit balances are examples. Financial enforcement and provider reconciliation are not implemented; only a backend can ensure charges are authorised.")+'<div class="grid three"><div class="card"><div class="kpi">€0.00</div><span class="small muted">Prepaid balance (sample)</span></div><div class="card"><div class="kpi">€0.00</div><span class="small muted">Reserved</span></div><div class="card"><div class="kpi">€0.00</div><span class="small muted">Spent in this demo</span></div></div><div class="card" style="margin-top:16px"><h2>Planned payment safeguards</h2><ol class="inline-list"><li>Check account identity and job ownership.</li><li>Estimate the maximum cost and reserve prepaid credit.</li><li>Reject requests above the per-user limit.</li><li>Run queue with idempotent retry protection.</li><li>Record model tokens, compute time and partial failures.</li><li>Settle actual costs, refund unused reserves and provide receipts.</li></ol><p class="small muted">No API key or payment secret belongs in HTML.</p></div>'}
 function account(){return pageTitle("Account, privacy & connections","UID ownership and explicit integrations, before inviting friends")+note("The selected preview account is not a verified Firebase sign-in; this interface never claims to enforce real user privacy.")+'<div class="grid two"><div class="card"><h2>'+safe(p().name)+'</h2><p class="small muted">Local preview UID: '+safe(app.uid)+'</p><p>All future requests must use a server-verified Firebase UID, not a manually switched name or client-provided identity.</p>'+btn("Sign out of preview","signout")+'</div><div class="card"><h2>Future integrations</h2><p class="small"><strong>Google:</strong> Firebase Auth and legacy Drive/Sheets migration</p><p class="small"><strong>Firestore:</strong> private profiles, rankings, application statuses</p><p class="small"><strong>Private documents:</strong> original CVs, supporting proofs and generated outputs</p><p class="small"><strong>ChatGPT:</strong> manual copy/import first; tightly scoped OAuth write connector later</p><p class="small"><strong>OpenAI API:</strong> central key kept server-side with user-level prepaid limits</p></div></div><div class="card" style="margin-top:16px"><h2>More tools</h2><div class="row">'+btn("My job rankings","goto","rank","soft")+btn("Usage & credits","goto","usage")+btn("Full Jobs frontend","goto","jobs")+btn("Social Hub","goto","social")+'</div><p class="micro" style="margin-top:10px">These controls also keep Rankings and Usage accessible from the compact mobile bottom navigation.</p></div><div class="card" style="margin-top:16px"><h2>Page inventory</h2><p class="small muted">Dashboard · Original Jobs Dashboard / Discovery / Make CV / Add Job · Profile · Social Research / Swipe / Follow-ups · Rankings · Credits · Account. Their original functions will be migrated gradually after identity and security foundations are built.</p></div>'}
-function render(){document.getElementById("root").innerHTML=app.uid?shell(app.view==="home"?home():app.view==="profile"?profile():app.view==="jobs"||app.view==="social"?original(app.view):app.view==="rank"?rank():app.view==="usage"?usage():account()):login()}
+function render(){document.getElementById("root").innerHTML=app.uid?shell(app.view==="home"?home():app.view==="profile"?profile():app.view==="jobs"||app.view==="social"?original(app.view):app.view==="stats"?statsPage():app.view==="rank"?rank():app.view==="usage"?usage():account()):login()}
 function update(el){let path=el.dataset.path;if(!path)return;const seg=path.split(":"),d=p(),v=el.value;let obj=null;
 if(seg[0]==="root"){d[seg[1]]=v;return}
 if(seg[0]==="paste"){d.originalRaw=v;return}
@@ -445,13 +445,24 @@ const hit=event.target.closest("[data-action],[data-nav],[data-tab]");if(!hit)re
 if(hit.dataset.nav){app.view=hit.dataset.nav;app.moreOpen=false;render();window.scrollTo(0,0);return}
 if(hit.dataset.tab){app.section=hit.dataset.tab;render();return}
 const act=hit.dataset.action,val=hit.dataset.value;
+if(act==="back"){app.moreOpen=false;app.view="home";render();return}
+if(act==="hub-tab"){
+ if(app.view==="jobs"){app.jobsPage=val;app.moreOpen=val==="more";}else if(app.view==="social"){app.socialPage=val;app.moreOpen=false;}
+ render();window.scrollTo?.(0,0);return;
+}
+if(act==="swipe-job"){
+ const job=remainingJobs()[0];if(job&&["interested","not-interested"].includes(val)){p().jobPreferences[job.id]=val;app.notice=val==="interested"?"Added to your interested sample jobs.":"Marked not interested in this sample.";render();if(app.notice){inform(app.notice);app.notice="";}}return;
+}
+if(act==="reset-swipes"){p().jobPreferences={};render();return}
+if(act==="change-target"){app.weeklyTarget=Math.max(1,Math.min(99,app.weeklyTarget+Number(val)));render();return}
+if(act==="add-reminder"){const input=document.getElementById("reminder-new");const txt=String(input?.value||"").trim();if(txt){app.reminders.push({id:Math.max(0,...app.reminders.map(x=>x.id))+1,text:txt.slice(0,120),done:false});render();}return}
 if(act==="toggle-more"){app.moreOpen=!app.moreOpen;render();if(app.moreOpen)document.getElementById("more-first")?.focus();return}
 if(act==="close-more"){app.moreOpen=false;render();return}
 if(act==="enter"){app.uid="sample-"+val;if(!app.profiles[app.uid])app.profiles[app.uid]=model(val);app.view="home";render();return}
 if(act==="signout"){app.uid=null;app.moreOpen=false;app.dirty=false;render();return}
 if(!app.uid)return;
 const d=p();
-if(act==="goto"){app.view=val;app.moreOpen=false;render();window.scrollTo(0,0);return}
+if(act==="goto"){app.view=val;app.moreOpen=false;render();window.scrollTo?.(0,0);return}
 if(act==="add-exp"){d.experience.unshift({company:"",title:"",start:"",end:"",location:"",summary:"",achievements:[]});app.openExperience=0;}
 else if(act==="add-ach"){const role=d.experience[+val];role.achievements.push({challenge:"",action:"",result:"",metric:"",unit:"",evidence:"",bullet:""});app.openExperience=+val;app.openAchievementKey=val+":"+(role.achievements.length-1);}
 else if(act==="add-edu")d.education.push({school:"",degree:"",dates:""});
@@ -467,6 +478,7 @@ if(app.notice){inform(app.notice);app.notice="";}
 });
 document.addEventListener("change",event=>{
  if(event.target?.id==="rank-job-select"){app.rankJobId=event.target.value;render()}
+ if(event.target?.dataset?.reminderId){const t=app.reminders.find(x=>String(x.id)===event.target.dataset.reminderId);if(t)t.done=!!event.target.checked;render()}
 });
 document.addEventListener("keydown",event=>{
  if(event.key==="Escape"&&app.moreOpen){app.moreOpen=false;render();document.querySelector('[data-action="toggle-more"]')?.focus();return}
@@ -477,6 +489,30 @@ document.addEventListener("keydown",event=>{
   app.section=TABS[index];render();document.getElementById("tab-"+index)?.focus();
  }
 });
+
+let pointerStart=null;
+document.addEventListener("pointerdown",event=>{
+ const card=event.target.closest?.("#jobSwipeCard");if(!card||event.target.closest?.("summary,details,button,a,input,select,textarea"))return;
+ pointerStart={id:event.pointerId,x:event.clientX,y:event.clientY};
+},{passive:true});
+document.addEventListener("pointerup",event=>{
+ if(!pointerStart||event.pointerId!==pointerStart.id)return;
+ const deltaX=event.clientX-pointerStart.x,deltaY=event.clientY-pointerStart.y;
+ pointerStart=null;
+ if(app.view==="jobs"&&app.jobsPage==="swipe"&&Math.abs(deltaX)>85&&Math.abs(deltaX)>Math.abs(deltaY)*1.45){
+  const job=remainingJobs()[0];if(job){p().jobPreferences[job.id]=deltaX>0?"interested":"not-interested";render();}
+ }
+},{passive:true});
+document.addEventListener("keydown",event=>{
+ if(app.view==="jobs"&&app.jobsPage==="swipe"&&event.target?.id==="jobSwipeCard"&&["ArrowLeft","ArrowRight"].includes(event.key)){
+ event.preventDefault();const job=remainingJobs()[0];if(job){p().jobPreferences[job.id]=event.key==="ArrowRight"?"interested":"not-interested";render();document.getElementById("jobSwipeCard")?.focus();}
+ }
+});
+document.addEventListener("load",event=>{
+ if(event.target?.id!=="legacy-frame")return;
+ const page=app.view==="jobs"?app.jobsPage:app.socialPage;
+ try{event.target.contentWindow?.postMessage({kind:"garamaal-prototype",page},"*")}catch(_){}
+},true);
 window.addEventListener("message",event=>{if(event.data?.kind==="garamaal-prototype"&&["jobs","social"].includes(event.data.go)&&event.source===document.getElementById("legacy-frame")?.contentWindow){app.view=event.data.go;render()}});
 render();
 </script>
