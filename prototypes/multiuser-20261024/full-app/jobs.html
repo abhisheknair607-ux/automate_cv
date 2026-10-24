@@ -356,6 +356,27 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
  .garamaal-header-controls #modeBadge{font-size:8px;padding:3px 5px}
 }
 </style>
+<style>
+/* Stage 2.2: the parent shell owns all navigation when this full Jobs copy is embedded. */
+.mu-embedded .mu-preserve-banner,
+.mu-embedded .sidebar,
+.mu-embedded .topbar,
+.mu-embedded #mobileNav,
+.mu-embedded .mobilebar{display:none!important}
+.mu-embedded .shell{display:block!important;min-height:0!important}
+.mu-embedded .main{width:100%!important;max-width:none!important;min-height:0!important;margin:0!important}
+.mu-embedded .container{max-width:none!important;padding:7px 10px 18px!important}
+.mu-embedded .heading{margin-bottom:9px!important}
+.mu-embedded .heading h1{font-size:19px!important}
+.mu-embedded .toolbar{padding:10px!important;margin-top:6px!important}
+.mu-embedded .panel{margin-bottom:11px!important}
+.mu-embedded .jobs{gap:9px!important}
+.mu-embedded .garamaal-install-card{display:none!important}
+@media(max-width:720px){
+.mu-embedded .container{padding:7px 8px 14px!important}
+.mu-embedded input,.mu-embedded textarea,.mu-embedded select{font-size:16px!important}
+}
+</style>
 <meta name="robots" content="noindex,nofollow"/>
 <script>
 /* When nested in Stage 2's unified shell, avoid a duplicate desktop sidebar. */
