@@ -971,6 +971,7 @@ async function init(){render();try{const b=await run('getBootstrap');state.boots
 window.addEventListener("message",event=>{
   if(event.source!==window.parent||event.data?.kind!=="garamaal-prototype")return;
   const requested=event.data.page;
+  if(event.data.action==="focus-filter"){document.querySelector(".toolbar")?.scrollIntoView({behavior:"smooth",block:"start"});document.getElementById("search")?.focus();return;}
   if(!["dashboard","discovery","fresh","add"].includes(requested))return;
   nav(requested);
 });
