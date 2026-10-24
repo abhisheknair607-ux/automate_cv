@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1,viewport-fit=cover"/>
+<meta name="theme-color" content="#132a49"/>
+<title>Garamaal — Job Control Centre</title>
+<link rel="manifest" href="/manifest.webmanifest"/>
+<link rel="icon" href="/garamaal-icon-192.png" type="image/png"/>
+<link rel="apple-touch-icon" sizes="192x192" href="/garamaal-icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Garamaal"/>
+<meta name="description" content="Private CV and Cover Letter application dashboard"/>
+<style>
+:root{--navy:#132a49;--navy2:#1e395b;--blue:#2563eb;--blueSoft:#eaf1ff;--ink:#14243a;--muted:#6c7a90;--line:#dfe6ef;--bg:#f5f7fb;--white:#fff;--green:#15803d;--amber:#a16207;--rose:#b91c1c;--shadow:0 5px 24px rgba(21,43,72,.055)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}button,input,select,textarea{font:inherit}button{cursor:pointer}button:disabled{cursor:not-allowed;opacity:.48}input,select,textarea{color:var(--ink)}a{color:var(--blue)}.hidden{display:none!important}
+.shell{display:flex;min-height:100dvh}.sidebar{width:235px;flex:none;background:var(--navy);color:#d9e7f8;display:flex;flex-direction:column;padding:25px 15px;position:sticky;top:0;height:100dvh}.brand{display:flex;align-items:center;gap:11px;margin:2px 9px 30px}.brandmark{height:38px;width:38px;display:grid;place-items:center;background:#3677f0;border-radius:12px;color:#fff;font-weight:800;font-size:18px;box-shadow:0 8px 22px rgba(19,100,240,.25)}.brand strong{color:#fff;display:block;font-size:17px;line-height:1.15}.brand small{font-size:11px;color:#a4b9d2}.sidebar nav{display:grid;gap:5px}.nav-btn{color:#b6c9df;background:transparent;border:0;border-radius:11px;text-align:left;padding:12px 13px;display:flex;align-items:center;gap:12px;font-weight:620;letter-spacing:.04px}.nav-btn svg{height:18px;width:18px}.nav-btn:hover,.nav-btn.active{background:#2b4565;color:#fff}.nav-btn.active{box-shadow:inset 3px 0 0 #64a4ff}.side-bottom{margin-top:auto;padding:17px 8px 2px;border-top:1px solid #34506e;color:#a9c2dc;font-size:11px}.side-bottom span{display:block}.main{flex:1;min-width:0}.topbar{height:77px;background:#fff;border-bottom:1px solid var(--line);padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:12px;position:sticky;top:0;z-index:7}.crumb{font-size:13px;color:var(--muted)}.crumb strong{color:var(--ink);font-weight:750}.top-actions{display:flex;align-items:center;gap:10px}.avatar{background:#e4ebfa;border:1px solid #d9e4f2;color:#244779;border-radius:50%;height:35px;width:35px;display:grid;place-items:center;font-weight:800}.switch{display:flex;padding:4px;background:#edf2fa;border:1px solid #e3eaf5;border-radius:12px;gap:3px}.switch button{border:0;background:transparent;padding:7px 12px;color:#617087;border-radius:9px;font-weight:700;font-size:12px}.switch button.active{color:#1c4277;background:#fff;box-shadow:0 2px 7px #2137521c}.container{max-width:1320px;margin:auto;padding:30px 34px 120px}.heading{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:22px}.heading h1{font-size:25px;letter-spacing:-.7px;margin:0 0 4px;font-weight:780}.heading p{margin:0;color:var(--muted);font-size:13px}.overline{font-size:10px;font-weight:800;letter-spacing:1.7px;color:var(--blue);text-transform:uppercase;margin:0 0 10px}.eyebrow{color:var(--muted);font-size:11px}.btn{border:1px solid var(--line);border-radius:10px;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 15px;background:#fff;color:#304562;font-weight:700;font-size:12px;white-space:nowrap;min-height:38px}.btn:hover{background:#f4f8fe}.btn-primary{background:var(--blue);border-color:var(--blue);color:#fff}.btn-primary:hover{background:#1f55d1}.btn-navy{background:var(--navy);color:#fff;border-color:var(--navy)}.btn-ghost{border-color:transparent;background:transparent}.btn-xs{min-height:31px;padding:5px 10px;font-size:11px}.btn svg,.with-icon svg{height:16px;width:16px}.btn .spin{animation:rotate .9s linear infinite}.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:23px}.kpi,.panel,.job,.callout{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}.kpi{padding:20px;position:relative}.kpi i{position:absolute;top:17px;right:17px;color:#5784d7;background:#eff5ff;height:34px;width:34px;border-radius:10px;display:grid;place-items:center;font-style:normal}.kpi i svg{height:17px;width:17px}.kpi label{display:block;font-size:12px;color:var(--muted);font-weight:620;margin-bottom:10px}.kpi strong{font-size:30px;font-weight:800;letter-spacing:-1.2px}.kpi small{display:block;font-size:11px;color:#8795a6;margin-top:6px}.panel{padding:20px}.subhead{font-size:15px;font-weight:760;margin-bottom:12px}.row{display:flex;align-items:center;gap:10px}.space{justify-content:space-between}.grid2{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}.quick{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.quick button{justify-content:flex-start;min-height:56px;border-radius:12px;text-align:left}.quick svg{color:var(--blue);height:18px;width:18px}.steps{display:grid;gap:15px}.step{display:flex;gap:12px;align-items:flex-start}.stepnum{height:25px;width:25px;display:grid;place-items:center;border-radius:50%;background:var(--blueSoft);color:var(--blue);font-size:11px;font-weight:800;flex:none}.step strong{display:block;font-size:12px}.step p{color:var(--muted);font-size:11px;margin:3px 0 0}.toolbar{padding:16px 18px;margin-bottom:14px}.toolbar-main{display:flex;gap:9px;align-items:center}.searchbox{position:relative;flex:1}.searchbox svg{position:absolute;left:12px;top:12px;width:17px;height:17px;color:#8795a8}.searchbox input{width:100%;padding:11px 12px 11px 40px;background:#f8fafe;border:1px solid #dfe7f1;border-radius:10px;outline:0;min-height:40px}.searchbox input:focus,.field input:focus,.field select:focus,.field textarea:focus,.toolbar select:focus{border-color:#8fb9ff;box-shadow:0 0 0 3px #dceaff}.toolbar select,.field input,.field select,.field textarea{width:100%;border:1px solid #dfe7f1;border-radius:10px;min-height:40px;background:#fff;padding:9px 12px;outline:0}.toolbar select{width:auto;max-width:175px}.toolbar-bottom{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:11px}.meta{font-size:11px;color:var(--muted)}.chiprow{display:flex;gap:7px;flex-wrap:wrap}.chip{border:1px solid #dfe7f1;border-radius:20px;padding:5px 11px;background:#fff;color:#65768e;font-weight:690;font-size:11px}.chip.active{background:#eaf2ff;border-color:#a5c6ff;color:#2257a6}.jobs{display:grid;gap:11px}.job{padding:15px 18px;transition:border-color .12s}.job:hover{border-color:#b9cae1}.jobtop{display:flex;align-items:flex-start;gap:12px}.jobbody{flex:1;min-width:0}.job h3{font-size:14px;font-weight:760;margin:0 0 3px;line-height:1.35}.job .company{font-size:11px;color:var(--muted);margin-bottom:10px}.badges{display:flex;gap:6px;flex-wrap:wrap}.tag{font-size:10px;line-height:1.6;font-weight:770;display:inline-flex;align-items:center;border-radius:7px;padding:3px 8px;background:#f0f3f8;color:#576b82}.tag-ok{background:#e9f8ee;color:var(--green)}.tag-warn{background:#fff5dc;color:var(--amber)}.tag-blue{background:#eaf2ff;color:#2f60a5}.tag-red{background:#ffeded;color:var(--rose)}.jobcontrols{border-top:1px solid #ebeff5;margin-top:12px;padding-top:12px;display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}.checks{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.checks label,.check-label{font-size:11px;font-weight:720;color:#56687d;display:flex;align-items:center;gap:6px;cursor:pointer}.checks input,.check-label input{accent-color:var(--blue);height:16px;width:16px;margin:0}.score{display:grid;text-align:center;min-width:57px;background:#eff5ff;color:#2f5fa4;border-radius:10px;padding:6px}.score strong{font-size:17px;line-height:1.15}.score span{font-size:9px;font-weight:750}.pagination{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:18px 0 25px}.pagination .btn{min-height:35px}.selectionbar{background:#173555;color:#fff;border-radius:12px;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px;position:sticky;bottom:16px;z-index:3;box-shadow:0 10px 25px #12283e31}.selectionbar .btn{background:#fff;color:#1d4e7d}.field{display:grid;gap:6px;margin-bottom:15px}.field label{font-size:11px;color:#63748b;font-weight:760}.field textarea{min-height:185px;resize:vertical;line-height:1.6}.field small{font-size:10px;color:#8490a2}.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 13px}.form-footer{display:flex;align-items:center;gap:9px;flex-wrap:wrap;border-top:1px solid #e9eef5;padding-top:17px}.modal-back{position:fixed;inset:0;background:#0d1b2e87;z-index:12;display:flex;justify-content:flex-end;animation:fade .16s ease}.drawer{width:min(585px,100%);height:100%;background:#fff;box-shadow:-5px 0 35px #0f20304d;display:flex;flex-direction:column;animation:slide .18s ease}.drawer-head{padding:18px 22px;border-bottom:1px solid #e4eaf2;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.drawer-body{padding:22px;overflow:auto;flex:1}.drawer-footer{padding:15px 22px;border-top:1px solid #e9edf4;display:flex;gap:8px;justify-content:flex-end}.drawer h2{font-size:20px;line-height:1.3;margin:4px 0 6px}.drawer h3{margin:20px 0 11px;font-size:13px}.close{border:0;background:#edf2f8;height:35px;width:35px;display:grid;place-items:center;border-radius:9px;color:#344760}.close svg{width:18px}.linkrow{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:14px 0}.divider{border:0;border-top:1px solid #e9edf4;margin:20px 0}.warning{padding:11px 13px;border-radius:10px;background:#fff7e4;color:#7c580e;font-size:11px}.notice{padding:12px 13px;background:#eef6ff;border-radius:10px;color:#41638f;font-size:12px}.external{word-break:break-all;font-size:11px;color:var(--muted)}.toast{position:fixed;bottom:20px;right:20px;max-width:390px;background:#193653;color:#fff;padding:12px 15px;border-radius:12px;box-shadow:0 10px 32px #1234;z-index:30;font-size:12px}.toast.error{background:#9e2929}.mobilebar{display:none}.empty{padding:65px 20px;text-align:center;color:var(--muted);border:1px dashed #cbd7e6;border-radius:15px;background:#fff}.empty svg{height:34px;width:34px;display:block;margin:auto auto 11px}.loading{opacity:.6;pointer-events:none}.small-spin{display:inline-block;animation:rotate .9s linear infinite}.demo{background:#ffefc9;color:#7c5106;border-radius:20px;padding:6px 10px;font-size:10px;font-weight:800;white-space:nowrap}.app-error{padding:20px;background:#fff;border:1px solid #f6c1c1;border-radius:13px;color:#a82121;line-height:1.7}.wrap{overflow-wrap:anywhere}@keyframes rotate{to{transform:rotate(360deg)}}@keyframes fade{from{opacity:0}to{opacity:1}}@keyframes slide{from{transform:translateX(30px)}to{transform:translateX(0)}}
+@media(max-width:1000px){.container{padding:23px 20px 110px}.sidebar{width:195px}.topbar{padding:0 20px}.kpis{gap:10px}.kpi{padding:16px}.kpi strong{font-size:25px}.grid2{grid-template-columns:1fr}}
+@media(max-width:720px){.sidebar{display:none}.topbar{height:65px;padding:0 15px}.crumb{font-size:12px}.top-actions{gap:6px}.switch button{padding:7px 9px}.avatar{height:30px;width:30px}.container{padding:21px 13px 100px}.heading{margin-bottom:17px}.heading h1{font-size:22px}.heading p{font-size:12px}.heading .btn{padding:8px 10px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:15px}.kpi{padding:14px}.kpi strong{font-size:27px}.kpi label{font-size:11px}.panel{padding:16px}.quick{grid-template-columns:1fr}.toolbar{padding:13px}.toolbar-main{flex-wrap:wrap}.searchbox{flex:0 0 100%}.toolbar select{flex:1;width:auto;max-width:none}.toolbar-bottom{flex-wrap:wrap}.job{padding:13px}.jobcontrols{gap:10px}.checks{gap:12px}.drawer-head{padding:16px}.drawer-body{padding:16px}.drawer-footer{padding:12px 14px}.mobilebar{display:grid;grid-template-columns:repeat(4,1fr);height:69px;background:#fff;border-top:1px solid #dce5ef;position:fixed;bottom:0;left:0;right:0;z-index:10;padding-bottom:env(safe-area-inset-bottom)}.mobilebar button{border:0;background:#fff;color:#78889c;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:3px;font-size:10px;font-weight:730}.mobilebar button.active{color:var(--blue)}.mobilebar svg{width:20px;height:20px}.selectionbar{bottom:77px}.toast{left:12px;right:12px;max-width:none;bottom:80px}.field-grid{grid-template-columns:1fr}.desktop-only{display:none}}
+
+/* Model-tier prototype extension: non-invasive, local preview only */
+.tier-banner{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:13px 17px;margin:0 0 14px;background:linear-gradient(110deg,#ecf3ff,#fff);border:1px solid #dbe7fa;border-radius:13px;flex-wrap:wrap}
+.tier-banner strong{display:block;font-size:12px;color:#1d497e}.tier-banner p{font-size:11px;color:#647b98;margin:4px 0 0;max-width:720px}
+.tier-pill{font-size:10px;background:#fff;border:1px solid #d6e4f7;color:#456c9c;padding:5px 9px;border-radius:30px;font-weight:700}
+.tier-inline{display:flex;align-items:center;gap:7px;padding:0 5px}
+.tier-inline label{font-size:11px;color:#64748b;font-weight:750;white-space:nowrap}
+.tier-select{background:#f3f7ff;color:#204770;font-weight:750;border:1px solid #cdddf6;border-radius:8px;padding:6px 8px;min-height:31px;font-size:11px;max-width:135px}
+.tier-detail{background:#f8faff;border:1px solid #dce8fa;padding:16px;border-radius:12px;margin:14px 0 17px}
+.tier-detail header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.tier-detail header strong{font-size:13px}.tier-detail select{border-radius:9px;min-height:37px;border:1px solid #bacdeb;background:#fff;padding:7px 11px;font-weight:750}
+.tier-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:13px 0 9px}
+.tier-cell{background:#fff;border:1px solid #e0eafa;padding:10px;border-radius:9px;min-width:0}
+.tier-cell span{display:block;font-size:10px;color:#7486a0}.tier-cell strong{font-size:11px;overflow-wrap:anywhere;color:#193a63}
+.tier-note{font-size:10px;color:#536e8b;line-height:1.55}
+@media(max-width:721px){.tier-grid{grid-template-columns:1fr}.tier-inline{width:100%;justify-content:space-between;padding:7px 0}.tier-select{min-width:140px}.tier-banner{align-items:flex-start}}
+
+/* Workspace-first: use real estate for jobs, not introductory text. */
+.sidebar{width:194px;padding:16px 10px}.brand{margin:2px 7px 16px}.side-bottom{font-size:10px}
+.topbar{height:57px;padding:0 18px}.avatar{display:none}.container{max-width:none;margin:0;padding:16px 19px 92px}
+.heading{align-items:center;margin-bottom:11px}.heading h1{font-size:22px;margin:0}.heading .btn{min-height:34px}
+.heading p,.heading .overline{display:none}.tier-banner{margin:0 0 10px;padding:8px 12px}.tier-pill{padding:3px 8px}
+.toolbar{padding:10px 12px;margin-bottom:10px}.toolbar-bottom{margin-top:9px}.jobs{grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:10px}
+.job{padding:13px 15px;display:flex;flex-direction:column;justify-content:space-between;min-height:152px}.job .company{margin-bottom:7px}.jobcontrols{margin-top:10px;padding-top:9px}
+.kpis{gap:9px;margin-bottom:11px}.kpi{padding:13px 16px}.kpi strong{font-size:25px}.kpi label{margin-bottom:4px}.kpi small{margin-top:0}
+.grid2{grid-template-columns:1.5fr 1fr;gap:11px}.panel{padding:14px}.quick{grid-template-columns:repeat(2,minmax(0,1fr))}.quick button{min-height:46px}
+.flow-strip{display:flex;flex-direction:column;justify-content:center}.flow-title{font-weight:750;font-size:13px;margin-bottom:9px}
+.flow-trail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.flow-trail span{background:#edf4ff;color:#2b568a;border-radius:9px;padding:9px 11px;font-size:12px;font-weight:720}
+.drawer{width:min(720px,100vw)}.tier-inline{padding:5px 0 0}.tier-banner p{display:none}
+@media(max-width:1000px){.container{padding:12px 13px 100px}.jobs{grid-template-columns:repeat(auto-fill,minmax(285px,1fr))}}
+@media(max-width:720px){.topbar{height:51px;padding:0 10px}.crumb{display:none}.top-actions{width:100%;justify-content:space-between}
+.container{padding:10px 10px 90px}.heading{margin-bottom:9px}.heading h1{font-size:19px}.heading .btn{padding:7px 9px}
+.tier-banner{padding:8px 10px}.tier-banner strong{font-size:11px}.tier-pill{font-size:9px}
+.toolbar{padding:9px}.toolbar-main{flex-wrap:nowrap}.searchbox{flex:1;min-width:0}.toolbar select{width:108px;max-width:108px;font-size:11px}.toolbar-bottom{gap:5px}
+.jobs{grid-template-columns:1fr;gap:8px}.job{min-height:unset;padding:11px 12px}.jobcontrols{gap:8px}.checks{gap:10px}
+.kpis{gap:7px}.kpi{padding:10px 12px}.kpi strong{font-size:24px}.kpi small{display:none}.grid2{grid-template-columns:1fr}.flow-strip{display:none}
+.quick{grid-template-columns:repeat(2,minmax(0,1fr))}.quick button{min-height:43px;padding:8px;font-size:11px}.tier-inline{width:100%;padding:5px 0 0}
+.mobilebar{height:64px}.mobilebar button{gap:2px}.selectionbar{bottom:69px}
+}
+@media(min-width:1100px){.jobs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(min-width:1600px){.jobs{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.interest-detail{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:11px 0;border-bottom:1px solid var(--line);margin-bottom:9px}.interest-detail .meta{flex:1;min-width:145px}.jobcontrols .row{flex-wrap:wrap}
+@media(max-width:720px){.jobcontrols .btn-xs{padding:6px 9px;font-size:10.5px}.chiprow{row-gap:8px}.interest-detail{align-items:flex-start}}
+
+
+/* Live, reduced-motion-safe CV queue indication. Pure CSS; no extra images. */
+.cv-activity-slot:empty{display:none}
+.cv-activity{display:flex;gap:9px;align-items:center;flex-wrap:wrap;margin:10px 0 1px;padding:9px 11px;border:1px solid #cbdcf9;border-radius:9px;background:#f1f6ff;font-size:11px;color:#23558b;font-weight:730}
+.cv-activity.waiting{background:#fffbf1;color:#805b0b;border-color:#f6deb0}
+.cv-activity .cv-spin{width:13px;height:13px;flex:none;border:2px solid #c5d7f0;border-top-color:#2563eb;border-radius:50%;animation:rotate .9s linear infinite}
+.cv-activity.waiting .cv-spin{border-top-color:#b7791f}
+.cv-activity small{font-size:10px;opacity:.8;font-weight:550}
+.cv-queue-overview{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 12px;padding:9px 13px;background:#fff;border:1px solid #dbe6f5;border-radius:10px;font-size:11px;color:#46617f}
+.cv-queue-overview strong{font-weight:800;color:#1a4784}
+.cv-queue-overview .cv-dot{height:7px;width:7px;border-radius:50%;background:#367cf1;box-shadow:0 0 0 3px #e5efff}
+@media(prefers-reduced-motion:reduce){.cv-activity .cv-spin{animation:none;border-color:#2563eb}}
+/* Installable app: unobtrusive compact action in the existing account header. */
+#cv-install-app{border:1px solid #dbe6f5;border-radius:8px;background:#edf4ff;color:#1d4e7d;padding:7px 10px;font-size:11px;font-weight:700;white-space:nowrap}
+#cv-install-app:hover{background:#dcecff}
+@media(max-width:500px){#cv-install-app{padding:6px 7px;font-size:10px}}
+/* Two immediately editable per-candidate settings on every Freshmaal job card. */
+.job-settings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:12px;border-top:1px solid #edf1f7;padding-top:10px}
+.job-setting{min-width:0;display:flex;flex-direction:column;gap:5px}
+.job-setting label{font-size:10px;font-weight:750;color:#536781}
+.job-setting select{width:100%;max-width:none;min-width:0;text-overflow:ellipsis;background:#f3f7ff;border:1px solid #cbdaf0;border-radius:8px;padding:7px 6px;font-size:11px;min-height:34px}
+.job-setting select.status-select{background:#fff;border-color:#cbd5e1;color:#263850}
+@media(max-width:720px){.job-settings{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px;padding-top:8px}.job-setting:last-child{grid-column:auto}.job-setting label{font-size:9.5px;line-height:1.3;min-height:24px}.job-setting select{font-size:10px;padding:6px 3px;min-height:38px}}
+@media(max-width:360px){.job-settings{gap:6px}.job-setting label{font-size:9px}.job-setting select{font-size:10px}}
+
+/* Completed CV buttons share the existing action row rather than a new panel. */
+.job.cv-ready .jobcontrols .row{gap:5px;flex-wrap:wrap}
+.job.cv-ready .jobcontrols .btn-xs{min-height:29px;padding:4px 7px;font-size:10px;gap:4px}
+.job.cv-ready .jobcontrols .btn-xs svg{width:13px;height:13px}
+@media(max-width:720px){.job.cv-ready .jobcontrols{gap:6px;padding-top:7px;margin-top:7px}.job.cv-ready .checks{gap:8px}.job.cv-ready .jobcontrols .row{gap:4px}}
+
+/* Compact cards keep statuses together and the options action beside preferences. */
+.job-badges{align-items:center;gap:4px;margin-top:5px}
+.job-badges .tag{padding:2px 6px;font-size:9px}
+.job .company{margin-bottom:4px}
+.job-more{min-width:36px;width:36px;min-height:36px;padding:6px;flex:none}
+.job-more svg{width:18px;height:18px}
+.discovery-actions{gap:7px;flex-wrap:wrap}
+.discovery-actions .preference-actions{margin-left:auto}
+@media(max-width:720px){
+  .job{padding:10px 11px}
+  .jobtop{gap:7px}
+  .jobcontrols{gap:6px;margin-top:8px;padding-top:8px}
+  .job.cv-ready .jobcontrols .row{gap:4px;flex-wrap:wrap}
+  .job.cv-ready .jobcontrols .btn-xs{font-size:10px;min-height:32px;padding:4px 6px;gap:3px}
+  .job.cv-ready .preference-icon{width:32px;height:32px;min-height:32px;padding:5px}
+  .job.cv-ready .preference-icon svg{width:15px;height:15px}
+  .job.cv-ready .job-more{width:32px;min-width:32px;min-height:32px;padding:5px}
+  .job.cv-ready .job-more svg{width:16px;height:16px}
+  .job.cv-ready .checks{gap:6px 9px}
+  .job-badges .tag{padding:2px 5px;font-size:9px}
+}
+@media(max-width:360px){.job-setting label{font-size:9px}}
+/* Icons-only Make CV controls and accessible small JD-opportunity eye. */
+.job-card-actions{gap:5px;align-items:center;flex-wrap:wrap}
+.job-card-actions .action-icon{width:33px;min-width:33px;height:33px;min-height:33px;padding:6px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px}
+.job-card-actions .action-icon svg{width:17px;height:17px}
+.job-card-actions .preference-actions{margin-left:0;display:inline-flex;gap:5px}
+.job-card-actions .preference-icon{width:33px;min-width:33px;height:33px;min-height:33px}
+.job-card-actions .job-more{margin-left:0}
+.job-card-actions .action-icon:disabled{opacity:.37;cursor:not-allowed}
+.jd-eye{width:25px;height:25px;min-width:25px;border:1px solid #cfaa48;background:#fff8de;color:#a77805;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;vertical-align:middle;margin-left:6px;cursor:pointer;padding:4px}
+.jd-eye svg{width:14px;height:14px}
+.jd-eye:hover,.jd-eye:focus-visible{background:#f9eab8;outline:2px solid #ccab42}
+
+/* Word / Google Drive chooser, matching the existing compact card styling. */
+.download-shade{position:fixed;inset:0;z-index:55;background:#15274680;display:flex;align-items:center;justify-content:center;padding:15px}
+.download-pop{width:min(440px,100%);max-height:85dvh;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--white);padding:16px;box-shadow:0 15px 65px #14243a4c}
+.download-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.download-head h3{margin:0;font-size:16px}
+.download-file{padding:11px 0;border-top:1px solid var(--line)}
+.download-file strong{display:block;font-size:13px;margin-bottom:9px}
+.download-file .row{display:flex;gap:8px;flex-wrap:wrap}
+.download-file .btn{min-height:40px}
+.connections-shade{position:fixed;inset:0;z-index:40;background:#15274680;display:flex;justify-content:center;align-items:center;padding:15px}
+.connections-pop{background:var(--white);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:16px;width:min(480px,100%);max-height:85dvh;overflow:auto;box-shadow:0 15px 65px #14243a4c}
+.connections-header{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.connections-header h3{margin:0;font-size:16px}
+.connection-person{padding:9px 0;border-bottom:1px solid var(--line)}
+.connection-person strong{font-size:13px}.connection-person small{display:block;color:var(--muted);margin-top:3px;font-size:11px}
+.connection-person .row{gap:8px;margin-top:6px;flex-wrap:wrap}
+.connection-message{font-size:11px;background:var(--bg);padding:9px;border-radius:8px;white-space:pre-wrap;overflow-wrap:anywhere}
+.connection-note{font-size:11px;color:var(--muted);line-height:1.5;margin:9px 0}
+.connections-pop select{width:100%;padding:8px;border:1px solid var(--line);border-radius:8px}
+@media(max-width:720px){.job-card-actions{gap:4px}.job-card-actions .action-icon,.job-card-actions .preference-icon,.job-card-actions .job-more{width:30px;min-width:30px;height:30px;min-height:30px;padding:5px}.job-card-actions .action-icon svg{width:15px;height:15px}}
+/* Bulk actions must stay visible above Garamaal's fixed mobile navigation,
+ * regardless of how many discovery cards are loaded or where the user scrolls.
+ * Existing JS mounts this inside the job list; position:fixed anchors it to
+ * the viewport instead of leaving it after the full pagination list. */
+.selectionbar{
+ position:fixed;
+ left:50%;
+ transform:translateX(-50%);
+ bottom:20px;
+ z-index:25;
+ display:flex;
+ align-items:center;
+ justify-content:space-between;
+ gap:10px;
+ width:min(720px,calc(100% - 24px));
+ box-sizing:border-box;
+ padding:10px 13px;
+ border:1px solid #bed3ed;
+ border-radius:14px;
+ background:#fff;
+ box-shadow:0 8px 32px #15274638;
+ color:var(--ink);
+}
+.selectionbar .bulk-preference-actions{display:flex;align-items:center}
+/* Bulk selection offers only preference updates, never deletion or transfer. */
+.bulk-preference-actions{gap:6px;flex-wrap:wrap}
+.bulk-preference-actions .btn{padding:6px 8px;min-height:34px;font-size:11px}
+@media(max-width:720px){.selectionbar{padding:8px 9px;gap:6px;flex-wrap:wrap}.selectionbar b{font-size:11px}.bulk-preference-actions .btn{padding:6px 7px;font-size:10px;gap:4px}.bulk-preference-actions .btn svg{height:13px;width:13px}}
+/* Unlimited job-category tabs stay on a single scrollable row. */
+.category-strip{display:flex;gap:6px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:thin;padding:8px 1px 2px;margin-top:6px;border-top:1px solid #e8edf5;max-width:100%}
+.category-strip .chip{flex:none;white-space:nowrap}
+/* Mobile home-screen installation and native touch ergonomics. */
+.install-sheet{margin:auto 16px max(18px,env(safe-area-inset-bottom));background:#fff;color:#19354f;padding:22px;border-radius:19px;box-shadow:0 18px 55px #14243a44;max-width:440px;width:calc(100% - 32px)}
+.install-sheet strong{display:block;font-size:18px;margin-bottom:9px}
+.install-sheet p{font-size:13px;line-height:1.55;color:#54677e;margin:8px 0 12px}
+.install-sheet .btn{width:100%;min-height:44px;margin-top:8px}
+@media(max-width:720px){
+  body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent}
+  .topbar{padding-top:env(safe-area-inset-top);height:calc(54px + env(safe-area-inset-top));}
+  .top-actions{min-width:0;gap:4px}
+  #cv-install-app{font-size:10px;padding:8px 9px;min-height:35px;flex:none}
+  .switch button{min-height:38px;padding:8px}
+  .mobilebar{height:calc(66px + env(safe-area-inset-bottom));padding-bottom:env(safe-area-inset-bottom)}
+  .mobilebar button{min-height:48px;touch-action:manipulation}
+  .container{padding-bottom:calc(94px + env(safe-area-inset-bottom))}
+  .selectionbar{bottom:calc(74px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(79px + env(safe-area-inset-bottom))}
+  .job .jobcontrols button{min-height:39px}
+  .checks label{min-height:35px}
+  .job-settings select{min-height:42px}
+  .drawer-footer{padding-bottom:calc(12px + env(safe-area-inset-bottom))}
+}
+/* The install action must never expand the mobile header or create side gutters. */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+#garamaal-install-dock[hidden]{display:none!important}
+@media(max-width:720px){
+  .shell,.main,.container{min-width:0;max-width:100%;width:100%}
+  .topbar{width:100%;min-width:0;max-width:100%;padding-left:10px;padding-right:10px}
+  .top-actions{min-width:0;max-width:100%;display:flex;align-items:center;gap:5px;justify-content:space-between}
+  #candidateToggle{flex:none}
+  #cv-account-switch{max-width:105px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  #garamaal-install-dock{position:fixed;bottom:calc(79px + env(safe-area-inset-bottom));right:12px;z-index:11}
+  #garamaal-install-dock #cv-install-app{background:#2563eb;color:white;border-color:#2563eb;border-radius:12px;min-height:43px;padding:10px 14px;box-shadow:0 6px 20px #19365338}
+  #modeBadge{flex:0 1 auto;min-width:0;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
+@media(max-width:385px){#modeBadge{display:none}}
+@media(min-width:721px){#garamaal-install-dock{display:none}}
+/* Mobile scrolling: avoid page-level overflow locks and use a real content viewport. */
+@media(max-width:720px){
+  html,body{height:100%;overflow:hidden}
+  .shell{height:100dvh;min-height:0;overflow:hidden}
+  .main{height:100%;min-height:0;overflow-y:auto;overflow-x:clip;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .container{padding-bottom:calc(115px + env(safe-area-inset-bottom))}
+  .drawer-body{overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+  .install-sheet{max-height:calc(100dvh - 40px);overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-y}
+}
+.garamaal-install-card{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px;background:linear-gradient(105deg,#eef5ff,#fff);border-color:#bfd5f3}
+.garamaal-install-card strong{display:block;font-size:13px;color:#173e76}
+.garamaal-install-card span{display:block;font-size:11px;color:#61758e;margin-top:3px;line-height:1.4}
+.garamaal-install-card .btn{min-height:42px}
+@media(max-width:720px){.garamaal-install-card{padding:12px;flex-wrap:wrap}.garamaal-install-card .btn{width:100%}}
+
+body[data-candidate="Pooja"]{--navy:#292049;--navy2:#40316d;--blue:#7851d7;--blueSoft:#f2edff;--line:#e5dcf4;--bg:#f8f6fd;--shadow:0 5px 24px #4f2d8d11}
+body[data-candidate="Pooja"] .sidebar{background:#292049}
+body[data-candidate="Pooja"] .brandmark{background:#8b5ce7}
+body[data-candidate="Pooja"] .nav-btn.active,body[data-candidate="Pooja"] .nav-btn:hover{background:#45336e;box-shadow:inset 3px 0 0 #c0a1ff}
+body[data-candidate="Pooja"] .switch button.active{color:#6136ab}
+body[data-candidate="Pooja"] .chip.active{background:#f1eafe;color:#6336b0;border-color:#c5adeb}
+body[data-candidate="Pooja"] .tag-blue,body[data-candidate="Pooja"] .tier-select{background:#f2ecff;color:#6240a5;border-color:#d6c4f3}
+body[data-candidate="Pooja"] .tier-banner,body[data-candidate="Pooja"] .tier-detail,body[data-candidate="Pooja"] .score-four{background:#f2ecff;border-color:#dbcdf6}
+body[data-candidate="Pooja"] .tier-banner strong,body[data-candidate="Pooja"] .flow-trail span{color:#58359a}
+body[data-candidate="Pooja"] .flow-trail span,body[data-candidate="Pooja"] .garamaal-install-card{background:#f2ecff}
+body[data-candidate="Pooja"] #cv-install-app,body[data-candidate="Pooja"] #garamaal-install-dock #cv-install-app{background:#7851d7;color:#fff;border-color:#7851d7}
+body[data-candidate="Pooja"] .cv-activity,body[data-candidate="Pooja"] .cv-queue-overview{background:#f4efff;color:#5c3a98;border-color:#dccbf8}
+body[data-candidate="Pooja"] .cv-activity .cv-spin{border-top-color:#7851d7}
+body[data-candidate="Pooja"] .mobilebar button.active{color:#7851d7}
+.chiprow,.filter-scroll{display:flex;align-items:center;gap:6px;flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;max-width:100%;min-width:0;scrollbar-width:thin;white-space:nowrap;overscroll-behavior-x:contain;padding:2px 1px 7px;-webkit-overflow-scrolling:touch}
+.filter-scroll .chip{flex:0 0 auto;white-space:nowrap}.filter-separator{height:22px;min-width:1px;background:var(--line);margin:0 6px}
+/* Job names have a subtle discoverable link cue, stronger on touch/focus. */
+.joblink{color:inherit;border-radius:2px;text-decoration-line:underline;text-decoration-style:dotted;text-decoration-color:#b3c3d7;text-decoration-thickness:1px;text-underline-offset:3px;transition:color .14s ease,text-decoration-color .14s ease;-webkit-tap-highlight-color:rgba(37,99,235,.14);touch-action:manipulation}
+.joblink:hover,.joblink:focus-visible,.joblink:active{color:var(--blue);text-decoration-line:underline;text-decoration-style:solid;text-decoration-color:currentColor;text-decoration-thickness:1.5px}
+.joblink:focus-visible{outline:2px solid var(--blue);outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.joblink{transition:none}}
+.jobtop{flex-wrap:nowrap;align-content:flex-start}
+.score-compact{flex:0 0 150px;width:150px;align-self:flex-start;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);align-items:stretch;min-height:64px;padding:6px 3px;border-radius:10px;background:#eff5ff;border:1px solid #dce8fb;font-variant-numeric:tabular-nums}
+.score-avg,.score-rank{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;line-height:1.1}
+.score-avg{gap:4px;padding:1px 3px}
+.score-avg strong{font-size:23px;font-weight:850;line-height:1;color:var(--blue)}
+.score-components{white-space:nowrap;font-size:9px;font-weight:720;letter-spacing:-.12px;color:var(--muted)}
+.score-rank{gap:3px;padding:1px 3px;border-left:1px solid var(--line)}
+.score-rank strong{font-size:27px;font-weight:850;line-height:1;color:var(--blue)}
+.score-rank span{font-size:9px;font-weight:710;color:var(--muted)}
+body[data-candidate="Pooja"] .score-compact{background:#f2ecff;border-color:#dbcdf6}
+@media(max-width:720px){.score-compact{flex-basis:108px;width:108px;min-height:50px;padding:4px 2px}.score-avg strong{font-size:19px}.score-rank strong{font-size:21px}.score-components{font-size:8px}.score-rank span{font-size:8px}}
+.score-four{flex:0 0 100%;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px;margin-top:7px;padding:5px;background:#f0f5ff;border:1px solid #dce8fb;border-radius:9px}
+.score-stat{text-align:center;min-width:0;padding:2px 3px;display:flex;flex-direction:column;align-items:center;gap:1px}
+.score-stat+.score-stat{border-left:1px solid var(--line)}
+.score-stat strong{font-size:13px;font-weight:820;line-height:1.15;color:var(--blue);font-variant-numeric:tabular-nums}
+.score-stat span{font-size:9px;line-height:1.2;color:var(--muted);font-weight:700}
+.preference-select{min-width:108px;max-width:126px;min-height:34px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);font-size:11px;font-weight:720;padding:5px 7px}
+.preference-select.favorite{border-color:#d4b15b;background:#fff9e8;color:#7b5b08}.preference-select.not-interested{border-color:#e4b1b1;color:#ac3434}
+.favorite-tag{background:#fff4d3;color:#805b00}
+.preference-actions{display:inline-flex;align-items:center;gap:5px;flex:none}
+.preference-icon{height:34px;width:35px;min-height:34px;display:inline-grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:var(--white);color:var(--muted);padding:7px;transition:background-color .12s,border-color .12s,color .12s}
+.preference-icon svg{height:17px;width:17px}
+.preference-icon:hover,.preference-icon:focus-visible{border-color:var(--blue);color:var(--blue)}
+.preference-icon[aria-pressed="true"].reject{background:#fff0f0;border-color:#eca9ac;color:#ae2f3c}
+.preference-icon[aria-pressed="true"].favorite{background:#fff4db;border-color:#e2bd64;color:#9b6907}
+.preference-icon[aria-pressed="true"].favorite svg{fill:currentColor}
+.preference-icon:disabled{opacity:.55;cursor:wait}
+@media(max-width:720px){.preference-icon{height:38px;width:38px;min-height:38px}}
+
+@media(max-width:720px){.score-stat strong{font-size:12px}.score-stat span{font-size:8.5px}.filter-scroll{padding-bottom:8px}.preference-select{min-height:38px}}
+/* Discreet cost controls; no additional navigation page or card height. */
+#expenseToggle{width:31px;height:31px;min-height:31px;flex:none;padding:0;border:1px solid var(--line);
+border-radius:9px;background:var(--white);color:var(--muted);font-weight:800;font-size:14px}
+#expenseToggle:hover,#expenseToggle:focus-visible{border-color:var(--blue);color:var(--blue)}
+.cost-tag{cursor:pointer;border:1px solid var(--line);font-variant-numeric:tabular-nums;color:var(--muted);background:#f8f9fb}
+.cost-tag:hover{color:var(--blue);border-color:var(--blue)}
+.expense-shade{position:fixed;inset:0;z-index:21;background:rgba(10,22,38,.24);
+display:flex;align-items:flex-start;justify-content:flex-end;padding:60px 12px 18px}
+.expense-pop{width:min(390px,100%);max-height:min(75dvh,650px);overflow-y:auto;box-shadow:0 18px 55px #14243a44;
+background:var(--white);border:1px solid var(--line);border-radius:14px;padding:14px}
+.expense-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.expense-head strong{font-size:14px}.expense-head button{min-width:29px;min-height:29px}
+.expense-totals{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:10px 0}
+.expense-totals .total{padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);min-width:0}
+.expense-totals small{display:block;font-size:10px;color:var(--muted)}
+.expense-totals strong{display:block;font-size:17px;font-variant-numeric:tabular-nums;color:var(--blue)}
+.expense-aggregate{font-size:12px;font-weight:740;padding:3px 0}
+.expense-note{font-size:10px;color:var(--muted);line-height:1.45;margin:7px 0}
+.expense-ledger{display:grid;gap:3px;margin-top:8px;max-height:225px;overflow-y:auto}
+.expense-line{display:flex;gap:7px;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0}
+.expense-line div{min-width:0}.expense-line strong{font-size:11px;display:block;max-width:225px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.expense-line small{display:block;font-size:10px;color:var(--muted)}
+.expense-line button{font-size:11px;font-weight:780;border:1px solid var(--line);background:#fff;border-radius:7px;padding:5px 7px;white-space:nowrap}
+.expense-line button:hover{border-color:var(--blue);color:var(--blue)}
+.expense-stages{display:grid;gap:4px;font-size:11px;margin:10px 0}
+.expense-stages div{display:flex;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line)}
+.expense-stages b{font-variant-numeric:tabular-nums}
+body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
+@media(max-width:720px){.expense-shade{padding:54px 9px 76px}.expense-pop{max-height:calc(100dvh - 130px)}#expenseToggle{width:29px;height:29px}}
+/* Header-only compact Social navigation; preserve Switch Google injected by the authentication bridge. */
+.topbar .garamaal-social-head-link{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;min-height:34px;padding:6px 10px;font-size:12px;font-weight:750;border:1px solid #dce5f1;border-radius:10px;background:#edf3fc;color:#244c83}
+.topbar .top-actions{gap:7px;min-width:0}
+.topbar #candidateToggle button{min-width:34px;text-align:center;font-weight:800}
+@media(max-width:720px){
+ .topbar .top-actions{gap:4px;justify-content:flex-end;width:100%}
+ .topbar .garamaal-social-head-link{font-size:11px;padding:6px 7px;min-height:32px}
+ .topbar #candidateToggle button{padding:6px 8px;min-width:30px}
+ .topbar #avatar{display:none}
+ .topbar #modeBadge{display:none}
+}
+@media(max-width:385px){
+ .topbar .garamaal-social-head-link{font-size:10px;padding:5px}
+ .topbar #cv-account-switch{max-width:103px}
+}
+
+/* Shared Garamaal nav look only. Preserve native Jobs handlers; existing auth bridge still injects G. */
+.topbar.garamaal-unified-header{height:58px;min-height:58px;background:#fff;border-bottom:1px solid #dce4ef;padding:0 24px}
+.garamaal-header-controls{display:flex;align-items:center;justify-content:flex-end;gap:6px;min-width:0;flex-wrap:nowrap}
+.garamaal-header-controls #candidateToggle{order:1;flex:none;padding:3px;gap:2px;border:1px solid #e0e9f5;border-radius:11px}
+.garamaal-header-controls #candidateToggle button{height:32px;min-width:31px;padding:6px 8px;font-size:12px;font-weight:800;border-radius:8px}
+.garamaal-header-controls #expenseToggle{order:2;flex:none;min-width:33px;width:33px;height:34px;min-height:34px;border:1px solid #dce4ef;border-radius:10px;background:#f2f5fa;color:#34516f;font-size:12px}
+.garamaal-header-controls #cv-account-switch{order:3;position:relative;flex:none;min-width:33px!important;width:33px!important;height:34px!important;padding:0!important;font-size:0!important;line-height:0!important;border:1px solid #dce4ef!important;border-radius:10px!important;background:#f2f5fa!important;color:#285283!important}
+.garamaal-header-controls #cv-account-switch::before{content:"G";font-size:13px;line-height:1;font-weight:850}
+.garamaal-header-controls #jobHeaderLink{order:4}
+.garamaal-header-controls #socialHeaderLink{order:5}
+.garamaal-header-controls #modeBadge{order:6}
+.garamaal-header-controls #avatar{order:7;display:none}
+.garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{display:inline-flex;align-items:center;justify-content:center;min-width:0;min-height:34px;padding:0 10px;font-size:12px;font-weight:800;white-space:nowrap;border-radius:10px;background:#f2f5fa;color:#34516f;border:1px solid #dce4ef;box-shadow:none}
+.garamaal-header-controls .garamaal-job-head-link.active{background:#e6efff;border-color:#b8cef6;color:#1d55a0}
+.garamaal-header-controls #modeBadge{display:inline-flex!important;align-items:center;justify-content:center;min-height:28px;max-width:none;padding:5px 8px;border-radius:999px;border:1px solid #d8e4d7;background:#eef8ef;color:#27714b;font-size:10px;font-weight:850;white-space:nowrap;letter-spacing:.01em}
+.garamaal-header-controls #modeBadge::before{content:"";display:inline-block;width:6px;height:6px;margin-right:5px;background:currentColor;border-radius:50%}
+.garamaal-header-controls #modeBadge.garamaal-editing{background:#fff2cf!important;color:#94590c!important;border-color:#e4bf76!important;box-shadow:0 0 0 2px #f1d9a144}
+@media(max-width:720px){
+ .topbar.garamaal-unified-header{height:52px;min-height:52px;padding:0 8px}
+ .garamaal-header-controls{width:100%;justify-content:space-between;gap:4px}
+ .garamaal-header-controls #candidateToggle{padding:2px}
+ .garamaal-header-controls #candidateToggle button{height:29px;min-width:27px;padding:5px 6px;font-size:11px}
+ .garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{padding:0 7px;min-height:32px;font-size:11px}
+ .garamaal-header-controls #expenseToggle{height:32px;min-height:32px;width:30px;min-width:30px}
+ .garamaal-header-controls #cv-account-switch{height:32px!important;width:30px!important;min-width:30px!important}
+ .garamaal-header-controls #modeBadge{padding:4px 6px;font-size:9px;min-height:25px}
+}
+@media(max-width:365px){
+ .garamaal-header-controls{gap:2px}
+ .garamaal-header-controls .garamaal-job-head-link,.garamaal-header-controls .garamaal-social-head-link{padding:0 5px}
+ .garamaal-header-controls #modeBadge{font-size:8px;padding:3px 5px}
+}
+</style>
+<meta name="robots" content="noindex,nofollow"/>
+<meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'; object-src 'none'; worker-src 'none'"/>
+<style>
+.mu-preserve-banner{background:#fff6db!important;border-bottom:1px solid #ead6a4;padding:8px 14px;color:#795815;font-weight:700;font-size:11px;line-height:1.4;position:relative;z-index:20}
+.mu-legacy-note{font-size:10px;color:#5f738f;font-weight:700;text-align:center;margin:4px auto}
+</style>
+<script>
+window.addEventListener("click",function(e){
+ const a=e.target.closest("[data-mu-shell]");if(!a)return;
+ e.preventDefault();e.stopPropagation();window.parent.postMessage({kind:"garamaal-prototype",go:a.getAttribute("data-mu-shell")},"*");
+},true);
+</script>
+</head>
+<body><div class="mu-preserve-banner">LEGACY JOBS REFERENCE · All original Jobs pages and controls retained. Preview data only; no production writes, user accounts or paid CV processing. The A/P candidate switch is not multi-user permission.</div>
+<div class="shell">
+ <aside class="sidebar"><div class="brand"><div class="brandmark">G</div><div><strong>Garamaal</strong><small>JOB CONTROL CENTRE</small></div></div><nav id="deskNav"></nav><div class="side-bottom">Connected architecture<span>Taaza → Freshmaal → CV automation</span><span style="margin-top:8px">Separate overlay · No ranking API</span></div></aside>
+ <div class="main"><header class="topbar garamaal-unified-header"><div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div><div class="top-actions garamaal-header-controls"><div id="candidateToggle" class="switch" aria-label="Candidate workspace"></div><button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button><a id="jobHeaderLink" class="btn garamaal-job-head-link active" href="/" aria-current="page" title="Jobs">Job</a><a id="socialHeaderLink" href="#" data-mu-shell="social" class="btn garamaal-social-head-link" aria-label="Open Social Networking Hub" title="Social Networking Hub">Social</a><span id="modeBadge" class="demo garamaal-header-status" role="status" aria-live="polite" title="Google Sheets connection status">PREVIEW</span><div id="avatar" class="avatar">A</div></div></header><main id="content" class="container" aria-live="polite"></main></div>
+</div>
+<div class="mobilebar" id="mobileNav"></div>
+<div id="drawerMount"></div><div id="expenseMount"></div><div id="connectionsMount"></div><div id="downloadMount"></div><div id="toastMount" role="status" aria-live="polite"></div>
+<script>
+'use strict';
+const DEMO = true; // Forced offline preview; no Cloud Run, Apps Script, Drive, Sheets or paid CV calls.
+// PLANNED tier mappings: the live runner will store this mapping in GitHub,
+// not in Sheets or browser JS. Demo selections are local browser state only.
+const MODEL_PRESETS={
+ Economy:['gpt-6-luna','gpt-6-luna','gpt-6-luna'],
+ Balanced:['gpt-6-luna','gpt-6-luna','gpt-6.1-sol'],
+ Premium:['gpt-5.6-terra','gpt-5.6-terra','gpt-5.6-sol']
+};
+const tierPreviewMemory={};
+const demoNotInterested={};
+const demoPreferences={};
+function getPreviewTier(row,candidate=state.candidate){
+  const live=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);
+  if(!DEMO && live && MODEL_PRESETS[live.tier]) return live.tier;
+  const key=candidate+':'+row; if(MODEL_PRESETS[tierPreviewMemory[key]])return tierPreviewMemory[key];
+ try{const p=localStorage.getItem('freshmaal-tier-preview:'+key);return MODEL_PRESETS[p]?p:'Premium'}catch(e){return 'Premium'}
+}
+function getPreviewClTier(row){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);return job?.clTierExplicit&&MODEL_PRESETS[job.clTier]?job.clTier:getPreviewTier(row)}
+function tierChoices(row,kind='tier'){const current=kind==='clTier'?getPreviewClTier(row):getPreviewTier(row);return Object.keys(MODEL_PRESETS).map(name=>`<option value="${name}" ${current===name?'selected':''}>${name}</option>`).join('')}
+function tierInfo(tier){const names=MODEL_PRESETS[tier]||MODEL_PRESETS.Premium;return `<div class="tier-grid">${names.map((v,i)=>`<div class="tier-cell"><span>Stage ${i+1}</span><strong>${v}</strong></div>`).join('')}</div><div class="tier-note">When the current merged analysis is enabled, Stages 1 and 2 make one model call using the Stage 2 setting. Stage 3 remains the Word-document generation stage.</div>`}
+
+const APPLICATION_PROGRESS=['Unapplied','Applied','Applied + Connected','Rejected','Accepted'];
+function statusChoices(job){
+ const status=APPLICATION_PROGRESS.includes(job.progress)?job.progress:(String(job.status||'').toLowerCase()==='applied'?'Applied':'Unapplied');
+ return APPLICATION_PROGRESS.map(v=>`<option value="${h(v)}" ${v===status?'selected':''}>${h(v)}</option>`).join('');
+}
+function tierBanner(){return `<section class="tier-banner"><strong>CV model · ${h(state.candidate)}</strong><span class="tier-pill">Economy · Balanced · Premium</span></section>`}
+async function changePreviewTier(row,tier,kind='tier'){
+ if(!MODEL_PRESETS[tier])return;
+ const item=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);
+ if(!DEMO){
+   if(!item){toast('Refresh jobs first.',true);return}
+   try{
+     const result=await run('updateFreshControl',{row,candidate:state.candidate,field:kind,value:tier,expected:expected(item)});
+     item[kind]=tier;
+     if(kind==='clTier')item.clTierExplicit=true;
+     if(state.detail?.row===row){state.detail[kind]=tier;if(kind==='clTier')state.detail.clTierExplicit=true;}
+     if(state.data)state.data.rows.forEach(j=>{if(j.row===row){j[kind]=tier;if(kind==='clTier')j.clTierExplicit=true;}});
+     toast(result.message);
+     if(state.detail)drawDetail();else render();
+   }catch(e){if(state.detail)drawDetail();else render()}
+   return;
+ }
+ item[kind]=tier;
+ toast(tier+' '+(kind==='clTier'?'cover letter':'CV')+' tier selected (demo).');
+ render();if(state.detail)drawDetail();
+}
+
+const ICONS={download:'<path d="M12 3v13m-5-5 5 5 5-5"/><path d="M4 18v3h16v-3"/>',prompt:'<rect x="5" y="4" width="15" height="18" rx="2"/><path d="M8 8h9M8 12h9M8 16h6"/><path d="M9 2h6"/>',link:'<path d="M10 13a5 5 0 0 0 7.1 0l2.2-2.2a5 5 0 0 0-7.1-7.1L10.7 5"/><path d="M14 11a5 5 0 0 0-7.1 0l-2.2 2.2a5 5 0 0 0 7.1 7.1l1.5-1.5"/>',eye:'<path d="M2 12s4-6.5 10-6.5S22 12 22 12s-4 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>',grid:'<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>',discover:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',files:'<path d="M7 3h7l5 5v13H7z"/><path d="M14 3v6h5"/><path d="M10 13h6M10 17h6"/>',plus:'<path d="M12 5v14M5 12h14"/>',arrow:'<path d="m5 12 14 0m-6-6 6 6-6 6"/>',up:'<path d="m7 14 5-5 5 5"/>',down:'<path d="m7 10 5 5 5-5"/>',left:'<path d="m15 18-6-6 6-6"/>',right:'<path d="m9 18 6-6-6-6"/>',refresh:'<path d="M20 7v5h-5M4 17v-5h5"/><path d="M5.4 9A7 7 0 0 1 18 7l2 5M4 12l2 5a7 7 0 0 0 12.6-2"/>',external:'<path d="M12 4h8v8M20 4l-9 9"/><path d="M20 14v6H4V4h6"/>',check:'<path d="m4 12 5 5L20 6"/>',close:'<path d="M5 5l14 14M19 5 5 19"/>',brief:'<rect x="3" y="6" width="18" height="15" rx="2"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',file:'<path d="M6 3h8l5 5v13H6zM14 3v5h5M9 13h7M9 17h7"/>',sort:'<path d="m7 4-3 3 3 3M4 7h13M17 20l3-3-3-3M20 17H7"/>',trash:'<path d="M4 7h16M9 7V4h6v3m-9 0 1 14h10l1-14M10 10v8M14 10v8"/>',heart:'<path d="M20.8 4.8a5.5 5.5 0 0 0-7.8 0L12 5.9l-1.1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.4l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/>',more:'<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',shield:'<path d="M12 2 3 6v6c0 6 4 9 9 11 5-2 9-5 9-11V6z"/><path d="m8 12 3 3 5-6"/>'};
+function icon(name){return `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]||ICONS.file}</svg>`}
+function h(x){return String(x==null?'':x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function safeUrl(s){try{const v=new URL(String(s));return /^https?:$/.test(v.protocol)?v.href:null}catch(e){return null}}
+const navigation=[{id:'dashboard',label:'Dashboard',icon:'grid'},{id:'discovery',label:'Discovery',icon:'discover'},{id:'fresh',label:'Make CV',icon:'files'},{id:'add',label:'Add Job',icon:'plus'}];
+function storedCandidate(){try{return localStorage.getItem('freshmaal-candidate')}catch(e){return null}}
+function storeCandidate(name){try{localStorage.setItem('freshmaal-candidate',name)}catch(e){}}
+function applyCandidateTheme(){document.body.dataset.candidate=state.candidate;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=state.candidate==='Pooja'?'#292049':'#132a49';}
+const state={cvQueue:null,pendingCv:{},candidate:storedCandidate()==='Pooja'?'Pooja':'Abhishek',section:'dashboard',filter:'all',tabId:'all',query:'',sort:'newest',page:1,pageSize:innerWidth<721?10:25,data:null,detail:null,stats:null,busy:false,loadingMore:false,listRequest:0,bulk:new Map(),demo:DEMO,lastY:0,bootstrap:null,initError:null};
+const demoJobs=Array.from({length:168},(_,i)=>({row:i+2,company:['Sample Advisory','Demo Finance Group','Example Partners','Illustration Bank','Placeholder Consulting'][i%5],role:['Corporate Finance Analyst','Transfer Pricing Senior Associate','Private Wealth Associate','Valuations Analyst','Financial Planning Associate','Finance Business Partner','Investment Analyst'][i%7],url:'https://example.com/jobs/demo-'+(i+1),location:i%4===0?'London':'Dublin',jd:i%3?'Full demonstration job description. The person will support investment analysis, commercial and financial modelling, relationships and related client projects. Duties include preparing written reports and financial schedules.':'Open original job description',jdReady:i%3!==0,transferred:i%4===0,score:65+(i*7)%32,rank:i+1,selected:i%5===0,cv:i%11===0,cl:i%13===0,web:false,status:i%9===0?'Applied':'NA',progress:i%9===0?'Applied':'Unapplied',workflow:i%11===0?'Complete':'',cvLink:'',clLink:'',folder:'',error:'',transferStatus:i%4===0?'Sent to Freshmaal':'',deadline:'',source:'Demo'}));
+function expected(job){return {company:job.company,role:job.role,url:job.url}}
+function toast(text,error=false){const m=document.getElementById('toastMount');m.innerHTML=`<div class="toast ${error?'error':''}">${h(text)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>m.innerHTML='',4400)}
+function sheetsError_(e){
+  const detail=String(e&&e.message||e||'Unknown error');
+  return /\b429\b|RESOURCE_EXHAUSTED|RATE_LIMIT_EXCEEDED|quota exceeded.*read requests/i.test(detail)
+    ? new Error('Google Sheets read limit reached. Wait about 60 seconds, then tap Refresh. Recent results are temporarily cached to reduce requests.')
+    : new Error(detail);
+}
+function call(name,arg){if(DEMO)return Promise.resolve(demoServer(name,arg));return new Promise((resolve,reject)=>{try{google.script.run.withSuccessHandler(resolve).withFailureHandler(e=>reject(sheetsError_(e)))[name](arg)}catch(e){reject(sheetsError_(e))}})}
+function demoServer(name,arg){if(name==='getBootstrap')return {email:'demo@example.com',people:['Abhishek','Pooja'],links:{taaza:'#',fresh:'#'}};
+  if(name==='getStats')return{discovered:demoJobs.length,applications:demoJobs.filter(x=>x.transferred).length,selected:demoJobs.filter(x=>x.transferred&&x.selected).length,cvRequested:demoJobs.filter(x=>x.transferred&&x.cv).length,applied:demoJobs.filter(x=>x.transferred&&x.status==='Applied').length,missingJD:demoJobs.filter(x=>!x.jdReady).length};
+  if(name==='listJobs'){
+    let rows=demoJobs.map((j,i)=>({...j,source:arg.source}));if(arg.source==='fresh')rows=rows.filter(j=>j.transferred).map(j=>({...j,score:state.candidate==='Pooja'?Math.max(50,j.score-13):j.score}));else rows=rows.filter(j=>!j.transferred);
+    const q=String(arg.query||'').toLowerCase();rows=rows.filter(j=>(j.company+' '+j.role+' '+j.location).toLowerCase().includes(q));
+    if(arg.filter==='missing')rows=rows.filter(j=>!j.jdReady);if(arg.filter==='ready')rows=rows.filter(j=>j.jdReady&&!j.transferred);if(arg.filter==='transferred')rows=rows.filter(j=>j.transferred);if(arg.filter==='selected')rows=rows.filter(j=>j.selected);if(arg.filter==='cv')rows=rows.filter(j=>j.cv);if(arg.filter==='applied')rows=rows.filter(j=>['Applied','Applied + Connected'].includes(j.progress||'Unapplied'));if(arg.filter==='unapplied')rows=rows.filter(j=>!!j.cvLink&&(j.progress||'Unapplied')==='Unapplied');if(arg.filter==='unscored')rows=[];
+    const interestKey=arg.candidate||state.candidate;
+    rows=rows.map(j=>{const preference=demoPreferences[interestKey+':'+j.url]||'';return {...j,preference,notInterested:preference==='Not Interested'||!!demoNotInterested[interestKey+':'+j.url],favorite:preference==='Favorite'}});
+    rows=rows.filter(j=>arg.filter==='not-interested'?j.notInterested:arg.filter==='favorites'?j.favorite:!j.notInterested);
+    if(arg.sort==='company')rows.sort((a,b)=>a.company.localeCompare(b.company));else if(arg.sort==='score')rows.sort((a,b)=>b.score-a.score);else rows.sort((a,b)=>b.row-a.row);
+    const pageSize=arg.pageSize||10;return {rows:rows.slice(arg.offset==null?(arg.page-1)*pageSize:arg.offset,(arg.offset==null?(arg.page-1)*pageSize:arg.offset)+pageSize),page:arg.page,pages:Math.max(1,Math.ceil(rows.length/pageSize)),total:rows.length};}
+  if(name==='getJob') {const j=demoJobs.find(x=>x.row===arg.row);return j?{...j,notInterested:!!demoNotInterested[(arg.candidate||state.candidate)+':'+j.url],source:arg.source,statusOptions:['NA','CV','CV+CL','CV+CL+WS','ERROR','Applied']}:null}
+  if(name==='addDiscovery'){const existing=demoJobs.find(x=>x.url===arg.url);if(existing)return{row:existing.row,created:false,message:'Existing demo vacancy retained.'};const row=Math.max(...demoJobs.map(x=>x.row))+1;demoJobs.push({...arg,row,jdReady:String(arg.jd||'').length>=80,transferred:false,selected:false,cv:false,cl:false,web:false,status:'NA',score:'',transferStatus:''});return{row,created:true,message:'Added to preview only.'}}
+  if(name==='saveDiscovery'){const j=demoJobs.find(x=>x.row===arg.row);Object.assign(j,arg.updates);j.jdReady=String(j.jd||'').length>=80;return {saved:true,message:'Demo JD saved locally — sheets unchanged.'}}
+  if(name==='transferJob'){const j=demoJobs.find(x=>x.row===arg.row);if(!j.jdReady)throw new Error('Save full JD first.');j.transferred=true;return{created:true,freshRow:j.row,message:'Marked transferred in preview only.'}}
+  if(name==='updateFreshJD')return{changed:true,message:'Demo update only.'};
+  if(name==='updateApplicationProgress'){const j=demoJobs.find(x=>x.row===arg.row);j.progress=arg.progress;return{saved:true,progress:arg.progress,message:'Demo progress'};}
+  if(name==='setNotInterested'){
+    const j=demoJobs.find(x=>x.row===arg.row);if(!j)throw new Error('Job not found in demo.');
+    demoNotInterested[arg.candidate+':'+j.url]=arg.value;
+    return{saved:true,notInterested:arg.value,message:arg.value?'Moved to Not Interested (demo).':'Restored (demo).'};
+  }
+  if(name==='setJobPreference'){
+    const j=demoJobs.find(x=>x.row===arg.row);if(!j)throw new Error('Job not found in preview.');
+    demoPreferences[arg.candidate+':'+j.url]=arg.value;demoNotInterested[arg.candidate+':'+j.url]=arg.value==='Not Interested';
+    return {saved:true,message:'Preference saved in preview.'};
+  }
+  if(name==='bulkSetJobPreferences'){
+    const results=arg.jobs.map(item=>{const j=demoJobs.find(x=>x.row===item.row);
+      if(!j)return {ok:false,row:item.row,error:'Job not found in preview.'};
+      demoPreferences[arg.candidate+':'+j.url]=arg.value;demoNotInterested[arg.candidate+':'+j.url]=arg.value==='Not Interested';
+      return {ok:true,row:item.row};
+    });
+    return {results,completed:results.filter(x=>x.ok).length,failed:results.filter(x=>!x.ok).length};
+  }
+  if(name==='updateFreshControl'){const j=demoJobs.find(x=>x.row===arg.row);j[arg.field]=arg.value;return{saved:true,value:arg.value,message:'Preview state updated only.'}}
+  if(name==='bulkTransfer'){const results=arg.jobs.map(x=>{const j=demoJobs.find(z=>z.row===x.row);if(j&&!j.jdReady)return{ok:false,row:x.row,error:'Missing JD'};j.transferred=true;return{ok:true,row:x.row}});return{results,completed:results.filter(x=>x.ok).length,failed:results.filter(x=>!x.ok).length}};
+  return{};}
+async function run(name,arg,{quiet=false}={}){try{return await call(name,arg)}catch(e){if(!quiet)toast(e.message||String(e),true);throw e}}
+function setBusy(v){state.busy=v;document.getElementById('content').classList.toggle('loading',v)}
+function resetDrawerScroll(){
+ const drawer=document.getElementById('drawerMount');
+ if(drawer)drawer.innerHTML='';
+ document.body.style.overflow='';
+ const main=document.querySelector('.main');
+ if(main)main.style.overflowY='';
+}
+function scrollMainTo(y){
+ const main=document.querySelector('.main');
+ if(window.matchMedia('(max-width:720px)').matches&&main)main.scrollTop=y;
+ else window.scrollTo(0,y);
+}
+function nav(section,initialFilter='all'){resetDrawerScroll();state.section=section;state.filter=initialFilter;state.tabId='all';state.query='';state.sort='newest';state.page=1;state.bulk.clear();state.detail=null;state.data=null;state.listRequest++;render();if(section==='discovery'||section==='fresh')fetchList();if(section==='dashboard')fetchStats();scrollMainTo(0)}
+function switchCandidate(name){if(!['Abhishek','Pooja'].includes(name))return;expenseClose();resetDrawerScroll();state.candidate=name;storeCandidate(name);state.page=1;state.bulk.clear();state.detail=null;state.data=null;state.stats=null;state.listRequest++;render();if(['discovery','fresh'].includes(state.section))fetchList();else if(state.section==='dashboard')fetchStats()}
+async function fetchList(){
+ if(!['discovery','fresh'].includes(state.section))return;
+ const section=state.section,person=state.candidate,request=++state.listRequest;
+ // New searches/filters start at the first batch. Next batches use loadMore() below.
+ state.page=1;state.loadingMore=false;
+ const params={source:section==='discovery'?'taaza':'fresh',candidate:person,tabId:state.tabId,query:state.query,filter:state.filter,sort:state.sort,page:1,pageSize:state.pageSize};
+ setBusy(true);
+ try{
+  const data=await run('listJobs',params);
+  if(request===state.listRequest&&section===state.section&&person===state.candidate){
+   state.data=data;state.page=data.page;state.initError=null;
+   if(section==='discovery')state.tabId=data.tabId||'all';
+   const inp=document.activeElement,wasSearching=inp&&inp.id==='search',cursor=wasSearching?inp.selectionStart:null;
+   const tabScroll=document.getElementById('categoryTabs')?.scrollLeft||0;
+   render();
+   const nextTabs=document.getElementById('categoryTabs');if(nextTabs)nextTabs.scrollLeft=tabScroll;
+   if(wasSearching){const next=document.getElementById('search');if(next){next.focus();try{next.setSelectionRange(cursor,cursor)}catch(e){}}}
+  }
+ }catch(e){if(request===state.listRequest){state.initError=e.message;render()}}
+ finally{if(request===state.listRequest)setBusy(false)}
+}
+async function loadMore(){
+ if(state.loadingMore||!state.data||state.data.rows.length>=state.data.total)return;
+ const prior=state.data,request=state.listRequest,section=state.section,person=state.candidate;
+ const next=prior.page+1;state.loadingMore=true;
+ const pager=document.querySelector('.pagination');
+ if(pager)pager.innerHTML='<span class="meta" role="status">Loading more jobs below…</span>';
+ try{
+  const data=await run('listJobs',{source:section==='discovery'?'taaza':'fresh',candidate:person,tabId:state.tabId,query:state.query,filter:state.filter,sort:state.sort,page:next,pageSize:state.pageSize,offset:prior.rows.length});
+  // A search, filter, candidate or tab change cancels stale in-flight batches.
+  if(prior!==state.data||request!==state.listRequest||section!==state.section||person!==state.candidate)return;
+  const seen=new Set(prior.rows.map(x=>x.row));const added=data.rows.filter(x=>!seen.has(x.row));
+  prior.rows.push(...added);prior.page=data.page;prior.pages=data.pages;prior.total=data.total;state.page=data.page;
+  // Append just the next cards without rebuilding existing DOM or scrolling upward.
+  const grid=document.querySelector('.jobs');if(grid)grid.insertAdjacentHTML('beforeend',added.map(card).join(''));
+  const bar=document.querySelector('.pagination');if(bar)bar.outerHTML=pagination();
+  const count=document.getElementById('jobCount');if(count)count.textContent=prior.rows.length+' of '+prior.total+' shown';
+ }catch(e){if(prior===state.data&&request===state.listRequest){const bar=document.querySelector('.pagination');if(bar)bar.outerHTML=pagination()}}
+ finally{if(prior===state.data&&request===state.listRequest){state.loadingMore=false;const bar=document.querySelector('.pagination');if(bar)bar.outerHTML=pagination()}}
+}
+async function fetchStats(){const person=state.candidate;try{const v=await run('getStats',person,{quiet:true});if(person===state.candidate){state.stats=v;if(state.section==='dashboard')render()}}catch(e){if(state.section==='dashboard')toast(e.message||String(e),true)}}
+function navRender(){applyCandidateTheme();const n=()=>navigation.map(x=>`<button class="nav-btn ${state.section===x.id?'active':''}" data-action="nav" data-value="${x.id}">${icon(x.icon)}<span>${x.label}</span></button>`).join('');document.getElementById('deskNav').innerHTML=n();document.getElementById('mobileNav').innerHTML=n().replaceAll('class="nav-btn','class="mobile-btn nav-btn');document.getElementById('candidateToggle').innerHTML=['Abhishek','Pooja'].map((x,i)=>`<button class="${state.candidate===x?'active':''}" data-action="candidate" data-value="${x}" aria-label="Switch to ${x}" title="${x}">${i===0?'A':'P'}</button>`).join('');document.getElementById('crumbTitle').textContent=navigation.find(x=>x.id===state.section).label;document.getElementById('avatar').textContent=state.candidate[0];document.getElementById('modeBadge').textContent=DEMO?'PREVIEW':'LIVE';if(!DEMO)document.getElementById('modeBadge').style.cssText='background:#e8f9ed;color:#14783c'}
+function title(head,sub,button){return `<div class="heading"><div><h1>${h(head)}</h1></div>${button||''}</div>`}
+function isAppInstalled(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
+function kpi(label,value,sublabel,i){return `<div class="kpi"><i>${icon(i)}</i><label>${label}</label><strong>${value}</strong><small>${sublabel}</small></div>`}
+function dash(){return title('Overview','',`<div class="row" style="gap:6px;align-items:center;flex-wrap:wrap;justify-content:flex-end"><button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button></div>`)+`<section class="panel" style="margin-bottom:12px"><div class="row" style="align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>Rank Jobs with ChatGPT</strong><div class="meta">Score only new Freshmaal jobs · re-rank all scored jobs · no ranking API charges</div></div><div class="row"><button class="btn btn-primary" data-action="copy-ranking">${icon('prompt')} Copy ranking prompt</button><button class="btn" data-action="repair-ranks" title="Optional one-time confirmation: restore AM and AO formulas without changing scores">${icon('refresh')} Fix rank formulas</button></div></div></section>`+`<div class="kpis">${kpi('Discovered',state.stats?state.stats.discovered:'—','Vacancies in Taaza','discover')}${kpi('Applications',state.stats?state.stats.applications:'—','Jobs in Freshmaal','brief')}${kpi('Shortlisted',state.stats?state.stats.selected:'—',state.candidate+' selected','target')}${kpi('CV requested',state.stats?state.stats.cvRequested:'—','Existing CV checkboxes','shield')}</div>${!DEMO&&!isAppInstalled()?`<section class="panel garamaal-install-card"><div><strong>Install Garamaal</strong><span>Open from your phone home screen — no browser menu needed when installation is supported.</span></div><button class="btn btn-primary" type="button" data-action="install-app">Install app</button></section>`:'' }<div class="grid2"><section class="panel"><div class="subhead">Next move</div><div class="quick"><button class="btn" data-action="quick" data-value="missing">${icon('file')} Seems Kacha</button><button class="btn" data-action="quick" data-value="ready">${icon('arrow')} Seems Fresh</button><button class="btn" data-action="quick" data-value="cv">${icon('files')} Make CV</button><button class="btn" data-action="quick" data-value="selected">${icon('target')} Shortlisted</button><button class="btn" data-action="view-not-interested" data-source="discovery">${icon('trash')} Not Interested · Taaza</button><button class="btn" data-action="view-not-interested" data-source="fresh">${icon('trash')} Not Interested · CV</button></div><div style="margin-top:10px"><button class="btn btn-xs" data-action="migrate-preferences">Set up Sheets preference dropdowns</button></div></section><section class="panel flow-strip"><div class="flow-title">From vacancy to CV</div><div class="flow-trail"><span>Seems Kacha</span><span>Seems Taaza</span><span>Seems Fresh</span><span>Garam CV Ready</span></div></section></div>`}
+function filterOptions(){return state.section==='discovery'?[['all','All jobs'],['missing','Seems Kacha'],['ready','Seems Taaza'],['favorites','Favorites ★'],['not-interested','Not Interested']]:[['all','All jobs'],['unapplied','Unapplied · CV ready'],['selected','My shortlist'],['cv','CV requests'],['applied','Applied'],['unscored','Unscored'],['favorites','Favorites ★'],['not-interested','Not Interested']]}
+function discoveryTabs(){
+ if(state.section!=='discovery')return '';
+ const tabs=state.data?.tabs||[];
+ const all=[{id:'all',name:'All jobs'},{id:'common',name:'Common · Jobs only'},...tabs];
+ return '<div class="category-strip" id="categoryTabs" role="group" aria-label="Job source categories">'+
+   all.map(x=>'<button class="chip '+(state.tabId===x.id?'active':'')+'" data-action="category" data-value="'+h(x.id)+'" aria-pressed="'+(state.tabId===x.id)+'" title="'+h(x.name)+'">'+h(x.name)+'</button>').join('')+
+   '</div>';
+}
+function filters(){return `<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
+function identity(job){return encodeURIComponent(JSON.stringify(expected(job)))}
+
+function activityFor(job){
+  if(DEMO||job.cvLink||String(job.status||'').toLowerCase()==='applied')return null;
+  const key=state.candidate.toLowerCase()+':'+Number(job.row);
+  const active=state.cvQueue?.byJob?.[key];
+  if(active)return active;
+  if(state.pendingCv[key] && Date.now()-state.pendingCv[key]<120000)
+    return {state:'queued',queueNumber:null,pending:true};
+  return null;
+}
+function activityMarkup(job){
+  const active=activityFor(job);
+  if(!active)return '';
+  const queued=active.state==='queued';
+  const message=queued
+    ?(active.queueNumber?'Queued · #'+Number(active.queueNumber):'Queued · awaiting GitHub')
+    :'Generating CV';
+  const phase=!queued&&job.workflow&&/^(CLAIMED|INITIALISING|STAGE_[123]|NORMALIZE|QA|DRIVE_UPLOAD|FINALIZE)$/i.test(job.workflow)
+    ?' · '+h(job.workflow.replaceAll('_',' ')):'';
+  return '<div class="cv-activity '+(queued?'waiting':'running')+
+    '" role="status"><span class="cv-spin" aria-hidden="true"></span><span>'+
+    message+phase+'</span><small>'+ (queued?'Manual CV queue':'Processing on GitHub Actions')+'</small></div>';
+}
+function queueOverview(){
+  const q=state.cvQueue;
+  if(DEMO)return '';
+  if(!q)return '<div class="cv-queue-overview" id="cv-queue-summary">Checking CV queue…</div>';
+  return '<div class="cv-queue-overview" id="cv-queue-summary"><span class="cv-dot"></span>'+
+    '<strong>'+q.running+' running</strong><span>'+q.queued+' queued</span>'+
+    '<span title="'+h(q.queueNote||'')+'">Manual CV requests · refreshes automatically</span></div>';
+}
+function refreshQueueWidgets(){
+  const overview=document.getElementById('cv-queue-summary');
+  if(overview){const shell=document.createElement('div');shell.innerHTML=queueOverview();overview.replaceWith(shell.firstElementChild);}
+  if(state.section!=='fresh')return;
+  document.querySelectorAll('.job[data-job-row]').forEach(node=>{
+    const job=state.data?.rows?.find(j=>j.row===Number(node.dataset.jobRow));
+    const btn=node.querySelector('[data-action="run-cv-now"]');
+    if(btn&&job)btn.disabled=!job.cv||!!job.cvLink||job.notInterested||String(job.status||'').toLowerCase()==='applied'||!!activityFor(job);
+  });
+  document.querySelectorAll('.cv-activity-slot[data-row]').forEach(slot=>{
+    const row=Number(slot.dataset.row);
+    const job=state.data?.rows?.find(j=>j.row===row);
+    if(job)slot.innerHTML=activityMarkup(job);
+  });
+  if(state.detail && state.detail.source==='fresh'){
+    const detail=document.querySelector('#cv-detail-activity');
+    if(detail)detail.innerHTML=activityMarkup(state.detail);
+  }
+}
+async function pollCvQueue(){
+  if(DEMO)return;
+  try{
+    const q=await run('getCvQueue',null,{quiet:true});
+    state.cvQueue=q;
+    for(const key of Object.keys(state.pendingCv)){
+      if(q.byJob?.[key] || Date.now()-state.pendingCv[key]>120000)delete state.pendingCv[key];
+    }
+    refreshQueueWidgets();
+  }catch(e){
+    // A temporary GitHub API failure must not erase a previously confirmed state.
+    if(!state.cvQueue){
+      const el=document.getElementById('cv-queue-summary');
+      if(el)el.textContent='CV queue temporarily unavailable · try refresh';
+    }
+  }
+}
+function fitMetrics(job){
+  const v=x=>x===''||x==null?'—':h(x);
+  return '<div class="score-four" role="group" aria-label="Ranking metrics">'
+    +[['Profile',v(job.profileFit)],['Career',v(job.careerFit)],['Avg 55/45',v(job.score)],['Rank',job.rank===''||job.rank==null?'—':'#'+h(job.rank)]]
+       .map(([name,value])=>'<div class="score-stat"><strong>'+value+'</strong><span>'+name+'</span></div>').join('')+'</div>';
+}
+function compactMetrics(job){
+  const number=value=>value===''||value==null?'—':h(value);
+  const average=number(job.score),profile=number(job.profileFit),career=number(job.careerFit);
+  const rank=job.rank===''||job.rank==null?'—':'#'+h(job.rank);
+  return '<div class="score-compact" role="group" aria-label="Weighted average '+average+
+    ', Profile Fit '+profile+', Career Fit '+career+', Rank '+rank+'">'
+    +'<div class="score-avg"><strong title="Weighted average fit (55% profile, 45% career)">'+average+'</strong>'
+    +'<span class="score-components" title="Profile Fit – Career Fit">P '+profile+' – C '+career+'</span></div>'
+    +'<div class="score-rank"><strong>'+rank+'</strong><span>Rank</span></div></div>';
+}
+function preferenceMenu(job){
+  const current=job.preference||'';
+  const name=h(job.role||'job');
+  return '<div class="preference-actions" role="group" aria-label="Job preference for '+name+'">'
+    +[['Not Interested','trash','reject','Not interested'],['Favorite','heart','favorite','Favorite']]
+      .map(([value,graphic,style,label])=>{
+        const selected=current===value;
+        return '<button type="button" class="preference-icon '+style+'" data-action="preference-toggle" data-row="'+job.row+'" data-value="'+value+'"'
+          +' title="'+(selected?'Remove '+label.toLowerCase():'Mark '+label.toLowerCase())+'" aria-label="'+(selected?'Remove '+label.toLowerCase():'Mark '+label.toLowerCase())+' for '+name+'" aria-pressed="'+selected+'">'+icon(graphic)+'</button>';
+      }).join('')+'</div>';
+}
+function nextPreferenceValue(current,clicked){
+  return current===clicked?'':clicked;
+}
+function usdCost(v){return v===null||v===undefined||!Number.isFinite(Number(v))?'—':'$'+Number(v).toFixed(4)}
+function expenseClose(){document.getElementById('expenseMount').innerHTML='';}
+function expenseOpen(content){
+  document.getElementById('expenseMount').innerHTML='<div class="expense-shade" data-action="expense-backdrop"><section class="expense-pop" role="dialog" aria-modal="true" aria-label="CV expense summary">'+content+'</section></div>';
+}
+function expenseHeader(title){return '<div class="expense-head"><strong>'+h(title)+'</strong><button class="btn btn-xs" type="button" data-action="expense-close" aria-label="Close expenses">×</button></div>'}
+async function showExpenses(){
+  expenseOpen(expenseHeader('CV expense tracker')+'<p class="expense-note">Loading saved cost estimates…</p>');
+  try{
+    const data=await run('getExpenses',null,{quiet:true});
+    if(!document.querySelector('.expense-pop'))return;
+    const totals=data.candidates||{};
+    const tiles=['Abhishek','Pooja'].map(name=>{
+      const item=totals[name]||{};
+      return '<div class="total"><small>'+name+'</small><strong>'+usdCost(item.recordedUsd)+'</strong><small>'+(item.recordedJobs||0)+' costed jobs'+(item.missingCostJobs?' · '+item.missingCostJobs+' completed without cost':'')+'</small></div>';
+    }).join('');
+    const rows=(data.recent||[]).map(item=>'<div class="expense-line"><div><strong>'+h(item.company)+' · '+h(item.role)+'</strong><small>'+h(item.candidate)+' · Row '+h(item.row)+'</small></div><button data-action="cost-source" data-row="'+item.row+'" data-candidate="'+h(item.candidate)+'" title="Verify in Token_Usage.json">'+usdCost(item.costUsd)+'</button></div>').join('');
+    expenseOpen(expenseHeader('CV expense tracker')+'<div class="expense-totals">'+tiles+'</div><div class="expense-aggregate">Combined recorded: '+usdCost(data.totalUsd)+'</div><p class="expense-note">'+h(data.basis||'')+'</p><small class="meta">Recent costed jobs · tap an amount to check its usage file</small><div class="expense-ledger">'+(rows||'<p class="expense-note">No costs have been recorded yet.</p>')+'</div>');
+  }catch(e){expenseOpen(expenseHeader('CV expense tracker')+'<p class="expense-note">'+h(e.message||'Unable to read costs')+'</p>')}
+}
+async function showCostSource(candidate,row){
+  expenseOpen(expenseHeader('Token usage · '+candidate)+'<p class="expense-note">Checking the application’s saved usage file…</p>');
+  try{
+    if(!window.__cvStandalone?.loadTokenUsage)throw Error('Usage file verification is available on the live Garamaal website.');
+    const data=await window.__cvStandalone.loadTokenUsage(candidate,Number(row));
+    const label=data.verified?'Saved estimate verified':'Verification unavailable';
+    const costs='<div class="expense-totals"><div class="total"><small>Freshmaal recorded</small><strong>'+usdCost(data.recordedUsd)+'</strong></div><div class="total"><small>Token_Usage.json</small><strong>'+usdCost(data.usageUsd)+'</strong></div></div>';
+    const stages=(data.stages||[]).map(x=>'<div><span>'+h(x.stage)+' · '+h(x.model)+'</span><b>'+usdCost(x.costUsd)+'</b></div>').join('');
+    const link=data.found&&safeUrl(data.url)?'<p><a href="'+h(safeUrl(data.url))+'" target="_blank" rel="noopener noreferrer">Open verified Token_Usage.json in Drive ↗</a></p>':'';
+    expenseOpen(expenseHeader('Token usage · '+candidate)+costs+'<p class="expense-aggregate">'+h(label)+'</p><p class="expense-note">'+h(data.message||'')+'</p>'+(stages?'<div class="expense-stages">'+stages+'</div>':'')+link+'<p><button class="btn btn-xs" data-action="expenses">Back to totals</button></p>');
+  }catch(e){expenseOpen(expenseHeader('Token usage · '+candidate)+'<p class="expense-note">'+h(e.message||'Verification failed')+'</p><button class="btn btn-xs" data-action="expenses">Back to totals</button>')}
+}
+function card(job){const discovery=state.section==='discovery';const cvReady=!!job.cvLink;const interestButton=preferenceMenu(job);const badges=`<div class="badges job-badges">${!discovery&&job.costUsd!==null&&job.costUsd!==undefined?`<button type="button" class="tag cost-tag" data-action="cost-source" data-row="${job.row}" data-candidate="${h(state.candidate)}" title="Recorded estimated CV cost · verify token usage">${usdCost(job.costUsd)}</button>`:''}${job.favorite?'<span class="tag favorite-tag">★ Favorite</span>':''}${discovery?`${job.jdReady?'<span class="tag tag-ok">Seems Taaza</span>':'<span class="tag tag-warn">Seems Kacha</span>'}${job.transferred?'<span class="tag tag-blue">In Freshmaal</span>':'<span class="tag">Not transferred</span>'}`:`<span class="tag ${job.progress==='Accepted'?'tag-ok':job.progress==='Rejected'?'tag-red':'tag-blue'}">${h(job.progress||'Unapplied')}</span>${job.cvLink?'<span class="tag tag-ok">Garam CV Ready</span>':job.selected?'<span class="tag tag-ok">Shortlisted</span>':''}${job.workflow?`<span class="tag">${h(job.workflow)}</span>`:''}`}</div>`;const detailButton=`<button type="button" class="btn btn-xs job-more" data-action="detail" data-row="${job.row}" title="More options and job details" aria-label="More options for ${h(job.role)}">${icon('more')}</button>`;const apiReady=Boolean(job.cv&&!job.cvLink&&!job.notInterested&&!activityFor(job)&&job.progress==='Unapplied'&&String(job.status||'').toLowerCase()!=='applied');const readyButtons=`<button type="button" class="btn btn-xs btn-primary action-icon" data-action="download-options" data-row="${job.row}" aria-label="CV and cover letter files" title="Choose Word download or Google Drive for CV and cover letter">${icon('download')}</button>${job.promptReady?`<button type="button" class="btn btn-xs action-icon" data-action="copy-prompt" data-row="${job.row}" aria-label="Copy post-CV prompt" title="Copy the post-CV prompt">${icon('prompt')}</button>`:''}`;const runButton=`<button class="btn btn-xs btn-primary" data-action="run-cv-now" data-row="${job.row}" ${apiReady?'':'disabled'} title="Runs one paid OpenAI API CV job on GitHub Actions">Run CV Now</button>`;return `<article class="job ${cvReady?'cv-ready':''}" data-job-row="${job.row}"><div class="jobtop">${discovery?`<label class="check-label" title="Select for bulk Favourite or Not Interested"><input aria-label="Select ${h(job.role)} for bulk preference" type="checkbox" data-action="bulk-select" data-row="${job.row}" ${state.bulk.has(job.row)?'checked':''}></label>`:''}<div class="jobbody"><h3>${safeUrl(job.url)?`<a class="joblink" href="${h(safeUrl(job.url))}" target="_blank" rel="noopener noreferrer" title="Open employer vacancy in a new tab" aria-label="Open vacancy: ${h(job.role)}">${h(job.role)}</a>`:h(job.role)}${!discovery&&cvReady&&job.jdClue?`<button type="button" class="jd-eye" data-action="jd-clues" data-row="${job.row}" title="JD opportunity clues: salary, visa or contact" aria-label="View JD opportunity clues">${icon('eye')}</button>`:''}</h3><div class="company">${h(job.company)} · ${h(job.location||'Location not specified')}</div>${discovery?badges:''}</div>${discovery?'':compactMetrics(job)}</div>${discovery?'':badges}${discovery?'':`<div class="cv-activity-slot" data-row="${job.row}">${activityMarkup(job)}</div>`}<div class="jobcontrols">${discovery?`<div class="row discovery-actions"><button class="btn btn-xs" data-action="detail" data-row="${job.row}" title="Review or paste the full job description; transfer options are in this view">${icon('file')} Paste JD</button>${interestButton}</div>`:`<div class="checks">${['selected','cv','cl','web'].map(field=>`<label><input type="checkbox" data-action="inline-control" data-row="${job.row}" data-field="${field}" ${job[field]?'checked':''}>${{selected:'Selected',cv:'Make CV',cl:'Make CL',web:'Web'}[field]}</label>`).join('')}</div><div class="row job-card-actions">${cvReady?readyButtons:runButton}${interestButton}<button type="button" class="btn btn-xs action-icon" data-action="connections" data-row="${job.row}" aria-label="Find networking contacts" title="View saved contacts for this job; Web is only needed for new research">${icon('link')}</button>${detailButton}</div>`}</div>${discovery?'':`<div class="job-settings"><div class="job-setting"><label for="tier-row-${job.row}">CV model</label><select class="tier-select" id="tier-row-${job.row}" data-action="tier-mode" data-row="${job.row}" aria-label="CV model for ${h(job.role)}">${tierChoices(job.row)}</select></div><div class="job-setting"><label for="cltier-row-${job.row}">Cover letter model</label><select class="tier-select" id="cltier-row-${job.row}" data-action="cl-tier-mode" data-row="${job.row}" aria-label="Cover letter model for ${h(job.role)}">${tierChoices(job.row,'clTier')}</select></div><div class="job-setting"><label for="status-row-${job.row}">Application status</label><select class="tier-select status-select" id="status-row-${job.row}" data-action="inline-status" data-row="${job.row}" aria-label="Application status for ${h(job.role)}">${statusChoices(job)}</select></div></div>`}</article>`}
+function pagination(){if(!state.data)return'';const d=state.data;const remaining=Math.max(0,d.total-d.rows.length);return `<div class="pagination"><span class="meta" aria-live="polite"><b>${d.rows.length}</b> of <b>${d.total}</b> jobs shown</span>${remaining?`<button class="btn btn-primary" data-action="load-more" ${state.loadingMore?'disabled':''}>${state.loadingMore?'Loading…':'Next · Load '+Math.min(remaining,state.pageSize)+' more'} ${icon('down')}</button>`:'<span class="tag tag-ok">All jobs loaded</span>'}</div>`}
+function selectionBar(){
+ const count=state.bulk.size;
+ return !count?'':`<div class="selectionbar" role="group" aria-label="Selected vacancy preferences"><b>${count} selected <small class="meta">· up to 20</small></b><div class="row bulk-preference-actions"><button type="button" class="btn" data-action="bulk-preference" data-value="Not Interested">${icon('trash')} Not Interested</button><button type="button" class="btn" data-action="bulk-preference" data-value="Favorite">${icon('heart')} Favourite</button></div></div>`;
+}
+function syncSelectionBar(){const mount=document.getElementById('selectionBarMount');if(mount)mount.innerHTML=selectionBar();}
+function listView(){const discovery=state.section==='discovery';const head=discovery?'Taaza · Discovery':'Garamaal · Make CV';const desc='';return title(head,desc,discovery?`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`:`<button class="btn" data-action="nav" data-value="discovery">${icon('discover')} Discovery</button>`)+(discovery?'':tierBanner()+queueOverview())+filters()+(state.initError?`<div class="app-error">${h(state.initError)}</div>`:'')+(state.data&&state.data.rows.length?`<div class="jobs">${state.data.rows.map(card).join('')}</div>${pagination()}`:state.data?`<div class="empty">${icon('discover')}No jobs match these filters. Try a different search or filter.</div>`:`<div class="empty">${icon('refresh')}Loading job list...</div>`)+(discovery?`<div id="selectionBarMount">${selectionBar()}</div>`:'')}
+function inputField(id,label,placeholder='',value='',type='text'){return `<div class="field"><label for="${id}">${label}</label><input id="${id}" type="${type}" value="${h(value)}" placeholder="${h(placeholder)}"/></div>`}
+function addView(){return title('Add a vacancy','New vacancies with complete JDs transfer to Freshmaal automatically.')+`<section class="panel" style="max-width:840px"><div class="subhead">New discovery entry</div><form id="addForm"><div class="field-grid">${inputField('add-company','Company *','Company name')}${inputField('add-role','Designation *','Exact vacancy title')}${inputField('add-url','Employer vacancy link *','https://...','', 'url')}${inputField('add-location','Location','Dublin, Ireland')}${inputField('add-deadline','Application deadline','2026-11-30')}${inputField('add-salary','Salary / visa sponsorship','Optional')}</div><div class="field"><label for="add-jd">Complete job description (optional at entry)</label><textarea id="add-jd" placeholder="Paste the employer's job description. You can save the vacancy now and complete the JD later."></textarea><small>Taaza · Column D</small></div><div class="form-footer"><button class="btn btn-primary" type="submit" data-mode="save">${icon('check')} Seems Taaza · Save</button><button class="btn" type="submit" data-mode="send">${icon('arrow')} Seems Fresh</button></div></form></section>`}
+function render(){navRender();document.getElementById('content').innerHTML=state.section==='dashboard'?dash():state.section==='add'?addView():listView();window.__cvInstallUI?.()}
+async function downloadDoc(row,kind='cv'){
+ const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);
+ const docLink=kind==='cl'?job?.clLink:job?.cvLink;
+ if(!job||!docLink){toast('No completed '+(kind==='cl'?'cover letter':'CV')+' is ready.',true);return}
+ if(DEMO){toast('Downloads are unavailable in preview.',true);return}
+ if(!window.__cvStandalone?.downloadDocument){toast('Direct download is available in the Garamaal app.',true);return}
+ try{await window.__cvStandalone.downloadDocument(state.candidate,row,kind)}
+ catch(e){toast(e.message||'Download failed. Please try again.',true)}
+}
+function verifiedDriveLink(link){
+ const safe=safeUrl(link);
+ if(!safe)return null;
+ try{
+   const u=new URL(safe);
+   if(u.hostname==="docs.google.com"&&/^\/document\/d\/[A-Za-z0-9_-]{20,}(?:\/|$)/.test(u.pathname))return safe;
+   if(u.hostname==="drive.google.com"&&(/^\/file\/d\/[A-Za-z0-9_-]{20,}(?:\/|$)/.test(u.pathname)||
+      (u.pathname==="/open"&&/^[A-Za-z0-9_-]{20,}$/.test(u.searchParams.get("id")||""))))return safe;
+ }catch(e){}
+ return null;
+}
+let downloadContext=null;
+function closeDownloadOptions(){
+ document.getElementById('downloadMount').innerHTML='';
+ downloadContext=null;
+}
+function showDownloadOptions(row){
+ const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);
+ if(!job||!job.cvLink){toast('A completed CV is not available yet.',true);return}
+ const candidate=state.candidate;
+ downloadContext={candidate,row,cvLink:job.cvLink,clLink:job.clLink||''};
+ const section=(kind,label,link)=>{
+   if(!link)return '';
+   const verified=verifiedDriveLink(link);
+   return '<div class="download-file"><strong>'+label+'</strong><div class="row">'+
+     '<button class="btn btn-primary btn-xs" type="button" data-action="download-word" data-row="'+row+'" data-kind="'+kind+'">'+icon('download')+' Download Word</button>'+
+     (verified?'<button class="btn btn-xs" type="button" data-action="view-word-drive" data-row="'+row+'" data-kind="'+kind+'">'+icon('external')+' Open in Google Drive</button>':
+     '<span class="meta">Google Drive view link unavailable</span>')+
+     '</div></div>';
+ };
+ const body='<div class="download-head"><div><h3>Application documents</h3><span class="meta">'+h(job.company)+' · '+h(job.role)+'</span></div>'+
+   '<button class="btn btn-xs" type="button" data-action="download-close" aria-label="Close document options">×</button></div>'+
+   section('cv','Tailored CV',job.cvLink)+section('cl','Cover letter',job.clLink)+
+   '<div class="meta">Word downloads use your authenticated Garamaal connection. Google Drive opens the original saved document.</div>';
+ document.getElementById('downloadMount').innerHTML='<div class="download-shade"><section class="download-pop" role="dialog" aria-modal="true" aria-label="Application document options">'+body+'</section></div>';
+}
+async function downloadChoice(row,kind,method){
+ const context=downloadContext;
+ if(!context||context.candidate!==state.candidate||context.row!==row||!['cv','cl'].includes(kind)){
+   toast('Please reopen this job’s document options.',true);closeDownloadOptions();return;
+ }
+ const link=kind==='cl'?context.clLink:context.cvLink;
+ if(!link){toast('This document was not generated.',true);return}
+ if(method==='drive'){
+   const safe=verifiedDriveLink(link);
+   if(!safe){toast('No verified Google Drive link for this document.',true);return}
+   // User gesture opens the official document link directly; no third-party
+   // download or invented sharing URL.
+   window.open(safe,'_blank','noopener,noreferrer');
+   closeDownloadOptions();
+   return;
+ }
+ if(method==='word'){
+   closeDownloadOptions();
+   await downloadDoc(row,kind);
+ }
+}
+
+function downloadCv(row){return downloadDoc(row,'cv')}
+function downloadCl(row){return downloadDoc(row,'cl')}
+async function copyCvPrompt(row){
+ const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);
+ if(!job||!job.cvLink||!job.promptReady){toast('Prompt appears after the CV is ready.',true);return}
+ try{
+   const result=await run('getCopyPrompt',{candidate:state.candidate,row,expected:expected(job)});
+   if(DEMO){toast('Preview only — prompt not copied.');return}
+   const value=String(result.prompt||'');if(!value)throw new Error('No prompt available.');
+   let copied=false;
+   if(navigator.clipboard&&navigator.clipboard.writeText){
+     try{await navigator.clipboard.writeText(value);copied=true}catch(e){}
+   }
+   if(!copied){
+     const el=document.createElement('textarea');el.value=value;el.setAttribute('readonly','');
+     el.style.cssText='position:fixed;left:-9999px;top:0;opacity:0';
+     document.body.appendChild(el);el.focus();el.select();
+     try{copied=document.execCommand('copy')}finally{el.remove()}
+   }
+   if(copied)toast('Post-CV prompt copied. Paste it into ChatGPT.');
+   else window.prompt('Select and copy this post-CV prompt:',value);
+ }catch(e){toast(e.message||'Could not copy the prompt.',true)}
+}
+function openLink(url){const safe=safeUrl(url);if(!safe){toast('This vacancy has no valid employer link.',true);return}window.open(safe,'_blank','noopener,noreferrer')}
+async function details(row){state.lastY=window.matchMedia('(max-width:720px)').matches?(document.querySelector('.main')?.scrollTop||0):window.scrollY;setBusy(true);try{const d=await run('getJob',{source:state.section==='discovery'?'taaza':'fresh',row,candidate:state.candidate});state.detail=d;drawDetail()}catch(e){}finally{setBusy(false)}}
+function drawDetail(){const d=state.detail;if(!d)return;const taaza=d.source==='taaza';const header=`<div class="drawer-head"><div><span class="eyebrow">${taaza?'TAAZA · DISCOVERY':'FRESHMAAL · '+h(state.candidate.toUpperCase())}</span><h2>${h(d.role)}</h2><div class="meta">${h(d.company)} · ${h(d.location||'Unknown location')} · Row ${d.row}</div></div><button class="close" title="Close details" data-action="close">${icon('close')}</button></div>`;
+const interestDetail=`<div class="interest-detail"><label class="meta">Preference · ${h(state.candidate)}</label>${preferenceMenu(d)}<span class="meta">Click again to clear · synced to both Sheets.</span></div>`;
+const taazaBody=`${interestDetail}<div class="linkrow"><button class="btn btn-primary" data-action="open-link" data-url="${h(d.url)}">${icon('external')} Open employer vacancy</button><span class="tag ${d.jdReady?'tag-ok':'tag-warn'}">${d.jdReady?'Seems Taaza':'Seems Kacha'}</span></div><div class="external">${h(d.url)}</div><hr class="divider"/><div class="field"><label for="detail-jd">Complete job description — Taaza column D</label><textarea id="detail-jd" style="min-height:250px" placeholder="Copy the complete job description from the employer website and paste it here.">${h(d.jd)}</textarea><small>Saving a complete JD automatically transfers a new job to Freshmaal. Existing application JDs and CVs are preserved.</small></div><div class="row" style="flex-wrap:wrap"><button class="btn btn-primary" data-action="save-jd">${icon('check')} Save JD · Auto transfer</button><button class="btn" data-action="transfer" data-row="${d.row}">${icon('arrow')} Seems Fresh</button></div><hr class="divider"/><div class="field-grid">${inputField('edit-company','Company', '',d.company)}${inputField('edit-role','Designation','',d.role)}${inputField('edit-url','Vacancy link','',d.url)}${inputField('edit-location','Location','',d.location)}${inputField('edit-deadline','Application deadline','',d.deadline)}${inputField('edit-salary','Salary / sponsorship','',d.salary)}</div><button class="btn" data-action="save-fields">Save vacancy fields</button><hr class="divider"/><div class="warning"><b>Already transferred?</b> Saving a new JD in Taaza does not modify an existing CV application. Use the explicit update action to change the Freshmaal JD after confirmation. Existing CV files will not be regenerated automatically.</div><div class="linkrow"><button class="btn" data-action="sync-jd">${icon('refresh')} Update JD in Freshmaal</button></div><span class="meta">${h(d.transferStatus||'No transfer status recorded')}</span>`;
+const freshBody=`${interestDetail}${d.clLink?`<div class="row"><button class="btn btn-xs" data-action="download-options" data-row="${d.row}">${icon('download')} Download cover letter</button></div>`:''}<div class="panel" style="box-shadow:none;background:#f4f8ff"><span class="eyebrow">Profile · Career · Weighted average · Rank</span>${fitMetrics(d)}${d.costUsd!==null&&d.costUsd!==undefined?`<button type="button" class="tag cost-tag" data-action="cost-source" data-row="${d.row}" data-candidate="${h(state.candidate)}" title="Inspect saved usage file">CV cost ${usdCost(d.costUsd)}</button>`:''}</div><section class="tier-detail"><header><strong>CV model · ${h(state.candidate)}</strong><select data-action="tier-mode" data-row="${d.row}" aria-label="CV generation model"><option value="Economy" ${getPreviewTier(d.row)==='Economy'?'selected':''}>Economy</option><option value="Balanced" ${getPreviewTier(d.row)==='Balanced'?'selected':''}>Balanced</option><option value="Premium" ${getPreviewTier(d.row)==='Premium'?'selected':''}>Premium</option></select></header>${tierInfo(getPreviewTier(d.row))}<div class="tier-note">Stage 1–2 use the Stage 2 model when merged. Changes affect the next CV run.</div><header style="margin-top:13px"><strong>Cover letter model · ${h(state.candidate)}</strong><select data-action="cl-tier-mode" data-row="${d.row}" aria-label="Cover letter generation model"><option value="Economy" ${getPreviewClTier(d.row)==='Economy'?'selected':''}>Economy</option><option value="Balanced" ${getPreviewClTier(d.row)==='Balanced'?'selected':''}>Balanced</option><option value="Premium" ${getPreviewClTier(d.row)==='Premium'?'selected':''}>Premium</option></select></header><div class="tier-note" style="margin-top:6px">If Make CL is selected, it is generated separately using this tier and verified evidence.</div></section><h3>CV and application controls</h3><div class="panel" style="box-shadow:none">${['selected','cv','cl','web'].map(field=>`<div style="padding:9px 0;border-bottom:1px solid #edf1f6"><label class="check-label" style="font-size:13px"><input type="checkbox" data-action="detail-control" data-field="${field}" ${d[field]?'checked':''}>${{selected:'Shortlist this job',cv:'Make CV',cl:'Make cover letter',web:'Web research + networking'}[field]}</label></div>`).join('')}<div class="field" style="margin-top:14px"><label for="fresh-status">Candidate application status</label><select id="fresh-status">${statusChoices(d)}</select></div></div><div id="cv-detail-activity">${activityMarkup(d)}</div><div class="linkrow"><button class="btn btn-primary" data-action="run-cv-now" data-row="${d.row}" ${!d.cv||!!d.cvLink||d.progress!=="Unapplied"||String(d.status).toLowerCase()==="applied"||d.notInterested||activityFor(d)?"disabled":""}>Run CV Now · ${h(getPreviewTier(d.row))}</button><span class="meta">Runs one paid API CV job for ${h(state.candidate)}. Requires Make CV ticked.</span></div><h3>Job information</h3><div class="linkrow"><button class="btn" data-action="open-link" data-url="${h(d.url)}">${icon('external')} Open vacancy</button>${d.cvLink?`<button class="btn" data-action="open-link" data-url="${h(d.cvLink)}">${icon('file')} Open CV</button>`:''}${d.clLink?`<button class="btn" data-action="open-link" data-url="${h(d.clLink)}">${icon('file')} Open CL</button>`:''}${d.folder?`<button class="btn" data-action="open-link" data-url="${h(d.folder)}">${icon('files')} Output folder</button>`:''}</div><div class="notice"><b>${d.cvLink?'Garam CV Ready':'Workflow'}:</b> ${h(d.workflow||'No run recorded')}<br/><b>Application status:</b> ${h(d.progress||'Unapplied')}<br/>${d.error?'<b>Last error:</b> '+h(d.error):'CV links appear when GitHub completes the run.'}</div><details style="margin-top:18px"><summary style="cursor:pointer;font-weight:700">View saved job description</summary><div style="white-space:pre-wrap;font-size:12px;color:#586a80;padding:12px 0">${h(d.jd)}</div></details>`;
+document.getElementById('drawerMount').innerHTML=`<div class="modal-back" data-action="backdrop"><div class="drawer" role="dialog" aria-modal="true" aria-label="Job details">${header}<div class="drawer-body">${taaza?taazaBody:freshBody}</div><div class="drawer-footer"><button class="btn" data-action="close">Close</button></div></div></div>`;document.body.style.overflow='hidden';const appMain=document.querySelector('.main');if(appMain)appMain.style.overflowY='hidden'}
+function closeDetail(){state.detail=null;resetDrawerScroll();setTimeout(()=>scrollMainTo(state.lastY),0)}
+async function control(row,field,value,element){const job=state.detail&&state.detail.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);if(!job)return;const old=job[field];job[field]=value;try{const res=await run('updateFreshControl',{row,candidate:state.candidate,field,value,expected:expected(job)});toast(res.message);if(state.detail&&state.detail.row===row)state.detail[field]=value;updateList(job);if(field==='web'&&value&&window.__cvConnectOnWebSaved)window.__cvConnectOnWebSaved(row);if((field==='status'&&['applied','unapplied'].includes(state.filter))||(field==='selected'&&state.filter==='selected')||(field==='cv'&&state.filter==='cv'))fetchList();else{const el=document.querySelector(`.job[data-job-row="${row}"]`);if(el)el.outerHTML=card(job)}}catch(e){job[field]=old;if(element&&element.type==='checkbox')element.checked=old;if(element&&element.tagName==='SELECT')element.value=old;toast(e.message||'Could not save application status.',true)}}
+
+async function updateProgress(row,progress,element){
+ const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);
+ if(!job||!APPLICATION_PROGRESS.includes(progress))return;
+ const previous=job.progress||'Unapplied',candidate=state.candidate;
+ try{
+   const result=await run('updateApplicationProgress',{row,candidate,progress,expected:expected(job)});
+   if(candidate!==state.candidate)return;
+   job.progress=result.progress;updateList(job);
+   if(state.detail?.row===row){state.detail.progress=result.progress;drawDetail()}
+   if(['applied','unapplied'].includes(state.filter))fetchList();
+   else{const el=document.querySelector('.job[data-job-row="'+row+'"]');if(el)el.outerHTML=card(job)}
+   toast(result.message);
+ }catch(err){job.progress=previous;if(element)element.value=previous;toast(err.message||'Could not save progress',true)}
+}
+function updateList(job){if(state.data)state.data.rows=state.data.rows.map(x=>x.row===job.row?{...x,...job}:x)}
+function sameJobUrl(a,b){
+ try{const x=new URL(a),y=new URL(b);const norm=u=>{
+   const q=[...u.searchParams.entries()].filter(([k])=>!(/^(utm_.+|fbclid|gclid|msclkid|igshid|ref_src|source|trk|tracking|tm_event|tm_company)$/i.test(k)));
+   q.sort((a,b)=>a[0].localeCompare(b[0]));return u.hostname.toLowerCase().replace(/^www\./,'')+u.pathname.replace(/\/$/,'')+JSON.stringify(q);
+ };return norm(x)===norm(y)}catch(e){return String(a).trim()===String(b).trim()}
+}
+const preferencePending=new Set();
+
+/* Preference changes modify only the touched DOM card. Loaded pages and
+ * the mobile scroll viewport are preserved, with no list fetch or re-render. */
+function applyPreferenceLocally(row,value){
+ const data=state.data,job=data?.rows.find(x=>x.row===row);
+ if(!data||!job)return;
+ job.preference=value;job.favorite=value==='Favorite';job.notInterested=value==='Not Interested';
+ const keep=state.filter==='not-interested'?job.notInterested:
+   state.filter==='favorites'?job.favorite:!job.notInterested;
+ const node=document.querySelector('.job[data-job-row="'+row+'"]');
+ if(!keep){
+   data.rows=data.rows.filter(x=>x.row!==row);
+   data.total=Math.max(0,data.total-1);
+   data.pages=Math.max(1,Math.ceil(data.total/state.pageSize));
+   state.bulk.delete(row);
+   if(node)node.remove();
+ }else{
+   if(state.bulk.has(row))state.bulk.set(row,job);
+   if(node)node.outerHTML=card(job);
+ }
+ const count=document.getElementById('jobCount');
+ if(count)count.textContent=data.rows.length+' of '+data.total+' shown';
+ const pager=document.querySelector('.pagination');
+ if(pager)pager.outerHTML=pagination();
+ syncSelectionBar();
+}
+async function setPreference(row,value,element){
+ const section=state.section,candidate=state.candidate,source=section==='discovery'?'taaza':'fresh';
+ const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);if(!job)return;
+ const key=source+'|'+candidate+'|'+row;
+ if(preferencePending.has(key))return;
+ preferencePending.add(key);
+ if(element)element.disabled=true;
+ try{
+   const res=await run('setJobPreference',{source,candidate,row,value,expected:expected(job)});
+   toast(res.message);
+   if(section!==state.section||candidate!==state.candidate)return;
+   if(state.detail?.row===row){
+     Object.assign(state.detail,{preference:value,favorite:value==='Favorite',notInterested:value==='Not Interested'});
+     drawDetail();
+   }
+   applyPreferenceLocally(row,value);
+ }catch(e){toast(e.message||'Could not save preference.',true)}
+ finally{preferencePending.delete(key);if(element&&element.isConnected)element.disabled=false;}
+}
+async function bulkSetPreferences(value){
+ if(state.section!=='discovery'||!['Not Interested','Favorite'].includes(value)||!state.bulk.size)return;
+ const section=state.section,candidate=state.candidate,selected=[...state.bulk.values()];
+ if(selected.length>20){toast('Select at most 20 vacancies at a time.',true);return}
+ if(selected.some(j=>preferencePending.has('taaza|'+candidate+'|'+j.row))){
+   toast('Wait for the current job update to finish.',true);return
+ }
+ const buttons=[...document.querySelectorAll('.bulk-preference-actions button')];
+ buttons.forEach(n=>n.disabled=true);
+ try{
+   const result=await run('bulkSetJobPreferences',{
+     source:'taaza',candidate,value,
+     jobs:selected.map(job=>({row:job.row,expected:expected(job)}))
+   });
+   if(state.section!==section||state.candidate!==candidate)return;
+   const succeeded=new Set((result.results||[]).filter(x=>x.ok).map(x=>x.row));
+   selected.forEach(job=>{
+     if(!succeeded.has(job.row))return;
+     applyPreferenceLocally(job.row,value);
+     state.bulk.delete(job.row);
+     const checkbox=document.querySelector('.job[data-job-row="'+job.row+'"] [data-action="bulk-select"]');
+     if(checkbox)checkbox.checked=false;
+   });
+   syncSelectionBar();
+   toast(result.completed+' preference'+(result.completed===1?'':'s')+' saved'+
+     (result.failed?' · '+result.failed+' failed; retry remaining selections.':'.'),!!result.failed);
+ }catch(e){toast(e.message||'Could not update selected jobs.',true)}
+ finally{buttons.forEach(n=>{if(n.isConnected)n.disabled=false})}
+}
+async function runCvNow(row) {
+  const job=state.detail?.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);
+  if(!job){toast('Refresh this job before running CV.',true);return}
+  if(DEMO){toast('Preview only: the OpenAI API is not called in demo mode.');return}
+  if(!job.cv){toast('Tick Make CV first and save it.',true);return}
+  if(activityFor(job)){toast('This CV is already queued or running.',true);return}
+  const candidate=state.candidate,tier=getPreviewTier(row),clTier=getPreviewClTier(row);
+  if(!confirm('Start a PAID OpenAI API run for '+candidate+' at '+job.company+' — '+job.role+' (row '+row+', CV: '+tier+', CL: '+(job.cl?clTier:'off')+', Web contacts: '+(job.web?'ON':'OFF')+')? Only this job will be requested.'))return;
+  try{
+    const result=await run('runCvApiNow',{candidate,row,expected:expected(job),expectedWeb:!!job.web,confirm:true});
+    state.pendingCv[candidate.toLowerCase()+':'+row]=Date.now();
+    toast(result.message);
+    refreshQueueWidgets();
+    setTimeout(pollCvQueue,1500);
+  }catch(e){}
+}
+
+async function transfer(row){const job=state.detail&&state.detail.row===row?state.detail:state.data?.rows?.find(x=>x.row===row);if(!job)return;try{const result=await run('transferJob',{row,expected:expected(job)});toast(result.message);if(state.detail&&state.detail.row===row)state.detail.transferStatus=result.message;fetchList()}catch(e){}}
+async function saveJD(){const d=state.detail;if(!d)return;const value=document.getElementById('detail-jd').value;if(String(value).trim()===String(d.jd||'').trim()){toast('No changes to the JD.');return}if(d.jd&&d.jd.length>80&&!confirm('Replace the existing Taaza job description in Column D?'))return;try{const res=await run('saveDiscovery',{row:d.row,expected:expected(d),expectedJD:d.jd,updates:{jd:value}});d.jd=value;d.jdReady=value.length>=80;d.transferStatus=res.message;toast(res.message);fetchList();drawDetail()}catch(e){}}
+async function saveFields(){const d=state.detail;if(!d)return;const changes={company:document.getElementById('edit-company').value,role:document.getElementById('edit-role').value,url:document.getElementById('edit-url').value,location:document.getElementById('edit-location').value,deadline:document.getElementById('edit-deadline').value,salary:document.getElementById('edit-salary').value};try{const res=await run('saveDiscovery',{row:d.row,expected:expected(d),updates:changes});Object.assign(d,changes);toast(res.message);drawDetail();fetchList()}catch(e){}}
+async function syncJD(){const d=state.detail;if(!d)return;if(!confirm('Replace the Freshmaal JD for this job using the currently saved Taaza JD? This may make generated CVs outdated.'))return;try{const res=await run('updateFreshJD',{row:d.row,expected:expected(d),confirm:true});toast(res.message)}catch(e){}}
+async function saveAdd(mode){const get=id=>document.getElementById(id).value.trim();const payload={company:get('add-company'),role:get('add-role'),url:get('add-url'),location:get('add-location'),deadline:get('add-deadline'),salary:get('add-salary'),jd:get('add-jd')};if(!payload.company||!payload.role||!safeUrl(payload.url)){toast('Company, designation and a valid vacancy URL are required.',true);return}if(mode==='send'&&payload.jd.length<80){toast('Paste and save the complete JD before sending to Freshmaal.',true);return}setBusy(true);try{const res=await run('addDiscovery',payload);toast(res.message);if(mode==='send'&&!res.autoTransferred&&!res.transferError){const result=await run('transferJob',{row:res.row,expected:expected(payload)});toast(result.message)}if(res.created)document.getElementById('addForm').reset();nav('discovery')}catch(e){}finally{setBusy(false)}}
+
+let debounce;document.addEventListener('input',e=>{if(e.target.id==='search'){clearTimeout(debounce);debounce=setTimeout(()=>{const next=e.target.value;if(next===state.query)return;state.query=next;state.page=1;fetchList()},650)}});
+document.addEventListener('change',e=>{const a=e.target.dataset.action;if(a==='job-preference'){setPreference(Number(e.target.dataset.row),e.target.value,e.target);return}if(a==='tier-mode'||a==='cl-tier-mode'){changePreviewTier(Number(e.target.dataset.row),e.target.value,a==='cl-tier-mode'?'clTier':'tier');return}if(a==='inline-status'){updateProgress(Number(e.target.dataset.row),e.target.value,e.target);return}if(e.target.id==='sort'){state.sort=e.target.value;state.page=1;fetchList();return}if(e.target.id==='fresh-status'){const d=state.detail;if(d)updateProgress(d.row,e.target.value,e.target);return}if(a==='bulk-select'){const row=Number(e.target.dataset.row),job=state.data?.rows.find(x=>x.row===row);
+ if(e.target.checked&&job){if(state.bulk.size>=20){e.target.checked=false;toast('Select at most 20 vacancies at a time.',true);return}state.bulk.set(row,job)}else state.bulk.delete(row);
+ syncSelectionBar();return}if(a==='inline-control'||a==='detail-control'){const row=a==='detail-control'?state.detail?.row:Number(e.target.dataset.row),field=e.target.dataset.field;control(row,field,e.target.checked,e.target)}});
+document.addEventListener('click',async e=>{if(e.target.classList.contains('download-shade')){closeDownloadOptions();return}if(e.target.classList.contains('modal-back')){if(e.target.id==='garamaal-install-help'){e.target.remove();return}closeDetail();return}const x=e.target.closest('[data-action]');if(!x)return;const a=x.dataset.action,value=x.dataset.value,row=Number(x.dataset.row);if(a==='migrate-preferences'){if(!confirm('Convert existing Not Interested checkboxes into Blank / Not Interested / Favorite dropdowns in both Taaza and Freshmaal? Existing choices will be preserved.'))return;try{const r=await run('migrateJobPreferences',{confirm:true});toast(r.message);fetchStats()}catch(e){}return}if(a==='expense-close'||a==='expense-backdrop'){expenseClose();return}if(a==='expenses'){showExpenses();return}if(a==='cost-source'){showCostSource(x.dataset.candidate||state.candidate,row);return}if(a==='preference-toggle'){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);if(job)setPreference(row,nextPreferenceValue(job.preference||'',value),x);return}if(a==='install-app'){if(DEMO){toast('Install is available on the live Garamaal website.',true)}else window.__cvInstall?.();return}if(a==='nav'){nav(value);return}if(a==='candidate'){switchCandidate(value);return}if(a==='quick'){nav(value==='missing'||value==='ready'?'discovery':'fresh',value);return}if(a==='filter'){state.filter=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='sort-jobs'){state.sort=value;state.page=1;fetchList();return}if(a==='category'){state.tabId=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='load-more'){loadMore();return}if(a==='view-not-interested'){nav(x.dataset.source==='fresh'?'fresh':'discovery','not-interested');return}if(a==='refresh'){fetchList();return}if(a==='open-link'){openLink(x.dataset.url);return}if(a==='detail'){details(row);return}if(a==='close'){closeDetail();return}if(a==='transfer'){transfer(row);return}if(a==='download-options'){showDownloadOptions(row);return}if(a==='download-close'){closeDownloadOptions();return}if(a==='download-word'){downloadChoice(row,x.dataset.kind,'word');return}if(a==='view-word-drive'){downloadChoice(row,x.dataset.kind,'drive');return}if(a==='run-cv-now'){runCvNow(row);return}if(a==='download-cv'){downloadCv(row);return}if(a==='download-cl'){downloadCl(row);return}if(a==='copy-prompt'){copyCvPrompt(row);return}if(a==='bulk-preference'){bulkSetPreferences(value);return}if(a==='save-jd'){saveJD();return}if(a==='save-fields'){saveFields();return}if(a==='sync-jd'){syncJD();return}});
+document.addEventListener('submit',e=>{if(e.target.id==='addForm'){e.preventDefault();const mode=e.submitter?.dataset.mode||'save';saveAdd(mode)}});
+window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.download-pop'))closeDownloadOptions();else if(document.querySelector('.expense-pop'))expenseClose();else if(state.detail)closeDetail()}});
+window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
+async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
+// Passive local typing indicator; never intercepts Jobs controls, submissions or Sheets writes.
+(function(){
+ const badge=document.getElementById('modeBadge');let timer;
+ function showLocalEditing(e){
+  if(DEMO)return;
+  const field=e.target;
+  if(!field||!field.matches||!field.matches('input,textarea,select,[contenteditable]')||
+     field.readOnly||field.disabled||field.matches('input[type="hidden"]'))return;
+  if(field.matches('input[type="search"]')||field.id==='search')return;
+  badge.textContent='EDITING';badge.classList.add('garamaal-editing');
+  badge.title='Local input detected. You must explicitly save or confirm to change Google Sheets.';
+  clearTimeout(timer);
+  timer=setTimeout(()=>{
+   badge.textContent='LIVE';badge.classList.remove('garamaal-editing');
+   badge.title="Google Sheets connection status, not other users' editing activity.";
+  },2600);
+ }
+ document.addEventListener('input',showLocalEditing,true);
+ document.addEventListener('change',showLocalEditing,true);
+ document.addEventListener('keydown',e=>{if(e.key==='Enter')showLocalEditing(e)},true);
+})();
+init();
+if(!DEMO){
+  if('serviceWorker' in navigator && location.protocol==='https:'){
+    navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
+  }
+  let installEvent=null;
+  const isIos=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)
+    ||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  const isInstalled=isAppInstalled;
+  function installHelp(){
+    const existing=document.getElementById('garamaal-install-help');
+    if(existing){existing.remove();return;}
+    const ios=isIos();
+    const box=document.createElement('div');
+    box.id='garamaal-install-help';
+    box.className='modal-back';
+    box.setAttribute('role','presentation');
+    const message=ios
+      ?'Open Garamaal in Safari, tap the Share icon, choose Add to Home Screen, then tap Add.'
+      :'In Chrome, open the menu (⋮), choose Add to Home screen or Install app, and confirm Install.';
+    box.innerHTML='<div class="install-sheet" role="dialog" aria-modal="true" aria-label="Install Garamaal">'
+      +'<strong>Install Garamaal</strong>'
+      +'<p>'+message+'</p>'
+      +'<p>After installing, launch Garamaal from your home screen. Your Google sign-in remains protected.</p>'
+      +'<button type="button" class="btn btn-primary" id="install-help-close">Got it</button></div>';
+    document.body.appendChild(box);
+    box.addEventListener('click',e=>{if(e.target===box)box.remove()});
+    box.querySelector('#install-help-close').addEventListener('click',()=>box.remove());
+  }
+  async function requestInstall(){
+    if(!installEvent){installHelp();return;}
+    const event=installEvent;installEvent=null;
+    try{
+      await event.prompt();
+      const choice=await event.userChoice;
+      if(choice?.outcome!=='accepted')installHelp();
+    }catch(_){installHelp();}
+    showInstall();
+  }
+  function showInstall(){
+    const installed=isInstalled();
+    // On phones the install control lives above bottom navigation, not in
+    // the crowded account header. This prevents side overflow/blank gutters.
+    const mobile=window.matchMedia('(max-width:720px)').matches;
+    const top=document.querySelector('.top-actions');
+    let dock=document.getElementById('garamaal-install-dock');
+    if(!dock){
+      dock=document.createElement('div');
+      dock.id='garamaal-install-dock';
+      document.body.appendChild(dock);
+    }
+    const parent=mobile?dock:top;
+    let btn=document.getElementById('cv-install-app');
+    if(!btn&&parent){
+      btn=document.createElement('button');
+      btn.id='cv-install-app';btn.type='button';
+      btn.textContent='Install app';
+      btn.title='Install Garamaal on your phone or desktop';
+      btn.addEventListener('click',requestInstall);
+    }
+    if(btn && parent && btn.parentNode!==parent){
+      if(mobile)parent.appendChild(btn);
+      else{
+        const toggle=document.getElementById('candidateToggle');
+        parent.insertBefore(btn,toggle||parent.firstChild);
+      }
+    }
+    if(btn)btn.hidden=installed || state.section==='dashboard';
+    if(dock)dock.hidden=installed || !mobile || state.section==='dashboard';
+  }
+  window.__cvInstall=requestInstall;
+  window.__cvInstallUI=showInstall;
+  window.addEventListener('beforeinstallprompt',event=>{
+    event.preventDefault();installEvent=event;showInstall();
+  });
+  window.addEventListener('appinstalled',()=>{
+    installEvent=null;
+    if(state.section==='dashboard')render();
+    showInstall();
+  });
+  showInstall();
+  window.addEventListener('resize',showInstall);
+  setTimeout(pollCvQueue,1200);
+  setInterval(()=>{if(!document.hidden)pollCvQueue()},15000);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollCvQueue()});
+}
+</script>
+</body>
+</html>
