@@ -7,6 +7,16 @@
 
 > Important: All edits are NEW FILES under `prototypes/multiuser-20261024/` on this isolated branch. The original `webapp/Index.html`, `standalone/social.html`, server, worker, sheets, Drive evidence and deployments have not been changed. The prototype must NOT be deployed as production.
 
+## Current checkpoint: Stage 2.2 — Action-first launcher, Jobs swipe and statistics
+
+- **[Stage 2.2 architecture, mobile diagrams and review checklist](./STAGE2_2_LAUNCHER_SWIPE.md)**
+- **[New stage 2.2 regression tests](./stage22-home-swipe.test.cjs)** — `node --test prototypes/multiuser-20261024/full-app/stage22-home-swipe.test.cjs`.
+- **New first screen:** reference-inspired dark background, “What do you want to do today?” headline, four lime/white/purple cards in Profile → Apply Jobs → Network → Statistics order, minimal reminder/target chips and “START YOUR JOURNEY”.
+- **New Jobs bottom navigation:** Dashboard → Discovery → Swipe → Make CV → More (Add Job and Statistics). Swipe is a full-JD-eligible **offline sample** and does not write a real candidate preference yet.
+- **New Social bottom navigation:** Targets → Research → Swipe → Follow-ups → Stats, preserving all existing Social screens inside an iframe; fictional statistics are clearly labelled.
+- **Top bar:** small back control at left, compact profile/avatar at right; Add Job and Filter quick icons in Discovery and Make CV.
+- **No deployment or main-branch changes.** Three HTML files must be kept together for browser preview. Sample personas are **not** actual authenticated users. Real device/browser visual review is still required.
+
 ## Current checkpoint: Stage 2 — Mobile UI/UX review
 
 - [**Stage 2 UX change log, responsive diagram and review checklist**](./STAGE2_UX_REVIEW.md)
