@@ -357,6 +357,28 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 }
 </style>
 <meta name="robots" content="noindex,nofollow"/>
+<script>
+/* When nested in Stage 2's unified shell, avoid a duplicate desktop sidebar. */
+if(window.parent!==window)document.documentElement.classList.add("mu-embedded");
+</script>
+<style>
+.mu-preserve-banner{padding:5px 11px;font-size:10px;line-height:1.3}
+button,.btn,input,select,textarea{touch-action:manipulation}
+@media(min-width:721px){
+ .mu-embedded .sidebar{display:none!important}
+ .mu-embedded .shell{display:block!important}
+ .mu-embedded .main{width:100%!important;max-width:none!important;margin-left:0!important}
+ .mu-embedded .container{max-width:none!important}
+}
+@media(max-width:720px){
+ .mu-preserve-banner{padding:5px 9px;font-size:9px}
+ .mu-embedded .topbar{padding:0 8px}
+ .mu-embedded .container{padding-left:10px;padding-right:10px}
+ .mu-embedded .nav-btn,.mu-embedded .mobile-btn{min-height:44px}
+ .mu-embedded input,.mu-embedded select,.mu-embedded textarea{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
 <meta http-equiv="Content-Security-Policy" content="connect-src 'none'; form-action 'none'; object-src 'none'; worker-src 'none'"/>
 <style>
 .mu-preserve-banner{background:#fff6db!important;border-bottom:1px solid #ead6a4;padding:8px 14px;color:#795815;font-weight:700;font-size:11px;line-height:1.4;position:relative;z-index:20}
