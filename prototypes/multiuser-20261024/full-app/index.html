@@ -94,15 +94,119 @@ a{color:var(--blue)}
 .previewflag{right:7px;bottom:calc(66px + env(safe-area-inset-bottom))}
 }
 @media(max-width:390px){.topright .pill{display:none}.bottomnav button{min-width:44px}.tabs{grid-template-columns:repeat(5,117px)}}
+
+/* Stage 2 — spacing, density, safe areas, focus and responsive integration */
+:root{--radius:13px;--shadow:0 5px 16px rgba(16,43,75,.055)}
+body{font-size:14px;line-height:1.48}
+.container{max-width:1120px;padding:22px 24px 96px}
+.card{padding:17px;box-shadow:var(--shadow)}
+.grid{gap:12px}
+.row{gap:9px}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;text-align:center;line-height:1.3;white-space:normal}
+.btn:hover{filter:brightness(.976)}
+.btn:active{transform:translateY(1px)}
+.field input,.field textarea,.field select{border-color:#c8d6e7;background:#fff;font-size:14px}
+.field textarea{min-height:74px}
+.field input:focus,.field textarea:focus{border-color:var(--blue);background:#fff}
+.field span{font-size:12px}
+.field:focus-within span{color:#265bae}
+.form{gap:10px 13px}
+.profile-layout{grid-template-columns:195px minmax(0,1fr);gap:13px}
+.tabs{position:sticky;top:77px}
+.tabs button{font-size:12px}
+.experience{padding:0;background:#fff;overflow:hidden}
+.experience>.experience-head{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px 15px;cursor:pointer;list-style:none;min-height:54px}
+.experience>.experience-head::-webkit-details-marker{display:none}
+.experience>.experience-head::after{content:"⌄";font-size:18px;color:#426ca6;flex-shrink:0}
+.experience[open]>.experience-head::after{content:"⌃"}
+.experience .experience-body{padding:0 14px 14px}
+.experience>.experience-head:focus-visible{outline:3px solid #78aaf5;outline-offset:-3px}
+.achievement{background:#f8fbff;border:1px solid #d8e5f3;padding:0;overflow:hidden}
+.achievement>summary{cursor:pointer;padding:13px 14px;min-height:46px;font-weight:770;list-style:none;display:flex;align-items:center;justify-content:space-between}
+.achievement>summary::-webkit-details-marker{display:none}
+.achievement>summary:after{content:"⌄";color:#406ca5;font-size:17px}
+.achievement[open]>summary:after{content:"⌃"}
+.achievement .achievement-body{padding:2px 13px 13px}
+.evidence-advanced{border-top:1px solid #dce6f3;margin-top:12px;padding-top:8px}
+.evidence-advanced summary{cursor:pointer;color:#275b9d;min-height:40px;display:flex;align-items:center;font-weight:730;font-size:12px}
+.evidence-advanced .form{padding-top:6px}
+.form-status{font-size:12px;color:#176949;background:#e8f7ef;border-radius:8px;padding:8px 10px}
+.form-status[hidden]{display:none}
+.section-toolbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px}
+.profile-submit{position:sticky;bottom:12px;background:rgba(255,255,255,.97);padding:11px;border:1px solid var(--line);border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;z-index:3;box-shadow:0 8px 25px #15345411}
+.feature-top{display:flex;align-items:center;gap:8px;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.feature-top .btn{min-height:40px}
+.feature-page .frame-card{border-radius:12px}
+.feature-page .frame-card iframe{height:calc(100dvh - 164px);min-height:560px}
+.frame-header{padding:9px 12px;gap:7px}
+.frame-header .row{gap:6px}
+.frame-header .btn{padding:8px 10px;min-height:40px}
+.mobile-more{display:none}
+.bottomnav button:focus-visible{outline:3px solid #78aaf5;outline-offset:-5px}
+.bottomnav button[aria-current=page]{background:#f0f6ff;border-radius:10px}
+.bottomnav button{min-height:52px}
+@media(max-width:960px){.profile-layout{grid-template-columns:minmax(0,1fr)}.tabs{top:73px;grid-template-columns:repeat(5,minmax(126px,1fr));overflow:auto;scrollbar-width:thin;padding:7px;scroll-snap-type:x proximity}.tabs button{scroll-snap-align:start}}
+@media(max-width:720px){
+ body{font-size:13.5px}
+ .container{padding:14px 12px calc(94px + env(safe-area-inset-bottom));max-width:none}
+ .top{padding:0 11px}
+ .top>strong{min-width:0;max-width:65vw;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px}
+ .topright{gap:5px}
+ .topright>.btn{min-height:38px;padding:7px 8px}
+ .grid{gap:10px}
+ .card{padding:14px}
+ .loginleft,.loginright{padding:23px}
+ .loginleft{min-height:178px}
+ .profile-layout{gap:9px}
+ .tabs{margin:0 -1px;top:57px;padding:7px;display:flex;gap:6px;position:sticky;z-index:4;border-radius:11px}
+ .tabs button{width:auto;flex:0 0 auto;min-width:113px;padding:9px 12px;min-height:42px}
+ .experience .experience-body{padding:0 11px 11px}
+ .achievement .achievement-body{padding:0 11px 11px}
+ .form{grid-template-columns:1fr;gap:10px}
+ .full{grid-column:1}
+ .profile-submit{bottom:calc(77px + env(safe-area-inset-bottom));padding:9px 10px}
+ .profile-submit .btn{flex:1}
+ .feature-page .container{padding:0 0 calc(5px + env(safe-area-inset-bottom))}
+ .feature-page .bottomnav{display:none}
+ .feature-page .top{height:48px}
+ .feature-page .topright{display:none}
+ .feature-page .frame-card{border:0;border-radius:0}
+ .feature-page .frame-card iframe{height:calc(100dvh - 102px - env(safe-area-inset-bottom));min-height:360px}
+ .feature-page .frame-header{padding:5px 9px;min-height:50px}
+ .feature-page .frame-header strong{font-size:12px}
+ .feature-page .frame-header .row{display:none}
+ .feature-top{padding:8px 9px;margin:0}
+ .feature-page .note{display:none}
+ .mobile-more{display:block;position:fixed;inset:0;z-index:11}
+ .mobile-more .backdrop{position:absolute;inset:0;background:rgba(10,27,51,.5);border:0;width:100%}
+ .mobile-more .sheet{position:absolute;bottom:0;left:0;right:0;background:#fff;border-radius:18px 18px 0 0;padding:12px 14px calc(82px + env(safe-area-inset-bottom));box-shadow:0 -12px 38px #0c214133;max-height:85dvh;overflow:auto}
+ .mobile-more .sheet h2{margin:3px 0 13px}
+ .mobile-more .sheet nav{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+ .mobile-more .sheet nav button{text-align:left;padding:12px;border:1px solid #e1e9f3;border-radius:10px;min-height:48px;background:#f8fbff;color:#234972;font-weight:700}
+ .mobile-more .sheet button:focus-visible{outline-offset:-2px}
+ .bottomnav{box-shadow:0 -4px 16px #172b4411;min-height:63px}
+ .bottomnav button{min-width:52px;min-height:51px}
+ .bottomnav b{font-size:19px}
+ .note{margin:10px 0;padding:10px}
+ .previewflag{font-size:9px;padding:5px 8px;bottom:calc(67px + env(safe-area-inset-bottom))}
+}
+@media(max-width:365px){
+ .container{padding-left:9px;padding-right:9px}
+ .bottomnav button{min-width:44px;font-size:9px}
+ .tabs button{min-width:107px}
+ .topright>.btn{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}}
+
 </style>
 </head>
-<body><div id="root"></div><div class="previewflag">STAGE 1 · DESIGN COPY</div>
+<body><div id="root"></div><div class="previewflag">STAGE 2 · DESIGN COPY</div>
 <script>
 "use strict";
 const NAV=[["home","Dashboard","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social Hub","◇"],["rank","My Rankings","▤"],["usage","Usage & Credits","◷"],["account","Account","⚙"]];
 const TABS=["Work Experience","Education","Achievements","Interests","Skills"];
 const DEMO_JOBS=[{id:"sample-job-1",employer:"Example Capital",title:"Corporate Finance Analyst",jd:"Financial modelling, valuation, Excel, transaction analysis and clear stakeholder communication."},{id:"sample-job-2",employer:"Sample Wealth",title:"Wealth Planner",jd:"Provide planning support, client suitability review and wealth reporting."}];
-const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",lastMessage:""};
+const app={uid:null,view:"home",section:"Work Experience",profiles:{},jobsPage:"dashboard",lastMessage:"",moreOpen:false,rankJobId:"sample-job-1",dirty:false};
 function safe(t){return String(t??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 function model(uid){return {name:uid==="a"?"Abhishek (sample)":uid==="p"?"Pooja (sample)":"New member (sample)",headline:"Financial services professional",goals:"Corporate Finance / Wealth Management",location:"Dublin, Ireland",saves:0,ranking:{},experience:[{company:"Example Advisory",title:"Associate",start:"2025-01",end:"",location:"Dublin",summary:"Client advisory and workflow improvements.",achievements:[{challenge:"Manual client reporting required a clearer review process.",action:"Coordinated a new review checklist and case tracking workflow.",result:"Made reporting more consistent.",metric:"",unit:"",evidence:"Self-reported; verify before using a figure",bullet:"Improved client case reporting by coordinating a review checklist and introducing consistent tracking."}]}],education:[{school:"Example University",degree:"MSc Finance",dates:"2023–2024"}],achievements:[{name:"Professional development",detail:"Add qualifications, dates and supporting documents."}],interests:[{name:"Private wealth",detail:"Career interest"}],skills:[{name:"Financial modelling",level:"Advanced"}]}}
 function p(){return app.profiles[app.uid]}
@@ -112,7 +216,7 @@ function pageTitle(title,subtitle){return '<div class="eyebrow">My workspace</di
 function note(msg){return '<div class="note"><strong>Design-only version</strong>'+safe(msg||"All screens use sample information. No live Google, OpenAI, LinkedIn, GitHub Actions, Sheets or Drive requests are made.")+'</div>'}
 function login(){return '<main class="loginbg"><div class="login"><div class="loginleft"><strong style="font-size:26px">Garamaal.</strong><h1>Your career, all in one place.</h1><p>Discover shared opportunities, and keep profiles, CVs, rankings and professional relationships separate for every user.</p><p class="small">Future path: Google → Firebase Auth UID → private workspace and spending controls.</p></div><div class="loginright"><div class="eyebrow">Welcome to Garamaal</div><h2>Sign in to your workspace</h2><p class="muted small">These sign-ins are illustrative. They do not access or modify either sample account.</p>'+btn("Continue with Google — simulation","enter","n","primary")+btn("Explore Abhishek’s sample","enter","a")+btn("Explore Pooja’s sample","enter","p")+'<div class="micro">Future: invitations, ownership rules, terms, profile onboarding, credit limits and API usage.</div></div></div></main>'}
 function shell(content){const menu=NAV.map(([id,label,ic])=>'<button class="navlink" data-nav="'+id+'" '+(app.view===id?'aria-current="page"':'')+'><span class="navicon">'+ic+'</span>'+label+'</button>').join("");
-const mobile=[["home","Home","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social","◇"],["account","More","⚙"]].map(([id,l,ic])=>'<button data-nav="'+id+'" '+(app.view===id?'aria-current="page"':'')+'><b>'+ic+'</b>'+l+'</button>').join("");
+const mobile=[["home","Home","▦"],["jobs","Jobs","⌕"],["profile","Profile","◉"],["social","Social","◇"],["more","More","⚙"]].map(([id,l,ic])=>'<button '+(id==="more"?'data-action="toggle-more" aria-expanded="'+app.moreOpen+'"':'data-nav="'+id+'"')+' '+((id==="more"?["rank","usage","account"].includes(app.view):app.view===id)?'aria-current="page"':'')+'><b>'+ic+'</b>'+l+'</button>').join("");
 return '<div class="layout screen"><aside class="side"><div class="brand">Garamaal<small>Career Control Centre</small></div><nav class="sidenav" aria-label="Main navigation">'+menu+'</nav><div class="sidefoot">Stage 1 · UI-only branch<br>Original Jobs and Social code retained in separate offline copies.</div></aside><div class="main"><header class="top"><strong>Garamaal <span class="muted">/ '+safe(NAV.find(x=>x[0]===app.view)?.[1])+'</span></strong><div class="topright"><span class="pill">Preview only</span><span class="avatar">'+safe(p().name.slice(0,1))+'</span>'+btn("Sign out","signout")+'</div></header><main class="container">'+content+'</main></div></div><nav class="bottomnav" aria-label="Mobile navigation">'+mobile+'</nav>'}
 function home(){return pageTitle("Your career dashboard","Existing Jobs features, now within an account-first design")+note("The complete original Jobs and Social pages are available in their own tabs, preserving their controls and flow. All data is mocked.")+'<div class="grid three" style="margin:14px 0"><div class="card"><div class="kpi">168</div><span class="small muted">Jobs shown in legacy demo</span></div><div class="card"><div class="kpi">2</div><span class="small muted">Shared sample vacancies</span></div><div class="card"><div class="kpi">0</div><span class="small muted">Paid CV runs in this copy</span></div></div><div class="grid two"><section class="card"><div class="row"><span class="pill">Your Profile</span><strong>64%</strong></div><h2 style="margin-top:12px">Strengthen your career evidence</h2><p class="small muted">Keep employer history, relevant skills and evidence-backed results in your own profile.</p><div class="progress"><div></div></div>'+btn("Open my profile","goto","profile","primary")+'</section><section class="card"><h2>Existing workflows</h2><p class="small muted">Keep Dashboard, Discovery, Make CV, Add Job, Research, Swipe and Follow-ups exactly where they already function.</p><div class="row">'+btn("Browse Jobs","goto","jobs","primary")+btn("Social Hub","goto","social")+'</div></section></div><div class="card" style="margin-top:16px"><h2>Rank only my jobs</h2><p class="small muted">For the initial multi-user plan, each member can take a scoped prompt to their personal ChatGPT, then return a validated score without consuming your ranking API budget.</p>'+btn("Try ranking preview","goto","rank","soft")+'</div>'}
 function experience(x,i){return '<div class="experience"><div class="row"><strong>'+safe(x.company||"New employer")+'</strong><span class="pill">Role '+(i+1)+'</span></div><div class="form" style="margin-top:12px">'+field("experience:"+i+":company","Company",x.company)+field("experience:"+i+":title","Designation",x.title)+field("experience:"+i+":start","Start date",x.start,"month")+field("experience:"+i+":end","End date (blank = present)",x.end,"month")+field("experience:"+i+":location","Location",x.location)+field("experience:"+i+":summary","Role overview / unedited source notes",x.summary,"textarea",true)+'</div><hr class="section-divider"><div class="row"><strong>STAR results and evidence</strong>'+btn("+ Achievement","add-ach",i)+'</div>'+x.achievements.map((a,j)=>'<section class="achievement"><h3 style="font-size:14px">Achievement '+(j+1)+'</h3><div class="form">'+field("ach:"+i+":"+j+":challenge","Situation / challenge",a.challenge,"textarea",true)+field("ach:"+i+":"+j+":action","Action",a.action,"textarea",true)+field("ach:"+i+":"+j+":result","Outcome",a.result,"textarea",true)+field("ach:"+i+":"+j+":metric","Numeric value (optional)",a.metric)+field("ach:"+i+":"+j+":unit","Unit, baseline / timeframe",a.unit)+field("ach:"+i+":"+j+":evidence","Evidence / status",a.evidence,"textarea",true)+field("ach:"+i+":"+j+":bullet","Preferred CV bullet (optional)",a.bullet,"textarea",true)+'</div></section>').join("")+'<div class="proof">STAR quality rule: results must be evidence-backed. Numbers are optional and cannot be fabricated to satisfy formatting; CV bullets remain user-reviewable.</div></div>'}
@@ -139,17 +243,19 @@ if(seg[0]==="award")obj=d.achievements[+seg[1]];
 if(seg[0]==="skill")obj=d.skills[+seg[1]];
 if(obj)obj[seg.at(-1)]=v;
 }
-document.addEventListener("input",event=>{if(app.uid&&event.target.dataset.path)update(event.target)});
+document.addEventListener("input",event=>{if(app.uid&&event.target.dataset.path){update(event.target);app.dirty=true;const n=document.getElementById("draft-status");if(n)n.textContent="Changes in this preview";}});
 document.addEventListener("click",async event=>{
 const hit=event.target.closest("[data-action],[data-nav],[data-tab]");if(!hit)return;
-if(hit.dataset.nav){app.view=hit.dataset.nav;render();window.scrollTo(0,0);return}
+if(hit.dataset.nav){app.view=hit.dataset.nav;app.moreOpen=false;render();window.scrollTo(0,0);return}
 if(hit.dataset.tab){app.section=hit.dataset.tab;render();return}
 const act=hit.dataset.action,val=hit.dataset.value;
+if(act==="toggle-more"){app.moreOpen=!app.moreOpen;render();return}
+if(act==="close-more"){app.moreOpen=false;render();return}
 if(act==="enter"){app.uid="sample-"+val;if(!app.profiles[app.uid])app.profiles[app.uid]=model(val);app.view="home";render();return}
-if(act==="signout"){app.uid=null;render();return}
+if(act==="signout"){app.uid=null;app.moreOpen=false;render();return}
 if(!app.uid)return;
 const d=p();
-if(act==="goto"){app.view=val;render();return}
+if(act==="goto"){app.view=val;app.moreOpen=false;render();window.scrollTo(0,0);return}
 if(act==="add-exp")d.experience.push({company:"",title:"",start:"",end:"",location:"",summary:"",achievements:[]});
 else if(act==="add-ach")d.experience[+val].achievements.push({challenge:"",action:"",result:"",metric:"",unit:"",evidence:"",bullet:""});
 else if(act==="add-edu")d.education.push({school:"",degree:"",dates:""});
