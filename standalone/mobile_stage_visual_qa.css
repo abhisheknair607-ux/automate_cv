@@ -1,0 +1,100 @@
+/* Mobile V3 isolated Stage Visual QA refinements — prototype routes only.
+   Built on the full Jobs/Social frontend without changing its code or handlers. */
+:root{--gm-qa-ink:#1b1621;--gm-qa-paper:#fffdf6;--gm-qa-neon:#dcff54;--gm-qa-lilac:#d9aaee}
+body.gmv3-jobs-workspace .gmv3-tabbar,
+body.gmv3-social-workspace .gmv3-tabbar{
+  box-sizing:border-box;
+  width:min(100%,900px);
+  padding-left:max(6px,env(safe-area-inset-left));
+  padding-right:max(6px,env(safe-area-inset-right));
+  padding-bottom:calc(6px + env(safe-area-inset-bottom));
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button,
+body.gmv3-social-workspace .gmv3-tabbar button{
+  min-height:54px;min-width:0;overflow:visible;
+  -webkit-tap-highlight-color:transparent;
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button:focus-visible,
+body.gmv3-social-workspace .gmv3-tabbar button:focus-visible,
+body.gmv3-jobs-workspace .gmv3-panel button:focus-visible,
+body.gmv3-social-workspace .gmv3-panel button:focus-visible{
+  outline:3px solid #7331ad;outline-offset:0;border-radius:9px;
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button[aria-current="page"],
+body.gmv3-social-workspace .gmv3-tabbar button[aria-current="page"]{
+  box-shadow:inset 0 -3px var(--gm-qa-neon);
+}
+body.gmv3-jobs-workspace .gmv3-swipe-surface,
+body.gmv3-social-workspace .gmv3-swipe-surface{
+  padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  overscroll-behavior:contain;
+}
+body.gmv3-jobs-workspace .gmv3-panel,
+body.gmv3-social-workspace .gmv3-panel{
+  box-sizing:border-box;
+  max-height:min(88dvh,700px);
+  padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  overscroll-behavior:contain;
+}
+body.gmv3-jobs-workspace.gmv3-drawer-open .gmv3-tabbar,
+body.gmv3-social-workspace.gmv3-drawer-open .gmv3-tabbar{
+  pointer-events:none;
+}
+body.gmv3-jobs-workspace .gmv3-drawer,
+body.gmv3-social-workspace .gmv3-drawer{
+  max-height:100dvh;overscroll-behavior:contain;
+  padding-bottom:calc(26px + env(safe-area-inset-bottom));
+}
+body.gmv3-jobs-workspace .gmv3-drawer-signoff,
+body.gmv3-social-workspace .gmv3-drawer-signoff{flex-shrink:0}
+body.gmv3-jobs-workspace .topbar,
+body.gmv3-social-workspace>header{
+  min-width:0;
+  padding-left:max(8px,env(safe-area-inset-left));
+  padding-right:max(8px,env(safe-area-inset-right));
+}
+body.gmv3-jobs-workspace .topbar .top-actions,
+body.gmv3-social-workspace>header .top-actions{
+  min-width:0;display:flex;align-items:center;
+}
+body.gmv3-jobs-workspace .topbar .crumb{
+  min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+/* Compact header only when truly narrow; do not touch existing filters or candidate controls. */
+@media(max-width:375px){
+ body.gmv3-jobs-workspace .topbar,
+ body.gmv3-social-workspace>header{gap:4px}
+ body.gmv3-jobs-workspace #gmv3-home-button,
+ body.gmv3-social-workspace #gmv3-social-back{min-width:38px;min-height:40px}
+ body.gmv3-jobs-workspace .gmv3-tabbar button,
+ body.gmv3-social-workspace .gmv3-tabbar button{font-size:9px;letter-spacing:-.03em}
+ body.gmv3-jobs-workspace .gmv3-tabbar .gmv3-tabicon,
+ body.gmv3-social-workspace .gmv3-tabbar .gmv3-tabicon{max-width:43px}
+ body.gmv3-jobs-workspace .gmv3-panel,
+ body.gmv3-social-workspace .gmv3-panel{padding-left:12px;padding-right:12px}
+}
+/* When typing into existing forms, avoid trapping fields behind the fixed tab bar. */
+@media(max-width:720px){
+ body.gmv3-jobs-workspace:has(input:focus,textarea:focus,select:focus) .gmv3-tabbar,
+ body.gmv3-social-workspace:has(input:focus,textarea:focus,select:focus) .gmv3-tabbar{
+   opacity:0;pointer-events:none;transform:translateY(100%);
+ }
+ body.gmv3-jobs-workspace #content,
+ body.gmv3-social-workspace main{
+   scroll-padding-bottom:calc(88px + env(safe-area-inset-bottom));
+ }
+}
+/* Landscape and short screens: the drawer and menus retain scrollable content. */
+@media(max-height:510px){
+ body.gmv3-jobs-workspace .gmv3-panel,
+ body.gmv3-social-workspace .gmv3-panel{max-height:78dvh}
+ body.gmv3-jobs-workspace .gmv3-drawer,
+ body.gmv3-social-workspace .gmv3-drawer{padding-top:12px}
+ body.gmv3-jobs-workspace .gmv3-drawer-person,
+ body.gmv3-social-workspace .gmv3-drawer-person{padding-top:8px;padding-bottom:8px}
+}
+/* Remove motion for accessibility, including focus-on-form transition. */
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace .gmv3-tabbar,
+ body.gmv3-social-workspace .gmv3-tabbar{animation:none!important;transition:none!important;transform:none!important}
+}
