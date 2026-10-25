@@ -66,7 +66,7 @@ test("Social root is unchanged, opt-in Social retains original Research, Swipe a
   const html=await optin.text();
   assertAll(html,[
    'id="bottomNav"','id="candidatePair"','function inboxView(){','function followups(){','function swipe(){',
-   'gmv3-social-tabs','gmv3-account-drawer','mobile_stage_visual_qa'
+   'gmv3-social-tabs','gmv3-account-drawer','max-height:510px'
   ]);
   assert.ok(!html.includes('src="/prototype/hub-jobs.js"'),"Social should not load Jobs-specific logic");
  });
