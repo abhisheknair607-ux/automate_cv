@@ -100,6 +100,7 @@ function gmListJobsFaceted(options){
  else if(sort==="company")rows.sort((a,b)=>a.company.localeCompare(b.company));
  else if(sort==="designation")rows.sort((a,b)=>a.role.localeCompare(b.role));
  else if(sort==="location")rows.sort((a,b)=>a.location.localeCompare(b.location));
+ else if(sort==="department")rows.sort((a,b)=>a.department.localeCompare(b.department));
  else if(sort==="score"&&source==="fresh")rows.sort((a,b)=>(Number(b.score)||-1)-(Number(a.score)||-1));
  else rows.sort((a,b)=>b.row-a.row);
  const pageSize=Math.min(50,Math.max(1,Math.floor(Number(options.pageSize)||25)));
