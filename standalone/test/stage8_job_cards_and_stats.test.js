@@ -33,6 +33,7 @@ test("Swipe card includes legitimate employer link and compact tap-expand withou
  assert.doesNotThrow(()=>new vm.Script(src));
  assert.match(src,/const url=safeLink\(job\.url\)/);
  assert.match(src,/class="gmv3-swipe-title-link"/);
+ assert.match(src,/class="gmv3-swipe-company-link"/);
  assert.match(src,/target="_blank" rel="noopener noreferrer"/);
  assert.match(src,/aria-expanded=/);
  assert.match(src,/gmv3-swipe-extra/);
