@@ -48,7 +48,7 @@ jobs:
           script: |
             const token = await core.getIDToken();
             const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
-            const expected = 'repo:abhisheknair607-ux/automate_cv:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            const expected = 'repo:abhisheknair607-ux@245783264/automate_cv@1389062184:ref:refs/heads/prototype/collage-frontend-integration-20261025';
             core.info('GitHub OIDC subject: ' + claims.sub);
             core.info('GitHub OIDC repository: ' + claims.repository);
             core.info('GitHub OIDC ref: ' + claims.ref);
