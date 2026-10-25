@@ -342,3 +342,15 @@ body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-t
  #gmv3-collage-intro .gmv3-intro-controls{gap:6px}
  #gmv3-collage-intro .gmv3-intro-controls button{font-size:11px;padding:7px 10px}
 }
+
+
+/* Cinematic edge-fill: the centered paper stays uncut, the side columns become motion rather than black bands. */
+#gmv3-collage-intro .gmv3-intro-ambient{
+ position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;object-position:center;
+ filter:blur(clamp(13px,2vw,38px)) brightness(.68) saturate(.86);
+ opacity:.95;pointer-events:none;transform:scale(1.045);z-index:0;
+}
+#gmv3-collage-intro .gmv3-intro-video{z-index:1}
+#gmv3-collage-intro .gmv3-intro-controls{z-index:5}
+#gmv3-collage-intro.gmv3-film-fallback .gmv3-intro-ambient{display:none}
+@media(prefers-reduced-motion:reduce){#gmv3-collage-intro .gmv3-intro-ambient{display:none!important}}
