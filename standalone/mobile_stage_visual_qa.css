@@ -98,3 +98,42 @@ body.gmv3-jobs-workspace .topbar .crumb{
  body.gmv3-jobs-workspace .gmv3-tabbar,
  body.gmv3-social-workspace .gmv3-tabbar{animation:none!important;transition:none!important;transform:none!important}
 }
+
+/* Stage 3 visual QA: original sprite art had artwork at every crop boundary.
+   The new transparent sprite supplies 8–12px internal safe margins and
+   soft irregular paper edges. Keep all four original subjects in-frame. */
+#gmv3-launch .gmv3-action .gmv3-artwork{
+  width:57%!important;height:105%!important;
+  right:-1%!important;bottom:-2%!important;top:auto!important;
+  background-size:400% 100%!important;background-repeat:no-repeat!important;
+  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 20%,#000 93%,transparent 100%)!important;
+  mask-image:linear-gradient(90deg,transparent 0%,#000 20%,#000 93%,transparent 100%)!important;
+  -webkit-mask-composite:source-over!important;
+  filter:contrast(1.04) saturate(1.06)!important;
+}
+#gmv3-launch .gmv3-action:nth-child(3) .gmv3-artwork{
+  width:59%!important;right:0!important;
+}
+#gmv3-launch .gmv3-action:after{
+  width:64%!important;
+  background:linear-gradient(90deg,var(--gm4-card) 12%,var(--gm4-card) 46%,transparent 100%)!important;
+}
+#gmv3-launch .gmv3-action:hover .gmv3-artwork{
+  transform:translateX(1px) rotate(.55deg) scale(1.015)!important;
+}
+#gmv3-launch .gmv3-action:active .gmv3-artwork{
+  transform:rotate(-.5deg) scale(.985)!important;
+}
+@media(max-width:375px){
+  #gmv3-launch .gmv3-action .gmv3-artwork{
+    width:56%!important;right:-1%!important;height:102%!important;
+  }
+  #gmv3-launch .gmv3-action:nth-child(3) .gmv3-artwork{
+    width:57%!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  #gmv3-launch .gmv3-action .gmv3-artwork{
+    transition:none!important;transform:none!important;
+  }
+}
