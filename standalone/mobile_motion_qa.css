@@ -68,7 +68,14 @@
 .gmv3-motion-tap{animation:gmv3-twist-in .35s ease both}
 @media(max-width:370px){#gmv3-launch .gmv3-action .gmv3-artwork{width:39%;right:-8px}#gmv3-launch .gmv3-action .gmv3-copy{max-width:67%}.gmv3-drawer{padding-left:15px;padding-right:15px}}
 @media(hover:none){#gmv3-launch .gmv3-action:hover{transform:none;box-shadow:none}#gmv3-launch .gmv3-action:hover .gmv3-artwork{transform:none}.gmv3-tabbar button:hover:not([aria-current="page"]){transform:none;background:transparent}}
+
+.gmv3-social-avatar{display:inline-grid;place-items:center;height:36px;width:36px;min-width:36px;border:2px solid #ddff58;border-radius:50%;background:#493178;color:#fff;font-weight:900;font-size:14px;cursor:pointer;margin-left:5px;transition:transform .24s cubic-bezier(.2,1.4,.4,1)}
+.gmv3-social-avatar:hover{transform:rotate(9deg) scale(1.1)}
+.gmv3-social-avatar:focus-visible,#avatar[role="button"]:focus-visible{outline:3px solid #ddff58;outline-offset:3px}
+#avatar[role="button"]{cursor:pointer;transition:transform .25s cubic-bezier(.2,1.4,.4,1)}
+#avatar[role="button"]:hover{transform:rotate(-9deg) scale(1.08)}
+body.gmv3-drawer-open{overflow:hidden!important}
 @media(prefers-reduced-motion:reduce){
 #gmv3-launch .gmv3-action,#gmv3-launch .gmv3-action:before,#gmv3-launch .gmv3-artwork,#gmv3-launch .gmv3-symbol,#gmv3-launch .gmv3-journey span:last-child,
-.gmv3-tabbar button,.gmv3-tabbar button .gmv3-tabicon,.gmv3-drawer,.gmv3-drawer-shade{animation:none!important;transition:none!important;transform:none!important}
+.gmv3-tabbar button,.gmv3-tabbar button .gmv3-tabicon,.gmv3-drawer,.gmv3-drawer-shade,.gmv3-social-avatar,#avatar[role="button"]{animation:none!important;transition:none!important;transform:none!important}
 }
