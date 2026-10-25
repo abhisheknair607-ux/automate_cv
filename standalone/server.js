@@ -129,6 +129,9 @@ app.get("/prototype/hub.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_hubs.css")));
 app.get("/prototype/hub-jobs.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_hub.js")));
+app.get("/prototype/motion-art.svg",(_req,res)=>res.type("image/svg+xml").sendFile(path.join(__dirname,"mobile_motion_artwork.svg")));
+app.get("/prototype/motion.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_motion_qa.css")));
+app.get("/prototype/motion-drawer.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_motion_drawer.js")));
 app.get("/prototype",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
@@ -139,7 +142,8 @@ app.get("/prototype",(req,res)=>{
   // Use the same backend bridge and dashboard feature modules as GET /.
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css">'+
-    '<link rel="stylesheet" href="/prototype/hub.css"></head>');
+    '<link rel="stylesheet" href="/prototype/hub.css">'+
+    '<link rel="stylesheet" href="/prototype/motion.css"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -147,7 +151,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js"></script>'+
-    '<script src="/prototype/hub-jobs.js"></script></body>');
+    '<script src="/prototype/hub-jobs.js"></script>'+
+    '<script src="/prototype/motion-drawer.js"></script></body>');
   res.type("html").send(html);
 });
 
