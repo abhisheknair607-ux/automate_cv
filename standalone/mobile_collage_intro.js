@@ -1,58 +1,91 @@
-/* Garamaal prototype-only intro trigger.
- * Plays AFTER existing Firebase login, then reveals the SAME live DOM.
- * Never fetches, changes candidate data, submits applications or runs CV generation.
+/* /prototype only. The approved MP4 clips stop before their old mock-home segment.
+ * The outgoing film then reveals the fully authenticated original Jobs/Social app.
+ * Absolutely no backend writes or API generation are triggered by this code.
  */
 (function(){
  "use strict";
  if(!document.body.classList.contains("gmv3-landing"))return;
- const reduce=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
  const root=document.getElementById("gmv3-launch");
  if(!root)return;
- let intro=null,delay=null,started=false;
- const clean=()=>{
-  if(delay)clearTimeout(delay);
-  if(!intro)return;
-  intro.classList.add("gmv3-out");
-  setTimeout(()=>{intro?.remove();intro=null;root.removeAttribute("aria-hidden");},600);
- };
- function play(force=false){
+ const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+ const desktop=()=>window.matchMedia?.("(min-width: 800px)")?.matches;
+ const url=()=>"/prototype/media/intro-"+(desktop()?"desktop":"mobile")+".mp4";
+ let film=null,video=null,started=false,timeout=null,closing=false;
+ function finish(){
+  if(!film||closing)return;
+  closing=true;
+  document.body.classList.add("gmv3-transfer");
+  film.classList.add("gmv3-out");
+  if(video){video.pause();}
+  if(timeout){clearTimeout(timeout);timeout=null;}
+  setTimeout(()=>{film?.remove();film=null;video=null;root.removeAttribute("aria-hidden");closing=false},620);
+ }
+ function begin(force=false){
+  if(reduced)return;
   if(started&&!force)return;
-  if(intro)intro.remove();
-  if(delay)clearTimeout(delay);
-  started=true;
-  if(reduce)return;
-  intro=document.createElement("div");
-  intro.id="gmv3-collage-intro";
-  intro.setAttribute("role","presentation");
-  intro.innerHTML='<div class="gmv3-paper"><div class="gmv3-doodles"><span>OFFICE ↗<br>INTERVIEW ✶<br>DESK</span><span>✎ CV<br>✦ CAREER<br>☕ WORK</span></div><strong>Garamaal</strong></div>'+
-   '<span class="gmv3-star" aria-hidden="true">✦</span><span class="gmv3-star" aria-hidden="true">✳</span><span class="gmv3-star" aria-hidden="true">✦</span><span class="gmv3-star" aria-hidden="true">✧</span>'+
-   '<span class="gmv3-intro-label">YOUR NEXT CHAPTER STARTS HERE</span><button type="button" class="gmv3-intro-skip">Skip intro →</button>';
+  if(film){film.remove();film=null}
+  if(timeout)clearTimeout(timeout);
+  started=true;closing=false;
+  document.body.classList.remove("gmv3-transfer");
+  film=document.createElement("div");
+  film.id="gmv3-collage-intro";
+  const accessibilityLabel="Garamaal scrapbook paper unfolding video";
+  film.innerHTML='<video class="gmv3-intro-video" playsinline autoplay muted preload="auto" disablepictureinpicture aria-label="'+accessibilityLabel+'"></video>'+
+    '<div class="gmv3-intro-controls"><button class="gmv3-intro-sound" type="button" aria-label="Enable intro sound">Sound off</button><button class="gmv3-intro-skip" type="button">Skip intro →</button></div>';
   root.setAttribute("aria-hidden","true");
-  document.body.appendChild(intro);
-  intro.querySelector("button").addEventListener("click",clean,{once:true});
-  delay=setTimeout(clean,3850);
+  document.body.appendChild(film);
+  video=film.querySelector("video");video.src=url();video.muted=true;
+  video.addEventListener("timeupdate",()=>{if(video&&video.currentTime>=3.77)finish()});
+  video.addEventListener("ended",finish,{once:true});
+  video.addEventListener("error",()=>{
+    // No endless loading screen on unsupported codecs or interrupted connections.
+    if(!film||closing)return;
+    film.classList.add("gmv3-film-fallback");
+    film.innerHTML='<div class="gmv3-paper"><div class="gmv3-doodles"><span>OFFICE ↗<br>INTERVIEW ✶</span><span>✎ CV<br>✦ CAREER</span></div><strong>Garamaal</strong></div><button class="gmv3-intro-skip" type="button">Skip intro →</button>';
+    film.querySelector("button")?.addEventListener("click",finish,{once:true});
+    timeout=setTimeout(finish,2600);
+  },{once:true});
+  film.querySelector(".gmv3-intro-skip").addEventListener("click",finish,{once:true});
+  film.querySelector(".gmv3-intro-sound").addEventListener("click",e=>{
+   if(!video)return;
+   video.muted=!video.muted;
+   e.currentTarget.textContent=video.muted?"Sound off":"Sound on";
+   e.currentTarget.setAttribute("aria-label",video.muted?"Enable intro sound":"Mute intro sound");
+  });
+  video.play().catch(()=>{if(video)video.muted=true;});
+  // Fail closed: on an unusually slow device, always reveal the application.
+  timeout=setTimeout(finish,5000);
  }
  const replay=document.createElement("button");
  replay.id="gmv3-intro-replay";replay.type="button";replay.textContent="✦ Replay intro";
  replay.style.cssText="position:fixed;right:15px;bottom:14px;z-index:122;border:1px solid #504457;border-radius:30px;color:#eee;background:#252129;padding:7px 12px;font:700 10px system-ui;cursor:pointer";
- replay.addEventListener("click",()=>play(true));
+ replay.addEventListener("click",()=>begin(true));
  root.appendChild(replay);
- if(reduce)return;
- // The untouched Firebase bridge owns authentication; do not obscure sign-in.
- // Start only once it has hidden its login overlay.
- const canStart=()=>{const login=document.getElementById("cv-login-overlay");return !!login&&login.style.display==="none"};
- const start=()=>{if(started||!canStart())return;try{if(sessionStorage.getItem("gmv3-intro-seen")==="1"){started=true;return}sessionStorage.setItem("gmv3-intro-seen","1")}catch(_){}play()};
- if(canStart()){start();return}
- const observer=new MutationObserver(()=>{if(canStart()){observer.disconnect();start()}});
- observer.observe(document.body,{childList:true,subtree:false,attributes:true,attributeFilter:["style"]});
- // Login overlay may be created later; observing its style independently is safer.
- const checkLogin=new MutationObserver(()=>{
+ if(reduced)return;
+ function signedIn(){
   const login=document.getElementById("cv-login-overlay");
-  if(login){checkLogin.disconnect();observer.disconnect();
-   if(canStart()){start();return}
-   const watch=new MutationObserver(()=>{if(canStart()){watch.disconnect();start()}});
+  return !!login&&login.style.display==="none";
+ }
+ function startOnce(){
+  if(started||!signedIn())return;
+  try {
+   if(sessionStorage.getItem("gmv3-video-seen")==="1"){started=true;return}
+   sessionStorage.setItem("gmv3-video-seen","1");
+  } catch(_){}
+  begin();
+ }
+ // Firebase bridge, not this visual layer, owns Google authentication.
+ if(signedIn()){startOnce();return}
+ const observeLogin=()=>{
+   const login=document.getElementById("cv-login-overlay");
+   if(!login)return false;
+   if(signedIn()){startOnce();return true}
+   const watch=new MutationObserver(()=>{if(signedIn()){watch.disconnect();startOnce()}});
    watch.observe(login,{attributes:true,attributeFilter:["style"]});
-  }
- });
- if(!document.getElementById("cv-login-overlay"))checkLogin.observe(document.body,{childList:true});
+   return true;
+ };
+ if(!observeLogin()){
+  const observer=new MutationObserver(()=>{if(observeLogin())observer.disconnect()});
+  observer.observe(document.body,{childList:true});
+ }
 })();
