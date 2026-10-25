@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap");
 /* Garamaal mobile V3 | Stage 2: navigation ONLY; original feature DOM and handlers remain unchanged. */
 :root{--g3-ink:#171717;--g3-lime:#ddff5a;--g3-purple:#ce8af0}
 .gmv3-tabbar[hidden]{display:none!important}
