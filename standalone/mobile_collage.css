@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700;800&display=swap");
 
 /* Garamaal collage front-end, additive and scoped to the prototype only.
    Approved artwork sprites from supplied Garamaal visual QA. */
@@ -127,7 +128,7 @@ body.gmv3-social-workspace :is(a,button,input,textarea,select):focus-visible{
 body.gmv3-jobs-workspace :is(.heading h1,.subhead,.flow-title,.drawer h2,.drawer h3,.gmv3-panel h2,.gmv3-swipe-body h2),
 body.gmv3-social-workspace :is(.heading h1,.section-head b,.research-card-head h2,.swipe-card h2,.gmv3-panel h2,.gmv3-swipe-body h2),
 #gmv3-launch :is(.gmv3-subbar strong,.gmv3-subbody h2){
-  font-family:"Trebuchet MS","Arial Black",system-ui,sans-serif!important;
+  font-family:"Bricolage Grotesque","Trebuchet MS","Arial Black",system-ui,sans-serif!important;
   font-weight:950!important;letter-spacing:-.045em!important;line-height:1.15;
 }
 body.gmv3-jobs-workspace .heading h1,
