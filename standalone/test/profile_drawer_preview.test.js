@@ -28,7 +28,7 @@ test("Right drawer reuses A/P, costs, Google identity switch and original job ro
 test("Profile V1 keeps browser-local QA edits separate by candidate without CV writes",()=>{
  const editor=read("standalone/mobile_profile_editor.js");
  assert.match(editor,/storeKey=name=>/);
- assert.match(editor,/name\(\)/);
+ assert.match(editor,/current=who\(\)/);
  for(const section of ["identity","work","education","certifications","achievements","skills","story","preferences"])
   assert.ok(editor.includes('"'+section+'"'));
  for(const field of ["employer","title","period","qualification","roles","departments","locations","visa"])
