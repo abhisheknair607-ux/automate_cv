@@ -7,7 +7,8 @@ function context(){
  const taaza=[
   {row:2,company:"Bank Group",role:"Valuations Analyst",location:"London",url:"https://example.org/j-1",jdReady:true,preferences:{Abhishek:"",Pooja:""},categories:"Deals"},
   {row:3,company:"Tax Advisory",role:"Transfer Pricing Senior",location:"Dublin",url:"https://example.org/j-2",jdReady:false,preferences:{Abhishek:"",Pooja:"Favorite"},categories:"Tax"},
-  {row:4,company:"WealthCo",role:"Private Wealth Associate",location:"London",url:"https://example.org/j-3",jdReady:true,preferences:{Abhishek:"Not Interested",Pooja:""},categories:""}
+  {row:4,company:"WealthCo",role:"Private Wealth Associate",location:"London",url:"https://example.org/j-3",jdReady:true,preferences:{Abhishek:"",Pooja:""},categories:""},
+  {row:5,company:"Advisory New",role:"Transfer Pricing Assistant",location:"Dublin",url:"https://example.org/j-4",jdReady:true,preferences:{Abhishek:"",Pooja:"Favorite"},categories:"Tax"}
  ];
  const fresh=[
   {row:3,company:"Bank Group",role:"Valuations Analyst",location:"London",url:"https://example.org/j-1",person:{Abhishek:ab,Pooja:po}},
@@ -32,7 +33,7 @@ function context(){
 }
 test("Preview job summaries distinguish prepared CVs, applications and connections for each candidate",()=>{
  const c=context(),a=c.gmPipelineStats("Abhishek"),p=c.gmPipelineStats("Pooja");
- assert.equal(a.discoveryJobs,3);assert.equal(a.makeCvJobs,3);assert.equal(a.cvPrepared,3);
+ assert.equal(a.discoveryJobs,4);assert.equal(a.makeCvJobs,3);assert.equal(a.cvPrepared,3);
  assert.equal(a.applied,2);assert.equal(a.appliedConnected,1);
  assert.equal(a.waitingToApply,1);assert.equal(a.waitingToConnect,1);
  assert.equal(p.cvPrepared,0);assert.equal(p.applied,1);assert.equal(p.appliedConnected,1);
@@ -51,11 +52,11 @@ test("Exact global facet filtering and sorting precedes pagination",()=>{
 test("Discovery department, category and candidate interest are source-safe",()=>{
  const c=context();
  const result=c.gmListJobsFaceted({candidate:"Pooja",source:"taaza",pageSize:25,tabId:"tax",facets:{department:"Transfer Pricing"},filter:"favorites"});
- assert.equal(result.total,1);assert.equal(result.rows[0].company,"Tax Advisory");
+ assert.equal(result.total,1);assert.equal(result.rows[0].company,"Advisory New");
  assert.equal(result.rows[0].favorite,true);
  assert.ok(!result.rows[0].preferences);
  const other=c.gmListJobsFaceted({candidate:"Abhishek",source:"taaza",pageSize:25,filter:"all"});
- assert.equal(other.total,0); // all three sample URLs are already in Freshmaal
+ assert.equal(other.total,1); // only the new Taaza URL is not in Freshmaal
 });
 test("Only preview scripts use the read-only query methods; baseline Jobs UI remains intact",()=>{
  const code=read("standalone/mobile_jobs_filters_stats.js");
