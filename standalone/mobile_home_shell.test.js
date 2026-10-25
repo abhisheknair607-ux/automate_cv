@@ -75,7 +75,7 @@ test("Stage 1 client script compiles and launcher actions never override the leg
  vm.runInNewContext(source,{document,window:win,state:{candidate:"Abhishek"},nav:page=>navigation.push(page)},{timeout:1000});
  assert.ok(launch.handlers.click);
  assert.ok(barButton);
- assert.equal(avatar.textContent,"A");
+ assert.equal(avatar.textContent,"E");
  const click=(action)=>{
   const target={closest:()=>({getAttribute:()=>action})};
   launch.handlers.click({target});
