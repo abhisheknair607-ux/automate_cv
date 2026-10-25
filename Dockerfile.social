@@ -12,6 +12,9 @@ COPY standalone/mobile_hubs.css /app/standalone/mobile_hubs.css
 COPY standalone/mobile_social_hub.js /app/standalone/mobile_social_hub.js
 COPY standalone/mobile_motion_qa.css /app/standalone/mobile_motion_qa.css
 COPY standalone/mobile_motion_drawer.js /app/standalone/mobile_motion_drawer.js
+COPY standalone/mobile_approved_asset_layer.css /app/standalone/mobile_approved_asset_layer.css
+COPY standalone/assets/navigation-states.css /app/standalone/assets/navigation-states.css
+COPY standalone/assets/header-controls.css /app/standalone/assets/header-controls.css
 COPY standalone/bridge.js /app/standalone/bridge.js
 USER node
 ENV PORT=8080
