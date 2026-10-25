@@ -129,6 +129,14 @@ app.get("/prototype/hub.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_hubs.css")));
 app.get("/prototype/hub-jobs.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_hub.js")));
+// Allowlisted branch artwork and intro script; never publicize backend file paths.
+const COLLAGE_ART=new Set(["home-collage-strip.webp","nav-collage-states.webp","back-avatar-controls.webp"]);
+app.get("/prototype/assets/:file",(req,res)=>{
+ if(!COLLAGE_ART.has(req.params.file))return res.status(404).end();
+ res.type("image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
+});
+app.get("/prototype/collage.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_collage.css")));
+app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
 app.get("/prototype",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
@@ -139,7 +147,8 @@ app.get("/prototype",(req,res)=>{
   // Use the same backend bridge and dashboard feature modules as GET /.
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css">'+
-    '<link rel="stylesheet" href="/prototype/hub.css"></head>');
+    '<link rel="stylesheet" href="/prototype/hub.css">'+
+    '<link rel="stylesheet" href="/prototype/collage.css"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -147,7 +156,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js"></script>'+
-    '<script src="/prototype/hub-jobs.js"></script></body>');
+    '<script src="/prototype/hub-jobs.js"></script>'+
+    '<script src="/prototype/collage-intro.js"></script></body>');
   res.type("html").send(html);
 });
 
