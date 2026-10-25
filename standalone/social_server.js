@@ -7,6 +7,7 @@
  */
 const express=require("express");
 const path=require("node:path");
+const fs=require("node:fs");
 const {GoogleAuth}=require("google-auth-library");
 const {initializeApp,getApps}=require("firebase-admin/app");
 const {getAuth}=require("firebase-admin/auth");
@@ -102,7 +103,19 @@ app.get("/config",async(_req,res)=>{
  catch{res.status(503).json({error:"Social sign-in configuration unavailable."})}
 });
 
-app.get("/social",(_req,res)=>res.type("html").sendFile(path.join(__dirname,"social.html")));
+// Only the ?gmv3=1 preview response gets the Stage 2 navigation skin.
+// Unflagged /social remains identical to the original Social service.
+app.get("/social",(req,res)=>{
+ if(req.query.gmv3!=="1")return res.type("html").sendFile(path.join(__dirname,"social.html"));
+ let html=fs.readFileSync(path.join(__dirname,"social.html"),"utf8");
+ const css=fs.readFileSync(path.join(__dirname,"mobile_hubs.css"),"utf8");
+ const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8");
+ if(!html.includes("</head>")||!html.includes("</body>"))
+  return res.status(500).type("text/plain").send("Social prototype source marker missing");
+ html=html.replace("</head>","<style>"+css+"</style></head>");
+ html=html.replace("</body>","<script>"+code+"</script></body>");
+ res.type("html").send(html);
+});
 app.get("/social/bridge.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js")));
 
 app.post("/api/social/*",async(req,res)=>{
