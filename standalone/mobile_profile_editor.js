@@ -169,7 +169,7 @@
  doc.addEventListener("click",e=>{
   if(!mount||!mount.contains(e.target))return;
   if(e.target.classList.contains("gmv3-pf-backdrop")){close();return}
-  const el=e.target.closest?.("[data-gmp],[data-gmp-add],[data-gmp-remove]");
+  const el=e.target.closest?.("[data-gmp],[data-gmp-source],[data-gmp-add],[data-gmp-remove]");
   if(!el)return;
   if(el.dataset.gmpSource){
    collect();
