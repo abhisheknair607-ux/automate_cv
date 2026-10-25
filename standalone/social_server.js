@@ -113,7 +113,8 @@ app.get("/social",(req,res)=>{
   fs.readFileSync(path.join(__dirname,"assets","header-controls.css"),"utf8") + "\n" +
   fs.readFileSync(path.join(__dirname,"mobile_approved_asset_layer.css"),"utf8") + "\n" +
   fs.readFileSync(path.join(__dirname,"mobile_editorial_polish.css"),"utf8") + "\n" +
-  fs.readFileSync(path.join(__dirname,"mobile_stage_visual_qa.css"),"utf8");
+  fs.readFileSync(path.join(__dirname,"mobile_stage_visual_qa.css"),"utf8") + "\n" +
+  fs.readFileSync(path.join(__dirname,"mobile_design_language.css"),"utf8");
  const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_drawer.js"),"utf8");
  if(!html.includes("</head>")||!html.includes("</body>"))
   return res.status(500).type("text/plain").send("Social prototype source marker missing");
