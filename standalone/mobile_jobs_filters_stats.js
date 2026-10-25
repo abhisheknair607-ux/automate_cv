@@ -211,13 +211,6 @@ doc.addEventListener("submit",e=>{
  e.preventDefault();applyFilter(false);
 });
 doc.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheet)dismiss()});
-const site=doc.getElementById("content");
-if(site&&typeof MutationObserver!=="undefined"){
- // Covers original render() and newly fetched list rows without changing its source file.
- let pending=false;
- new MutationObserver(()=>{
-  if(pending)return;pending=true;queueMicrotask(()=>{pending=false;if(!sheet){renderEnhancements()}})
- }).observe(site,{childList:true,subtree:false});
-}
+renderEnhancements();
 window.GaramaalPreviewFilters=Object.freeze({openFilter,refreshPipeline});
 })();
