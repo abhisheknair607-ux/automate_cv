@@ -6,7 +6,7 @@ const path=require("node:path");
 const crypto=require("node:crypto");
 const root=path.resolve(__dirname,"..");
 const read=p=>fs.readFileSync(path.join(root,p),"utf8");
-const sha=s=>crypto.createHash("sha1").update("blob "+Buffer.byteLength(s)+"\\0"+s).digest("hex");
+const sha=s=>crypto.createHash("sha1").update("blob "+Buffer.byteLength(s)+String.fromCharCode(0)+s).digest("hex");
 const sprites=[
  ["standalone/assets/home-art.css","--gmv3-home-art",19432],
  ["standalone/assets/navigation-states.css","--gmv3-navigation-art",44190],
@@ -20,7 +20,7 @@ test("all three separately stored WebP sprites decode to the intended nonempty b
  for(const [file,variable,expected] of sprites){
   const css=read(file);
   assert.ok(css.includes(variable));
-  const match=css.match(/data:image\\/webp;base64,([A-Za-z0-9+/=]+)/);
+  const match=css.match(new RegExp("data:image/webp;base64,([A-Za-z0-9+/=]+)"));
   assert.ok(match,file+" contains embedded WebP");
   const bytes=Buffer.from(match[1],"base64");
   assert.equal(bytes.length,expected,file+" size");
