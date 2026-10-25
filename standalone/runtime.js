@@ -30,7 +30,7 @@ const METHODS = new Set([
   "getBootstrap", "listJobs", "getJob", "getExpenses", "setNotInterested", "setJobPreference", "bulkSetJobPreferences", "migrateJobPreferences", "addDiscovery",
   "saveDiscovery", "transferJob", "bulkTransfer", "updateFreshJD",
   "getCopyPrompt", "updateFreshControl", "updateApplicationProgress", "getStats", "runCvApiNow",
-  "syncDiscoveryMaster"
+  "syncDiscoveryMaster", "gmPipelineStats", "gmListJobsFaceted"
 ]);
 const CACHE = new Map();
 function safeGithubRequest(uri, params) {
@@ -92,7 +92,8 @@ function constructServices({token,email,ids,githubToken,allowedEmails}) {
   };
 }
 const READ_ONLY_METHODS = new Set([
-  "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats", "getExpenses"
+  "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats", "getExpenses",
+  "gmPipelineStats", "gmListJobsFaceted"
 ]);
 async function invoke(method,arg,options) {
   if(!METHODS.has(method))throw new Error("Unknown application operation");
@@ -102,6 +103,9 @@ async function invoke(method,arg,options) {
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
   vm.runInContext(sourceWithSheetIds(options?.ids),context,{filename:"webapp/Code.gs",timeout:5000});
+  if(method==="gmPipelineStats"||method==="gmListJobsFaceted") {
+    vm.runInContext(require("./prototype_queries").SOURCE,context,{filename:"standalone/prototype_queries.js",timeout:5000});
+  }
   if(options?.readOnly) {
     // The original read endpoints automatically call this master-sync routine,
     // which may write Jobs!P. Override ONLY in pilot mode; in production the
