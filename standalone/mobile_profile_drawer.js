@@ -11,8 +11,12 @@
  button.setAttribute("aria-label","Open account, profile and more");button.setAttribute("aria-haspopup","dialog");
  button.setAttribute("aria-expanded","false");
  header.append(button);
+ // Move the existing dynamic connection status to the left, not a fabricated status.
+ const topbar=doc.querySelector(".topbar.garamaal-unified-header");
+ const connection=doc.getElementById("modeBadge");
+ if(topbar&&connection){topbar.insertBefore(connection,topbar.querySelector(".crumb")||topbar.firstChild);connection.title="Connection status · prototype is read-only";}
  let veil=null,previous=null;
- function sync(){button.innerHTML='<span aria-hidden="true">'+esc(name().slice(0,1))+'</span><span class="gmv3-account-menu-bars" aria-hidden="true">☰</span>';}
+ function sync(){button.innerHTML='<span aria-hidden="true">E</span>';}
  function close(){
   if(!veil)return;veil.remove();veil=null;
   button.setAttribute("aria-expanded","false");
@@ -25,6 +29,7 @@
   veil.innerHTML='<aside class="gmv3-account-drawer" role="dialog" aria-modal="true" aria-label="Account and more menu">'+
    '<div class="gmv3-account-top"><div><small>YOUR CORNER</small><h2>More & Me<span>.</span></h2></div><button type="button" data-gm-account="close" aria-label="Close menu">×</button></div>'+
    '<div class="gmv3-account-person"><div class="gmv3-account-avatar" aria-hidden="true">'+esc(name().slice(0,1))+'</div><div><strong>'+esc(name())+'</strong><small>Jobs · Networking · Career</small></div></div>'+
+   '<div class="gmv3-account-install"><div><strong>Take Garamaal with you</strong><small>Install the app on your phone or desktop</small></div><button type="button" data-gm-account="install">↓ Install</button></div>'+ 
    '<fieldset class="gmv3-account-switch"><legend>Choose workspace</legend><div>'+
    ['Abhishek','Pooja'].map(n=>'<button type="button" data-gm-candidate="'+n+'" aria-pressed="'+String(name()===n)+'" class="'+(name()===n?'active':'')+'">'+esc(n)+'</button>').join("")+'</div></fieldset>'+
    '<nav class="gmv3-account-options" aria-label="Profile and more tools">'+
@@ -53,6 +58,12 @@
   if(kind==="profile"){window.GaramaalProfile?.open();return}
   if(kind==="expenses"){doc.getElementById("expenseToggle")?.click();return}
   if(kind==="google"){doc.getElementById("cv-account-switch")?.click();return}
+  if(kind==="install"){
+   const install=doc.getElementById("cv-install-app");
+   if(install){install.click();return;}
+   window.alert("If your browser supports installation, open its menu and select Add to Home screen or Install app.");
+   return;
+  }
   if(kind==="social"){window.location.assign("/social?gmv3=1");return}
   if(kind==="home"){window.GaramaalPrototypeHome?.showHome();return}
   if(kind==="add"){window.GaramaalJobsHub?.selectPage("add");return}
