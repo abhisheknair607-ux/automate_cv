@@ -46,6 +46,7 @@ The three sprites are independent **self-contained CSS asset files**, each embed
 
 - All four home cards keep their existing destinations.
 - Every footer button keeps its current handler, including legacy Dashboard, Discovery, Make CV and all Social workflows.
+- Jobs uses the approved five-icon visual sprite. Social has different button meanings, so it retains its existing semantic glyphs with the same hover/tap animation until a separate Social icon sheet is approved; it does not misleadingly show Jobs icons under Social labels.
 - The middle Swipe arrows translate apart on hover; the other buttons lift/bounce into hover and active assets.
 - Back includes default/hover/pressed states, with an unchanged navigation action.
 - All animations respect `prefers-reduced-motion: reduce`; the UI is accessible to keyboard users.
