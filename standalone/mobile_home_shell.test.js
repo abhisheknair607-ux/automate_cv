@@ -87,7 +87,7 @@ test("Stage 1 client script compiles and launcher actions never override the leg
  click("statistics");assert.ok(subbody.innerHTML.includes("Existing live Jobs statistics"));
  click("targets");assert.ok(subbody.innerHTML.includes("weekly target"));
  click("reminders");assert.ok(subbody.innerHTML.includes("Review shortlisted jobs"));
- click("network");assert.equal(opened[0],"/social");
+ click("network");assert.equal(opened[0],"/social?gmv3=1");
 });
 test("Launcher stylesheet is scoped to prototype-only body classes",()=>{
  const css=read("standalone/mobile_home_shell.css");
