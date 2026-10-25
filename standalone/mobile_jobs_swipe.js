@@ -18,6 +18,26 @@
   let sum=2166136261;for(let i=0;i<url.length;i++)sum=Math.imul(sum^url.charCodeAt(i),16777619)>>>0;
   return (job.source==="fresh"?"f":"t")+":"+String(job.row)+":"+sum.toString(36);
  }
+ function workTerms(detail){
+  const jd=String(detail?.jd||"").replace(/\s+/g," ").trim();
+  const salary=String(detail?.salary||"").trim();
+  let pay="";
+  if(/(?:€|£|\$)\s*[\d,]+(?:\s*[-–]\s*(?:€|£|\$)?\s*[\d,]+)?(?:\s*(?:per annum|p\.a\.|annually|\/year|\/hour|hourly|per hour))?/i.test(salary))pay=salary.slice(0,90);
+  if(!pay){
+   const match=jd.match(/(?:salary|pay|compensation|remuneration|package|hourly rate|annual salary)\s*(?:range|is|from|:|-)?\s*((?:€|£|\$)\s*[\d,]+(?:\s*(?:-|–|to)\s*(?:€|£|\$)?\s*[\d,]+)?(?:\s*(?:per annum|annually|a year|\/year|per hour|\/hour|p\.a\.))?)/i);
+   if(match)pay=match[1].trim();
+  }
+  let visa="";
+  if(/\b(?:no|without|not offering|unable to provide|cannot provide)\s+(?:visa|work.permit)\s+sponsorship\b|\b(?:visa|work.permit)\s+sponsorship\s+(?:is\s+)?(?:not|unavailable)\b/i.test(jd))visa="Sponsorship not offered";
+  else if(/\b(?:visa|work.permit)\s+sponsorship\s+(?:is\s+)?(?:available|offered|provided)\b|\b(?:offers?|provides?)\s+(?:visa|work.permit)\s+sponsorship\b/i.test(jd))visa="Sponsorship offered";
+  else if(/\b(?:must|need to)\s+(?:already\s+)?(?:have|hold)\s+(?:the\s+)?(?:right|legal (?:right|authorization))\s+to\s+work\b/i.test(jd))visa="Right to work required";
+  // Brief verbatim excerpt of the saved JD, not an invented AI paraphrase.
+  let summary="";
+  const raw=jd.replace(/^(?:job description|about the role|the role)\s*[:.\-]?\s*/i,"");
+  const sentence=raw.split(/(?<=[.!?])\s+/)[0]||"";
+  if(sentence.length>=35)summary=sentence.slice(0,165)+(sentence.length>165?"…":"");
+  return {pay,visa,summary};
+ }
  function phase(job,local){
   local=local||{};
   const progress=local.progress||job.progress||"Unapplied";
@@ -29,13 +49,13 @@
   if(local.cvDrafted)return "cv-pending";
   return local.interested||job.favorite?"cv":"interest";
  }
- const helpers=Object.freeze({direction,phase,jobKey});
+ const helpers=Object.freeze({direction,phase,jobKey,workTerms});
  if(typeof module!=="undefined"&&module.exports)module.exports=helpers;
  if(typeof document==="undefined"||typeof window==="undefined")return;
  const doc=document;
  let surface=null,active=false,candidate="",epoch=0,loading=false,deck=[],later=[],seen=new Set(),current=null,details=null,panelOpen=false;
  const cursors={fresh:{page:1,done:false},taaza:{page:1,done:false}};
- let decisions={},pointer=null,card=null,interactionBusy=false,needsReload=false;
+ let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map();
  const storageKey=name=>"gmv3-swipe-preview-v2:"+name;
  function person(){try{return typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek"}catch(_){return "Abhishek"}}
  function loadDecisions(name){try{const v=JSON.parse(localStorage.getItem(storageKey(name))||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}catch(_){return {}}}
@@ -46,7 +66,7 @@
  function resetState(name){
   candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;
   for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
-  decisions=loadDecisions(name);
+  decisions=loadDecisions(name);metadata.clear();
  }
  function activeJob(){return current||deck[0]||null}
  function badge(job){
@@ -66,22 +86,41 @@
   card=surface.querySelector(".gmv3-drag-card");
  }
  function cardHtml(job){
-  const d=choice(job),progress=d.progress||job.progress||"Unapplied";
-  const cv=!!job.cvLink;
-  const score=job.score!==undefined&&job.score!==null&&String(job.score).trim()!==""?'<span class="gmv3-swipe-score">'+clean(job.score)+' fit</span>':"";
-  const ready=job.source==="taaza"&&!job.jdReady?" · JD needed":"";
+  const key=jobKey(job),details=metadata.get(key);
+  const summary=details?.summary?'<p class="gmv3-swipe-summary">'+clean(details.summary)+'</p>':"";
+  const metadataTags=[
+    details?.visa?'<span class="gmv3-swipe-evidence">'+clean(details.visa)+'</span>':"",
+    details?.pay?'<span class="gmv3-swipe-evidence">'+clean(details.pay)+'</span>':""
+  ].filter(Boolean).join("");
   return '<article class="gmv3-drag-card" tabindex="0" aria-label="Swipe job card left to reject, down to postpone, or right to continue" data-gs="card">'+
    '<div class="gmv3-drag-flash gmv3-left" aria-hidden="true">PASS</div><div class="gmv3-drag-flash gmv3-right" aria-hidden="true">NEXT</div>'+
    '<div class="gmv3-drag-flash gmv3-down" aria-hidden="true">LATER</div>'+
-   '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+(job.source==="fresh"?"MAKE CV":"DISCOVERY")+'</span>'+score+'</div>'+
+   '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+clean(job.company||"Company not specified")+'</span></div>'+
    '<h3>'+clean(job.role||"Position not specified")+'</h3>'+
-   '<p class="gmv3-swipe-company">'+clean(job.company||"Company not specified")+'</p>'+
-   '<p class="gmv3-swipe-place">'+clean(job.location||"Location not supplied")+'</p>'+
-   '<div class="gmv3-swipe-seal">'+clean(badge(job))+ready+'</div>'+
-   '<div class="gmv3-swipe-tags"><span>'+clean(progress)+'</span><span>'+(cv?"CV GENERATED":job.source==="fresh"?"CV NOT GENERATED":"IN DISCOVERY")+'</span></div>'+
-   '<p class="gmv3-swipe-card-note">'+(d.interested||job.favorite?"★ Interested · ":"")+'Swipe right to see the next available action for this job.</p>'+
-   '<div class="gmv3-swipe-card-foot"><button type="button" data-gs="jd" class="gmv3-jd-expand">Job details / JD</button>'+
-   (safeLink(job.url)?'<a class="gmv3-employer-link" href="'+clean(safeLink(job.url))+'" target="_blank" rel="noopener noreferrer">Employer page ↗</a>':"")+'</div></article>';
+   (job.location?'<p class="gmv3-swipe-place">'+clean(job.location)+'</p>':"")+
+   '<div class="gmv3-swipe-summary-area">'+summary+'</div>'+
+   '<div class="gmv3-swipe-tags">'+metadataTags+'</div>'+
+   '<div class="gmv3-swipe-card-foot"><button type="button" data-gs="jd" class="gmv3-jd-expand">Job description ↗</button></div>'+
+   '</article>';
+ }
+ async function readEvidence(job){
+  const key=jobKey(job);
+  if(metadata.has(key))return;
+  const ticket=epoch;
+  try{
+   const detail=await run("getJob",{source:job.source,row:job.row,candidate});
+   if(ticket!==epoch||!active)return;
+   const info=workTerms(detail||{});
+   metadata.set(key,info);
+   if(current===job&&!panelOpen){
+    const area=card?.querySelector(".gmv3-swipe-summary-area");
+    const tags=card?.querySelector(".gmv3-swipe-tags");
+    if(area)area.innerHTML=info.summary?'<p class="gmv3-swipe-summary">'+clean(info.summary)+'</p>':"";
+    if(tags)tags.innerHTML=[info.visa,info.pay].filter(Boolean).map(v=>'<span class="gmv3-swipe-evidence">'+clean(v)+'</span>').join("");
+   }
+  }catch(_){
+   // Do not show fabricated salary or visa claims when source lookup fails.
+  }
  }
  function render(){
   if(!active||!surface)return;
@@ -89,7 +128,7 @@
   if(panelOpen)return;
   if(!current){current=deck.shift()||null}
   if(current&&!eligible(current)){current=null;render();return}
-  if(current){shell(cardHtml(current));return}
+  if(current){shell(cardHtml(current));readEvidence(current);return}
   if(loading){shell('<div class="gmv3-swipe-empty" role="status"><strong>Finding your next job…</strong><p>Checking candidate-specific Discovery and Make CV records.</p></div>');return}
   if(!cursors.fresh.done||!cursors.taaza.done){shell('<div class="gmv3-swipe-empty" role="status">Loading more vacancies…</div>');refill();return}
   if(later.length){deck.push(...later.splice(0));current=null;render();return}
@@ -218,10 +257,20 @@
    if(!box)return;
    box.innerHTML='<div class="gmv3-choice-heading"><h3>'+clean(detail?.role||item.role)+'</h3><button type="button" data-gs-option="close">×</button></div>'+
     '<p>'+clean(detail?.company||item.company)+'</p><div class="gmv3-choice-jd">'+clean(detail?.jd||"Full job description is not available.")+'</div>'+
-    (safeLink(item.url)?'<a href="'+clean(safeLink(item.url))+'" target="_blank" rel="noopener noreferrer">Employer listing ↗</a>':"");
+    '<div class="gmv3-choice-buttons">'+detailActions(item)+'</div>'+
+    (safeLink(item.url)?'<a href="'+clean(safeLink(item.url))+'" target="_blank" rel="noopener noreferrer">Employer listing ↗</a>':"")+
+    '<p class="gmv3-choice-note">Swipe decisions are browser-only. Generate CV prepares a preview request; no paid work is launched.</p>';
   }catch(error){
    if(panelOpen){const p=layer.querySelector('p[role="status"]');if(p)p.textContent=String(error.message||"Could not load JD")}
   }
+ }
+ function detailActions(job){
+  const st=phase(job,choice(job));
+  if(st==="discovery")return '<button type="button" data-gs-option="interest">Interested</button><button type="button" data-gs-option="transfer">Prepare for CV</button>';
+  if(st==="cv"||st==="interest"||st==="cv-pending")return '<button type="button" data-gs-option="cv">Generate CV (preview request)</button>';
+  if(st==="apply")return '<button type="button" data-gs-option="applied">Mark applied</button><button type="button" data-gs-option="unapplied">Not applied yet</button>';
+  if(st==="connect")return '<button type="button" data-gs-option="connected">Connected</button><button type="button" data-gs-option="not-connected">Not connected yet</button>';
+  return "";
  }
  function onPointerDown(e){
   const node=e.target.closest?.(".gmv3-drag-card");
