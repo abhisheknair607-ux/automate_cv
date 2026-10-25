@@ -853,3 +853,44 @@ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab[a
  filter:saturate(1.15) brightness(1.07) drop-shadow(2px 3px 0 #c58ee5)!important;
  transform:rotate(3deg) scale(1.05)!important;
 }
+
+
+/* Stage 8 — minimal tactile job-card feedback and actionable dashboard KPIs. */
+body.gmv3-jobs-workspace #content .jobs > .job{
+  transition:transform .16s ease-out,border-color .16s ease-out,box-shadow .16s ease-out!important;
+  will-change:auto;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:hover{
+    transform:translateY(-1px)!important;
+    border-color:#a991b5!important;
+    box-shadow:3px 5px 0 #09070b!important;
+  }
+}
+@media(hover:none) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:active{transform:scale(.997)!important}
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+  width:100%;min-width:0;cursor:pointer;text-align:left;font-family:inherit;
+  appearance:none;-webkit-appearance:none;
+  transition:border-color .15s ease-out,transform .15s ease-out,box-shadow .15s ease-out!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:hover{
+    transform:translateY(-2px)!important;border-color:#d493ef!important;
+    box-shadow:4px 6px 0 #09070b!important;
+  }
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:focus-visible{
+  outline:3px solid #dfff58!important;outline-offset:3px;
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:active{
+  transform:translateY(0)!important;box-shadow:1px 2px 0 #09070b!important;
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
+  content:" ›";display:inline;color:#dfff58;font-weight:900;
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace #content .jobs > .job,
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{transition:none!important;transform:none!important}
+}
