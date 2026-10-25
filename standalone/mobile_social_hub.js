@@ -26,7 +26,7 @@
   bar.innerHTML=items.map(([id,label,ic])=>
     '<button type="button" data-g3-social="'+id+'" '+(chosen===id?'aria-current="page"':'')+
     ' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'">'+
-    '<span class="gmv3-tabicon" aria-hidden="true">'+ic+'</span>'+label+'</button>').join("");
+    '<span class="gmv3-tabicon" aria-hidden="true">'+ic+'</span>'+(id==="swipe"?'<span class="gmv3-swipe-arrows" aria-hidden="true"><span class="left"></span><span class="right"></span></span>':'')+label+'</button>').join("");
  }
  function showStats(){
   chosen="stats";renderBar();
