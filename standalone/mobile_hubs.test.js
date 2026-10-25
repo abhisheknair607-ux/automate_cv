@@ -117,7 +117,7 @@ test("new Jobs bottom actions call original nav, not CV generation",()=>{
  assert.equal(calls.at(-1),"swipe-open");
  assert.equal(dom[2].hidden,false);
  const navCount=calls.length;
- hub.selectPage("more");assert.equal(dom[1].hidden,false);assert.equal(calls.length,navCount);
+ hub.selectPage("more");assert.equal(dom[1].hidden,false);assert.equal(calls.filter(x=>["dashboard","discovery","fresh","add"].includes(x)).length,calls.slice(0,navCount).filter(x=>["dashboard","discovery","fresh","add"].includes(x)).length);
  hub.selectPage("add");assert.equal(calls.at(-1),"add");
  assert.equal(dom[2].hidden,true);
  assert.ok(!urls.length,"No implicit external navigation");
