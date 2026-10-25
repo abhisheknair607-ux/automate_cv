@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: garamaal-collage-preview
@@ -21,7 +22,8 @@ jobs:
       REGION: europe-west1
       JOBS_NAME: garamaal-collage-jobs-preview
       SOCIAL_NAME: garamaal-collage-social-preview
-      PREVIEW_JSON: ${{ secrets.GARAMAAL_PREVIEW_GCP_SA }}
+      PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      PREVIEW_WIF_SA: ${{ vars.GCP_SERVICE_ACCOUNT }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
     steps:
       - uses: actions/checkout@v4
@@ -40,21 +42,25 @@ jobs:
           services={r.get('run',{}).get('serviceId') for r in o['rewrites']}
           assert services=={'garamaal-collage-jobs-preview','garamaal-collage-social-preview'},services
           PY
-      - name: Check preview deploy credentials
+      - name: Check existing GitHub-to-Google Workload Identity
         id: preflight
         shell: bash
         run: |
-          if [[ -z "$PREVIEW_JSON" ]]; then
+          if [[ -z "$PREVIEW_WIF_PROVIDER" || -z "$PREVIEW_WIF_SA" ]]; then
             echo "enabled=false" >> "$GITHUB_OUTPUT"
-            echo "### Code passed tests; preview hosting not deployed" >> "$GITHUB_STEP_SUMMARY"
-            echo "Add the repository Actions secret GARAMAAL_PREVIEW_GCP_SA (preview-deployer Google Cloud service account JSON) and re-run this workflow." >> "$GITHUB_STEP_SUMMARY"
+            echo "### Code passed tests; preview deployment is blocked" >> "$GITHUB_STEP_SUMMARY"
+            echo "Existing GCP_WORKLOAD_IDENTITY_PROVIDER or GCP_SERVICE_ACCOUNT variable is missing." >> "$GITHUB_STEP_SUMMARY"
           else
             echo "enabled=true" >> "$GITHUB_OUTPUT"
           fi
-      - if: steps.preflight.outputs.enabled == 'true'
-        uses: google-github-actions/auth@v2
+      - name: Authenticate via existing repository Workload Identity
+        if: steps.preflight.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v3
         with:
-          credentials_json: ${{ secrets.GARAMAAL_PREVIEW_GCP_SA }}
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
       - if: steps.preflight.outputs.enabled == 'true'
         uses: google-github-actions/setup-gcloud@v2
       - name: Prepare read-only runtime configs without copying secrets
