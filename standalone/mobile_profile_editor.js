@@ -51,6 +51,24 @@
   return !!String(d[key]).trim();
  }
  function complete(d){return sections.filter(([id])=>filled(d,id)).length}
+ // Read-only comparison of source concepts. The active paid CV worker always uses
+ // Drive until a separate authenticated Firestore adapter receives approval.
+ const previewModeKey=name=>"gmv3-source-preview-v1:"+name;
+ function mode(){try{return localStorage.getItem(previewModeKey(current))==="profile"?"profile":"drive"}catch(_){return "drive"}}
+ function modeMarkup(){
+  const selected=mode(),saved=complete(model);
+  const countProjects=model.projects.filter(p=>Object.values(p).some(x=>String(x||"").trim())).length;
+  return '<section class="gmv3-pf-source" aria-label="Compare CV evidence sources">'+
+   '<div class="gmv3-pf-source-header"><strong>Evidence source comparison</strong><span>CV engine: Drive</span></div>'+
+   '<div class="gmv3-pf-source-switch" role="group" aria-label="Compare source views">'+
+   '<button type="button" data-gmp-source="drive" aria-pressed="'+String(selected==="drive")+'">Drive originals</button>'+
+   '<button type="button" data-gmp-source="profile" aria-pressed="'+String(selected==="profile")+'">Editable profile</button></div>'+
+   (selected==="drive"?
+    '<p>The existing CV generator still uses your configured Drive Summary Router, Evidence Bank, Base CV and formatting references. Original files are unchanged. Their text has not yet been imported into this editor.</p>':
+    '<p>This local profile has '+saved+' of '+sections.length+' sections started and '+countProjects+' project records. It is a draft to review and compare — the CV generator does not read it yet.</p>')+
+   '<small>Switching this view never generates a CV, changes API tokens or modifies the Drive source.</small></section>';
+ }
+
  const field=(path,label,value,opts={})=>'<label class="gmv3-pf-field"><span>'+esc(label)+'</span>'+
   (opts.multi?'<textarea name="'+esc(path)+'" rows="'+(opts.rows||3)+'" maxlength="'+(opts.limit||4000)+'" placeholder="'+esc(opts.placeholder||"")+'">'+esc(value)+'</textarea>':
   '<input name="'+esc(path)+'" type="text" maxlength="'+(opts.limit||250)+'" value="'+esc(value)+'" placeholder="'+esc(opts.placeholder||"")+'" autocomplete="off">')+'</label>';
@@ -115,6 +133,7 @@
    '<div class="gmv3-pf-candidate">'+esc(current)+'</div></header>'+
    '<div class="gmv3-pf-scroll"><div class="gmv3-pf-progress"><div><strong>Profile progress</strong><small>'+score+' of '+sections.length+' sections started</small></div>'+
    '<div class="gmv3-pf-track" role="progressbar" aria-label="Profile sections started" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><span style="width:'+pct+'%"></span></div></div>'+
+   modeMarkup()+
    '<form id="gmv3-profile-form">'+sections.map(([id,n,label,desc])=>
    '<details data-section="'+id+'" class="gmv3-pf-section" '+(openSection===id?'open':'')+'><summary>'+
    '<span class="gmv3-pf-number">'+n+'</span><span class="gmv3-pf-section-title"><strong>'+label+'</strong><small>'+desc+'</small></span>'+
@@ -152,6 +171,13 @@
   if(e.target.classList.contains("gmv3-pf-backdrop")){close();return}
   const el=e.target.closest?.("[data-gmp],[data-gmp-add],[data-gmp-remove]");
   if(!el)return;
+  if(el.dataset.gmpSource){
+   collect();
+   const selected=el.dataset.gmpSource==="profile"?"profile":"drive";
+   try{localStorage.setItem(previewModeKey(current),selected)}catch(_){}
+   render(mount.querySelector(".gmv3-pf-section[open]")?.dataset.section);
+   return;
+  }
   if(el.dataset.gmp==="close"){close();return}
   if(el.dataset.gmp==="save"){save();return}
   if(el.dataset.gmp==="clear"){
