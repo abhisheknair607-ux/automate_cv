@@ -14,15 +14,17 @@
   ["work","02","Work experience","Employers, responsibilities and outcomes"],
   ["education","03","Education","Degrees and institutions"],
   ["certifications","04","Certifications","ACCA, QFA and further qualifications"],
-  ["achievements","05","Achievements & projects","Impact, awards and evidence"],
-  ["skills","06","Skills & interests","Tools, expertise and interests"],
-  ["story","07","Personal story","An optional narrative for applications"],
-  ["preferences","08","Career preferences","Roles, departments and locations"]
+  ["achievements","05","Achievements","Outcomes, awards and evidence"],
+  ["projects","06","Projects","Career projects, ownership, results and proof"],
+  ["skills","07","Skills & interests","Tools, expertise and interests"],
+  ["story","08","Personal story","An optional narrative for applications"],
+  ["preferences","09","Career preferences","Roles, departments and locations"]
  ];
  function initial(){return {
   basics:{fullName:"",headline:"",city:"",country:"",summary:""},
   work:[{employer:"",title:"",period:"",achievements:""}],
   education:[{institution:"",qualification:"",period:""}],
+  projects:[{name:"",role:"",period:"",summary:"",outcomes:"",tools:"",evidence:""}],
   certifications:"",achievements:"",skills:"",story:"",
   preferences:{roles:"",departments:"",locations:"",workType:"",visa:""}
  }}
@@ -35,7 +37,7 @@
   for(const k of ["basics","preferences"]){if(raw[k]&&typeof raw[k]==="object"){
    for(const field of Object.keys(base[k]))if(typeof raw[k][field]==="string")base[k][field]=raw[k][field].slice(0,4000)
   }}
-  for(const k of ["work","education"])if(Array.isArray(raw[k]))base[k]=raw[k].slice(0,12).map(obj=>{
+  for(const k of ["work","education","projects"])if(Array.isArray(raw[k]))base[k]=raw[k].slice(0,12).map(obj=>{
    const result={...initial()[k][0]};
    for(const f of Object.keys(result))if(typeof obj?.[f]==="string")result[f]=obj[f].slice(0,4000);
    return result;
@@ -44,7 +46,7 @@
  }
  function filled(d,key){
   if(key==="identity")return Object.values(d.basics).some(v=>v.trim());
-  if(key==="work"||key==="education")return d[key].some(row=>Object.values(row).some(v=>v.trim()));
+  if(key==="work"||key==="education"||key==="projects")return d[key].some(row=>Object.values(row).some(v=>v.trim()));
   if(key==="preferences")return Object.values(d.preferences).some(v=>v.trim());
   return !!String(d[key]).trim();
  }
@@ -53,29 +55,36 @@
   (opts.multi?'<textarea name="'+esc(path)+'" rows="'+(opts.rows||3)+'" maxlength="'+(opts.limit||4000)+'" placeholder="'+esc(opts.placeholder||"")+'">'+esc(value)+'</textarea>':
   '<input name="'+esc(path)+'" type="text" maxlength="'+(opts.limit||250)+'" value="'+esc(value)+'" placeholder="'+esc(opts.placeholder||"")+'" autocomplete="off">')+'</label>';
  function grouped(key,arr){
-  const work=key==="work";
+  const work=key==="work",project=key==="projects";
   return arr.map((item,i)=>'<div class="gmv3-pf-entry">'+
-   '<div class="gmv3-pf-entry-head"><strong>'+ (work?"Experience ":"Education ") +(i+1)+'</strong>'+
+   '<div class="gmv3-pf-entry-head"><strong>'+ (work?"Experience ":project?"Project ":"Education ") +(i+1)+'</strong>'+
    '<button type="button" data-gmp-remove="'+key+':'+i+'" aria-label="Remove entry '+(i+1)+'">Remove</button></div>'+
    (work?
     field("work."+i+".employer","Employer",item.employer,{placeholder:"Company or organisation"})+
     field("work."+i+".title","Job title",item.title)+
     field("work."+i+".period","Dates",item.period,{placeholder:"Start – end"})+
-    field("work."+i+".achievements","Responsibilities and results",item.achievements,{multi:true,rows:3}):
+    field("work."+i+".achievements","Responsibilities and results",item.achievements,{multi:true,rows:3}):project?
+    field("projects."+i+".name","Project name",item.name)+
+    field("projects."+i+".role","Your role / ownership",item.role)+
+    field("projects."+i+".period","Dates",item.period)+
+    field("projects."+i+".summary","What you built or delivered",item.summary,{multi:true,rows:3})+
+    field("projects."+i+".outcomes","Results / measurable impact",item.outcomes,{multi:true,rows:2})+
+    field("projects."+i+".tools","Tools and skills",item.tools)+
+    field("projects."+i+".evidence","Evidence link or source reference",item.evidence):
     field("education."+i+".institution","Institution",item.institution)+
     field("education."+i+".qualification","Qualification",item.qualification)+
     field("education."+i+".period","Dates",item.period))+
    '</div>').join("")+
-   '<button type="button" class="gmv3-pf-add" data-gmp-add="'+key+'">＋ Add '+(work?"experience":"education")+'</button>';
+   '<button type="button" class="gmv3-pf-add" data-gmp-add="'+key+'">＋ Add '+(work?"experience":project?"project":"education")+'</button>';
  }
  function fieldsFor(d,key){
   if(key==="identity")return field("basics.fullName","Full name",d.basics.fullName)+
     field("basics.headline","Professional headline",d.basics.headline,{placeholder:"e.g. Finance professional"})+
     '<div class="gmv3-pf-dual">'+field("basics.city","City",d.basics.city)+field("basics.country","Country",d.basics.country)+'</div>'+
     field("basics.summary","Professional summary",d.basics.summary,{multi:true});
-  if(key==="work"||key==="education")return grouped(key,d[key]);
+  if(key==="work"||key==="education"||key==="projects")return grouped(key,d[key]);
   if(key==="certifications")return field("certifications","Qualifications and certifications",d.certifications,{multi:true,rows:4,placeholder:"One qualification per line"});
-  if(key==="achievements")return field("achievements","Achievements, projects and evidence",d.achievements,{multi:true,rows:4,placeholder:"Outcomes, metrics, awards, project links"});
+  if(key==="achievements")return field("achievements","Achievements and evidence",d.achievements,{multi:true,rows:4,placeholder:"Outcomes, metrics, awards, project links"});
   if(key==="skills")return field("skills","Skills, software and interests",d.skills,{multi:true,rows:4,placeholder:"Separate skills with commas or lines"});
   if(key==="story")return field("story","My professional story",d.story,{multi:true,rows:5,placeholder:"Optional context for future CVs and letters"});
   if(key==="preferences")return field("preferences.roles","Preferred job titles",d.preferences.roles)+
@@ -151,13 +160,13 @@
    model=initial();render();return;
   }
   const add=el.dataset.gmpAdd,remove=el.dataset.gmpRemove;
-  if(add&&["work","education"].includes(add)){
+  if(add&&["work","education","projects"].includes(add)){
    collect();if(model[add].length>=12)return;
    model[add].push({...initial()[add][0]});dirty=true;render(add);return
   }
   if(remove){
    const [key,n]=remove.split(":");collect();
-   if(["work","education"].includes(key)&&Number.isInteger(+n)){
+   if(["work","education","projects"].includes(key)&&Number.isInteger(+n)){
     model[key].splice(+n,1);dirty=true;render(key)
    }
   }
