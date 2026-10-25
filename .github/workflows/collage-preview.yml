@@ -147,9 +147,32 @@ jobs:
               elif isinstance(x,str) and x.startswith('https://') and '--' in x and '.web.app' in x:
                   urls.append(x)
           walk(doc)
+          if not urls:
+              raise SystemExit('Firebase returned no preview URL; inspect /tmp/channel.json in the runner.')
+          for u in dict.fromkeys(urls):
+              print('FIREBASE_PREVIEW_URL: '+u.rstrip('/')+'/prototype',flush=True)
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as s:
               s.write('### Browser test link (connected backend, read-only)\n\n')
               for u in dict.fromkeys(urls):s.write('- '+u.rstrip('/')+'/prototype\n')
-              if not urls:s.write('Check the Firebase Hosting preview-channel deployment result for the URL.\n')
               s.write('\nThe live Garamaal Hosting channel and Cloud Run services were not changed.\n')
+          # Verify that the published URL serves the real routed prototype and sprite asset.
+          import time,urllib.request
+          root=urls[0].rstrip('/')
+          paths=[('/prototype',b'gmv3-launch'),('/prototype/assets/home-collage-strip.webp',b'WEBP'),('/social?gmv3=1',b'')]
+          for suffix,needle in paths:
+              error=None
+              for _ in range(6):
+                  try:
+                      with urllib.request.urlopen(root+suffix,timeout=25) as response:
+                          body=response.read(700000)
+                          if response.status!=200 or (needle and needle not in body):
+                              raise RuntimeError('Unexpected preview content at '+suffix)
+                      print('PREVIEW_SMOKE_OK: '+suffix,flush=True)
+                      error=None
+                      break
+                  except Exception as e:
+                      error=str(e)
+                      time.sleep(3)
+              if error:
+                  raise SystemExit('PREVIEW_SMOKE_FAILED '+suffix+': '+error)
           PY
