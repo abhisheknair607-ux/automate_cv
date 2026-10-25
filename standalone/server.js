@@ -164,8 +164,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js"></script>'+
-    '<script src="/prototype/hub-jobs.js"></script>+
-    '<script src="/prototype/hub-swipe.js"></script>''+
+    '<script src="/prototype/hub-jobs.js"></script>'+ 
+    '<script src="/prototype/hub-swipe.js"></script>'+
     '<script src="/prototype/collage-intro.js"></script></body>');
   res.type("html").send(html);
 });
