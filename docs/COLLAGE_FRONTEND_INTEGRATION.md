@@ -41,15 +41,17 @@ Scope: opt-in preview only, NOT merged and NOT production-deployed.
 GitHub workflow: `.github/workflows/collage-preview.yml`
 Action URL: https://github.com/abhisheknair607-ux/automate_cv/actions/workflows/collage-preview.yml
 
-The workflow runs on every push to this branch and:
-1. Checks native app/route/asset contracts without external calls.
-2. If `GARAMAAL_PREVIEW_GCP_SA` Actions secret is missing, finishes without deploying. It reports this prerequisite in GitHub Actions Job Summary.
-3. If the secret is set, authenticates Google Cloud, builds separate **preview** images, deploys them read-only to two NEW Cloud Run services and publishes a 7-day Firebase Hosting preview channel.
-4. Prints the actual browser test URL in the workflow Job Summary. Visit `<printed-preview-URL>/prototype` for the connected front end.
+The 25 October deployment attempt proved existing Workload Identity authentication works but the CV automation runner `cv-automation@abhishek-cv-automation.iam.gserviceaccount.com` does NOT have `run.services.get`. **Do not elevate that worker identity or change production Cloud Run services.** The preview workflow now requires a separate deployer account.
 
-Required one-time user action: create a narrowly scoped Google Cloud preview deployment service account with permission to build images, deploy NEW preview Cloud Run services, act as the approved runtime service accounts, and deploy Firebase preview channels; upload its JSON as repository Actions secret `GARAMAAL_PREVIEW_GCP_SA`. Optionally set `GARAMAAL_PREVIEW_ALLOWED_EMAILS` if the current Jobs service does not expose `ALLOWED_EMAILS` as a non-secret environment value. Do NOT put the JSON into the repository or chat.
+**Prerequisite:** In Google Cloud IAM, create a purpose-specific `garamaal-preview-deployer` service account. Grant only project-specific deploy rights needed to inspect existing services and create the two isolated preview Cloud Run services, upload images and deploy a Firebase Hosting preview channel. Typical permissions/roles to configure according to organisation policy: Cloud Run Admin (includes read), Artifact Registry Writer scoped to the image repository, Firebase Hosting Admin, Service Usage Consumer if needed. Grant Service Account User **on the Jobs and Social runtime service accounts only**, not broadly on every service account. Ensure the GitHub Workload Identity principal for this repository **and preview branch** is trusted to impersonate this new deployer using `roles/iam.workloadIdentityUser`. Prefer branch-scoped WIF conditions.
 
-If preview sign-in rejects a valid account, Firebase Authentication may need the generated preview hostname added to its authorized domains (Google Authentication settings).
+In GitHub repository Settings → Secrets and variables → Actions → Variables, set `GARAMAAL_PREVIEW_DEPLOY_SA` to the new deployer's **email**. The existing `GCP_WORKLOAD_IDENTITY_PROVIDER` variable is reused. No JSON service-account key or credential upload is needed. If needed for staging reviewers, add optional secret `GARAMAAL_PREVIEW_ALLOWED_EMAILS`; otherwise the workflow reads the approved emails from the existing Jobs service configuration.
+
+On the next push to this branch or a manual workflow dispatch, GitHub Actions runs tests, authenticates with dedicated WIF, builds two preview images and deploys two **new** Cloud Run services in `europe-west1`: `garamaal-collage-jobs-preview` and `garamaal-collage-social-preview`. It then deploys **Firebase Hosting preview channel only**, seven-day expiry. The URL appears in its GitHub Actions job summary, with `/prototype` appended for the integrated UI. It does not deploy to `garamaal.web.app` live. The services use `APP_READ_ONLY=true` and `SOCIAL_READ_ONLY=true` and production-write gates false.
+
+**Status:** Code is pushed; latest code tests passed. No Cloud Run preview services or Firebase test URL were created by the blocked attempt. The earlier runner lacked Cloud Run permissions. Actual signed-in testing still pending.
+
+If preview sign-in rejects an approved account, Firebase Authentication may need the generated preview hostname added to Authorized Domains. The preview deployment should not bypass authentication.
 
 ## Regression / rollout
 Run `node --test standalone/mobile_home_shell.test.js standalone/mobile_hubs.test.js standalone/test/collage_frontend.test.js` and `npm test`. Check Jobs /, Social /social unflagged parity, candidate switching, image and MP4 routes, and read-only write guards. Before any eventual merge, test authenticated preview from Android and desktop, sheet reads and candidate separation. No automatic deployment to production or merge is configured.
