@@ -28,6 +28,7 @@ test("Standalone /prototype route composes the original bridge and unchanged fea
  const fakeFs={readFileSync(file){
   if(file.endsWith("/webapp/Index.html"))return read("webapp/Index.html");
   if(file.endsWith("/standalone/mobile_home_landing.html"))return read("standalone/mobile_home_landing.html");
+  if(file.endsWith("/standalone/mobile_intro_overlay.html"))return read("standalone/mobile_intro_overlay.html");
   throw Error("Unexpected read: "+file);
  }};
  const fakePath={join:(...parts)=>parts.join("/")};
@@ -39,7 +40,7 @@ test("Standalone /prototype route composes the original bridge and unchanged fea
  handlers.get("/prototype")({},res);
  assert.ok(served.startsWith("<!DOCTYPE html>"));
  for(const fragment of [
-  '<body class="gmv3-landing">','What do','Update profile','Apply jobs','Network','Statistics',
+  '<body class="gmv3-landing gmv3-intro-active">','What do','Update profile','Apply jobs','Network','Statistics',
   'id="deskNav"','id="mobileNav"','function nav(','function render(){',
   'src="/bridge.js"','src="/dashboard-ranking.js"','src="/dashboard-connections.js"',
   'src="/prototype/mobile-shell.js"','href="/prototype/mobile-shell.css"'
