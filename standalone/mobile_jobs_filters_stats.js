@@ -46,7 +46,7 @@ function openFilter(){
  dismiss();const c=cand(),f=preference(c,s),lookup=facets.get(c+"|"+s)||{},o=lookup.options||{};
  sheet=doc.createElement("div");sheet.id="gmv3-filter-sheet";sheet.className="gmv3-filter-backdrop";
  const statusOpts=(statuses[s]||[]).map(([v,t])=>'<option value="'+v+'"'+(v===f.status?' selected':'')+'>'+esc(t)+'</option>').join("");
- const sorts=[["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["location","Location A–Z"],...(s==="fresh"?[["score","Highest fit score"]]:[])];
+ const sorts=[["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["department","Function A–Z"],["location","Location A–Z"],...(s==="fresh"?[["score","Highest fit score"]]:[])];
  const sortOpts=sorts.map(([v,t])=>'<option value="'+v+'"'+(v===f.sort?' selected':'')+'>'+esc(t)+'</option>').join("");
  const tabs=[{id:"all",name:"All departments / sources"},{id:"common",name:"Common jobs"},...(lookup.tabs||[])].filter((x,i)=>s==="discovery"||i===0);
  const tabsHtml=s==="discovery"?'<label class="gmv3-field"><span>Discovery category</span><select data-gmf-field="category">'+tabs.map(t=>'<option value="'+esc(t.id)+'"'+(f.category===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join("")+'</select></label>':"";
