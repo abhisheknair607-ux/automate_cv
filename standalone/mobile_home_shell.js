@@ -19,7 +19,7 @@
     try{return typeof state!=="undefined"&&state?.candidate==="Pooja"?"Pooja":"Abhishek";}
     catch(_){return "Abhishek";}
   }
-  function syncAvatar(){initial.textContent="E";initial.setAttribute("aria-label","Open your account menu")}
+  function syncAvatar(){initial.textContent="E";}
   function showHome(){
     syncAvatar();
     subview.hidden=true;
