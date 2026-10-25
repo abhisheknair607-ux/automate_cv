@@ -22,6 +22,15 @@ test("Every approved WebP sprite is packaged and nonempty",()=>{
   assert.equal(b.subarray(8,12).toString("ascii"),"WEBP",f);
  }
 });
+test("Approved MP4 footage is committed for both device breakpoints",()=>{
+ const server=read("standalone/server.js");
+ assert.match(server,/app\\.get\\("\\/prototype\\/media\\/:file"/);
+ for(const f of ["intro-mobile.mp4","intro-desktop.mp4"]){
+  const b=fs.readFileSync(path.join(root,"standalone/assets",f));
+  assert.ok(b.length>500000,f);
+  assert.equal(b.subarray(4,8).toString("ascii"),"ftyp",f);
+ }
+});
 test("New landing controls dispatch into preserved real Jobs / Social handlers",()=>{
  const h=read("standalone/mobile_home_landing.html");
  const shell=read("standalone/mobile_home_shell.js");
