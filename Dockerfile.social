@@ -15,6 +15,7 @@ COPY standalone/mobile_motion_drawer.js /app/standalone/mobile_motion_drawer.js
 COPY standalone/mobile_approved_asset_layer.css /app/standalone/mobile_approved_asset_layer.css
 COPY standalone/mobile_editorial_polish.css /app/standalone/mobile_editorial_polish.css
 COPY standalone/mobile_stage_visual_qa.css /app/standalone/mobile_stage_visual_qa.css
+COPY standalone/mobile_design_language.css /app/standalone/mobile_design_language.css
 COPY standalone/assets/navigation-states.css /app/standalone/assets/navigation-states.css
 COPY standalone/assets/header-controls.css /app/standalone/assets/header-controls.css
 COPY standalone/bridge.js /app/standalone/bridge.js
