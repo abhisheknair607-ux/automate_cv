@@ -136,6 +136,7 @@ app.get("/prototype/assets/home.css",(_req,res)=>res.type("text/css").sendFile(p
 app.get("/prototype/assets/navigation.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"assets","navigation-states.css")));
 app.get("/prototype/assets/controls.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"assets","header-controls.css")));
 app.get("/prototype/approved-assets.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_approved_asset_layer.css")));
+app.get("/prototype/editorial-polish.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_editorial_polish.css")));
 app.get("/prototype",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
@@ -151,7 +152,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/assets/home.css">'+
     '<link rel="stylesheet" href="/prototype/assets/navigation.css">'+
     '<link rel="stylesheet" href="/prototype/assets/controls.css">'+
-    '<link rel="stylesheet" href="/prototype/approved-assets.css"></head>');
+    '<link rel="stylesheet" href="/prototype/approved-assets.css">'+
+    '<link rel="stylesheet" href="/prototype/editorial-polish.css"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
