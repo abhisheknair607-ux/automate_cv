@@ -35,6 +35,7 @@
   bar.hidden=doc.body.classList.contains("gmv3-landing");
  }
  function openMore(){
+  if(window.GaramaalDrawer){window.GaramaalDrawer.open();return}
   mode="more";sync();swipe.hidden=true;window.GaramaalSwipeDeck?.close();
   overlay.hidden=false;
   overlay.innerHTML='<div class="gmv3-panel" role="dialog" aria-modal="true" aria-label="More Jobs tools">'+
