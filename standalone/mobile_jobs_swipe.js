@@ -36,7 +36,9 @@
   const raw=jd.replace(/^(?:job description|about the role|the role)\s*[:.\-]?\s*/i,"");
   const sentence=raw.split(/(?<=[.!?])\s+/)[0]||"";
   if(sentence.length>=35)summary=sentence.slice(0,165)+(sentence.length>165?"…":"");
-  return {pay,visa,summary};
+  const moreSentences=raw.split(/(?<=[.!?])\s+/).slice(1,3).join(" ").trim();
+  const more=moreSentences.length>=20?moreSentences.slice(0,240)+(moreSentences.length>240?"…":""):"";
+  return {pay,visa,summary,more};
  }
  function phase(job,local){
   local=local||{};
@@ -55,7 +57,7 @@
  const doc=document;
  let surface=null,active=false,candidate="",epoch=0,loading=false,deck=[],later=[],seen=new Set(),current=null,details=null,panelOpen=false;
  const cursors={fresh:{page:1,done:false},taaza:{page:1,done:false}};
- let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map();
+ let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map(),expanded=false,suppressCardClickUntil=0;
  const storageKey=name=>"gmv3-swipe-preview-v2:"+name;
  function person(){try{return typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek"}catch(_){return "Abhishek"}}
  function loadDecisions(name){try{const v=JSON.parse(localStorage.getItem(storageKey(name))||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}catch(_){return {}}}
@@ -64,7 +66,7 @@
  function save(job,partial){decisions[jobKey(job)]=Object.assign({},choice(job),partial);persist()}
  function eligible(job){return phase(job,choice(job))!=="hidden"}
  function resetState(name){
-  candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;
+  candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;expanded=false;suppressCardClickUntil=0;
   for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
   decisions=loadDecisions(name);metadata.clear();
  }
@@ -92,15 +94,24 @@
     details?.visa?'<span class="gmv3-swipe-evidence">'+clean(details.visa)+'</span>':"",
     details?.pay?'<span class="gmv3-swipe-evidence">'+clean(details.pay)+'</span>':""
   ].filter(Boolean).join("");
-  return '<article class="gmv3-drag-card" tabindex="0" aria-label="Swipe job card left to reject, down to postpone, or right to continue" data-gs="card">'+
+  const url=safeLink(job.url);
+  const title=url?'<a class="gmv3-swipe-title-link" href="'+clean(url)+'" target="_blank" rel="noopener noreferrer" aria-label="Open employer vacancy or apply page for '+clean(job.role||"job")+'">'+clean(job.role||"Position not specified")+'</a>':clean(job.role||"Position not specified");
+  const moreItems=[
+    details?.more?'<p class="gmv3-swipe-more-excerpt">'+clean(details.more)+'</p>':"",
+    job.deadline?'<span>Deadline: '+clean(job.deadline)+'</span>':"",
+    job.progress?'<span>Application: '+clean(choice(job).progress||job.progress)+'</span>':"",
+    job.source==='fresh'?'<span>Make CV listing</span>':'<span>Discovery listing</span>'
+  ].filter(Boolean).join("");
+  return '<article class="gmv3-drag-card'+(expanded?' gmv3-card-expanded':'')+'" tabindex="0" aria-expanded="'+String(expanded)+'" aria-label="Tap to '+(expanded?'collapse':'expand')+' highlights, or swipe card left to reject, down to postpone, right for next step" data-gs="card">'+
    '<div class="gmv3-drag-flash gmv3-left" aria-hidden="true">PASS</div><div class="gmv3-drag-flash gmv3-right" aria-hidden="true">NEXT</div>'+
    '<div class="gmv3-drag-flash gmv3-down" aria-hidden="true">LATER</div>'+
    '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+clean(job.company||"Company not specified")+'</span></div>'+
-   '<h3>'+clean(job.role||"Position not specified")+'</h3>'+
+   '<h3>'+title+'</h3>'+
    (job.location?'<p class="gmv3-swipe-place">'+clean(job.location)+'</p>':"")+
    '<div class="gmv3-swipe-summary-area">'+summary+'</div>'+
-   '<div class="gmv3-swipe-tags">'+metadataTags+'</div>'+
-   '<div class="gmv3-swipe-card-foot"><button type="button" data-gs="jd" class="gmv3-jd-expand">Job description ↗</button></div>'+
+   '<div class="gmv3-swipe-tags">'+metadataTags+'</div>'+ 
+   '<div class="gmv3-swipe-extra" id="gmv3-swipe-quick-details" '+(expanded?'':'hidden')+'><strong>More about this role</strong>'+moreItems+'</div>'+
+   '<div class="gmv3-swipe-card-foot"><span class="gmv3-expand-hint" aria-hidden="true">'+(expanded?'Tap to see less':'Tap for more')+'</span><button type="button" data-gs="jd" class="gmv3-jd-expand">Job description ↗</button></div>'+
    '</article>';
  }
  async function readEvidence(job){
@@ -117,6 +128,9 @@
     const tags=card?.querySelector(".gmv3-swipe-tags");
     if(area)area.innerHTML=info.summary?'<p class="gmv3-swipe-summary">'+clean(info.summary)+'</p>':"";
     if(tags)tags.innerHTML=[info.visa,info.pay].filter(Boolean).map(v=>'<span class="gmv3-swipe-evidence">'+clean(v)+'</span>').join("");
+    const more=card?.querySelector('.gmv3-swipe-more-excerpt');
+    const extra=card?.querySelector('.gmv3-swipe-extra');
+    if(extra&&info.more&&!more)extra.insertAdjacentHTML('beforeend','<p class="gmv3-swipe-more-excerpt">'+clean(info.more)+'</p>');
    }
   }catch(_){
    // Do not show fabricated salary or visa claims when source lookup fails.
@@ -171,7 +185,7 @@
    if(!active||current!==item)return;
    if(kind==="left")save(item,{rejected:true});
    else if(kind==="down")later.push(item);
-   current=null;interactionBusy=false;
+   current=null;interactionBusy=false;expanded=false;
    render();
   };
   if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)done();else setTimeout(done,180);
@@ -205,7 +219,7 @@
  }
  function closeOptions(){panelOpen=false;const el=surface?.querySelector("#gmv3-swipe-action-layer");if(el)el.innerHTML="";card?.focus()}
  function park(item){
-  current=null;interactionBusy=false;panelOpen=false;
+  current=null;interactionBusy=false;panelOpen=false;expanded=false;
   later.push(item);
   render();
   if(deck.length<3 && (!cursors.fresh.done||!cursors.taaza.done))refill();
@@ -239,7 +253,7 @@
   }
   if(action==="connected"){
    save(job,{progress:"Applied + Connected",connected:true});closeOptions();
-   current=null;render();return
+   current=null;expanded=false;render();return
   }
   if(action==="not-connected"){
    save(job,{progress:"Applied",connected:false});closeOptions();park(job);
@@ -282,6 +296,7 @@
  function onPointerMove(e){
   if(!pointer||pointer.id!==e.pointerId||!card)return;
   pointer.dx=e.clientX-pointer.x;pointer.dy=e.clientY-pointer.y;
+  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
   const dx=Math.max(-180,Math.min(180,pointer.dx));
   const dy=Math.max(-180,Math.min(180,pointer.dy));
   card.style.transform="translate("+dx+"px,"+Math.max(-12,dy)+"px) rotate("+(dx/32)+"deg)";
@@ -290,7 +305,9 @@
  }
  function onPointerEnd(e){
   if(!pointer||pointer.id!==e.pointerId)return;
-  const dir=direction(pointer.dx,pointer.dy);pointer=null;
+  const dir=direction(pointer.dx,pointer.dy);
+  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
+  pointer=null;
   if(card){card.style.transform="";delete card.dataset.swiping;}
   if(dir==="left"||dir==="down")finishSwipe(dir);
   else if(dir==="right")openOptions();
@@ -301,14 +318,20 @@
   if(e.key==="ArrowLeft"){e.preventDefault();finishSwipe("left")}
   else if(e.key==="ArrowDown"){e.preventDefault();finishSwipe("down")}
   else if(e.key==="ArrowRight"){e.preventDefault();openOptions()}
+  else if(e.key==="Enter"||e.key===" "){e.preventDefault();expanded=!expanded;render();card?.focus()}
  }
  function onClick(e){
   if(!active)return;
+  if(e.target.closest?.("a"))return; // Do not intercept employer/application hyperlinks.
   const el=e.target.closest?.("[data-gs],[data-gs-option]");
   if(!el){if(e.target.classList.contains("gmv3-choice-shade"))closeOptions();return}
   const action=el.getAttribute("data-gs-option");
   if(action){act(action);return}
   const command=el.getAttribute("data-gs");
+  if(command==="card"){
+    if(panelOpen||interactionBusy||Date.now()<suppressCardClickUntil)return;
+    expanded=!expanded;render();card?.focus();return;
+  }
   if(command==="jd"){showDetails();return}
   if(command==="refresh"){open(surface);return}
   if(command==="reset"){
@@ -323,7 +346,7 @@
   shell('<div class="gmv3-swipe-empty" role="status"><strong>Loading your career deck…</strong><p>Personalised jobs from your existing candidate profile.</p></div>');
   refill();
  }
- function close(){active=false;epoch++;panelOpen=false;current=null;pointer=null}
+ function close(){active=false;epoch++;panelOpen=false;current=null;pointer=null;expanded=false}
  if(doc.body.classList.contains("gmv3-jobs-workspace")){
   doc.addEventListener("keydown",onKeyboard);
   doc.addEventListener("click",e=>{
