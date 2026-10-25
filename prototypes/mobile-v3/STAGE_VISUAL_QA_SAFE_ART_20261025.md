@@ -47,7 +47,7 @@ The first four-card home screen had two compounding clipping problems:
 | Real Firebase-logged-in Cloud Run staging and full browser screenshot | NOT EXECUTED | No isolated staging deployment/credentials available; production untouched |
 | Paid CV generation, status writes, email, LinkedIn posts | NOT RUN | Intentionally excluded |
 
-Screenshot captures and a JSON test matrix are included in the [downloadable ZIP](sandbox:/mnt/data/Garamaal-Mobile-Visual-QA-v2-Package.zip) supplied in chat. The static offline QA covers representative flows with fictional data; screenshots must **not** be presented as authenticated production/staging screenshots.
+Screenshot captures and a JSON test matrix are included in the downloadable ZIP supplied with the ChatGPT QA checkpoint. The [standalone interactive QA HTML](./mobile-visual-QA-safe-cutouts.html) is preserved in this branch. The static offline QA covers representative flows with fictional data; screenshots must **not** be presented as authenticated production/staging screenshots.
 
 ## Proposed local / CI verification
 
