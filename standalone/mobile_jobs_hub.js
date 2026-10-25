@@ -12,6 +12,7 @@
  ];
  const doc=document;
  if(!doc.body.classList.contains("gmv3-landing")&&!doc.body.classList.contains("gmv3-workspace"))return;
+ doc.body.classList.add("gmv3-jobs-workspace");
  const bar=doc.createElement("nav");
  bar.className="gmv3-tabbar";
  bar.id="gmv3-jobs-tabbar";
