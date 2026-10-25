@@ -73,10 +73,9 @@ test("Social /social?gmv3=1 injects nav; unflagged /social still serves unchange
   path:{join:(...xs)=>xs.join("/")},
   fs:{readFileSync(file){
    const name=path.basename(file);
-   if(name==="social.html")return read("standalone/social.html");
-   if(name==="mobile_hubs.css")return read("standalone/mobile_hubs.css");
-   if(name==="mobile_social_hub.js")return read("standalone/mobile_social_hub.js");
-   throw Error("Unexpected file "+file);
+   const suffix=String(file).split("/standalone/").pop();
+   if(!suffix || suffix===String(file))throw Error("Unexpected file "+file);
+   return read("standalone/"+suffix);
   }}
  };
  vm.runInNewContext(code.slice(a,b),ctx);
@@ -94,7 +93,7 @@ test("Social /social?gmv3=1 injects nav; unflagged /social still serves unchange
 test("new Jobs bottom actions call original nav, not CV generation",()=>{
  const dom=[];
  const body=fakeEl();
- body.classList={contains:x=>x==="gmv3-workspace"};
+ body.classList={contains:x=>x==="gmv3-workspace",add(){},remove(){}};
  body.append=(...els)=>dom.push(...els);
  const crumb=fakeEl(), root=fakeEl(),events={};
  const doc={body,
