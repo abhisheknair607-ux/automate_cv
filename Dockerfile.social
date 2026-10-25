@@ -10,6 +10,8 @@ COPY standalone/social.html /app/standalone/social.html
 # Only used by the opt-in /social?gmv3=1 prototype. Unflagged /social remains unchanged.
 COPY standalone/mobile_hubs.css /app/standalone/mobile_hubs.css
 COPY standalone/mobile_social_hub.js /app/standalone/mobile_social_hub.js
+COPY standalone/mobile_motion_qa.css /app/standalone/mobile_motion_qa.css
+COPY standalone/mobile_motion_drawer.js /app/standalone/mobile_motion_drawer.js
 COPY standalone/bridge.js /app/standalone/bridge.js
 USER node
 ENV PORT=8080
