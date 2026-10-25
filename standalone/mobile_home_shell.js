@@ -88,7 +88,7 @@
     if(!control)return;
     const action=control.getAttribute("data-gmv3");
     if(action==="jobs"){enterJobs();return;}
-    if(action==="network"){window.location.assign("/social");return;}
+    if(action==="network"){window.location.assign("/social?gmv3=1");return;}
     if(action==="home"){showHome();return;}
     if(action==="target-up"||action==="target-down"){
       local.weeklyTarget=Math.max(1,Math.min(99,local.weeklyTarget+(action==="target-up"?1:-1)));
