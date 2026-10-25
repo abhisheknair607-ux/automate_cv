@@ -81,6 +81,20 @@ async function main() {
    const page=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1});
    await protectNetwork(page,jobsURL,'jobs');
    await page.goto(jobsURL+'/prototype',{waitUntil:'domcontentloaded'});
+   check('Intro is FIRST on Jobs '+width,
+     await wait(page,'#gmv3-intro')&&await page.locator('#gmv3-intro').isVisible());
+   check('Mobile/desktop intro file set '+width,
+     (await page.locator('#gmv3-intro-film').getAttribute('src'))===
+      (width<=820?'/prototype/intro/mobile.mp4':'/prototype/intro/desktop.mp4'));
+   await shot(page,'jobs-intro-film',width);
+   await page.locator('#gmv3-intro-skip').click();
+   await page.locator('#gmv3-intro').waitFor({state:'hidden',timeout:3000});
+   if(width===390){
+     await page.locator('#gmv3-launch .gmv3-wordmark').click();
+     check('Logo replays intro '+width,await page.locator('#gmv3-intro').isVisible());
+     await page.locator('#gmv3-intro-skip').click();
+     await page.locator('#gmv3-intro').waitFor({state:'hidden',timeout:3000});
+   }
    check('Four original home cards '+width,await wait(page,'#gmv3-launch .gmv3-action')&&(await page.locator('#gmv3-launch .gmv3-action').count())===4);
    await shot(page,'home',width);
    await page.locator('#gmv3-launch .gmv3-action[data-gmv3="jobs"]').click();
@@ -109,6 +123,11 @@ async function main() {
    const sp=await browser.newPage({viewport:{width,height:844},deviceScaleFactor:1});
    await protectNetwork(sp,socialURL,'social');
    await sp.goto(socialURL+'/social?gmv3=1',{waitUntil:'domcontentloaded'});
+   check('Intro is FIRST on Social '+width,
+     await wait(sp,'#gmv3-intro')&&await sp.locator('#gmv3-intro').isVisible());
+   await shot(sp,'social-intro-film',width);
+   await sp.locator('#gmv3-intro-skip').click();
+   await sp.locator('#gmv3-intro').waitFor({state:'hidden',timeout:3000});
    check('Social 5 tabs and original content '+width,await wait(sp,'#gmv3-social-tabs button')&&
       (await sp.locator('#gmv3-social-tabs button').count())===5);
    await shot(sp,'social-targets',width);
