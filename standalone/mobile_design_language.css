@@ -2,9 +2,10 @@
  * Design inspiration: October 25 mobile editorial QA HTML.
  * Strict scope: /prototype Jobs OR /social?gmv3=1. Never changes / or /social.
  * Styling only. Existing handlers, fields, card actions, selectors remain intact.
+ * VISUAL FREEZE: approved 4-card home and BOTH 5-tab bars stay pixel-identical.
  * Source-of-truth visual tokens and reusable patterns for new frontend work.
  */
-body.gmv3-jobs-workspace,
+body.gmv3-jobs-workspace.gmv3-workspace,
 body.gmv3-social-workspace {
   --gm-ink: #201824;
   --gm-night: #1d1a20;
@@ -35,21 +36,21 @@ body.gmv3-social-workspace {
   -webkit-font-smoothing:antialiased;
 }
 /* Compatibility mapping for both legacy frontends, local to opt-in views. */
-body.gmv3-jobs-workspace {--navy:var(--gm-ink);--blue:var(--gm-plum);--bg:var(--gm-paper);--text:var(--gm-ink);--line:var(--gm-rule);--muted:var(--gm-dim)}
+body.gmv3-jobs-workspace.gmv3-workspace {--navy:var(--gm-ink);--blue:var(--gm-plum);--bg:var(--gm-paper);--text:var(--gm-ink);--line:var(--gm-rule);--muted:var(--gm-dim)}
 body.gmv3-social-workspace {--navy:var(--gm-ink);--blue:var(--gm-plum);--bg:var(--gm-paper);--text:var(--gm-ink);--line:var(--gm-rule);--muted:var(--gm-dim);--lavender:var(--gm-plum)}
-body.gmv3-jobs-workspace .main,
-body.gmv3-jobs-workspace #content,
+body.gmv3-jobs-workspace.gmv3-workspace .main,
+body.gmv3-jobs-workspace.gmv3-workspace #content,
 body.gmv3-social-workspace main,
 body.gmv3-social-workspace #app {background:transparent;color:var(--gm-ink)}
-body.gmv3-jobs-workspace .topbar,
+body.gmv3-jobs-workspace.gmv3-workspace .topbar,
 body.gmv3-social-workspace>header {
   background:var(--gm-sheet)!important;
   border-bottom:2px solid var(--gm-ink)!important;
   box-shadow:0 3px 0 #d6a0ed50;
 }
-body.gmv3-jobs-workspace .sidebar {background:var(--gm-night)!important;border-right:2px solid #a75ab5}
-body.gmv3-jobs-workspace .sidebar .brand {color:white}
-body.gmv3-jobs-workspace #content>.heading h1,
+body.gmv3-jobs-workspace.gmv3-workspace .sidebar {background:var(--gm-night)!important;border-right:2px solid #a75ab5}
+body.gmv3-jobs-workspace.gmv3-workspace .sidebar .brand {color:white}
+body.gmv3-jobs-workspace.gmv3-workspace #content>.heading h1,
 body.gmv3-social-workspace .heading h1 {
   font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
   letter-spacing:-.06em!important;
@@ -58,9 +59,9 @@ body.gmv3-social-workspace .heading h1 {
   font-weight:920!important;
   color:var(--gm-ink)!important;
 }
-body.gmv3-jobs-workspace #content>.heading,
+body.gmv3-jobs-workspace.gmv3-workspace #content>.heading,
 body.gmv3-social-workspace .heading {margin-bottom:11px!important}
-body.gmv3-jobs-workspace .subhead,
+body.gmv3-jobs-workspace.gmv3-workspace .subhead,
 body.gmv3-social-workspace .section-head,
 body.gmv3-social-workspace .swipe-card h2 {
   color:var(--gm-ink);
@@ -68,9 +69,9 @@ body.gmv3-social-workspace .swipe-card h2 {
   letter-spacing:-.025em;
 }
 /* Every existing panel/card/row remains present; never force a fixed height. */
-body.gmv3-jobs-workspace .panel,
-body.gmv3-jobs-workspace .job,
-body.gmv3-jobs-workspace .kpi,
+body.gmv3-jobs-workspace.gmv3-workspace .panel,
+body.gmv3-jobs-workspace.gmv3-workspace .job,
+body.gmv3-jobs-workspace.gmv3-workspace .kpi,
 body.gmv3-social-workspace .card,
 body.gmv3-social-workspace .swipe-card,
 body.gmv3-social-workspace .stat,
@@ -81,79 +82,79 @@ body.gmv3-social-workspace .filter-panel {
   box-shadow:2px 3px 0 #34233816;
   max-width:100%;
 }
-body.gmv3-jobs-workspace .job,
+body.gmv3-jobs-workspace.gmv3-workspace .job,
 body.gmv3-social-workspace .person {
   transition:transform var(--gm-speed) var(--gm-ease),border-color var(--gm-speed),box-shadow var(--gm-speed);
 }
 @media(hover:hover) {
- body.gmv3-jobs-workspace .job:hover,
+ body.gmv3-jobs-workspace.gmv3-workspace .job:hover,
  body.gmv3-social-workspace .person:hover {
   border-color:#b786cd!important;
   box-shadow:3px 4px 0 #9250b52e;
   transform:translateY(-2px);
  }
 }
-body.gmv3-jobs-workspace .job h3,
+body.gmv3-jobs-workspace.gmv3-workspace .job h3,
 body.gmv3-social-workspace .person strong {font-weight:850;letter-spacing:-.028em;color:var(--gm-ink)}
-body.gmv3-jobs-workspace .job .company,
-body.gmv3-jobs-workspace .meta,
+body.gmv3-jobs-workspace.gmv3-workspace .job .company,
+body.gmv3-jobs-workspace.gmv3-workspace .meta,
 body.gmv3-social-workspace .muted,
 body.gmv3-social-workspace .subtle,
 body.gmv3-social-workspace .person small {color:var(--gm-dim)!important}
-body.gmv3-jobs-workspace .joblink,
+body.gmv3-jobs-workspace.gmv3-workspace .joblink,
 body.gmv3-social-workspace a {color:var(--gm-plum);text-underline-offset:3px}
-body.gmv3-jobs-workspace .joblink:hover,
+body.gmv3-jobs-workspace.gmv3-workspace .joblink:hover,
 body.gmv3-social-workspace a:hover {color:#a13480;text-decoration:underline}
 /* Feature-dense cards: preserve all actions and status controls. */
-body.gmv3-jobs-workspace .jobs {gap:12px!important}
-body.gmv3-jobs-workspace .jobtop,
-body.gmv3-jobs-workspace .jobcontrols,
-body.gmv3-jobs-workspace .job-settings,
-body.gmv3-jobs-workspace .job-card-actions {min-width:0;max-width:100%}
-body.gmv3-jobs-workspace .jobcontrols,
-body.gmv3-jobs-workspace .job-card-actions,
-body.gmv3-jobs-workspace .checks,
-body.gmv3-jobs-workspace .job-settings,
+body.gmv3-jobs-workspace.gmv3-workspace .jobs {gap:12px!important}
+body.gmv3-jobs-workspace.gmv3-workspace .jobtop,
+body.gmv3-jobs-workspace.gmv3-workspace .jobcontrols,
+body.gmv3-jobs-workspace.gmv3-workspace .job-settings,
+body.gmv3-jobs-workspace.gmv3-workspace .job-card-actions {min-width:0;max-width:100%}
+body.gmv3-jobs-workspace.gmv3-workspace .jobcontrols,
+body.gmv3-jobs-workspace.gmv3-workspace .job-card-actions,
+body.gmv3-jobs-workspace.gmv3-workspace .checks,
+body.gmv3-jobs-workspace.gmv3-workspace .job-settings,
 body.gmv3-social-workspace .btnrow,
 body.gmv3-social-workspace .swipe-actions {gap:7px!important}
-body.gmv3-jobs-workspace .job-controls button,
-body.gmv3-jobs-workspace .jobcontrols button,
+body.gmv3-jobs-workspace.gmv3-workspace .job-controls button,
+body.gmv3-jobs-workspace.gmv3-workspace .jobcontrols button,
 body.gmv3-social-workspace .swipe-actions button {white-space:normal}
-body.gmv3-jobs-workspace .job-settings {overflow:visible!important}
-body.gmv3-jobs-workspace .job-settings .job-setting {min-width:0}
+body.gmv3-jobs-workspace.gmv3-workspace .job-settings {overflow:visible!important}
+body.gmv3-jobs-workspace.gmv3-workspace .job-settings .job-setting {min-width:0}
 /* Buttons: sticker-print flatness, not 3D neon blobs. */
-body.gmv3-jobs-workspace .btn,
+body.gmv3-jobs-workspace.gmv3-workspace .btn,
 body.gmv3-social-workspace .btn,
 body.gmv3-social-workspace .mini,
-body.gmv3-jobs-workspace .quick button {
+body.gmv3-jobs-workspace.gmv3-workspace .quick button {
   border:1.5px solid #bfb0ca;
   border-radius:var(--gm-radius-sm);
   font-weight:740;
   letter-spacing:-.014em;
   transition:transform var(--gm-speed) var(--gm-ease),background-color var(--gm-speed),box-shadow var(--gm-speed);
 }
-body.gmv3-jobs-workspace .btn-primary,
+body.gmv3-jobs-workspace.gmv3-workspace .btn-primary,
 body.gmv3-social-workspace .btn.primary,
 body.gmv3-social-workspace .btn.good {
   background:var(--gm-lime)!important;
   color:var(--gm-ink)!important;
   border-color:var(--gm-ink)!important;
 }
-body.gmv3-jobs-workspace .btn-navy,
+body.gmv3-jobs-workspace.gmv3-workspace .btn-navy,
 body.gmv3-social-workspace .btn.soft {background:var(--gm-lilac-soft)!important;color:var(--gm-plum)!important}
 @media(hover:hover){
- body.gmv3-jobs-workspace .btn:hover:not(:disabled),
- body.gmv3-jobs-workspace .quick button:hover:not(:disabled),
+ body.gmv3-jobs-workspace.gmv3-workspace .btn:hover:not(:disabled),
+ body.gmv3-jobs-workspace.gmv3-workspace .quick button:hover:not(:disabled),
  body.gmv3-social-workspace .btn:hover:not(:disabled) {transform:translateY(-2px);box-shadow:2px 3px 0 #2a1e3050}
 }
-body.gmv3-jobs-workspace .btn:active:not(:disabled),
+body.gmv3-jobs-workspace.gmv3-workspace .btn:active:not(:disabled),
 body.gmv3-social-workspace .btn:active:not(:disabled) {transform:translateY(1px) scale(.985);box-shadow:none}
-body.gmv3-jobs-workspace .btn:disabled,
+body.gmv3-jobs-workspace.gmv3-workspace .btn:disabled,
 body.gmv3-social-workspace .btn:disabled {opacity:.55;cursor:not-allowed;box-shadow:none}
 /* Filters: same chip language in Discovery, CV queue and Social targets. */
-body.gmv3-jobs-workspace .toolbar,
+body.gmv3-jobs-workspace.gmv3-workspace .toolbar,
 body.gmv3-social-workspace .filter-panel {background:#fffdf7!important;border:1.5px solid var(--gm-rule)!important;padding:12px!important}
-body.gmv3-jobs-workspace .chip,
+body.gmv3-jobs-workspace.gmv3-workspace .chip,
 body.gmv3-social-workspace .chip,
 body.gmv3-social-workspace .pill,
 body.gmv3-social-workspace .mini {
@@ -165,8 +166,8 @@ body.gmv3-social-workspace .mini {
   font-weight:730;
   transition:background var(--gm-speed),transform var(--gm-speed);
 }
-body.gmv3-jobs-workspace .chip.active,
-body.gmv3-jobs-workspace .chip[aria-pressed="true"],
+body.gmv3-jobs-workspace.gmv3-workspace .chip.active,
+body.gmv3-jobs-workspace.gmv3-workspace .chip[aria-pressed="true"],
 body.gmv3-social-workspace .chip.selected,
 body.gmv3-social-workspace .pill.active,
 body.gmv3-social-workspace .mini.active {
@@ -174,17 +175,17 @@ body.gmv3-social-workspace .mini.active {
   border-color:var(--gm-ink)!important;
   color:var(--gm-ink)!important;
 }
-body.gmv3-jobs-workspace .filter-scroll,
+body.gmv3-jobs-workspace.gmv3-workspace .filter-scroll,
 body.gmv3-social-workspace .topview {scrollbar-width:thin;scrollbar-color:#b68fc8 transparent}
 /* Forms: never remove filters, dropdowns, textarea or checkbox controls. */
-body.gmv3-jobs-workspace .searchbox,
+body.gmv3-jobs-workspace.gmv3-workspace .searchbox,
 body.gmv3-social-workspace .search {background:var(--gm-sheet);border:1.5px solid var(--gm-rule);border-radius:13px}
-body.gmv3-jobs-workspace .field input,
-body.gmv3-jobs-workspace .field select,
-body.gmv3-jobs-workspace .field textarea,
-body.gmv3-jobs-workspace .toolbar select,
-body.gmv3-jobs-workspace .searchbox input,
-body.gmv3-jobs-workspace .tier-select,
+body.gmv3-jobs-workspace.gmv3-workspace .field input,
+body.gmv3-jobs-workspace.gmv3-workspace .field select,
+body.gmv3-jobs-workspace.gmv3-workspace .field textarea,
+body.gmv3-jobs-workspace.gmv3-workspace .toolbar select,
+body.gmv3-jobs-workspace.gmv3-workspace .searchbox input,
+body.gmv3-jobs-workspace.gmv3-workspace .tier-select,
 body.gmv3-social-workspace input:not([type="checkbox"]):not([type="radio"]),
 body.gmv3-social-workspace select,
 body.gmv3-social-workspace textarea {
@@ -196,23 +197,23 @@ body.gmv3-social-workspace textarea {
   max-width:100%;
   accent-color:var(--gm-plum);
 }
-body.gmv3-jobs-workspace input[type="checkbox"],
+body.gmv3-jobs-workspace.gmv3-workspace input[type="checkbox"],
 body.gmv3-social-workspace input[type="checkbox"] {accent-color:var(--gm-plum)}
-body.gmv3-jobs-workspace :is(button,input,select,textarea,a,[role="button"]):focus-visible,
+body.gmv3-jobs-workspace.gmv3-workspace :is(button,input,select,textarea,a,[role="button"]):focus-visible,
 body.gmv3-social-workspace :is(button,input,select,textarea,a,[role="button"]):focus-visible {
   outline:var(--gm-outline)!important;
   outline-offset:2px!important;
 }
 /* Status colours remain semantic, not generic decorative badges. */
-body.gmv3-jobs-workspace .tag,
+body.gmv3-jobs-workspace.gmv3-workspace .tag,
 body.gmv3-social-workspace .tag {border-radius:8px;padding:5px 8px;font-weight:730;line-height:1.3}
-body.gmv3-jobs-workspace .tag-ok,
+body.gmv3-jobs-workspace.gmv3-workspace .tag-ok,
 body.gmv3-social-workspace .tag.accepted,
 body.gmv3-social-workspace .tag.replied {background:#dff6e5!important;color:var(--gm-good)!important}
-body.gmv3-jobs-workspace .tag-red,
+body.gmv3-jobs-workspace.gmv3-workspace .tag-red,
 body.gmv3-social-workspace .tag.later {background:#ffe2e9!important;color:var(--gm-danger)!important}
-body.gmv3-jobs-workspace .tag-warn {background:#fff1bd!important;color:var(--gm-warn)!important}
-body.gmv3-jobs-workspace .tag-blue,
+body.gmv3-jobs-workspace.gmv3-workspace .tag-warn {background:#fff1bd!important;color:var(--gm-warn)!important}
+body.gmv3-jobs-workspace.gmv3-workspace .tag-blue,
 body.gmv3-social-workspace .tag.sent {background:var(--gm-lilac-soft)!important;color:var(--gm-plum)!important}
 /* Social people, invitation preview, and full-length research forms. */
 body.gmv3-social-workspace .person {border-bottom:1px dashed #d5bfe0;padding-block:12px}
@@ -224,46 +225,40 @@ body.gmv3-social-workspace .research-space,
 body.gmv3-social-workspace .compact-grid,
 body.gmv3-social-workspace .split {max-width:100%;min-width:0}
 body.gmv3-social-workspace .stat strong,
-body.gmv3-jobs-workspace .kpi strong {letter-spacing:-.05em;color:var(--gm-ink)}
+body.gmv3-jobs-workspace.gmv3-workspace .kpi strong {letter-spacing:-.05em;color:var(--gm-ink)}
 body.gmv3-social-workspace .stats,
-body.gmv3-jobs-workspace .kpis {gap:10px}
-/* Drawer, More and bottom tabs reuse this system too. */
-body.gmv3-jobs-workspace .gmv3-panel,
-body.gmv3-social-workspace .gmv3-panel {background:var(--gm-sheet);color:var(--gm-ink);border-top:4px solid var(--gm-plum)}
-body.gmv3-jobs-workspace .gmv3-tabbar,
-body.gmv3-social-workspace .gmv3-tabbar {background:var(--gm-sheet);border-top:2px solid var(--gm-ink);box-shadow:0 -4px 0 #d8a0ed40}
-body.gmv3-jobs-workspace .gmv3-tabbar button[aria-current="page"],
-body.gmv3-social-workspace .gmv3-tabbar button[aria-current="page"] {background:var(--gm-lilac-soft);color:var(--gm-ink)}
-body.gmv3-jobs-workspace .gmv3-drawer,
-body.gmv3-social-workspace .gmv3-drawer {background:var(--gm-night);color:white}
+body.gmv3-jobs-workspace.gmv3-workspace .kpis {gap:10px}
+/* The approved HOME / 5-tab navigation / account drawer are FROZEN.
+   This stylesheet intentionally never targets #gmv3-launch,
+   .gmv3-tabbar, .gmv3-swipe-arrows or .gmv3-drawer. */
 /* Responsive: keep dense real job controls available and scroll where needed. */
 @media(max-width:720px) {
- body.gmv3-jobs-workspace #content,
+ body.gmv3-jobs-workspace.gmv3-workspace #content,
  body.gmv3-social-workspace main {padding-left:10px!important;padding-right:10px!important}
- body.gmv3-jobs-workspace .panel,
- body.gmv3-jobs-workspace .job,
+ body.gmv3-jobs-workspace.gmv3-workspace .panel,
+ body.gmv3-jobs-workspace.gmv3-workspace .job,
  body.gmv3-social-workspace .card {padding:12px!important}
- body.gmv3-jobs-workspace .jobsettings,
- body.gmv3-jobs-workspace .jobcontrols,
- body.gmv3-jobs-workspace .job-card-actions {flex-wrap:wrap}
- body.gmv3-jobs-workspace .checks {display:flex;flex-wrap:wrap;gap:6px}
- body.gmv3-jobs-workspace .job-settings {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,135px),1fr));gap:8px}
- body.gmv3-jobs-workspace .job-settings select {min-width:0;width:100%}
+ body.gmv3-jobs-workspace.gmv3-workspace .jobsettings,
+ body.gmv3-jobs-workspace.gmv3-workspace .jobcontrols,
+ body.gmv3-jobs-workspace.gmv3-workspace .job-card-actions {flex-wrap:wrap}
+ body.gmv3-jobs-workspace.gmv3-workspace .checks {display:flex;flex-wrap:wrap;gap:6px}
+ body.gmv3-jobs-workspace.gmv3-workspace .job-settings {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,135px),1fr));gap:8px}
+ body.gmv3-jobs-workspace.gmv3-workspace .job-settings select {min-width:0;width:100%}
  body.gmv3-social-workspace .split {grid-template-columns:minmax(0,1fr)}
  body.gmv3-social-workspace .btnrow {flex-wrap:wrap}
- body.gmv3-jobs-workspace .toolbar-main {min-width:0;gap:7px}
+ body.gmv3-jobs-workspace.gmv3-workspace .toolbar-main {min-width:0;gap:7px}
 }
 @media(max-width:360px) {
- body.gmv3-jobs-workspace .job-controls .btn,
+ body.gmv3-jobs-workspace.gmv3-workspace .job-controls .btn,
  body.gmv3-social-workspace .swipe-actions .btn {font-size:12px}
- body.gmv3-jobs-workspace .tag,
+ body.gmv3-jobs-workspace.gmv3-workspace .tag,
  body.gmv3-social-workspace .tag {font-size:10px}
 }
 @media(prefers-reduced-motion:reduce){
- body.gmv3-jobs-workspace .job,
+ body.gmv3-jobs-workspace.gmv3-workspace .job,
  body.gmv3-social-workspace .person,
- body.gmv3-jobs-workspace .btn,
+ body.gmv3-jobs-workspace.gmv3-workspace .btn,
  body.gmv3-social-workspace .btn,
- body.gmv3-jobs-workspace .chip,
+ body.gmv3-jobs-workspace.gmv3-workspace .chip,
  body.gmv3-social-workspace .chip {transition:none!important;transform:none!important}
 }
