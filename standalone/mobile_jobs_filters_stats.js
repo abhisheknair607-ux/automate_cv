@@ -13,7 +13,7 @@ const baseRun=run,baseRender=render;
 const filters=new Map(),facets=new Map(),pipeline=new Map(),inflight=new Set();
 const statuses={
  discovery:[["all","All jobs"],["missing","Seems Kacha"],["ready","Seems Taaza"],["favorites","Favourites"],["not-interested","Not interested"]],
- fresh:[["all","All jobs"],["unapplied","CV ready, not applied"],["selected","Shortlisted"],["cv","CV requested"],["applied","Applied"],["unscored","Unscored"],["favorites","Favourites"],["not-interested","Not interested"]]
+ fresh:[["all","All jobs"],["unapplied","CV ready, not applied"],["selected","Shortlisted"],["cv","CV requested"],["prepared","CV prepared"],["applied","Applied"],["connected","Applied + Connected"],["unscored","Unscored"],["favorites","Favourites"],["not-interested","Not interested"]]
 };
 const key=(c,t)=>"gmv3-preview-"+c+"-"+t;
 const defaultFilters=()=>({company:"",location:"",designation:"",department:"",status:"all",sort:"newest",category:"all"});
