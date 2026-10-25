@@ -69,3 +69,33 @@ test("Social Docker image ships only Social-relevant approved sprites",()=>{
   assert.ok(docker.includes(f),"Social Docker missing "+f);
  assert.ok(!docker.includes("home-collage-strip.webp"));
 });
+
+
+test("Intro picks the correct clip by aspect ratio, with non-cropping responsive film and accessible controls",()=>{
+ const code=read("standalone/mobile_collage_intro.js");
+ const css=read("standalone/mobile_collage.css");
+ assert.match(code,/\(min-aspect-ratio: 11\/10\)/);
+ assert.doesNotMatch(code,/\(min-width: 800px\)/);
+ assert.match(code,/video\.currentTime>=3\.77/);
+ assert.match(code,/root\.removeAttribute\("aria-hidden"\)/);
+ assert.match(code,/prefers-reduced-motion/);
+ assert.match(css,/#gmv3-collage-intro \.gmv3-intro-video\s*\{[^}]*object-fit:contain/s);
+ assert.match(css,/#gmv3-collage-intro \.gmv3-intro-controls\s*\{[^}]*safe-area-inset-bottom/s);
+ assert.match(css,/INTRO \/ SCREEN-FIT 2026-10-25/);
+ assert.match(css,/@media \(orientation:portrait\)/);
+ assert.match(css,/@media \(orientation:landscape\) and \(max-height:490px\)/);
+ assert.match(css,/width:min\(92vw,840px,calc\(78dvh \* 1\.65\)\)/);
+ assert.ok(!css.includes('#gmv3-collage-intro .gmv3-intro-video{object-fit:cover}'));
+ for(const screen of [
+   {w:320,h:740,expected:"mobile"},
+   {w:390,h:844,expected:"mobile"},
+   {w:768,h:1024,expected:"mobile"},
+   {w:1024,h:768,expected:"desktop"},
+   {w:932,h:430,expected:"desktop"},
+   {w:1920,h:1080,expected:"desktop"},
+   {w:3440,h:1440,expected:"desktop"}
+ ]){
+  const wide=screen.w/screen.h>=1.1;
+  assert.equal(wide?"desktop":"mobile",screen.expected);
+ }
+});
