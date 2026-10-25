@@ -894,3 +894,60 @@ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
   body.gmv3-jobs-workspace #content .jobs > .job,
   body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{transition:none!important;transform:none!important}
 }
+
+
+/* Stage 8 Swipe: optional highlights expanded by tap; JD remains in its drawer. */
+#gmv3-jobs-swipe .gmv3-drag-card{
+  transition:transform .18s ease,opacity .18s ease,border-color .18s ease,
+   min-height .18s ease,padding .18s ease!important;
+}
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-card-expanded{
+  border-color:#d9a1ec!important;
+  box-shadow:5px 6px 0 #08070b,0 0 0 1px #d493ef!important;
+  min-height:min(62dvh,565px);
+  padding-bottom:clamp(22px,5vw,34px);
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra[hidden]{display:none!important}
+#gmv3-jobs-swipe .gmv3-swipe-extra{
+  margin:13px 0;padding:14px 13px 12px;
+  border:1px solid #695475;border-radius:11px;
+  background:#34283c;
+  display:flex;flex-wrap:wrap;gap:7px 9px;align-items:center;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra strong{
+  flex-basis:100%;color:#dfff58;
+  font:900 12px "Bricolage Grotesque",system-ui;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra span{
+  display:inline-flex;border-radius:7px;
+  padding:7px 9px;border:1px solid #755f81;
+  color:#f2e4ee;background:#43334b;
+  font:750 11px/1.4 system-ui;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra .gmv3-swipe-more-excerpt{
+  flex:1 1 100%;margin:3px 0 5px!important;
+  color:#f3e7ef!important;
+  font:600 12px/1.55 system-ui!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-title-link{
+  color:#fff7e9!important;text-decoration:underline;
+  text-decoration-color:#d493ef;text-decoration-thickness:2px;
+  text-underline-offset:5px;
+}
+#gmv3-jobs-swipe .gmv3-swipe-title-link:hover{
+  color:#dfff58!important;text-decoration-color:#dfff58;
+}
+#gmv3-jobs-swipe .gmv3-expand-hint{
+  color:#d7b4e4;font:800 11px "Bricolage Grotesque",system-ui;
+  display:inline-flex;align-items:center;
+}
+#gmv3-jobs-swipe .gmv3-expand-hint::before{
+  content:"+";margin-right:6px;color:#dfff58;font-size:17px;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-expand-hint::before{content:"−"}
+#gmv3-jobs-swipe .gmv3-drag-card:focus-visible{
+  outline:3px solid #dfff58!important;outline-offset:3px;
+}
+@media(prefers-reduced-motion:reduce){
+  #gmv3-jobs-swipe .gmv3-drag-card{transition:none!important}
+}
