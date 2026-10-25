@@ -24,7 +24,7 @@ test("Every approved WebP sprite is packaged and nonempty",()=>{
 });
 test("Approved MP4 footage is committed for both device breakpoints",()=>{
  const server=read("standalone/server.js");
- assert.match(server,/app\\.get\\("\\/prototype\\/media\\/:file"/);
+ assert.ok(server.includes('app.get("/prototype/media/:file"'));
  for(const f of ["intro-mobile.mp4","intro-desktop.mp4"]){
   const b=fs.readFileSync(path.join(root,"standalone/assets",f));
   assert.ok(b.length>500000,f);
