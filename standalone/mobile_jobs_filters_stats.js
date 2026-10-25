@@ -6,7 +6,7 @@
 "use strict";
 if(typeof document==="undefined"||!document.body.classList.contains("gmv3-jobs-workspace"))return;
 const doc=document;
-const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;":"&quot;","'":"&#39;"}[c]));
+const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const cand=()=>state.candidate==="Pooja"?"Pooja":"Abhishek";
 const sect=()=>state.section==="discovery"?"discovery":state.section==="fresh"?"fresh":null;
 const baseRun=run,baseRender=render;
