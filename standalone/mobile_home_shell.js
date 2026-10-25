@@ -88,6 +88,9 @@
     if(!control)return;
     const action=control.getAttribute("data-gmv3");
     if(action==="jobs"){enterJobs();return;}
+    // Homepage Statistics routes to the original authenticated Jobs dashboard.
+    // Never substitute browser-local example numbers for actual job statistics.
+    if(action==="statistics"){enterJobs();return;}
     if(action==="network"){window.location.assign("/social?gmv3=1");return;}
     if(action==="home"){showHome();return;}
     if(action==="target-up"||action==="target-down"){
