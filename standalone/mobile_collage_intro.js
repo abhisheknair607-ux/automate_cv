@@ -11,15 +11,15 @@
  // Choose footage by screen shape, not pixel width: portrait tablets use the portrait clip; landscape phones use widescreen.
  const desktop=()=>window.matchMedia?.("(min-aspect-ratio: 11/10)")?.matches;
  const url=()=>"/prototype/media/intro-"+(desktop()?"desktop":"mobile")+".mp4";
- let film=null,video=null,started=false,timeout=null,closing=false;
+ let film=null,video=null,ambient=null,started=false,timeout=null,closing=false;
  function finish(){
   if(!film||closing)return;
   closing=true;
   document.body.classList.add("gmv3-transfer");
   film.classList.add("gmv3-out");
-  if(video){video.pause();}
+  if(video){video.pause();}if(ambient){ambient.pause();}
   if(timeout){clearTimeout(timeout);timeout=null;}
-  setTimeout(()=>{film?.remove();film=null;video=null;root.removeAttribute("aria-hidden");closing=false},620);
+  setTimeout(()=>{film?.remove();film=null;video=null;ambient=null;root.removeAttribute("aria-hidden");closing=false},620);
  }
  function begin(force=false){
   if(reduced)return;
@@ -31,11 +31,15 @@
   film=document.createElement("div");
   film.id="gmv3-collage-intro";
   const accessibilityLabel="Garamaal scrapbook paper unfolding video";
-  film.innerHTML='<video class="gmv3-intro-video" playsinline autoplay muted preload="auto" disablepictureinpicture aria-label="'+accessibilityLabel+'"></video>'+
+  film.innerHTML='<video class="gmv3-intro-ambient" playsinline muted aria-hidden="true" tabindex="-1" preload="auto" disablepictureinpicture></video>'+ 
+    '<video class="gmv3-intro-video" playsinline autoplay muted preload="auto" disablepictureinpicture aria-label="'+accessibilityLabel+'"></video>'+
     '<div class="gmv3-intro-controls"><button class="gmv3-intro-sound" type="button" aria-label="Enable intro sound">Sound off</button><button class="gmv3-intro-skip" type="button">Skip intro →</button></div>';
   root.setAttribute("aria-hidden","true");
   document.body.appendChild(film);
-  video=film.querySelector("video");video.src=url();video.muted=true;
+  video=film.querySelector(".gmv3-intro-video");ambient=film.querySelector(".gmv3-intro-ambient");
+  const source=url();video.src=source;video.muted=true;ambient.src=source;ambient.muted=true;ambient.defaultMuted=true;
+  video.addEventListener("play",()=>{ambient?.play().catch(()=>{});});
+  video.addEventListener("seeked",()=>{if(ambient&&video&&Math.abs(ambient.currentTime-video.currentTime)>.2)ambient.currentTime=video.currentTime});
   video.addEventListener("timeupdate",()=>{if(video&&video.currentTime>=3.77)finish()});
   video.addEventListener("ended",finish,{once:true});
   video.addEventListener("error",()=>{
@@ -54,6 +58,7 @@
    e.currentTarget.setAttribute("aria-label",video.muted?"Enable intro sound":"Mute intro sound");
   });
   video.play().catch(()=>{if(video)video.muted=true;});
+  ambient.play().catch(()=>{});
   // Fail closed: on an unusually slow device, always reveal the application.
   timeout=setTimeout(finish,5000);
  }
