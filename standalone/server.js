@@ -138,7 +138,7 @@ app.get("/prototype/account-drawer.js",(_req,res)=>
 app.get("/prototype/profile-editor.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
 // Allowlisted branch artwork and intro script; never publicize backend file paths.
-const COLLAGE_ART=new Set(["home-collage-strip.webp","nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg"]);
+const COLLAGE_ART=new Set(["home-collage-strip.webp","nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"]);
 app.get("/prototype/assets/:file",(req,res)=>{
  if(!COLLAGE_ART.has(req.params.file))return res.status(404).end();
  res.type(req.params.file.endsWith(".svg")?"image/svg+xml":"image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
