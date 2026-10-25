@@ -1,0 +1,75 @@
+name: Mobile V3 Full-App Read-Only QA
+on:
+  push:
+    branches:
+      - prototype/mobile-v3-connected-qa-20261025
+    paths:
+      - .github/workflows/mobile-connected-fullapp-qa.yml
+      - standalone/mobile_connected_qa.playwright.cjs
+      - standalone/mobile_fullfeature_parity.test.cjs
+      - standalone/mobile_fullapp_route_staging.test.js
+      - standalone/mobile_*.css
+      - standalone/assets/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-full-source-browser-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 24
+    env:
+      APP_READ_ONLY: 'true'
+      SOCIAL_READ_ONLY: 'true'
+      SOCIAL_ALLOW_LIVE_WRITES: 'false'
+      ALLOW_MANUAL_CV_DISPATCH: 'false'
+      NODE_ENV: test
+    steps:
+      - name: Checkout QA branch (not main)
+        uses: actions/checkout@v4
+        with:
+          ref: prototype/mobile-v3-connected-qa-20261025
+          persist-credentials: false
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test runtime without lockfile or secrets
+        run: npm install --no-package-lock --no-audit --no-fund playwright@1.57.0
+      - name: Install isolated Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Source and real local-route Node tests
+        id: unit
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p qa-output/connected-mobile-v3
+          set -o pipefail
+          node --test \
+            standalone/mobile_fullfeature_parity.test.cjs \
+            standalone/mobile_fullapp_route_staging.test.js \
+            standalone/mobile_hubs.test.js \
+            standalone/mobile_approved_asset_layer.test.js \
+            standalone/mobile_editorial_polish.test.js \
+            standalone/mobile_home_shell.test.js \
+            | tee qa-output/connected-mobile-v3/node-tests.log
+      - name: Full-source Jobs + Social browser screenshots at three widths
+        id: browser
+        continue-on-error: true
+        run: node standalone/mobile_connected_qa.playwright.cjs
+      - name: Upload read-only QA report and screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garamaal-mobile-connected-qa
+          path: qa-output/connected-mobile-v3/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Surface test failures after uploading evidence
+        if: always()
+        shell: bash
+        run: |
+          echo "Node test outcome: ${{ steps.unit.outcome }}"
+          echo "Browser QA outcome: ${{ steps.browser.outcome }}"
+          if [[ "${{ steps.unit.outcome }}" != "success" || "${{ steps.browser.outcome }}" != "success" ]]; then
+            exit 1
+          fi
