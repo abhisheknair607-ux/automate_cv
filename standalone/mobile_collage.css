@@ -681,3 +681,84 @@ body.gmv3-jobs-workspace .garamaal-header-controls{align-items:center;justify-co
 @media(min-width:740px){.gmv3-pf-dialog{height:min(92dvh,900px);max-height:92dvh;border-radius:20px}}
 @media(max-width:380px){.gmv3-pf-dual{grid-template-columns:1fr}.gmv3-pf-candidate{font-size:10px;padding:5px}}
 @media(prefers-reduced-motion:reduce){#gmv3-account-veil *,#gmv3-profile-modal *{animation:none!important;transition:none!important}}
+
+
+/* Stage 6: shared collage navigation, unambiguous status and compact E profile. */
+body.gmv3-jobs-workspace .topbar.garamaal-unified-header{display:flex!important;justify-content:space-between!important;gap:7px!important;align-items:center}
+body.gmv3-jobs-workspace .topbar .crumb{display:none!important} /* Don't repeat Discovery / Make CV above the same labelled tab and page heading. */
+body.gmv3-jobs-workspace .topbar #modeBadge{
+ order:0!important;display:inline-flex!important;position:static!important;
+ flex:0 1 auto;max-width:clamp(82px,33vw,160px);overflow:hidden;text-overflow:ellipsis;
+ white-space:nowrap;color:#ddff58!important;background:#293523!important;border:1px solid #6b8d45!important;
+ padding:6px 11px!important;margin-right:auto!important;min-height:30px!important;
+ font:900 10px "Bricolage Grotesque",system-ui!important;letter-spacing:.03em;
+}
+body.gmv3-jobs-workspace .topbar #modeBadge.garamaal-editing{
+ color:#ffe8ac!important;background:#4b3b25!important;border-color:#b18b4d!important;
+}
+body.gmv3-jobs-workspace .garamaal-header-controls{flex:0 1 auto;width:auto!important;justify-content:flex-end!important;gap:6px}
+body.gmv3-jobs-workspace .garamaal-header-controls #expenseToggle,
+body.gmv3-jobs-workspace #garamaal-install-dock,
+body.gmv3-jobs-workspace .topbar #cv-install-app{display:none!important}
+body.gmv3-jobs-workspace .garamaal-header-controls #jobHeaderLink,
+body.gmv3-jobs-workspace .garamaal-header-controls #socialHeaderLink{
+ color:#efe4f2!important;background:#2a2330!important;border:1px solid #634f6b!important;
+ min-width:0;min-height:36px;padding:0 9px!important;
+}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button{
+ width:42px!important;min-width:42px!important;height:42px!important;
+ border-radius:50%!important;display:grid!important;place-items:center!important;
+ font:950 24px "Bricolage Grotesque",system-ui!important;
+ transform:none!important;box-shadow:2px 3px 0 #dfff58!important;
+}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button span:first-child{font-size:24px}
+.gmv3-account-install{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:11px 13px;margin:5px 15px 14px;
+ background:#dfff58;border:2px solid #151218;border-radius:13px;box-shadow:3px 4px 0 #d493ef;color:#171218}
+.gmv3-account-install div{flex:1;min-width:0}
+.gmv3-account-install strong{display:block;color:#171218;font:950 13px/1.25 "Bricolage Grotesque",system-ui}
+.gmv3-account-install small{display:block;margin-top:4px;color:#39322a;font:650 10px/1.4 system-ui}
+.gmv3-account-install button{border:1px solid #141218;border-radius:9px;background:#171218;color:#dfff58;min-width:81px;min-height:43px;
+ padding:8px 10px;font:900 11px "Bricolage Grotesque",system-ui;cursor:pointer}
+#gmv3-launch .gmv3-avatar{font:950 22px "Bricolage Grotesque",system-ui!important;display:grid;place-items:center}
+.gmv3-tabbar{justify-content:space-between!important;gap:2px;max-width:none!important;
+ padding:5px max(5px,env(safe-area-inset-left)) calc(5px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-right))}
+.gmv3-tabbar button{min-height:62px;gap:0!important;letter-spacing:-.01em;
+ font:850 clamp(9px,2.7vw,11px)/1.15 "Bricolage Grotesque",system-ui!important;color:#fff7e9!important}
+.gmv3-tabbar .gmv3-tabicon{background-size:500% 300%!important;background-color:transparent!important;position:relative;
+ width:clamp(37px,9.5vw,46px)!important;height:clamp(37px,9.5vw,46px)!important;min-height:unset!important;margin:0 auto 3px!important}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon{
+ width:clamp(37px,9.5vw,46px)!important;height:clamp(37px,9.5vw,46px)!important;min-height:unset!important;
+ background:url("/prototype/assets/nav-collage-states.webp") no-repeat 50% 0%!important;
+ background-size:500% 300%!important;border:none!important;border-radius:0!important;
+ box-shadow:none!important;transform:none!important;margin:0 auto 3px!important;display:block!important;
+}
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon{
+ background-image:url("/social/assets/nav-collage-states.webp")!important
+}
+/* If the third sprite cell lacks ink, the glyph remains on the identical sprite cell,
+   never as a mismatched raised purple circle. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab .gmv3-tabicon::after,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon::after{
+ content:"⇄";inset:0;display:grid;place-items:center;position:absolute;
+ color:#171218!important;font:950 18px "Bricolage Grotesque",system-ui!important;
+ text-shadow:0 1px #e5b8fa;pointer-events:none;opacity:.85;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab:hover .gmv3-tabicon{background-position:50% 50%!important;transform:rotate(-4deg)!important}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon{background-position:50% 100%!important}
+#gmv3-profile-modal .gmv3-pf-source{border:1.5px solid #876c94;background:#28202c;padding:12px;margin:0 0 12px;border-radius:13px;box-shadow:2px 3px 0 #09070b}
+#gmv3-profile-modal .gmv3-pf-source-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+#gmv3-profile-modal .gmv3-pf-source-header strong{font:900 14px "Bricolage Grotesque",system-ui;color:#fff7e9}
+#gmv3-profile-modal .gmv3-pf-source-header span{border-radius:8px;padding:6px 8px;background:#dfff58;color:#171218;font:900 10px system-ui;white-space:nowrap}
+#gmv3-profile-modal .gmv3-pf-source-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+#gmv3-profile-modal .gmv3-pf-source-switch button{min-height:44px;padding:8px 9px;border:1px solid #705b77;background:#373041;color:#fff7e9;
+ border-radius:9px;font:850 12px "Bricolage Grotesque",system-ui}
+#gmv3-profile-modal .gmv3-pf-source-switch button[aria-pressed="true"]{background:#d493ef;color:#161218;border-color:#151218;box-shadow:2px 2px 0 #dfff58}
+#gmv3-profile-modal .gmv3-pf-source p{color:#e8ddec;font:650 11px/1.55 system-ui;margin:9px 0}
+#gmv3-profile-modal .gmv3-pf-source small{color:#c3b0c9;font:550 10px/1.5 system-ui}
+@media(max-width:385px){body.gmv3-jobs-workspace .garamaal-header-controls #jobHeaderLink,
+body.gmv3-jobs-workspace .garamaal-header-controls #socialHeaderLink{font-size:10px!important;padding:0 6px!important}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button{width:39px!important;min-width:39px!important;height:39px!important}
+}
