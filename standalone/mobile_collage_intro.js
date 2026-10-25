@@ -8,7 +8,8 @@
  const root=document.getElementById("gmv3-launch");
  if(!root)return;
  const reduced=window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
- const desktop=()=>window.matchMedia?.("(min-width: 800px)")?.matches;
+ // Choose footage by screen shape, not pixel width: portrait tablets use the portrait clip; landscape phones use widescreen.
+ const desktop=()=>window.matchMedia?.("(min-aspect-ratio: 11/10)")?.matches;
  const url=()=>"/prototype/media/intro-"+(desktop()?"desktop":"mobile")+".mp4";
  let film=null,video=null,started=false,timeout=null,closing=false;
  function finish(){
