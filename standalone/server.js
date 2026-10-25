@@ -139,9 +139,16 @@ app.get("/prototype/approved-assets.css",(_req,res)=>res.type("text/css").sendFi
 app.get("/prototype/editorial-polish.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_editorial_polish.css")));
 app.get("/prototype/visual-qa.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_stage_visual_qa.css")));
 app.get("/prototype/design-language.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_design_language.css")));
+app.get("/prototype/intro.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_intro_overlay.css")));
+app.get("/prototype/intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_intro_overlay.js")));
+for(const device of ["mobile","desktop"])app.get("/prototype/intro/"+device+".mp4",(_req,res)=>{
+ res.set("Cache-Control","private, max-age=86400");
+ res.type("video/mp4").sendFile(path.join(__dirname,"assets","garamaal-intro-"+device+".mp4"));
+});
 app.get("/prototype",(req,res)=>{
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
+  const intro=fs.readFileSync(path.join(__dirname,"mobile_intro_overlay.html"),"utf8");
   if(!html.includes("<body>")||!html.includes("</head>")||
      !html.includes("<script>\n'use strict';")){
     return res.status(500).type("text/plain").send("Prototype source marker missing");
@@ -157,8 +164,9 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/approved-assets.css">'+
     '<link rel="stylesheet" href="/prototype/editorial-polish.css">'+
     '<link rel="stylesheet" href="/prototype/visual-qa.css">'+
-    '<link rel="stylesheet" href="/prototype/design-language.css"></head>');
-  html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
+    '<link rel="stylesheet" href="/prototype/design-language.css">'+
+    '<link rel="stylesheet" href="/prototype/intro.css"></head>');
+  html=html.replace("<body>",'<body class="gmv3-landing gmv3-intro-active">'+intro+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
   html=html.replace("</body>",
@@ -166,7 +174,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js"></script>'+
     '<script src="/prototype/hub-jobs.js"></script>'+
-    '<script src="/prototype/motion-drawer.js"></script></body>');
+    '<script src="/prototype/motion-drawer.js"></script>'+
+    '<script src="/prototype/intro.js"></script></body>');
   res.type("html").send(html);
 });
 
