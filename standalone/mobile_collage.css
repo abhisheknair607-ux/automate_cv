@@ -762,3 +762,83 @@ body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab[aria-current="page"
 body.gmv3-jobs-workspace .garamaal-header-controls #socialHeaderLink{font-size:10px!important;padding:0 6px!important}
 body.gmv3-jobs-workspace #gmv3-account-drawer-button{width:39px!important;min-width:39px!important;height:39px!important}
 }
+
+
+/* Stage 7: One visual language. Sticker artwork IS the navigation label.
+   Remove raised Swipe glyph and rectangular white back-tile, keep aria-labels. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar{
+ display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ align-items:center!important;justify-items:center!important;gap:clamp(2px,1vw,9px)!important;
+ padding:6px max(6px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right))!important;
+ min-height:75px!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button{
+ display:grid!important;place-items:center!important;min-width:0!important;width:100%!important;
+ max-width:90px!important;min-height:65px!important;padding:4px 1px!important;
+ overflow:visible!important;line-height:1!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ font-size:0!important;letter-spacing:0!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button[aria-current="page"],
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button[aria-current="page"]{
+ background:#35293e!important;border-radius:14px!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button .gmv3-tabicon{
+ display:block!important;width:clamp(49px,14vw,64px)!important;height:clamp(49px,14vw,64px)!important;
+ min-width:0!important;min-height:0!important;aspect-ratio:1!important;
+ padding:0!important;margin:0 auto!important;
+ background-size:500% 300%!important;background-position-y:0%;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ color:transparent!important;font-size:0!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background:transparent url("/prototype/assets/swipe-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ transform:rotate(-3deg)!important;
+}
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background:transparent url("/social/assets/swipe-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ transform:rotate(-3deg)!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon::after,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon::after{
+ content:none!important;display:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button:hover .gmv3-tabicon{
+ transform:rotate(-4deg) scale(1.05)!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-tabicon{
+ transform:rotate(4deg) scale(1.05)!important;
+}
+body.gmv3-jobs-workspace #gmv3-home-button,
+body.gmv3-social-workspace #gmv3-social-back{
+ display:block!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+ background:transparent url("/prototype/assets/back-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ outline-offset:2px!important;
+}
+body.gmv3-social-workspace #gmv3-social-back{
+ background-image:url("/social/assets/back-sticker.svg")!important;
+}
+body.gmv3-jobs-workspace #gmv3-home-button:hover,
+body.gmv3-social-workspace #gmv3-social-back:hover{
+ background-position:center!important;transform:rotate(-5deg) scale(1.04);
+}
+@media(max-width:360px){
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button{min-height:58px!important}
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button .gmv3-tabicon,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button .gmv3-tabicon{
+  width:clamp(43px,13vw,51px)!important;height:clamp(43px,13vw,51px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar .gmv3-tabicon,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar .gmv3-tabicon{transform:none!important;transition:none!important}
+}
