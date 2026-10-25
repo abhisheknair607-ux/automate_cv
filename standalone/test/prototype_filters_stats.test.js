@@ -22,7 +22,9 @@ function context(){
   }}
  ];
  const ctx={
-  authorise_:()=>{},person_:x=>{if(!["Abhishek","Pooja"].includes(x))throw Error("wrong candidate")},
+  authorise_:()=>{},person_:x=>{if(!["Abhishek","Pooja"].includes(x))throw Error("wrong candidate");return {status:x==="Abhishek"?12:11}},
+  sheet_:()=>({getRange:(_row,_column,count)=>({getDataValidations:()=>Array.from({length:count},()=>[null])})}),
+  statusOptions_:()=>["Not started","Ready","Applied"],
   taazaRows_:()=>taaza,freshRows_:()=>fresh,canonical_:x=>x,
   effectivePreference_:(a,b)=>a||b||"",
   taazaCategoryTabs_:()=>[{id:"deals",name:"Deals"},{id:"tax",name:"Tax"}],
@@ -45,6 +47,7 @@ test("Exact global facet filtering and sorting precedes pagination",()=>{
  assert.equal(data.rows[0].company,"Bank Group");assert.equal(data.rows[0].score,94);
  assert.ok(data.facetOptions.company.includes("Tax Advisory")); // all eligible rows, not page-one only
  assert.equal(data.rows[0].department,"Corporate Finance & Deals");
+ assert.deepEqual(Array.from(data.rows[0].statusOptions),["Not started","Ready","Applied"]);
  assert.ok(!data.rows[0].person); // do not leak the other candidate's row
  const next=c.gmListJobsFaceted({candidate:"Abhishek",source:"fresh",sort:"score",pageSize:1,page:2,facets:{location:"London"}});
  assert.equal(next.rows[0].company,"WealthCo");
