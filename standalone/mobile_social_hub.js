@@ -25,8 +25,8 @@
  function renderBar(){
   bar.innerHTML=items.map(([id,label,ic])=>
     '<button type="button" data-g3-social="'+id+'" '+(chosen===id?'aria-current="page"':'')+
-    ' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'">'+
-    '<span class="gmv3-tabicon" aria-hidden="true">'+ic+'</span>'+label+'</button>').join("");
+    ' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'" aria-label="'+label+'" title="'+label+'">'+
+    '<span class="gmv3-tabicon" aria-hidden="true">'+ic+'</span></button>').join("");
  }
  function showStats(){
   chosen="stats";renderBar();
