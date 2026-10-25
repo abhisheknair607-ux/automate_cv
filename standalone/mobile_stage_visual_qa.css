@@ -137,3 +137,15 @@ body.gmv3-jobs-workspace .topbar .crumb{
     transition:none!important;transform:none!important;
   }
 }
+
+/* Final visual check: keep type and portrait separated, not competing for the same pixels. */
+#gmv3-launch .gmv3-action .gmv3-artwork{width:53%!important}
+#gmv3-launch .gmv3-action:nth-child(3) .gmv3-artwork{width:54%!important}
+@media(max-width:375px){
+  #gmv3-launch .gmv3-action{min-height:127px!important}
+  #gmv3-launch .gmv3-action .gmv3-copy{max-width:49%!important}
+  #gmv3-launch .gmv3-action .gmv3-copy strong{font-size:20px!important;line-height:1.02!important}
+  #gmv3-launch .gmv3-action .gmv3-copy small{font-size:10px!important;line-height:1.25!important}
+  #gmv3-launch .gmv3-action .gmv3-artwork{width:52%!important;right:0!important}
+  #gmv3-launch .gmv3-action:nth-child(3) .gmv3-artwork{width:53%!important}
+}
