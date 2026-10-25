@@ -42,6 +42,19 @@ jobs:
           services={r.get('run',{}).get('serviceId') for r in o['rewrites']}
           assert services=={'garamaal-collage-jobs-preview','garamaal-collage-social-preview'},services
           PY
+      - name: Verify exact GitHub OIDC subject against IAM binding (no token disclosure)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken();
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+            const expected = 'repo:abhisheknair607-ux/automate_cv:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            core.info('GitHub OIDC subject: ' + claims.sub);
+            core.info('GitHub OIDC repository: ' + claims.repository);
+            core.info('GitHub OIDC ref: ' + claims.ref);
+            if (claims.sub !== expected) {
+              core.setFailed('Unexpected GitHub OIDC subject. Preview branch IAM binding does not match.');
+            }
       - name: Check existing GitHub-to-Google Workload Identity
         id: preflight
         shell: bash
