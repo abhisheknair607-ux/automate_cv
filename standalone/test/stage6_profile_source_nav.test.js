@@ -18,6 +18,7 @@ test("Source selector previews Drive and editable draft without switching the bi
   else assert.ok(editor.includes(s),s);
  }
  assert.match(editor,/Switching this view never generates a CV/);
+ assert.match(editor,/\[data-gmp\],\[data-gmp-source\],\[data-gmp-add\],\[data-gmp-remove\]/);
  assert.doesNotMatch(editor,/process\.env\.CV_SOURCE|setJobPreference|updateFreshControl/);
 });
 test("E avatar, status-left and hidden top install controls delegate to one drawer card",()=>{
