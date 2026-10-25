@@ -83,7 +83,7 @@ async function main() {
    await page.goto(jobsURL+'/prototype',{waitUntil:'domcontentloaded'});
    check('Four original home cards '+width,await wait(page,'#gmv3-launch .gmv3-action')&&(await page.locator('#gmv3-launch .gmv3-action').count())===4);
    await shot(page,'home',width);
-   await page.locator('#gmv3-launch [data-gmv3="jobs"]').click();
+   await page.locator('#gmv3-launch .gmv3-action[data-gmv3="jobs"]').click();
    await page.evaluate(()=>window.GaramaalJobsHub.selectPage('discovery'));
    check('Discovery real job cards '+width,await wait(page,'.jobs article'));
    check('Discovery JD and preferences '+width,(await page.locator('.jobs [data-action="detail"]').count())>0&&
