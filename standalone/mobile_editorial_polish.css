@@ -59,3 +59,10 @@ body.gmv3-landing #gmv3-launch{background:#17171a;background-image:radial-gradie
 @media(max-width:380px){#gmv3-launch .gmv3-action{min-height:119px;padding:13px 13px}#gmv3-launch .gmv3-action .gmv3-copy{max-width:63%!important}#gmv3-launch .gmv3-action .gmv3-artwork{width:57%!important;right:-14px!important}#gmv3-launch h1{font-size:clamp(38px,10.5vw,45px)}}
 @media(hover:none){#gmv3-launch .gmv3-action:hover{box-shadow:3px 5px 0 #0b0b0d!important;transform:none}#gmv3-launch .gmv3-action:hover .gmv3-artwork{transform:none}}
 @media(prefers-reduced-motion:reduce){#gmv3-launch .gmv3-action,#gmv3-launch .gmv3-artwork,#gmv3-launch .gmv3-pills button,.gmv3-tabbar button,.gmv3-tabbar button .gmv3-tabicon,.gmv3-swipe-arrows span{animation:none!important;transition:none!important;transform:none!important}}
+/* Functional content keeps its information architecture but shares the editorial rhythm. */
+.gmv3-jobs-workspace #content .eyebrow,.gmv3-social-workspace .eyebrow{color:#7d2eb3;font-weight:900;letter-spacing:.09em}
+.gmv3-jobs-workspace #content .btn.primary,.gmv3-social-workspace .btn.primary{background:#ca81ef;border-color:#17171a;color:#17171a;border-radius:11px;font-weight:860;box-shadow:2px 3px 0 #16161a2f}
+.gmv3-jobs-workspace #content .btn:hover,.gmv3-social-workspace .btn:hover{transform:translateY(-2px);box-shadow:3px 4px 0 #dfff52}
+.gmv3-jobs-workspace #content .chip.active,.gmv3-social-workspace .chip.active{background:#e9cef7;color:#24102b;border-color:#b76ce1}
+.gmv3-jobs-workspace #content .kpi{color:#21141f;letter-spacing:-.06em}
+.gmv3-jobs-workspace #content .pill,.gmv3-social-workspace .pill{background:#e4f9b4;color:#1d2420;font-weight:850}
