@@ -107,7 +107,7 @@
    '<div class="gmv3-pf-scroll"><div class="gmv3-pf-progress"><div><strong>Profile progress</strong><small>'+score+' of '+sections.length+' sections started</small></div>'+
    '<div class="gmv3-pf-track" role="progressbar" aria-label="Profile sections started" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+pct+'"><span style="width:'+pct+'%"></span></div></div>'+
    '<form id="gmv3-profile-form">'+sections.map(([id,n,label,desc])=>
-   '<details class="gmv3-pf-section" '+(openSection===id?'open':'')+'><summary>'+
+   '<details data-section="'+id+'" class="gmv3-pf-section" '+(openSection===id?'open':'')+'><summary>'+
    '<span class="gmv3-pf-number">'+n+'</span><span class="gmv3-pf-section-title"><strong>'+label+'</strong><small>'+desc+'</small></span>'+
    '<span class="gmv3-pf-dot '+(filled(model,id)?"is-filled":"")+'" aria-label="'+(filled(model,id)?"Started":"Not started")+'"></span></summary>'+
    '<div class="gmv3-pf-section-fields">'+fieldsFor(model,id)+'</div></details>').join("")+'</form>'+
