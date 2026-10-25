@@ -86,3 +86,17 @@
 }
 @media(max-width:430px){#gmv3-launch .gmv3-scroll{padding:7px 15px 25px}#gmv3-launch h1{font-size:clamp(43px,11vw,56px)}#gmv3-launch .gmv3-action{min-height:116px;padding:12px 14px}#gmv3-launch .gmv3-action:before{width:66%}#gmv3-launch .gmv3-action .gmv3-copy{max-width:57%}#gmv3-launch .gmv3-action .gmv3-copy strong{font-size:23px}.gmv3-tabbar .gmv3-tabicon{width:43px!important;height:43px!important;min-height:43px!important}}
 @media(prefers-reduced-motion:reduce){#gmv3-collage-intro *,#gmv3-launch .gmv3-action,.gmv3-tabbar *{animation:none!important;transition:none!important}#gmv3-collage-intro{display:none!important}}
+
+/* Play the approved footage full-frame; hand off before the old mock-screen. */
+#gmv3-collage-intro .gmv3-intro-video{width:100%;height:100%;position:absolute;inset:0;display:block;object-fit:contain;background:#0d0d10}
+#gmv3-collage-intro .gmv3-intro-controls{position:absolute;z-index:3;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center}
+#gmv3-collage-intro .gmv3-intro-sound{color:#fff;background:#1a161dcf;border:1px solid #706071;border-radius:30px;padding:10px 14px;font:750 12px system-ui;min-height:44px;cursor:pointer}
+#gmv3-collage-intro .gmv3-intro-controls .gmv3-intro-skip{position:static;background:#dfff58;color:#111}
+#gmv3-collage-intro.gmv3-film-fallback .gmv3-paper{animation:gmv3-unfold 1.6s cubic-bezier(.18,.8,.18,1) forwards}
+body.gmv3-transfer #gmv3-launch .gmv3-hero{animation:gmv3-landing-in .72s cubic-bezier(.15,1,.3,1) both}
+body.gmv3-transfer #gmv3-launch .gmv3-action{animation:gmv3-landing-in .6s cubic-bezier(.18,1,.3,1) both}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(2){animation-delay:.08s}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(3){animation-delay:.13s}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(4){animation-delay:.18s}
+@keyframes gmv3-landing-in{0%{opacity:.25;transform:translateY(20px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){body.gmv3-transfer #gmv3-launch .gmv3-hero,body.gmv3-transfer #gmv3-launch .gmv3-action{animation:none!important}}
