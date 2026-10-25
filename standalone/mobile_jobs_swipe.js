@@ -96,6 +96,7 @@
   ].filter(Boolean).join("");
   const url=safeLink(job.url);
   const title=url?'<a class="gmv3-swipe-title-link" href="'+clean(url)+'" target="_blank" rel="noopener noreferrer" aria-label="Open employer vacancy or apply page for '+clean(job.role||"job")+'">'+clean(job.role||"Position not specified")+'</a>':clean(job.role||"Position not specified");
+  const company=url?'<a class="gmv3-swipe-company-link" href="'+clean(url)+'" target="_blank" rel="noopener noreferrer" aria-label="Open vacancy or apply page for '+clean(job.company||"company")+'">'+clean(job.company||"Company not specified")+'</a>':clean(job.company||"Company not specified");
   const moreItems=[
     details?.more?'<p class="gmv3-swipe-more-excerpt">'+clean(details.more)+'</p>':"",
     job.deadline?'<span>Deadline: '+clean(job.deadline)+'</span>':"",
@@ -105,7 +106,7 @@
   return '<article class="gmv3-drag-card'+(expanded?' gmv3-card-expanded':'')+'" tabindex="0" aria-expanded="'+String(expanded)+'" aria-label="Tap to '+(expanded?'collapse':'expand')+' highlights, or swipe card left to reject, down to postpone, right for next step" data-gs="card">'+
    '<div class="gmv3-drag-flash gmv3-left" aria-hidden="true">PASS</div><div class="gmv3-drag-flash gmv3-right" aria-hidden="true">NEXT</div>'+
    '<div class="gmv3-drag-flash gmv3-down" aria-hidden="true">LATER</div>'+
-   '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+clean(job.company||"Company not specified")+'</span></div>'+
+   '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+company+'</span></div>'+
    '<h3>'+title+'</h3>'+
    (job.location?'<p class="gmv3-swipe-place">'+clean(job.location)+'</p>':"")+
    '<div class="gmv3-swipe-summary-area">'+summary+'</div>'+
