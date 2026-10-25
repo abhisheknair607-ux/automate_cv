@@ -10,6 +10,8 @@ on:
       - standalone/mobile_intro_overlay.js
       - standalone/mobile_intro_overlay.css
       - standalone/mobile_intro_overlay.test.js
+      - standalone/mobile_home_shell.test.js
+      - standalone/mobile_hubs.test.js
       - standalone/server.js
       - standalone/social_server.js
       - standalone/mobile_fullfeature_parity.test.cjs
