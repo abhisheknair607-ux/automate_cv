@@ -89,6 +89,7 @@
     if(!control)return;
     const action=control.getAttribute("data-gmv3");
     if(action==="jobs"){enterJobs();return;}
+    if(action==="more"){window.GaramaalDrawer?.open();return;}
     // Homepage Statistics routes to the original authenticated Jobs dashboard.
     // Never substitute browser-local example numbers for actual job statistics.
     if(action==="statistics"){enterJobs();return;}
