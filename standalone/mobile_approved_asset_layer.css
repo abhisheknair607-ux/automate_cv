@@ -1,0 +1,46 @@
+/* Approved asset system v1: photography-cutout collage instead of geometric placeholders.
+   Three independent compressed sprites should be placed in standalone/assets/.
+   All selectors are restricted to prototype routes; existing controls keep their handlers. */
+:root{--garamaal-acid:#dcff56;--garamaal-violet:#bd71ed;--garamaal-hot:#ff5aa5}
+#gmv3-launch .gmv3-cards{gap:11px}
+#gmv3-launch .gmv3-action{border-radius:18px;min-height:127px;box-shadow:0 3px 0 #0006;isolation:isolate;transition:transform .22s cubic-bezier(.2,1.35,.28,1),box-shadow .22s ease}
+#gmv3-launch .gmv3-action.gm-lime{background:#f8f6eb}
+#gmv3-launch .gmv3-action.gm-white{background:#fffefa}
+#gmv3-launch .gmv3-action.gm-purple{background:#e6d0fb}
+#gmv3-launch .gmv3-action:hover{transform:translateY(-4px) rotate(-.35deg);box-shadow:0 9px 0 #0008,0 13px 24px #0003}
+#gmv3-launch .gmv3-action:active{transform:translateY(2px) scale(.985);box-shadow:0 1px 0 #0005}
+#gmv3-launch .gmv3-action .gmv3-artwork{background-image:url("/prototype/assets/home-art.webp");background-size:400% 100%;background-repeat:no-repeat;width:45%;height:110%;right:-2px;bottom:-3px;z-index:1;filter:saturate(.96) contrast(1.04);transition:transform .26s cubic-bezier(.2,1.5,.3,1)}
+#gmv3-launch .gmv3-art-profile{background-position:0% 50%}
+#gmv3-launch .gmv3-art-jobs{background-position:33.333% 50%}
+#gmv3-launch .gmv3-art-network{background-position:66.667% 50%}
+#gmv3-launch .gmv3-art-stats{background-position:100% 50%}
+#gmv3-launch .gmv3-action .gmv3-copy{max-width:56%;z-index:3;background:#fffef4dd;box-decoration-break:clone;border-radius:6px;padding:7px 5px}
+#gmv3-launch .gmv3-action .gmv3-copy strong{font-size:clamp(20px,5.5vw,27px)}
+#gmv3-launch .gmv3-action .gmv3-symbol{display:none!important}
+#gmv3-launch .gmv3-action:hover .gmv3-artwork{transform:translateX(3px) rotate(2deg) scale(1.05)}
+#gmv3-launch .gmv3-action:active .gmv3-artwork{transform:translateX(-2px) rotate(-3deg) scale(.96)}
+.gmv3-tabbar button{position:relative;overflow:visible;transition:transform .18s ease,filter .18s}
+.gmv3-tabbar button .gmv3-tabicon{display:block;position:relative;background-image:url("/prototype/assets/navigation-states.webp");background-repeat:no-repeat;background-size:500% 300%;height:47px;width:47px;min-height:47px;line-height:0;font-size:0!important;background-position-y:0%;transition:transform .24s cubic-bezier(.2,1.6,.3,1)}
+.gmv3-tabbar button:nth-child(1) .gmv3-tabicon{background-position-x:0%}
+.gmv3-tabbar button:nth-child(2) .gmv3-tabicon{background-position-x:25%}
+.gmv3-tabbar button:nth-child(3) .gmv3-tabicon{background-position-x:50%}
+.gmv3-tabbar button:nth-child(4) .gmv3-tabicon{background-position-x:75%}
+.gmv3-tabbar button:nth-child(5) .gmv3-tabicon{background-position-x:100%}
+.gmv3-tabbar button:hover .gmv3-tabicon{background-position-y:50%;transform:translateY(-5px) rotate(-7deg)}
+.gmv3-tabbar button[aria-current=page] .gmv3-tabicon{background-position-y:100%;animation:gmv3-asset-pop .28s cubic-bezier(.2,1.65,.4,1) both}
+.gmv3-tabbar button:active .gmv3-tabicon{transform:scale(.88) translateY(2px)}
+.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{height:55px;width:55px;background-color:transparent;border:0;box-shadow:none;border-radius:0;margin:-14px auto 0;background-size:500% 300%}
+.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-swipe-arrows .left{transform:translateX(-7px) rotate(-9deg)}
+.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-swipe-arrows .right{transform:translateX(7px) rotate(9deg)}
+.gmv3-swipe-arrows{position:absolute;top:2px;left:50%;transform:translateX(-50%);width:45px;height:33px;pointer-events:none}
+.gmv3-swipe-arrows .left,.gmv3-swipe-arrows .right{position:absolute;top:0;width:22px;height:24px;display:block;transition:transform .25s cubic-bezier(.2,1.7,.4,1);background-repeat:no-repeat;background-size:contain}
+.gmv3-swipe-arrows .left{left:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 28'%3E%3Cpath d='M23 7H11V1L1 14l10 13v-6h12Z' fill='%237a26cc' stroke='%23171919' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.gmv3-swipe-arrows .right{right:0;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 25 28'%3E%3Cpath d='M2 7h12V1l10 13-10 13v-6H2Z' fill='%23dfff58' stroke='%23171919' stroke-width='2' stroke-linejoin='round'/%3E%3C/svg%3E")}
+.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{opacity:.35}
+.gmv3-tabbar button.gmv3-swipe-tab[aria-current=page] .gmv3-tabicon{opacity:.5}
+#gmv3-home-button,#gmv3-social-back{background:#fffaf0 url("/prototype/assets/header-controls.webp") no-repeat;background-size:700% 100%;background-position:0% 50%;font-size:0!important;border:0;min-width:45px;min-height:45px;cursor:pointer}
+#gmv3-home-button:hover,#gmv3-social-back:hover{background-position:16.667% 50%;transform:translateY(-3px) scale(1.08)}
+#gmv3-home-button:active,#gmv3-social-back:active{background-position:33.333% 50%;transform:scale(.9)}
+@keyframes gmv3-asset-pop{0%{transform:translateY(7px) scale(.83)}70%{transform:translateY(-4px) scale(1.08)}100%{transform:none}}
+@media(max-width:390px){#gmv3-launch .gmv3-action .gmv3-copy{max-width:62%}#gmv3-launch .gmv3-action .gmv3-artwork{width:42%}.gmv3-tabbar button .gmv3-tabicon{width:43px;height:43px;min-height:43px}}
+@media(prefers-reduced-motion:reduce){#gmv3-launch .gmv3-action,#gmv3-launch .gmv3-action .gmv3-artwork,.gmv3-tabbar button,.gmv3-tabbar button .gmv3-tabicon,.gmv3-swipe-arrows span,#gmv3-home-button,#gmv3-social-back{transition:none!important;animation:none!important;transform:none!important}}
