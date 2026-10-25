@@ -86,6 +86,8 @@ function gmListJobsFaceted(options){
  if(status==="cv"&&source==="fresh")rows=rows.filter(x=>x.cv);
  if(status==="applied"&&source==="fresh")rows=rows.filter(x=>["Applied","Applied + Connected"].includes(x.progress));
  if(status==="unapplied"&&source==="fresh")rows=rows.filter(x=>x.cvLink&&x.progress==="Unapplied");
+ if(status==="prepared"&&source==="fresh")rows=rows.filter(x=>!!String(x.cvLink||"").trim());
+ if(status==="connected"&&source==="fresh")rows=rows.filter(x=>x.progress==="Applied + Connected");
  if(status==="unscored"&&source==="fresh")rows=rows.filter(x=>x.score===""||x.score==null);
  if(query)rows=rows.filter(x=>[x.company,x.role,x.location,x.url,x.department].some(z=>text(z).includes(query)));
  // Supply all options from candidate-scoped source; avoid a misleading "current page only" dropdown.
