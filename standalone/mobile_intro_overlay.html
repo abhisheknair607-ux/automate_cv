@@ -1,0 +1,13 @@
+<!-- QA-only entrance: exact approved 5-second film shown BEFORE existing Garamaal UI. -->
+<section id="gmv3-intro" class="gmv3-intro" role="dialog" aria-modal="true" aria-label="Garamaal introduction" data-phase="loading">
+ <video id="gmv3-intro-film" autoplay muted playsinline preload="auto" disablepictureinpicture controlslist="nodownload noplaybackrate" aria-label="Garamaal paper-collage animation"></video>
+ <div class="gmv3-intro-curtain" aria-hidden="true"></div>
+ <div class="gmv3-intro-header">
+   <span class="gmv3-intro-mark">GARAMAAL<span>.</span></span>
+   <button class="gmv3-intro-skip" type="button" id="gmv3-intro-skip" aria-label="Skip Garamaal intro">SKIP <span aria-hidden="true">↗</span></button>
+ </div>
+ <div class="gmv3-intro-footer" aria-live="polite">
+   <span id="gmv3-intro-status">A fresh start unfolds.</span>
+   <span class="gmv3-intro-progress" aria-hidden="true"><i id="gmv3-intro-progress-fill"></i></span>
+ </div>
+</section>
