@@ -52,6 +52,7 @@
     subview.hidden=false;
     let html="";
     if(page==="profile"){
+      if(window.GaramaalProfile){window.GaramaalProfile.open();return;}
       subtitle.textContent="Your profile";
       html='<h2>My career profile</h2><p>This is the new entry point for the upcoming structured profile editor. The existing CV and Jobs functions are unchanged.</p>'+
         '<div class="gmv3-panel"><strong>Planned profile sections</strong>'+
