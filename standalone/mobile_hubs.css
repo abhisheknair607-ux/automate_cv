@@ -1,0 +1,89 @@
+/* Garamaal mobile V3 | Stage 2: navigation ONLY; original feature DOM and handlers remain unchanged. */
+:root{--g3-ink:#171717;--g3-lime:#ddff5a;--g3-purple:#ce8af0}
+.gmv3-tabbar{display:flex;align-items:stretch;justify-content:space-around;position:fixed;z-index:102;bottom:0;left:0;right:0;min-height:64px;padding:5px 5px calc(6px + env(safe-area-inset-bottom));background:#fff;box-shadow:0 -4px 22px #182f421b;border-top:1px solid #e2e7f0}
+.gmv3-tabbar button{font:inherit;min-width:0;flex:1;max-width:190px;border:0;background:transparent;color:#6c7990;font-size:10px;font-weight:780;line-height:1.18;border-radius:11px;padding:4px 1px;display:flex;flex-direction:column;align-items:center;gap:2px;justify-content:center;cursor:pointer}
+.gmv3-tabbar button[aria-current="page"]{background:#eaf1ff;color:#235cae}
+.gmv3-tabbar button:focus-visible{outline:3px solid #699eef;outline-offset:-2px}
+.gmv3-tabbar .gmv3-tabicon{font-size:23px;line-height:26px;height:27px;display:grid;place-items:center;color:inherit}
+.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{width:41px;height:41px;margin-top:-19px;margin-bottom:3px;line-height:1;font-size:26px;border:3px solid #fff;border-radius:100%;background:var(--g3-purple);color:#111;box-shadow:0 4px 13px #54356a22}
+.gmv3-panelmask[hidden]{display:none!important}
+.gmv3-panelmask{position:fixed;z-index:111;inset:0;background:#08192b73;display:flex;align-items:flex-end}
+.gmv3-panel{background:#fff;border-radius:19px 19px 0 0;box-shadow:0 -10px 30px #10182119;padding:13px 15px calc(26px + env(safe-area-inset-bottom));width:min(100%,570px);margin:0 auto;max-height:88dvh;overflow-y:auto;color:#1c2b40}
+.gmv3-panel h2{margin:4px 0 13px;font-size:19px;font-weight:900;letter-spacing:-.035em}
+.gmv3-panel button{font:inherit;cursor:pointer}
+.gmv3-panel .gmv3-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gmv3-panel .gmv3-options button{min-height:49px;border-radius:11px;border:1px solid #d5e2f0;background:#f5f9ff;text-align:left;padding:9px 12px;font-size:13px;font-weight:800;color:#224c80}
+.gmv3-panel .gmv3-panel-top{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.gmv3-panel .gmv3-close{background:transparent;border:0;min-width:44px;min-height:44px;border-radius:9px;font-size:23px;color:#3c566f}
+.gmv3-panel .gmv3-subtle{font-size:12px;line-height:1.5;color:#65758b;margin:8px 0}
+.gmv3-panel .gmv3-preview{border:1px solid #d6e4ef;background:#f6faff;border-radius:12px;padding:13px;margin:10px 0}
+.gmv3-panel .gmv3-preview h3{font-size:17px;margin:0 0 6px}
+.gmv3-panel .gmv3-preview p{font-size:12px;line-height:1.5;margin:7px 0}
+.gmv3-panel .gmv3-preview details{margin-top:12px;border-top:1px solid #dbe6f2;padding-top:9px}
+.gmv3-panel .gmv3-preview summary{min-height:44px;padding:8px 0;font-size:12px;font-weight:840;color:#2859a4;cursor:pointer}
+.gmv3-panel .gmv3-preview .gmv3-jd{white-space:pre-wrap;font-size:12px;line-height:1.5;max-height:30dvh;overflow:auto}
+.gmv3-panel .gmv3-noactions{font-size:12px;border:1px solid #f2dfaf;background:#fff9ea;color:#7b5d20;padding:11px;border-radius:11px;margin:12px 0}
+.gmv3-statrow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:10px 0}
+.gmv3-stat{background:#f5f8fc;border:1px solid #dae6ef;border-radius:12px;padding:13px}
+.gmv3-stat strong{font-size:28px;display:block;line-height:1.1;font-weight:890}
+.gmv3-stat span{font-size:11px;color:#60738a}
+.gmv3-swipe-surface[hidden]{display:none!important}
+.gmv3-swipe-surface{position:fixed;z-index:99;inset:52px 0 calc(67px + env(safe-area-inset-bottom));overflow-y:auto;background:#f5f7fb;padding:16px 14px}
+.gmv3-swipe-body{max-width:580px;margin:0 auto}
+.gmv3-swipe-body h2{margin:2px 0 9px;font-size:23px;letter-spacing:-.04em}
+.gmv3-swipe-body .gmv3-readonly{font-size:11px;font-weight:780;color:#766025;border:1px solid #eadbb8;background:#fff7dc;padding:7px 10px;border-radius:20px;display:inline-block;margin-bottom:10px}
+.gmv3-swipe-body .gmv3-job{border-radius:20px;overflow:hidden;background:#fff;box-shadow:0 6px 22px #1e2d3a13;border:1px solid #dce5ef}
+.gmv3-swipe-body .gmv3-jobheader{padding:20px;background:var(--g3-ink);color:white}
+.gmv3-swipe-body .gmv3-jobheader h3{font-size:24px;line-height:1.1;margin:8px 0 5px;max-width:85%;font-weight:910;letter-spacing:-.035em}
+.gmv3-swipe-body .gmv3-jobdetails{padding:15px}
+.gmv3-swipe-body .gmv3-jobdetails p{font-size:12px;line-height:1.55}
+.gmv3-swipe-body .gmv3-jobdetails details{border-top:1px solid #e0e9f3;margin-top:11px}
+.gmv3-swipe-body .gmv3-jobdetails summary{padding:13px 0;min-height:45px;font-size:12px;color:#295cb1;font-weight:820;cursor:pointer}
+.gmv3-swipe-body .gmv3-jobdetails .fulljd{white-space:pre-wrap;font-size:12px;line-height:1.55}
+.gmv3-swipe-body .gmv3-ghost{display:flex;gap:9px;margin:11px 0}
+.gmv3-swipe-body .gmv3-ghost button{flex:1;padding:13px 6px;min-height:54px;border:1px solid #d1deeb;background:#e8eef5;color:#8290a1;border-radius:13px;font-weight:820;opacity:.8;cursor:not-allowed}
+.gmv3-jobs-workspace .mobilebar{display:none!important}
+.gmv3-jobs-workspace .shell{padding-bottom:calc(74px + env(safe-area-inset-bottom))}
+.gmv3-jobs-workspace #content{padding-bottom:calc(75px + env(safe-area-inset-bottom))}
+.gmv3-jobs-workspace .topbar{gap:7px!important;min-height:50px!important}
+.gmv3-jobs-workspace .topbar .crumb{font-size:11px!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.gmv3-jobs-workspace .topbar .top-actions{gap:3px!important}
+.gmv3-jobs-workspace .topbar #jobHeaderLink,.gmv3-jobs-workspace .topbar #socialHeaderLink{display:none!important}
+.gmv3-jobs-workspace .topbar .garamaal-header-status{font-size:9px!important}
+.gmv3-jobs-workspace #content>.heading{margin-bottom:10px}
+.gmv3-jobs-workspace #content>.heading h1{font-size:20px!important}
+.gmv3-jobs-workspace #content .toolbar{padding:9px!important}
+.gmv3-jobs-workspace #content .toolbar-bottom{gap:5px}
+.gmv3-jobs-workspace #content .panel{margin-bottom:11px}
+.gmv3-jobs-workspace #gmv3-home-button{font-size:25px!important;min-width:40px;min-height:42px}
+.gmv3-social-workspace{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+.gmv3-social-workspace #bottomNav,.gmv3-social-workspace #desktopNav{display:none!important}
+.gmv3-social-workspace main{padding-bottom:calc(76px + env(safe-area-inset-bottom))}
+.gmv3-social-workspace>header{min-height:50px;padding:6px 13px;gap:8px}
+.gmv3-social-workspace>header .garamaal-header-controls{gap:4px}
+.gmv3-social-workspace>header .garamaal-job-link,.gmv3-social-workspace>header .garamaal-social-link{display:none!important}
+.gmv3-social-workspace .heading{margin-bottom:9px}
+.gmv3-social-workspace .heading h1{font-size:20px}
+.gmv3-social-workspace .card{margin-bottom:11px}
+#gmv3-social-back{border:0;background:#eaf1ff;border-radius:10px;color:#2254a8;min-width:42px;min-height:43px;font-size:25px;font-weight:800;cursor:pointer}
+@media(min-width:800px){
+.gmv3-tabbar{max-width:900px;margin:0 auto;border-radius:13px 13px 0 0}
+.gmv3-swipe-surface{left:235px}
+.gmv3-social-workspace .gmv3-tabbar{max-width:900px}
+.gmv3-social-workspace .gmv3-swipe-surface{left:0}
+}
+@media(max-width:720px){
+.gmv3-jobs-workspace #content{padding:10px 10px calc(93px + env(safe-area-inset-bottom))!important}
+.gmv3-jobs-workspace .topbar .garamaal-header-status{display:none!important}
+.gmv3-jobs-workspace .topbar .switch button{padding:5px!important}
+.gmv3-jobs-workspace .topbar #expenseToggle{min-width:32px!important;padding:5px!important}
+.gmv3-tabbar button{font-size:9.5px}
+.gmv3-panel .gmv3-options{grid-template-columns:1fr 1fr}
+.gmv3-swipe-surface{left:0}
+}
+@media(max-width:365px){
+.gmv3-tabbar button{font-size:8.5px}
+.gmv3-tabbar .gmv3-tabicon{font-size:20px}
+.gmv3-panel .gmv3-options{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){.gmv3-tabbar *, .gmv3-panel *{animation:none!important;transition:none!important}}
