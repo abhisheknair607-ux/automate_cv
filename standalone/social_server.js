@@ -119,7 +119,7 @@ app.get("/social",(req,res)=>{
 });
 // Social-specific sprite endpoints exist only for the opt-in visual prototype.
 app.get("/social/assets/:file",(req,res)=>{
- if(!["nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg"].includes(req.params.file))
+ if(!["nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"].includes(req.params.file))
   return res.status(404).end();
  res.type(req.params.file.endsWith(".svg")?"image/svg+xml":"image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
 });
