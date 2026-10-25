@@ -951,3 +951,8 @@ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
 @media(prefers-reduced-motion:reduce){
   #gmv3-jobs-swipe .gmv3-drag-card{transition:none!important}
 }
+
+
+#gmv3-jobs-swipe .gmv3-swipe-company-link{color:#18121b!important;text-decoration:none!important;display:inline}
+#gmv3-jobs-swipe .gmv3-swipe-company-link:hover{text-decoration:underline!important;text-underline-offset:3px}
+#gmv3-jobs-swipe .gmv3-swipe-company-link:focus-visible{outline:3px solid #ff4caa!important;outline-offset:3px}
