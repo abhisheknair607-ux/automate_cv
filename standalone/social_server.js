@@ -108,7 +108,10 @@ app.get("/config",async(_req,res)=>{
 app.get("/social",(req,res)=>{
  if(req.query.gmv3!=="1")return res.type("html").sendFile(path.join(__dirname,"social.html"));
  let html=fs.readFileSync(path.join(__dirname,"social.html"),"utf8");
- const css=fs.readFileSync(path.join(__dirname,"mobile_hubs.css"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_qa.css"),"utf8");
+ const css=fs.readFileSync(path.join(__dirname,"mobile_hubs.css"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_qa.css"),"utf8") + "\n" +
+  fs.readFileSync(path.join(__dirname,"assets","navigation-states.css"),"utf8") + "\n" +
+  fs.readFileSync(path.join(__dirname,"assets","header-controls.css"),"utf8") + "\n" +
+  fs.readFileSync(path.join(__dirname,"mobile_approved_asset_layer.css"),"utf8");
  const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_drawer.js"),"utf8");
  if(!html.includes("</head>")||!html.includes("</body>"))
   return res.status(500).type("text/plain").send("Social prototype source marker missing");
