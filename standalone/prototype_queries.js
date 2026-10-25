@@ -108,7 +108,15 @@ function gmListJobsFaceted(options){
  const total=rows.length,pages=Math.max(1,Math.ceil(total/pageSize));
  const offset=Math.min(total,Math.max(0,Math.floor(options.offset!=null?options.offset:(Math.min(page,pages)-1)*pageSize)||0));
  const visible=rows.slice(offset,offset+pageSize);
- if(source==="fresh")visible.forEach(x=>x.statusOptions=APPLICATION_PROGRESS.slice());
+ if(source==="fresh"&&visible.length){
+  // Keep the ORIGINAL Freshmaal status-cell validation choices, not a new status taxonomy.
+  const conf=person_(candidate),sh=sheet_("fresh");
+  const start=Math.min(...visible.map(x=>x.row)),end=Math.max(...visible.map(x=>x.row));
+  const statusRange=sh.getRange(start,conf.status,end-start+1,1);
+  const validations=typeof statusRange.getDataValidations==="function"
+    ?statusRange.getDataValidations():Array.from({length:end-start+1},()=>[null]);
+  visible.forEach(x=>x.statusOptions=statusOptions_((validations[x.row-start]||[])[0],x.status));
+ }
  return {source,candidate,total,page:Math.min(page,pages),pageSize,pages,rows:visible,
    counts:{total},tabId,tabs:source==="taaza"?taazaCategoryTabs_():[],
    facetOptions:choices,departmentBasis:"Derived from designation; no verified department field exists in Make CV."};
