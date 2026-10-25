@@ -135,6 +135,12 @@ app.get("/prototype/assets/:file",(req,res)=>{
  if(!COLLAGE_ART.has(req.params.file))return res.status(404).end();
  res.type("image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
 });
+// The authenticated preview consumes the approved video, not a separate mockup.
+app.get("/prototype/media/:file",(req,res)=>{
+ if(!["intro-mobile.mp4","intro-desktop.mp4"].includes(req.params.file))
+  return res.status(404).end();
+ res.type("video/mp4").sendFile(path.join(__dirname,"assets",req.params.file));
+});
 app.get("/prototype/collage.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_collage.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
 app.get("/prototype",(req,res)=>{
