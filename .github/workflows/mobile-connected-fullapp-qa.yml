@@ -6,6 +6,12 @@ on:
     paths:
       - .github/workflows/mobile-connected-fullapp-qa.yml
       - standalone/mobile_connected_qa.playwright.cjs
+      - standalone/mobile_intro_overlay.html
+      - standalone/mobile_intro_overlay.js
+      - standalone/mobile_intro_overlay.css
+      - standalone/mobile_intro_overlay.test.js
+      - standalone/server.js
+      - standalone/social_server.js
       - standalone/mobile_fullfeature_parity.test.cjs
       - standalone/mobile_fullapp_route_staging.test.js
       - standalone/mobile_*.css
@@ -46,6 +52,7 @@ jobs:
           set -o pipefail
           node --test \
             standalone/mobile_fullfeature_parity.test.cjs \
+            standalone/mobile_intro_overlay.test.js \
             standalone/mobile_fullapp_route_staging.test.js \
             standalone/mobile_hubs.test.js \
             standalone/mobile_approved_asset_layer.test.js \
