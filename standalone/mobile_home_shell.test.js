@@ -84,7 +84,7 @@ test("Stage 1 client script compiles and launcher actions never override the leg
  click("home");assert.equal(subview.hidden,true);
  click("jobs");assert.equal(navigation.at(-1),"dashboard");assert.ok(classes.has("gmv3-workspace")&&!classes.has("gmv3-landing"));
  assert.equal(barButton.textContent,"‹");barButton.handlers.click();assert.ok(classes.has("gmv3-landing"));
- click("statistics");assert.ok(subbody.innerHTML.includes("Existing live Jobs statistics"));
+ click("statistics");assert.equal(navigation.at(-1),"dashboard");assert.ok(classes.has("gmv3-workspace"));
  click("targets");assert.ok(subbody.innerHTML.includes("weekly target"));
  click("reminders");assert.ok(subbody.innerHTML.includes("Review shortlisted jobs"));
  click("network");assert.equal(opened[0],"/social?gmv3=1");
