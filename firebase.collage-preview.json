@@ -1,0 +1,62 @@
+{
+  "hosting": {
+    "site": "garamaal",
+    "public": "standalone/hosting-public",
+    "ignore": [
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "/social",
+        "run": {
+          "serviceId": "garamaal-collage-social-preview",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/social/bridge.js",
+        "run": {
+          "serviceId": "garamaal-collage-social-preview",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/social/assets/**",
+        "run": {
+          "serviceId": "garamaal-collage-social-preview",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "/api/social/**",
+        "run": {
+          "serviceId": "garamaal-collage-social-preview",
+          "region": "europe-west1"
+        }
+      },
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "garamaal-collage-jobs-preview",
+          "region": "europe-west1"
+        }
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-store"
+          },
+          {
+            "key": "X-Content-Type-Options",
+            "value": "nosniff"
+          }
+        ]
+      }
+    ]
+  }
+}
