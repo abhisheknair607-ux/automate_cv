@@ -103,6 +103,11 @@ app.get("/config",async(_req,res)=>{
  catch{res.status(503).json({error:"Social sign-in configuration unavailable."})}
 });
 
+// Video assets are served only by this Social service. Do not change unflagged /social.
+for(const device of ["mobile","desktop"])app.get("/social/intro/"+device+".mp4",(_req,res)=>{
+ res.set("Cache-Control","private, max-age=86400");
+ res.type("video/mp4").sendFile(path.join(__dirname,"assets","garamaal-intro-"+device+".mp4"));
+});
 // Only the ?gmv3=1 preview response gets the Stage 2 navigation skin.
 // Unflagged /social remains identical to the original Social service.
 app.get("/social",(req,res)=>{
@@ -114,11 +119,12 @@ app.get("/social",(req,res)=>{
   fs.readFileSync(path.join(__dirname,"mobile_approved_asset_layer.css"),"utf8") + "\n" +
   fs.readFileSync(path.join(__dirname,"mobile_editorial_polish.css"),"utf8") + "\n" +
   fs.readFileSync(path.join(__dirname,"mobile_stage_visual_qa.css"),"utf8") + "\n" +
-  fs.readFileSync(path.join(__dirname,"mobile_design_language.css"),"utf8");
- const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_drawer.js"),"utf8");
+  fs.readFileSync(path.join(__dirname,"mobile_design_language.css"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_intro_overlay.css"),"utf8");
+ const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_motion_drawer.js"),"utf8") + "\n" + fs.readFileSync(path.join(__dirname,"mobile_intro_overlay.js"),"utf8");
  if(!html.includes("</head>")||!html.includes("</body>"))
   return res.status(500).type("text/plain").send("Social prototype source marker missing");
  html=html.replace("</head>","<style>"+css+"</style></head>");
+ html=html.replace("<body>",'<body class="gmv3-intro-active">'+fs.readFileSync(path.join(__dirname,"mobile_intro_overlay.html"),"utf8"));
  html=html.replace("</body>","<script>"+code+"</script></body>");
  res.type("html").send(html);
 });
