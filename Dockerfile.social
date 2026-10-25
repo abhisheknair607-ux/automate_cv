@@ -16,6 +16,12 @@ COPY standalone/mobile_approved_asset_layer.css /app/standalone/mobile_approved_
 COPY standalone/mobile_editorial_polish.css /app/standalone/mobile_editorial_polish.css
 COPY standalone/mobile_stage_visual_qa.css /app/standalone/mobile_stage_visual_qa.css
 COPY standalone/mobile_design_language.css /app/standalone/mobile_design_language.css
+# Five-second opening films for opt-in Social QA only. No Jobs runtime included.
+COPY standalone/mobile_intro_overlay.html /app/standalone/mobile_intro_overlay.html
+COPY standalone/mobile_intro_overlay.css /app/standalone/mobile_intro_overlay.css
+COPY standalone/mobile_intro_overlay.js /app/standalone/mobile_intro_overlay.js
+COPY standalone/assets/garamaal-intro-mobile.mp4 /app/standalone/assets/garamaal-intro-mobile.mp4
+COPY standalone/assets/garamaal-intro-desktop.mp4 /app/standalone/assets/garamaal-intro-desktop.mp4
 COPY standalone/assets/navigation-states.css /app/standalone/assets/navigation-states.css
 COPY standalone/assets/header-controls.css /app/standalone/assets/header-controls.css
 COPY standalone/bridge.js /app/standalone/bridge.js
