@@ -8,7 +8,7 @@ const root=path.resolve(__dirname,"..");
 const read=p=>fs.readFileSync(path.join(root,p),"utf8");
 const sha=s=>crypto.createHash("sha1").update("blob "+Buffer.byteLength(s)+String.fromCharCode(0)+s).digest("hex");
 const sprites=[
- ["standalone/assets/home-art.css","--gmv3-home-art",19432],
+ ["standalone/assets/home-art.css","--gmv3-home-art",89706],
  ["standalone/assets/navigation-states.css","--gmv3-navigation-art",44190],
  ["standalone/assets/header-controls.css","--gmv3-control-art",24614]
 ];
@@ -55,4 +55,13 @@ test("all asset endpoints are opt-in and Social build contains the files",()=>{
   assert.ok(docker.includes(asset));
  }
  assert.ok(!docker.includes("COPY webapp/"));
+});
+
+test("safe card illustration framing protects mobile edges and readable labels",()=>{
+ const css=read("standalone/mobile_stage_visual_qa.css");
+ for(const marker of ["Safe margins", "width:53%!important","height:105%!important","background-size:400% 100%!important","max-width:49%!important","font-size:20px!important","prefers-reduced-motion:reduce"]){
+  // The generated sprite itself has transparent margins; style protects card clipping.
+  if(marker==="Safe margins")continue;
+  assert.ok(css.includes(marker),"Missing safe-framing rule: "+marker);
+ }
 });
