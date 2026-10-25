@@ -116,6 +116,35 @@ app.get("/",(req,res)=>{
   res.type("html").send(html);
 });
 
+// Feature-preserving MOBILE PROTOTYPE ROUTE.
+// Existing GET /, /social and all API endpoints remain byte-for-byte as above.
+// This route renders the exact original Jobs HTML/transport and adds a visual
+// launcher IN FRONT. It does not replace the Dashboard/Discovery/Make CV/Add Job
+// DOM or any of their event handlers.
+app.get("/prototype/mobile-shell.css",(_req,res)=>
+  res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
+app.get("/prototype/mobile-shell.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_home_shell.js")));
+app.get("/prototype",(req,res)=>{
+  let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
+  const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
+  if(!html.includes("<body>")||!html.includes("</head>")||
+     !html.includes("<script>\n'use strict';")){
+    return res.status(500).type("text/plain").send("Prototype source marker missing");
+  }
+  // Use the same backend bridge and dashboard feature modules as GET /.
+  html=html.replace("</head>",
+    '<link rel="stylesheet" href="/prototype/mobile-shell.css"></head>');
+  html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
+  html=html.replace("<script>\n'use strict';",
+    '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
+  html=html.replace("</body>",
+    '<script src="/dashboard-ranking.js"></script>'+
+    '<script src="/dashboard-connections.js"></script>'+
+    '<script src="/prototype/mobile-shell.js"></script></body>');
+  res.type("html").send(html);
+});
+
 async function authenticate(req) {
   const match=String(req.headers.authorization||"").match(/^Bearer\s+(.+)$/i);
   if(!match)throw Object.assign(new Error("Sign in to continue"),{httpCode:401});
