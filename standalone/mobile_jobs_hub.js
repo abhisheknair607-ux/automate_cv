@@ -31,7 +31,7 @@
   if(mode!=="swipe" && typeof state!=="undefined"&&["dashboard","discovery","fresh","add"].includes(state.section)){
    mode=state.section==="add"?"more":state.section;
   }
-  bar.innerHTML=items.map(([id,label,icon])=>'<button type="button" data-g3-jobs="'+id+'" '+(mode===id?'aria-current="page"':'')+' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'"><span class="gmv3-tabicon" aria-hidden="true">'+icon+'</span>'+label+'</button>').join("");
+  bar.innerHTML=items.map(([id,label,icon])=>'<button type="button" data-g3-jobs="'+id+'" '+(mode===id?'aria-current="page"':'')+' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'" aria-label="'+label+'" title="'+label+'"><span class="gmv3-tabicon" aria-hidden="true">'+icon+'</span></button>').join("");
   bar.hidden=doc.body.classList.contains("gmv3-landing");
  }
  function openMore(){
