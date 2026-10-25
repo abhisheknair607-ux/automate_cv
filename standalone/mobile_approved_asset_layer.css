@@ -45,3 +45,6 @@
 @media(max-width:390px){#gmv3-launch .gmv3-action .gmv3-copy{max-width:62%}#gmv3-launch .gmv3-action .gmv3-artwork{width:42%}.gmv3-tabbar button .gmv3-tabicon{width:43px;height:43px;min-height:43px}}
 @media(prefers-reduced-motion:reduce){#gmv3-launch .gmv3-action,#gmv3-launch .gmv3-action .gmv3-artwork,.gmv3-tabbar button,.gmv3-tabbar button .gmv3-tabicon,.gmv3-swipe-arrows span,#gmv3-home-button,#gmv3-social-back{transition:none!important;animation:none!important;transform:none!important}}
 \n/* Phone taps have tactile pressed states, but never trigger a sticky pseudo-hover. */\n@media(hover:none){#gmv3-launch .gmv3-action:hover{transform:none;box-shadow:0 3px 0 #0006}#gmv3-launch .gmv3-action:hover .gmv3-artwork{transform:none}.gmv3-tabbar button:hover .gmv3-tabicon{transform:none}}\n
+/* Social labels have different meanings from Jobs. Retain semantic Social glyphs until a Social-specific collage set is approved; keep the same pop/twist interactions. */
+.gmv3-social-workspace .gmv3-tabbar button:not(.gmv3-swipe-tab) .gmv3-tabicon{background-image:none!important;background-color:transparent;font-size:25px!important;display:grid;place-items:center;line-height:45px}
+.gmv3-social-workspace .gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{background-image:none!important;opacity:0!important}
