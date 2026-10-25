@@ -3,7 +3,7 @@
  * No schema changes, no writes, no unrelated production endpoints.
  * All inputs are validated using the legacy candidate and category rules.
  */
-const SOURCE=String.raw\`
+const SOURCE=String.raw`
 function gmFacetFunction_(role){
  const r=String(role||"").toLowerCase();
  if(/transfer pricing|intercompany/.test(r))return "Transfer Pricing";
@@ -105,12 +105,12 @@ function gmListJobsFaceted(options){
  const pageSize=Math.min(50,Math.max(1,Math.floor(Number(options.pageSize)||25)));
  const page=Math.max(1,Math.floor(Number(options.page)||1));
  const total=rows.length,pages=Math.max(1,Math.ceil(total/pageSize));
- const offset=Math.min(total,Math.max(0,Math.floor(Number(options.offset)!=null?options.offset:(Math.min(page,pages)-1)*pageSize)||0));
+ const offset=Math.min(total,Math.max(0,Math.floor(options.offset!=null?options.offset:(Math.min(page,pages)-1)*pageSize)||0));
  const visible=rows.slice(offset,offset+pageSize);
  if(source==="fresh")visible.forEach(x=>x.statusOptions=APPLICATION_PROGRESS.slice());
  return {source,candidate,total,page:Math.min(page,pages),pageSize,pages,rows:visible,
    counts:{total},tabId,tabs:source==="taaza"?taazaCategoryTabs_():[],
    facetOptions:choices,departmentBasis:"Derived from designation; no verified department field exists in Make CV."};
 }
-\`;
+`;
 module.exports={SOURCE};
