@@ -46,6 +46,7 @@ test("Jobs /prototype contains full real feature DOM plus isolated hub assets",(
   fs:{readFileSync(file){
    if(file.endsWith("webapp/Index.html"))return read("webapp/Index.html");
    if(file.endsWith("standalone/mobile_home_landing.html"))return read("standalone/mobile_home_landing.html");
+   if(file.endsWith("standalone/mobile_intro_overlay.html"))return read("standalone/mobile_intro_overlay.html");
    throw Error("Unexpected read "+file);
   }},
   path:{join:(...parts)=>parts.join("/")}
