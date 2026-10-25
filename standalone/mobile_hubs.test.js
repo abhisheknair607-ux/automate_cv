@@ -106,7 +106,7 @@ test("new Jobs bottom actions call original nav, not CV generation",()=>{
  };
  const calls=[];const urls=[];
  const window={addEventListener:()=>{},location:{assign:url=>urls.push(url)},
-  GaramaalPrototypeHome:{showHome:()=>calls.push("home")}};
+  GaramaalPrototypeHome:{showHome:()=>calls.push("home")},GaramaalSwipeDeck:{open:()=>calls.push("swipe-open"),close:()=>calls.push("swipe-close")}};
  const state={section:"dashboard"};
  vm.runInNewContext(read("standalone/mobile_jobs_hub.js"),{document:doc,window,state,nav:id=>{calls.push(id);state.section=id}});
  const hub=window.GaramaalJobsHub;assert.ok(hub);
@@ -114,8 +114,8 @@ test("new Jobs bottom actions call original nav, not CV generation",()=>{
  hub.selectPage("discovery");assert.equal(calls.at(-1),"discovery");
  hub.selectPage("fresh");assert.equal(calls.at(-1),"fresh");
  hub.selectPage("swipe");assert.equal(dom[2].hidden,false);
- assert.ok(dom[2].innerHTML.includes("disabled"));
- assert.match(dom[2].innerHTML,/No application status, job preference/);
+ assert.equal(calls.at(-1),"swipe-open");
+ assert.equal(dom[2].hidden,false);
  const navCount=calls.length;
  hub.selectPage("more");assert.equal(dom[1].hidden,false);assert.equal(calls.length,navCount);
  hub.selectPage("add");assert.equal(calls.at(-1),"add");
