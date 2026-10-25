@@ -518,3 +518,52 @@ body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-t
  .gmv3-jobs-workspace .gmv3-filter-button{flex:1}
  #gmv3-filter-sheet .gmv3-filter-panel{padding:12px}
 }
+
+
+/* Stage 5 UI-only: compressed toolbar, readable scoring, visible swipe artwork. */
+body.gmv3-jobs-workspace #content .toolbar-main{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:7px!important}
+body.gmv3-jobs-workspace #content .toolbar-main .searchbox{flex:1 1 0%!important;min-width:0!important;width:auto!important;max-width:none!important}
+body.gmv3-jobs-workspace #content .toolbar-main .searchbox input{min-width:0;width:100%;font-size:clamp(12px,3vw,14px);min-height:45px}
+body.gmv3-jobs-workspace #content .toolbar-main [data-action="refresh"],
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{flex:0 0 44px!important;min-width:44px!important;width:44px!important;min-height:44px!important;height:44px!important;padding:0!important;display:flex!important;justify-content:center;align-items:center!important}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{
+  font-size:0!important;position:relative;line-height:0!important
+}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button:before{
+  content:"☷";font-size:27px!important;line-height:1!important;font-weight:950;color:#171218
+}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button[data-count]:after{
+  content:attr(data-count);display:grid;place-items:center;position:absolute;top:-6px;right:-5px;
+  background:#ff4caa;color:#161218;font:900 9px system-ui;min-width:16px;height:16px;padding:1px;border-radius:50%
+}
+@media(max-width:370px){
+ body.gmv3-jobs-workspace #content .toolbar-main{flex-wrap:nowrap!important}
+ body.gmv3-jobs-workspace #content .toolbar-main .searchbox{flex:1 1 0%!important;min-width:0!important}
+ body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{flex:0 0 42px!important}
+ body.gmv3-jobs-workspace #content .toolbar-main [data-action="refresh"]{flex:0 0 42px!important}
+}
+body.gmv3-jobs-workspace .score-compact,body.gmv3-jobs-workspace[data-candidate="Pooja"] .score-compact{
+  background:#34293e!important;border:1.5px solid #9e7ab0!important;box-shadow:2px 3px 0 #09070a!important;color:#fff7e9!important
+}
+body.gmv3-jobs-workspace .score-avg strong{color:#dfff58!important;font-family:"Bricolage Grotesque",system-ui;font-weight:950}
+body.gmv3-jobs-workspace .score-rank strong{color:#e6acff!important;font-family:"Bricolage Grotesque",system-ui;font-weight:950}
+body.gmv3-jobs-workspace .score-compact :is(.score-components,.score-rank span){color:#ead9eb!important;letter-spacing:0!important}
+body.gmv3-jobs-workspace .score-rank{border-left:1px solid #a280ac!important}
+body.gmv3-jobs-workspace .score-four{background:#332a3c!important;border:1px solid #745780!important}
+body.gmv3-jobs-workspace .score-stat strong{color:#dfff58!important}
+body.gmv3-jobs-workspace .score-stat span{color:#e5d5e7!important}
+/* Source sprite's third cell is blank in some previews. Use a visible inked sticker, not a hidden icon. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background-image:none!important;display:grid!important;place-items:center!important;
+ color:#151218!important;background-color:#d493ef!important;border:2px solid #100b13!important;
+ border-radius:9px 13px 8px 11px!important;box-shadow:3px 3px 0 #dfff58!important;
+ font-size:0!important;position:relative;transform:rotate(-5deg)
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon:after{
+ content:"⇄";position:absolute;inset:0;display:grid;place-items:center;
+ color:#151218;font:950 32px "Bricolage Grotesque",system-ui;line-height:1
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon{
+ background-color:#dfff58!important;box-shadow:3px 3px 0 #ff4caa!important
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon:hover{transform:rotate(3deg) scale(1.04)}
