@@ -9,7 +9,7 @@ const root=path.resolve(__dirname,"../..");
 const read=p=>fs.readFileSync(path.join(root,p),"utf8");
 test("Collage script parses without touching production applications",()=>{
  for(const f of ["standalone/mobile_collage_intro.js","standalone/mobile_home_shell.js",
-  "standalone/mobile_jobs_hub.js","standalone/mobile_social_hub.js",
+  "standalone/mobile_jobs_hub.js","standalone/mobile_jobs_swipe.js","standalone/mobile_social_hub.js",
   "standalone/server.js","standalone/social_server.js"]){
   assert.doesNotThrow(()=>new vm.Script(read(f),{filename:f}),f);
  }
@@ -44,7 +44,11 @@ test("New landing controls dispatch into preserved real Jobs / Social handlers",
  assert.match(jobs,/nav\(id\)/);
  assert.match(social,/original\.click\(\)/);
  assert.match(social,/stats\(\)/);
- assert.match(jobs,/disabled aria-disabled="true"/);
+ assert.match(jobs,/GaramaalSwipeDeck/);
+ const swipe=read("standalone/mobile_jobs_swipe.js");
+ assert.match(swipe,/function onPointerDown/);
+ assert.match(swipe,/function onPointerEnd/);
+ assert.match(swipe,/function workTerms/);
 });
 test("Prototype routes are opt-in, and production route is not replaced",()=>{
  const source=read("standalone/server.js");
@@ -98,4 +102,38 @@ test("Intro picks the correct clip by aspect ratio, with non-cropping responsive
   const wide=screen.w/screen.h>=1.1;
   assert.equal(wide?"desktop":"mobile",screen.expected);
  }
+});
+
+
+test("Gesture directions, stages, and explicit JD evidence are consistent",()=>{
+ const logic=require("../mobile_jobs_swipe.js");
+ assert.equal(logic.direction(-120,5),"left");
+ assert.equal(logic.direction(120,5),"right");
+ assert.equal(logic.direction(10,115),"down");
+ assert.equal(logic.direction(10,-120),null);
+ const job={row:5,source:"fresh",url:"https://example.org/work",progress:"Unapplied",cvLink:""};
+ assert.equal(logic.phase(job,{}),"interest");
+ assert.equal(logic.phase({...job,cvLink:"https://docs.google.com/document/d/x"},{}),"apply");
+ assert.equal(logic.phase({...job,progress:"Applied"},{}),"connect");
+ assert.equal(logic.phase({...job,progress:"Applied + Connected"},{}),"hidden");
+ assert.equal(logic.phase(job,{rejected:true}),"hidden");
+ assert.equal(logic.phase({...job,source:"taaza"},{}),"discovery");
+ const terms=logic.workTerms({jd:"Visa sponsorship is available. Salary: €58,000 - €72,000 per annum. Please apply."});
+ assert.equal(terms.visa,"Sponsorship offered");
+ assert.match(terms.pay,/€58,000/);
+ const missing=logic.workTerms({jd:"Help a team manage their financial statements and prepare accounts."});
+ assert.equal(missing.visa,"");
+ assert.equal(missing.pay,"");
+ const code=read("standalone/mobile_jobs_swipe.js");
+ assert.match(code,/Job description ↗/);
+ assert.match(code,/detailActions\(item\)/);
+ for(const method of ["setJobPreference","transferJob","updateApplicationProgress","updateFreshControl","runCvApiNow"])
+   assert.ok(!code.includes('run("'+method+'"'),"Preview may not call "+method);
+});
+test("Intro ambient edge-fill preserves central uncropped paper footage",()=>{
+ const code=read("standalone/mobile_collage_intro.js");
+ const css=read("standalone/mobile_collage.css");
+ assert.match(code,/gmv3-intro-ambient/);
+ assert.match(css,/\.gmv3-intro-ambient\s*\{[^}]*object-fit:cover/s);
+ assert.match(css,/\.gmv3-intro-video\s*\{[^}]*object-fit:contain/s);
 });
