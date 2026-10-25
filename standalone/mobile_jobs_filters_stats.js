@@ -93,11 +93,11 @@ function removeOldDashboard(){
 function metrics(summary){
  if(!summary)return null;
  return [
-  ["Jobs in Discovery",summary.discoveryJobs,"Taaza vacancies"],
-  ["Jobs in Make CV",summary.makeCvJobs,"Freshmaal vacancies"],
-  ["CV prepared",summary.cvPrepared,"Generated CV links"],
-  ["Applied",summary.applied,"Includes connected"],
-  ["Applied + Connected",summary.appliedConnected,"Completed steps"]
+  ["Jobs in Discovery",summary.discoveryJobs,"Taaza vacancies","discovery","all"],
+  ["Jobs in Make CV",summary.makeCvJobs,"Freshmaal vacancies","fresh","all"],
+  ["CV prepared",summary.cvPrepared,"Generated CV links","fresh","prepared"],
+  ["Applied",summary.applied,"Includes connected","fresh","applied"],
+  ["Applied + Connected",summary.appliedConnected,"Completed steps","fresh","connected"]
  ];
 }
 function renderDashboard(){
@@ -107,14 +107,16 @@ function renderDashboard(){
  if(!grid)return;
  const b=state.stats||{};
  const m=metrics(summary)||[
-  ["Jobs in Discovery",b.discovered??"—","Taaza vacancies"],
-  ["Jobs in Make CV",b.applications??"—","Freshmaal vacancies"],
-  ["CV prepared","—","Loading"],
-  ["Applied",b.applied??"—","Includes connected"],
-  ["Applied + Connected","—","Loading"]
+  ["Jobs in Discovery",b.discovered??"—","Taaza vacancies","discovery","all"],
+  ["Jobs in Make CV",b.applications??"—","Freshmaal vacancies","fresh","all"],
+  ["CV prepared","—","Loading","fresh","prepared"],
+  ["Applied",b.applied??"—","Includes connected","fresh","applied"],
+  ["Applied + Connected","—","Loading","fresh","connected"]
  ];
  grid.classList.add("gmv3-five-kpis");
- grid.innerHTML=m.map(([label,value,note])=>'<article class="gmv3-pipeline-kpi"><span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(note)+'</small></article>').join("");
+ grid.innerHTML=m.map(([label,value,note,section,status])=>
+   '<button type="button" class="gmv3-pipeline-kpi" data-gm-metric="'+esc(section)+':'+esc(status)+'" aria-label="View '+esc(label)+' jobs in '+(section==="fresh"?"Make CV":"Discovery")+'">'+
+   '<span>'+esc(label)+'</span><strong>'+esc(value)+'</strong><small>'+esc(note)+'</small></button>').join("");
  const existing=doc.getElementById("gmv3-goal-alerts");if(existing)existing.remove();
  const goals=load(c,"goals",defaultGoals());
  const pendingApply=summary?summary.waitingToApply:"—",pendingConnect=summary?summary.waitingToConnect:"—",queued=summary?summary.cvQueued:"—";
@@ -180,6 +182,17 @@ nav=function(destination,initial){
  }
 };
 doc.addEventListener("click",e=>{
+ const metric=e.target.closest?.("[data-gm-metric]")?.dataset.gmMetric;
+ if(metric&&state.section==="dashboard"){
+  const [destination,status]=metric.split(":");
+  if(["discovery","fresh"].includes(destination)&&["all","prepared","applied","connected"].includes(status)){
+   const next=defaultFilters();next.status=status;
+   filters.set(cand()+"|"+destination,next);
+   save(cand(),"filter-"+destination,next);
+   nav(destination,status);
+   return;
+  }
+ }
  const action=e.target.closest("[data-gmf-act]")?.dataset.gmfAct;
  if(action==="open"){openFilter();return}
  if(action==="close"||action==="clear"){if(action==="close")dismiss();else applyFilter(true);return}
