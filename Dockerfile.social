@@ -13,6 +13,7 @@ COPY standalone/mobile_collage.css /app/standalone/mobile_collage.css
 COPY standalone/assets/nav-collage-states.webp /app/standalone/assets/nav-collage-states.webp
 COPY standalone/assets/back-avatar-controls.webp /app/standalone/assets/back-avatar-controls.webp
 COPY standalone/assets/swipe-sticker.svg /app/standalone/assets/swipe-sticker.svg
+COPY standalone/assets/back-sticker.svg /app/standalone/assets/back-sticker.svg
 COPY standalone/mobile_social_hub.js /app/standalone/mobile_social_hub.js
 COPY standalone/bridge.js /app/standalone/bridge.js
 USER node
