@@ -55,24 +55,31 @@ function dismiss(){closeLocationPicker(false);sheet?.remove();sheet=null;
 function normalizeLocationOptions(items){
  return [...new Set((Array.isArray(items)?items:[]).filter(x=>typeof x==="string").map(x=>x.trim().slice(0,120)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 }
-function locationLabel(rule){
+
+function locationLabel(rule,field){
  const r=loc.rule(rule);
  if(r.mode==="except")return r.values.length+" excluded";
  if(r.mode==="only")return r.values.length+" included";
- return "All locations";
+ return "All "+(field==="location"?"locations":field==="company"?"companies":
+   field==="designation"?"designations":"departments");
 }
 function updateLocationTrigger(){
- const button=sheet?.querySelector("#gmv3-location-trigger");
- if(!button)return;
- button.querySelector(".gmv3-location-summary").textContent=locationLabel(locationDraft);
- button.setAttribute("aria-label","Choose locations: "+locationLabel(locationDraft));
+ for(const field of FIELDS){
+  const button=sheet?.querySelector("#gmv3-"+field+"-trigger");
+  if(!button)continue;
+  const label=locationLabel(facetDrafts[field],field);
+  button.querySelector(".gmv3-location-summary").textContent=label;
+  button.setAttribute("aria-label","Choose "+FIELD_LABELS[field]+": "+label);
+ }
 }
-function locationField(){
- return '<div class="gmv3-field gmv3-location-field"><span>Location</span>'+
-  '<button id="gmv3-location-trigger" type="button" data-gmf-loc="open" aria-haspopup="dialog" aria-label="Choose locations">'+
-  '<span class="gmv3-location-summary">'+esc(locationLabel(locationDraft))+'</span>'+
+function locationField(field){
+ const label=FIELD_LABELS[field];
+ return '<div class="gmv3-field gmv3-location-field"><span>'+esc(label)+'</span>'+
+  '<button id="gmv3-'+field+'-trigger" type="button" data-gmf-loc="open" data-gmf-field-target="'+field+
+  '" aria-haspopup="dialog" aria-label="Choose '+esc(label)+'">'+
+  '<span class="gmv3-location-summary">'+esc(locationLabel(facetDrafts[field],field))+'</span>'+
   '<span class="gmv3-location-chevron" aria-hidden="true">▾</span></button>'+
-  '<small>Choose or exclude multiple locations</small></div>';
+  '<small>Search, include or exclude multiple values</small></div>';
 }
 function locationSelectionValues(){
  const result=loc.rule(locationDraft);
@@ -83,24 +90,24 @@ function updateLocations(next){
  updateLocationTrigger();
  renderLocationMatches();
 }
+
 function closeLocationPicker(keep){
  if(!locationPicker)return;
- if(!keep&&locationBefore)locationDraft=locationBefore;
- locationPicker.remove();locationPicker=null;
- locationBefore=null;
+ if(keep)facetDrafts[currentFacet]=loc.rule(locationDraft);
+ locationPicker.remove();locationPicker=null;locationBefore=null;locationDraft=null;
  updateLocationTrigger();
- // Restoring focus to a non-input does not trigger the phone keyboard.
- if(sheet?.isConnected)sheet.querySelector("#gmv3-location-trigger")?.focus({preventScroll:true});
+ if(sheet?.isConnected)
+  sheet.querySelector("#gmv3-"+currentFacet+"-trigger")?.focus({preventScroll:true});
 }
 function renderLocationMatches(){
  if(!locationPicker)return;
- const results=locationOptions.filter(v=>loc.matches(v,locationTerm));
+ const results=locationOptions.filter(v=>currentFacet==="location"?loc.matches(v,locationTerm):v.toLowerCase().includes(locationTerm.toLowerCase()));
  const visible=results.slice(0,160);
  const included=locationOptions.filter(v=>loc.isIncluded(v,locationDraft)).length;
  const tally=locationPicker.querySelector("#gmv3-location-total");
  tally.textContent=included+" of "+locationOptions.length+" included";
  locationPicker.querySelector("#gmv3-location-matches").textContent=
-  results.length+" matching location"+(results.length===1?"":"s")+
+  results.length+" matching "+(currentFacet==="location"?"location":currentFacet==="company"?"company":"value")+(results.length===1?"":"s")+
   (results.length>160?" · showing first 160; refine search":"");
  const list=locationPicker.querySelector("#gmv3-location-list");
  list.innerHTML=visible.map(value=>{
@@ -111,7 +118,7 @@ function renderLocationMatches(){
  }).join("")||'<p class="gmv3-location-empty">No matching saved locations. Try a shorter search.</p>';
 }
 function batchLocations(operation){
- const matches=locationOptions.filter(v=>loc.matches(v,locationTerm));
+ const matches=locationOptions.filter(v=>currentFacet==="location"?loc.matches(v,locationTerm):v.toLowerCase().includes(locationTerm.toLowerCase()));
  if(operation==="reset"){updateLocations({mode:"all",values:[]});return}
  if(operation==="only"){updateLocations({mode:"only",values:matches});return}
  const r=loc.rule(locationDraft),set=locationSelectionValues();
@@ -148,22 +155,25 @@ function fitLocationViewport(){
 }
 window.visualViewport?.addEventListener("resize",fitLocationViewport);
 window.visualViewport?.addEventListener("scroll",fitLocationViewport);
-function openLocationPicker(){
- if(!sheet||locationPicker)return;
+function openLocationPicker(field){
+ if(!sheet||locationPicker||!FIELDS.includes(field))return;
+ currentFacet=field;
+ locationDraft=loc.rule(facetDrafts[field]);
+ locationOptions=normalizeLocationOptions(facetOptions[field]);
  locationBefore=loc.rule(locationDraft);locationTerm="";
  locationPicker=doc.createElement("div");
  locationPicker.id="gmv3-location-picker";
  locationPicker.className="gmv3-location-backdrop";
- locationPicker.innerHTML='<section role="dialog" aria-modal="true" aria-label="Choose job locations" class="gmv3-location-panel">'+
-  '<div class="gmv3-location-head"><div><small>LOCATION FILTER</small><h2>Choose locations</h2>'+
+ locationPicker.innerHTML='<section role="dialog" aria-modal="true" aria-label="Choose '+esc(FIELD_LABELS[currentFacet])+'" class="gmv3-location-panel">'+
+  '<div class="gmv3-location-head"><div><small>EXCEL-STYLE FILTER</small><h2>'+esc(FIELD_LABELS[currentFacet])+'</h2>'+
   '<p id="gmv3-location-total"></p></div><button type="button" data-gmf-loc="cancel" aria-label="Close without saving location choices">×</button></div>'+
-  '<div class="gmv3-location-search"><input id="gmv3-location-search" type="search" placeholder="Search UK, United, Dublin…" autocomplete="off" autocapitalize="off" aria-label="Search saved location values">'+
+  '<div class="gmv3-location-search"><input id="gmv3-location-search" type="search" placeholder="'+esc(currentFacet==="location"?"Search UK, United, Dublin…":"Search "+FIELD_LABELS[currentFacet].toLowerCase()+"…")+'" autocomplete="off" autocapitalize="off" aria-label="Search '+esc(FIELD_LABELS[currentFacet])+' values">'+
   '<button type="button" data-gmf-loc="search-clear" aria-label="Clear location search">×</button></div>'+
   '<p class="gmv3-location-matches" id="gmv3-location-matches"></p>'+
   '<div class="gmv3-location-batch"><button type="button" data-gmf-loc="exclude">Exclude matches</button>'+
   '<button type="button" data-gmf-loc="include">Include matches</button>'+
   '<button type="button" data-gmf-loc="only">Only matches</button></div>'+
-  '<div class="gmv3-location-list" id="gmv3-location-list" role="group" aria-label="Available saved locations"></div>'+
+  '<div class="gmv3-location-list" id="gmv3-location-list" role="group" aria-label="Available '+esc(FIELD_LABELS[currentFacet])+' values"></div>'+
   '<footer class="gmv3-location-foot"><button type="button" data-gmf-loc="reset">Reset to all</button>'+
   '<button type="button" data-gmf-loc="done">Done</button></footer></section>';
  doc.body.append(locationPicker);
@@ -341,7 +351,7 @@ doc.addEventListener("click",e=>{
  }
  const locAction=e.target.closest("[data-gmf-loc]")?.dataset.gmfLoc;
  if(locAction){
-  if(locAction==="open")openLocationPicker();
+  if(locAction==="open")openLocationPicker(e.target.closest("[data-gmf-field-target]")?.dataset.gmfFieldTarget);
   else if(locAction==="cancel")closeLocationPicker(false);
   else if(locAction==="done")closeLocationPicker(true);
   else if(locAction==="search-clear"){
