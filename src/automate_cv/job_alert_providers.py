@@ -76,8 +76,9 @@ def provider_for(from_header: str) -> tuple[str | None, bool]:
     if sender in VERIFIED_SENDERS:
         return VERIFIED_SENDERS[sender], True
     domain = sender.rsplit("@", 1)[-1]
-    if domain in REVIEW_DOMAINS:
-        return REVIEW_DOMAINS[domain], False
+    for root, name in REVIEW_DOMAINS.items():
+        if domain == root or domain.endswith("." + root):
+            return name, False
     return None, False
 
 
