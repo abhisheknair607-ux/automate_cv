@@ -16,25 +16,135 @@ const statuses={
  fresh:[["all","All jobs"],["unapplied","CV ready, not applied"],["selected","Shortlisted"],["cv","CV requested"],["prepared","CV prepared"],["applied","Applied"],["connected","Applied + Connected"],["unscored","Unscored"],["favorites","Favourites"],["not-interested","Not interested"]]
 };
 const key=(c,t)=>"gmv3-preview-"+c+"-"+t;
-const defaultFilters=()=>({company:"",location:"",designation:"",department:"",status:"all",sort:"newest",category:"all"});
+const defaultFilters=()=>({company:"",designation:"",department:"",locationSelection:{mode:"all",values:[]},status:"all",sort:"newest",category:"all"});
+const loc=window.GaramaalLocationVariants;
+if(!loc)throw Error("Location filter helpers were not loaded");
 const defaultGoals=()=>({daily:3,weekly:15,apply:true,connect:true,alerts:false});
 function load(c,t,d){try{const x=JSON.parse(localStorage.getItem(key(c,t))||"null");return x&&typeof x==="object"&&!Array.isArray(x)?Object.assign({},d,x):{...d}}catch(_){return {...d}}}
 function save(c,t,x){try{localStorage.setItem(key(c,t),JSON.stringify(x))}catch(_){}}
 function preference(c,s){const k=c+"|"+s;if(!filters.has(k))filters.set(k,load(c,"filter-"+s,defaultFilters()));return filters.get(k)}
-function count(v){return ["company","location","designation","department"].filter(k=>v[k]).length+Number(v.status!=="all")+Number(v.sort!=="newest")+Number(v.category!=="all")}
+function count(v){return ["company","designation","department"].filter(k=>v[k]).length+Number(loc.rule(v.locationSelection).mode!=="all")+Number(v.status!=="all")+Number(v.sort!=="newest")+Number(v.category!=="all")}
 function notSwipe(){return doc.getElementById("gmv3-jobs-swipe")?.hidden!==false}
 function activeList(arg){return sect()&&notSwipe()&&((sect()==="discovery"?"taaza":"fresh")===arg.source)&&arg.candidate===cand()}
 run=async function(method,arg,opts){
  if(method!=="listJobs"||!arg||!activeList(arg))return baseRun(method,arg,opts);
  const section=sect(),c=cand(),f=preference(c,section);
  const result=await baseRun("gmListJobsFaceted",{...arg,filter:f.status,sort:f.sort,tabId:section==="discovery"?f.category:"all",facets:{
-  company:f.company,location:f.location,designation:f.designation,department:f.department
- }},opts);
+  company:f.company,designation:f.designation,department:f.department
+ },locationSelection:loc.rule(f.locationSelection)},opts);
  if(sect()===section&&cand()===c){facets.set(c+"|"+section,{options:result.facetOptions||{},tabs:result.tabs||[],basis:result.departmentBasis||""});}
  return result;
 };
-let sheet=null;
-function dismiss(){sheet?.remove();sheet=null;}
+let sheet=null,locationPicker=null,locationDraft=null,locationBefore=null,locationOptions=[],locationTerm="";
+function dismiss(){closeLocationPicker(false);sheet?.remove();sheet=null;locationDraft=null;}
+function normalizeLocationOptions(items){
+ return [...new Set((Array.isArray(items)?items:[]).filter(x=>typeof x==="string").map(x=>x.trim().slice(0,120)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+}
+function locationLabel(rule){
+ const r=loc.rule(rule);
+ if(r.mode==="except")return r.values.length+" excluded";
+ if(r.mode==="only")return r.values.length+" included";
+ return "All locations";
+}
+function updateLocationTrigger(){
+ const button=sheet?.querySelector("#gmv3-location-trigger");
+ if(!button)return;
+ button.querySelector(".gmv3-location-summary").textContent=locationLabel(locationDraft);
+ button.setAttribute("aria-label","Choose locations: "+locationLabel(locationDraft));
+}
+function locationField(){
+ return '<div class="gmv3-field gmv3-location-field"><span>Location</span>'+
+  '<button id="gmv3-location-trigger" type="button" data-gmf-loc="open" aria-haspopup="dialog" aria-label="Choose locations">'+
+  '<span class="gmv3-location-summary">'+esc(locationLabel(locationDraft))+'</span>'+
+  '<span class="gmv3-location-chevron" aria-hidden="true">▾</span></button>'+
+  '<small>Choose or exclude multiple locations</small></div>';
+}
+function locationSelectionValues(){
+ const result=loc.rule(locationDraft);
+ return new Set(result.values);
+}
+function updateLocations(next){
+ locationDraft=loc.rule(next);
+ updateLocationTrigger();
+ renderLocationMatches();
+}
+function closeLocationPicker(keep){
+ if(!locationPicker)return;
+ if(!keep&&locationBefore)locationDraft=locationBefore;
+ locationPicker.remove();locationPicker=null;
+ locationBefore=null;
+ updateLocationTrigger();
+ // Restoring focus to a non-input does not trigger the phone keyboard.
+ if(sheet?.isConnected)sheet.querySelector("#gmv3-location-trigger")?.focus({preventScroll:true});
+}
+function renderLocationMatches(){
+ if(!locationPicker)return;
+ const results=locationOptions.filter(v=>loc.matches(v,locationTerm));
+ const visible=results.slice(0,160);
+ const included=locationOptions.filter(v=>loc.isIncluded(v,locationDraft)).length;
+ const tally=locationPicker.querySelector("#gmv3-location-total");
+ tally.textContent=included+" of "+locationOptions.length+" included";
+ locationPicker.querySelector("#gmv3-location-matches").textContent=
+  results.length+" matching location"+(results.length===1?"":"s")+
+  (results.length>160?" · showing first 160; refine search":"");
+ const list=locationPicker.querySelector("#gmv3-location-list");
+ list.innerHTML=visible.map(value=>{
+  const on=loc.isIncluded(value,locationDraft),category=loc.group(value);
+  return '<label class="gmv3-location-option"><input type="checkbox" data-gmf-loc-value="'+esc(value)+
+    '"'+(on?' checked':'')+'><span><strong>'+esc(value)+'</strong>'+
+    (category?'<small>'+esc(category)+'</small>':'')+'</span></label>';
+ }).join("")||'<p class="gmv3-location-empty">No matching saved locations. Try a shorter search.</p>';
+}
+function batchLocations(operation){
+ const matches=locationOptions.filter(v=>loc.matches(v,locationTerm));
+ if(operation==="reset"){updateLocations({mode:"all",values:[]});return}
+ if(operation==="only"){updateLocations({mode:"only",values:matches});return}
+ const r=loc.rule(locationDraft),set=locationSelectionValues();
+ if(operation==="exclude"){
+  if(r.mode==="only")matches.forEach(v=>set.delete(v));
+  else matches.forEach(v=>set.add(v));
+  updateLocations({mode:r.mode==="only"?"only":"except",values:[...set]});
+ }else if(operation==="include"){
+  if(r.mode==="except")matches.forEach(v=>set.delete(v));
+  else if(r.mode==="only")matches.forEach(v=>set.add(v));
+  updateLocations({mode:r.mode==="only"?"only":r.mode==="except"?"except":"all",values:[...set]});
+ }
+}
+function toggleLocation(value,checked){
+ if(!locationOptions.includes(value))return;
+ const r=loc.rule(locationDraft),set=locationSelectionValues();
+ if(r.mode==="only"){
+  if(checked)set.add(value);else set.delete(value);
+  updateLocations({mode:"only",values:[...set]});
+ }else{
+  if(checked)set.delete(value);else set.add(value);
+  updateLocations({mode:"except",values:[...set]});
+ }
+}
+function openLocationPicker(){
+ if(!sheet||locationPicker)return;
+ locationBefore=loc.rule(locationDraft);locationTerm="";
+ locationPicker=doc.createElement("div");
+ locationPicker.id="gmv3-location-picker";
+ locationPicker.className="gmv3-location-backdrop";
+ locationPicker.innerHTML='<section role="dialog" aria-modal="true" aria-label="Choose job locations" class="gmv3-location-panel">'+
+  '<div class="gmv3-location-head"><div><small>LOCATION FILTER</small><h2>Choose locations</h2>'+
+  '<p id="gmv3-location-total"></p></div><button type="button" data-gmf-loc="cancel" aria-label="Close without saving location choices">×</button></div>'+
+  '<div class="gmv3-location-search"><input id="gmv3-location-search" type="search" placeholder="Search UK, United, Dublin…" autocomplete="off" autocapitalize="off" aria-label="Search saved location values">'+
+  '<button type="button" data-gmf-loc="search-clear" aria-label="Clear location search">×</button></div>'+
+  '<p class="gmv3-location-matches" id="gmv3-location-matches"></p>'+
+  '<div class="gmv3-location-batch"><button type="button" data-gmf-loc="exclude">Exclude matches</button>'+
+  '<button type="button" data-gmf-loc="include">Include matches</button>'+
+  '<button type="button" data-gmf-loc="only">Only matches</button></div>'+
+  '<div class="gmv3-location-list" id="gmv3-location-list" role="group" aria-label="Available saved locations"></div>'+
+  '<footer class="gmv3-location-foot"><button type="button" data-gmf-loc="reset">Reset to all</button>'+
+  '<button type="button" data-gmf-loc="done">Done</button></footer></section>';
+ doc.body.append(locationPicker);
+ renderLocationMatches();
+ // The search does not automatically focus: phone users can view options before opening keyboard.
+ locationPicker.querySelector('[data-gmf-loc="cancel"]')?.focus({preventScroll:true});
+}
+
 function selectHtml(name,label,items,value,placeholder){
  const map=new Map();for(const t of items||[]){const v=String(t||"").trim();if(v&&v.length<=160)map.set(v,v)}
  const list=[...map.keys()];
@@ -44,6 +154,8 @@ function selectHtml(name,label,items,value,placeholder){
 function openFilter(){
  const s=sect();if(!s)return;
  dismiss();const c=cand(),f=preference(c,s),lookup=facets.get(c+"|"+s)||{},o=lookup.options||{};
+ locationDraft=loc.rule(f.locationSelection);
+ locationOptions=normalizeLocationOptions(o.location);
  sheet=doc.createElement("div");sheet.id="gmv3-filter-sheet";sheet.className="gmv3-filter-backdrop";
  const statusOpts=(statuses[s]||[]).map(([v,t])=>'<option value="'+v+'"'+(v===f.status?' selected':'')+'>'+esc(t)+'</option>').join("");
  const sorts=[["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["department","Function A–Z"],["location","Location A–Z"],...(s==="fresh"?[["score","Highest fit score"]]:[])];
@@ -54,7 +166,7 @@ function openFilter(){
  '<div class="gmv3-filter-head"><div><small>DISCOVER YOUR WAY</small><h2>Filter & Sort</h2><p>'+esc(s==="fresh"?"Make CV":"Discovery")+' · '+esc(c)+'</p></div><button type="button" data-gmf-act="close" aria-label="Close filter panel">×</button></div>'+
  '<form id="gmv3-filter-form"><div class="gmv3-filter-grid">'+
  selectHtml("company","Company",o.company,f.company,"Search or select a company")+
- selectHtml("location","Location",o.location,f.location,"City, country or region")+
+ locationField()+
  selectHtml("department","Department / function",o.department,f.department,"Choose a functional area")+
  selectHtml("designation","Designation",o.designation,f.designation,"Job title or role")+
  tabsHtml+
@@ -63,13 +175,14 @@ function openFilter(){
  '</div><p class="gmv3-filter-hint">Company, location and designation match existing saved listings. Department is inferred from the role title, not verified employer data. All filters are applied across the full list, not just the visible page.</p>'+
  '<div class="gmv3-filter-actions"><button type="button" data-gmf-act="clear">Clear all</button><button type="submit">Apply filters</button></div></form></section>';
  doc.body.append(sheet);
- sheet.querySelector("input,select")?.focus();
+ // Never open the Android keyboard on filter-panel entry.
+ sheet.querySelector('[data-gmf-act="close"]')?.focus({preventScroll:true});
 }
 function applyFilter(reset){
  if(!sheet)return;
  const s=sect(),c=cand();if(!s)return;
  const f=reset?defaultFilters():{...preference(c,s)};
- if(!reset)sheet.querySelectorAll("[data-gmf-field]").forEach(el=>f[el.dataset.gmfField]=el.value.trim().slice(0,120));
+ if(!reset){sheet.querySelectorAll("[data-gmf-field]").forEach(el=>f[el.dataset.gmfField]=el.value.trim().slice(0,120));f.locationSelection=loc.rule(locationDraft)}
  filters.set(c+"|"+s,f);save(c,"filter-"+s,f);
  state.filter=f.status;state.sort=f.sort;state.tabId=s==="discovery"?f.category:"all";
  state.page=1;state.bulk.clear();dismiss();fetchList();
@@ -198,6 +311,19 @@ doc.addEventListener("click",e=>{
    return;
   }
  }
+ const locAction=e.target.closest("[data-gmf-loc]")?.dataset.gmfLoc;
+ if(locAction){
+  if(locAction==="open")openLocationPicker();
+  else if(locAction==="cancel")closeLocationPicker(false);
+  else if(locAction==="done")closeLocationPicker(true);
+  else if(locAction==="search-clear"){
+   locationTerm="";
+   const input=locationPicker?.querySelector("#gmv3-location-search");
+   if(input){input.value="";input.focus({preventScroll:true})}
+   renderLocationMatches();
+  }else if(["only","exclude","include","reset"].includes(locAction))batchLocations(locAction);
+  return;
+ }
  const action=e.target.closest("[data-gmf-act]")?.dataset.gmfAct;
  if(action==="open"){openFilter();return}
  if(action==="close"||action==="clear"){if(action==="close")dismiss();else applyFilter(true);return}
@@ -221,14 +347,22 @@ doc.addEventListener("click",e=>{
  }
 });
 doc.addEventListener("change",e=>{
+ const check=e.target.closest?.("[data-gmf-loc-value]");
+ if(check&&locationPicker){toggleLocation(check.dataset.gmfLocValue,check.checked);return}
  const field=e.target.closest("[data-gm-flag]")?.dataset.gmFlag;
  if(field){const c=cand(),g=load(c,"goals",defaultGoals());g[field]=e.target.checked;save(c,"goals",g)}
+});
+doc.addEventListener("input",e=>{
+ if(e.target.id==="gmv3-location-search"&&locationPicker){
+  locationTerm=e.target.value.trim().slice(0,120);
+  renderLocationMatches();
+ }
 });
 doc.addEventListener("submit",e=>{
  if(e.target.id!=="gmv3-filter-form")return;
  e.preventDefault();applyFilter(false);
 });
-doc.addEventListener("keydown",e=>{if(e.key==="Escape"&&sheet)dismiss()});
+doc.addEventListener("keydown",e=>{if(e.key==="Escape"){if(locationPicker){e.preventDefault();closeLocationPicker(false)}else if(sheet)dismiss()}});
 renderEnhancements();
 window.GaramaalPreviewFilters=Object.freeze({openFilter,refreshPipeline});
 })();
