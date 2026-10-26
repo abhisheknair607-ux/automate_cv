@@ -1,43 +1,50 @@
-/* Garamaal QA tactile response: visible on real touchscreens, no default action blocked.
+/* Garamaal QA touch feedback: mobile press state remains lifted until release.
  * Scoped to existing Discovery/Make CV jobs and Dashboard statistic tiles.
+ * Does not block native click, scrolling, navigation, or candidate workflows.
  */
 (function(){
  "use strict";
  if(typeof document==="undefined"||!document.body.classList.contains("gmv3-landing"))return;
- const doc=document,targets="#content .jobs > .job,#content button.gmv3-pipeline-kpi,#gmv3-goal-alerts .gmv3-followup-stats > div";
+ const doc=document;
+ const targets="#content .jobs > .job,#content button.gmv3-pipeline-kpi,#gmv3-goal-alerts .gmv3-followup-stats > div";
  const active=new Map();
  function stop(node){
   if(!node)return;
-  const prior=active.get(node);
-  if(prior?.timer)clearTimeout(prior.timer);
-  node.classList.remove("gmv3-tactile-pulse");
+  node.classList.remove("gmv3-tactile-held");
   active.delete(node);
+ }
+ function release(pointerId){
+  for(const [node,data] of active)if(data.id===pointerId)stop(node);
  }
  function start(e){
   if(e.pointerType!=="touch"&&e.pointerType!=="pen")return;
-  const node=e.target.closest?.(targets);
-  if(!node||e.isPrimary===false||doc.body.classList.contains("gmv3-profile-open"))return;
+  if(e.isPrimary===false||doc.body.classList.contains("gmv3-profile-open"))return;
   if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)return;
-  stop(node);
-  // Restart the short lift even on consecutive taps; native click/navigation
-  // and checkbox handling are never cancelled or delayed.
-  void node.offsetWidth;
-  node.classList.add("gmv3-tactile-pulse");
-  const event={id:e.pointerId,x:e.clientX,y:e.clientY,timer:null};
-  event.timer=setTimeout(()=>stop(node),440);
-  active.set(node,event);
+  const node=e.target.closest?.(targets);
+  if(!node)return;
+  // A hold is a STATE, not a 440ms animation. It stays lifted until pointerup,
+  // pointercancel, leaving the tile or native scrolling begins.
+  release(e.pointerId);
+  node.classList.add("gmv3-tactile-held");
+  active.set(node,{id:e.pointerId,x:e.clientX,y:e.clientY});
  }
  function move(e){
-  const node=e.target.closest?.(targets);
-  const data=node&&active.get(node);
-  if(data&&data.id===e.pointerId&&Math.hypot(e.clientX-data.x,e.clientY-data.y)>16)stop(node);
+  for(const [node,data] of active){
+   if(data.id!==e.pointerId)continue;
+   // Small finger movements inside the card don't end the visual hold.
+   // Let the browser's native pan trigger pointercancel/scroll as usual.
+   const rect=node.getBoundingClientRect();
+   const margin=7;
+   if(e.clientX<rect.left-margin||e.clientX>rect.right+margin||
+      e.clientY<rect.top-margin||e.clientY>rect.bottom+margin)stop(node);
+  }
  }
  doc.addEventListener("pointerdown",start,{passive:true});
  doc.addEventListener("pointermove",move,{passive:true});
- doc.addEventListener("pointercancel",e=>{
-  for(const [node,data] of active)if(data.id===e.pointerId)stop(node);
- },{passive:true});
+ doc.addEventListener("pointerup",e=>release(e.pointerId),{passive:true});
+ doc.addEventListener("pointercancel",e=>release(e.pointerId),{passive:true});
  doc.addEventListener("scroll",()=>{
-  for(const node of active.keys())stop(node);
+  for(const node of [...active.keys()])stop(node);
  },{passive:true,capture:true});
+ window.addEventListener("blur",()=>{for(const node of [...active.keys()])stop(node)});
 })();
