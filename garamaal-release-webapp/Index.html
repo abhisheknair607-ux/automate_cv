@@ -302,6 +302,12 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .alerts-pop :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 @media(max-width:480px){.alerts-shade{padding:12px}.alerts-pop{padding:13px;max-height:calc(100dvh - 35px)}
  .alerts-flow{font-size:10px;gap:3px}.alerts-step{padding:8px}.alerts-foot .btn{flex:1 1 auto}}
+.alerts-manual{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px}
+.alerts-manual label{font-size:11px;font-weight:700;color:var(--muted)}
+.alerts-manual input{max-width:100%;width:170px;min-height:33px;margin-left:9px;border-radius:7px;border:1px solid var(--line);padding:5px;color:var(--ink);background:var(--white)}
+.alerts-run-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
+.alerts-run-buttons .btn{flex:1 1 100px;min-height:34px}
+.alerts-run-buttons .btn:disabled{opacity:.48;cursor:not-allowed}
 
 .preference-icon.dup{min-width:38px;width:auto;padding:0 7px;font-size:11px;font-weight:800;letter-spacing:.01em}
 .preference-icon.dup[aria-pressed="true"]{background:#f1e9ff;border-color:#bda0e3;color:#68429e}
@@ -902,8 +908,8 @@ if(!DEMO){
 </script>
 <script>
 /* Import Alerts control lives in the Jobs dashboard beside Copy ranking prompt.
-   No API dispatch or Google Sheets writes. The real Python importer is still
-   held on a feature branch pending user approval and shared-Gmail OAuth. */
+   Uses authenticated GitHub workflow dispatch; preview and read-only scans
+   never write Sheets. Actual imports remain gated by parser approval. */
 (function(){
  "use strict";
  const mount=document.getElementById("importAlertsMount");
@@ -930,6 +936,12 @@ if(!DEMO){
    '<div class="alerts-flow" aria-label="Workflow"><span>Garamaal</span><i>→</i><span>GitHub</span><i>→</i><span>Gmail</span><i>→</i><span>Taaza</span></div>'+
    '<p class="alerts-text">The dashboard will trigger Python in GitHub Actions, not run the importer in the browser. '+
    'GitHub dispatch requires an authenticated request; Gmail and Google Sheets APIs are required. No OpenAI API or paid AI ranking is involved.</p>'+
+   '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="2026-10-25" aria-label="Date of alert emails" />'+
+   '<div class="alerts-run-buttons">'+
+   '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
+   '<button class="btn" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
+   '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
+   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking GitHub controls…</p></div>'+
    '<div class="alerts-steps">'+
    '<div class="alerts-step"><strong>Preview · no changes</strong>'+
    '<span>Read alerts and review extracted jobs, candidate, company and location before importing.</span></div>'+
@@ -951,11 +963,56 @@ if(!DEMO){
    'No Google Sheet will be updated by opening this popup.</p>'+
    '</div></section></div>';
   mount.querySelector('[data-alert-dismiss="close"]').focus();
+  loadStatus();
+ }
+ const actionHost=()=>window.__cvStandalone?.requestSpecial;
+ async function loadStatus(){
+  const feedback=mount?.querySelector('#alerts-live-status');
+  if(!feedback)return;
+  if(!actionHost()){
+   feedback.textContent='Workflow controls require sign-in on Garamaal.';
+   return;
+  }
+  try{
+   const data=await actionHost()('alerts/status',{});
+   if(!mount?.contains(feedback))return;
+   for(const [kind,enabled] of [['preview',data.previewEnabled],['dedupe',data.dedupeEnabled],['apply',data.applyEnabled]]){
+    const control=mount.querySelector('[data-alert-run="'+kind+'"]');
+    if(control)control.disabled=!enabled;
+   }
+   const run=data.runs?.dedupe||data.runs?.preview;
+   feedback.textContent=run
+    ?'Last GitHub run: '+(run.conclusion||run.status||'Unknown')+'. '+(data.applyEnabled?'Import approved.':'Import write approval is still locked.')
+    :'No recent GitHub run found. '+(data.applyEnabled?'Import approved.':'Import write approval is still locked.');
+  }catch(e){
+   if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
+  }
+ }
+ async function trigger(kind){
+  const feedback=mount?.querySelector('#alerts-live-status');
+  if(!feedback||!actionHost())return;
+  const button=mount.querySelector('[data-alert-run="'+kind+'"]');
+  if(!button||button.disabled)return;
+  button.disabled=true;
+  feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
+  try{
+   const date=mount.querySelector('#alerts-on-date')?.value||'2026-10-25';
+   const result=await actionHost()('alerts/run',{kind,date});
+   if(mount?.contains(feedback))feedback.textContent=result.accepted
+     ?'GitHub accepted the request. This does not mean the run has completed. Check Actions for the result.'
+     :'GitHub did not confirm a dispatch.';
+  }catch(e){
+   if(mount?.contains(feedback))feedback.textContent=e.message||'GitHub request failed.';
+  }finally{
+   if(mount?.contains(button))button.disabled=false;
+  }
  }
  document.addEventListener("click",function(e){
   const button=e.target.closest('[data-action="import-alerts"]');
   if(button){e.preventDefault();open(button);return;}
   if(!mount?.firstChild)return;
+  const run=e.target.closest('[data-alert-run]');
+  if(run){e.preventDefault();trigger(run.dataset.alertRun);return;}
   if(e.target.matches('[data-alert-dismiss="backdrop"]') ||
       e.target.closest('[data-alert-dismiss="close"]')){e.preventDefault();close();}
  });
