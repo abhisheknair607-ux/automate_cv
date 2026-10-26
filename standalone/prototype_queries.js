@@ -127,6 +127,7 @@ function gmListJobsFaceted(options){
  if(status==="not-interested")rows=rows.filter(x=>x.notInterested);
  else if(status==="favorites")rows=rows.filter(x=>x.favorite);
  else if(!duplicateView&&status!=="all-including-duplicates")rows=rows.filter(x=>!x.notInterested);
+ if(status==="needs-review"&&source==="taaza")rows=rows.filter(x=>String(x.source||"").includes("Needs Review"));
  if(status==="missing"&&source==="taaza")rows=rows.filter(x=>!x.jdReady);
  if(status==="ready"&&source==="taaza")rows=rows.filter(x=>x.jdReady);
  if(status==="selected"&&source==="fresh")rows=rows.filter(x=>x.selected);
