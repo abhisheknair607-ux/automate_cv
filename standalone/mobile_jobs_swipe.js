@@ -1,12 +1,14 @@
-/* Garamaal /prototype Jobs Swipe — gesture-first Stage 3.
- * Uses existing per-candidate listJobs/getJob read APIs.
- * PREVIEW MODE: all gestures and decisions are browser-only. Never call
- * setJobPreference, transferJob, updateFreshControl, updateApplicationProgress,
- * or the paid runCvApiNow API against live Freshmaal.
+/* Garamaal /prototype Jobs Swipe — live candidate-scoped decisions.
+ * Reads via authenticated Swipe APIs. Only explicit user actions save to
+ * Google Sheets; never starts a paid CV run automatically.
  */
 (function(global){
  "use strict";
  const types=Object.freeze({left:"Not interested",down:"Maybe later",right:"Review next step"});
+ const HOLD_MS=460;
+ function postponeGesture({fromGrip=false,held=false,scrolling=false,dx=0,dy=0}={}){
+   return !scrolling&&(fromGrip||held)&&direction(dx,dy)==="down";
+ }
  function clean(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
  function direction(dx,dy){
   if(Math.abs(dx)>=72 && Math.abs(dx)>=Math.abs(dy)*1.22)return dx<0?"left":"right";
@@ -44,7 +46,7 @@
  }
  function phase(job,local){
   local=local||{};
-  const progress=local.progress||job.progress||"Unapplied";
+  const progress=local.progress||job.progress||(String(job.status||"").toLowerCase()==="applied"?"Applied":"Unapplied");
   if(local.rejected||job.notInterested||progress==="Applied + Connected"||progress==="Accepted")return "hidden";
   if(local.connected&&progress==="Applied")return "hidden";
   if(progress==="Applied")return "connect";
@@ -53,24 +55,32 @@
   if(local.cvDrafted)return "cv-pending";
   return local.interested||job.favorite?"cv":"interest";
  }
- const helpers=Object.freeze({direction,phase,jobKey,workTerms});
+ const helpers=Object.freeze({direction,phase,jobKey,workTerms,postponeGesture,HOLD_MS});
  if(typeof module!=="undefined"&&module.exports)module.exports=helpers;
  if(typeof document==="undefined"||typeof window==="undefined")return;
  const doc=document;
  let surface=null,active=false,candidate="",epoch=0,loading=false,deck=[],later=[],seen=new Set(),current=null,details=null,panelOpen=false;
  const cursors={fresh:{page:1,done:false},taaza:{page:1,done:false}};
  let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map(),expanded=false,suppressCardClickUntil=0;
- const storageKey=name=>"gmv3-swipe-preview-v2:"+name;
  function person(){try{return typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek"}catch(_){return "Abhishek"}}
- function loadDecisions(name){try{const v=JSON.parse(localStorage.getItem(storageKey(name))||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}catch(_){return {}}}
- function persist(){try{localStorage.setItem(storageKey(candidate),JSON.stringify(decisions))}catch(_){}}
  function choice(job){return decisions[jobKey(job)]||{}}
- function save(job,partial){decisions[jobKey(job)]=Object.assign({},choice(job),partial);persist()}
+ function save(job,partial){decisions[jobKey(job)]=Object.assign({},choice(job),partial)}
+ function expected(job){return {company:job.company,role:job.role,url:job.url}}
+ function liveRequest(method,arg){
+   const host=window.__cvStandalone?.requestSpecial;
+   if(typeof host!=="function")return Promise.reject(Error("Sign in to Garamaal to save Swipe decisions."));
+   return host("swipe/"+method,{arg});
+ }
+ function read(method,arg){
+   return typeof window.__cvStandalone?.requestSpecial==="function"?
+     liveRequest(method,arg):run(method,arg);
+ }
  function eligible(job){return phase(job,choice(job))!=="hidden"}
  function resetState(name){
+  endHold(pointer);pointer=null;
   candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;expanded=false;suppressCardClickUntil=0;
   for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
-  decisions=loadDecisions(name);metadata.clear();
+  decisions={};metadata.clear();
  }
  function activeJob(){return current||deck[0]||null}
  function badge(job){
@@ -78,13 +88,17 @@
   return {discovery:"Interested? Start here",interest:"Ready to shortlist",cv:"Prepare a CV", "cv-pending":"CV request drafted",apply:"CV ready — application step",connect:"Applied — connection step"}[st]||"Review";
  }
  function safeLink(v){try{const u=new URL(String(v||""));return /^https?:$/.test(u.protocol)?u.href:""}catch(_){return ""}}
- function footer(){return '<div class="gmv3-swipe-help"><span>← Reject</span><span>↓ Later</span><span>Continue →</span></div><p class="gmv3-swipe-small">Swipe the card itself in any direction. Drag with a mouse on desktop, or use ← ↓ → when the card is focused.</p>'}
+ function footer(){return '<div class="gmv3-swipe-help" role="group" aria-label="Swipe actions">'+
+  '<button type="button" data-gs="reject" aria-label="Not interested: reject job">← Pass</button>'+
+  '<button type="button" data-gs="later" aria-label="Maybe later: move job to bottom">↓ Later</button>'+
+  '<button type="button" data-gs="next" aria-label="Interested: choose next step">Next →</button>'+
+  '</div><p class="gmv3-swipe-small">Scroll normally to read. Hold a finger on the card, then drag down to save for later. ← / ↓ / → also work on the focused card.</p>'}
  function shell(content){
   if(!surface)return;
   surface.innerHTML='<div class="gmv3-swipe-body gmv3-gesture-screen">'+
    '<div class="gmv3-swipe-heading"><div><span class="gmv3-swipe-kicker">CAREER DECK · '+clean(candidate)+'</span><h2>Swipe & apply<span aria-hidden="true">.</span></h2></div>'+
-   '<button class="gmv3-swipe-reset" type="button" data-gs="reset" title="Clear browser-only swipe decisions">Reset test</button></div>'+
-   '<p class="gmv3-swipe-readonly">Browser-only QA · Reads your real Jobs list · No Sheet edits, application changes or paid CV runs</p>'+
+   '<button class="gmv3-swipe-reset" type="button" data-gs="refresh" title="Reload live Swipe feed">Refresh</button></div>'+
+   '<p class="gmv3-swipe-readonly">Live preferences · Saved to your candidate’s Sheets · CV runs always require separate approval</p>'+
    '<div id="gmv3-card-stage" aria-live="polite">'+content+'</div>'+footer()+
    '<div id="gmv3-swipe-action-layer" aria-live="polite"></div></div>';
   card=surface.querySelector(".gmv3-drag-card");
@@ -123,7 +137,7 @@
   if(metadata.has(key))return;
   const ticket=epoch;
   try{
-   const detail=await run("getJob",{source:job.source,row:job.row,candidate});
+   const detail=await read("getJob",{source:job.source,row:job.row,candidate});
    if(ticket!==epoch||!active)return;
    const info=workTerms(detail||{});
    metadata.set(key,info);
@@ -159,7 +173,7 @@
    for(const src of ["fresh","taaza"]){
     const cursor=cursors[src];if(cursor.done)continue;
     // Existing server-side candidate-aware listJobs is the only source.
-    const result=await run("listJobs",{source:src,candidate,tabId:"all",filter:"all",sort:src==="fresh"?"score":"newest",page:cursor.page,pageSize:15,query:""});
+    const result=await read("listJobs",{source:src,candidate,tabId:"all",filter:"all",sort:src==="fresh"?"score":"newest",page:cursor.page,pageSize:15,query:""});
     if(!active||ticket!==epoch)return;
     const rows=Array.isArray(result.rows)?result.rows:[];
     for(const entry of rows){
@@ -177,22 +191,38 @@
   loading=false;
   if(active&&ticket===epoch)render();
  }
- function finishSwipe(kind){
-  if(!current||interactionBusy)return;
+ async function finishSwipe(kind){
+  if(!current||interactionBusy||panelOpen)return;
+  const item=current,ticket=epoch;
   interactionBusy=true;
-  const item=current;
-  const node=card;
-  if(node){
-   node.classList.add("gmv3-dismiss-"+kind);
+  try{
+   if(kind==="left"){
+    // The existing sheet-backed candidate preference API verifies row identity
+    // and mirrors matching vacancy URLs across both candidate-specific tabs.
+    await liveRequest("setJobPreference",{
+      source:item.source,candidate,row:item.row,value:"Not Interested",expected:expected(item)
+    });
+    if(!active||ticket!==epoch||current!==item)return;
+    item.preference="Not Interested";item.notInterested=true;
+    save(item,{rejected:true});
+   } else if(kind==="down"){
+    // Later is queue rotation, not a destructive Sheet preference.
+    later.push(item);
+   } else return;
+   const node=card;
+   if(node)node.classList.add("gmv3-dismiss-"+kind);
+   const done=()=>{
+    if(!active||ticket!==epoch||current!==item)return;
+    current=null;interactionBusy=false;expanded=false;
+    render();
+   };
+   if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)done();
+   else setTimeout(done,180);
+  }catch(error){
+   interactionBusy=false;
+   showNotice(error.message||"Could not save this Swipe decision. Try again.");
+   if(card){card.style.transform="";delete card.dataset.swiping;}
   }
-  const done=()=>{
-   if(!active||current!==item)return;
-   if(kind==="left")save(item,{rejected:true});
-   else if(kind==="down")later.push(item);
-   current=null;interactionBusy=false;expanded=false;
-   render();
-  };
-  if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)done();else setTimeout(done,180);
  }
  function openOptions(){
   if(!current||panelOpen||interactionBusy)return;
@@ -206,9 +236,9 @@
     (job.jdReady?'<button data-gs-option="transfer">Prepare for CV</button>':'<button data-gs-option="jd">Review missing JD first</button>');
   }else if(st==="interest"||st==="cv"){
    options=(st==="interest"?'<button data-gs-option="interest">★ Interested</button>':"")+
-    '<button data-gs-option="cv">Generate CV</button>';
+    '<button data-gs-option="cv">Enable Make CV (no paid run)</button>';
   }else if(st==="cv-pending"){
-   options='<button data-gs-option="cv">Review CV request</button><button data-gs-option="later">Check later</button>';
+   options='<button data-gs-option="cv">Enable Make CV</button><button data-gs-option="later">Check later</button>';
   }else if(st==="apply"){
    options='<button data-gs-option="applied">Mark applied</button><button data-gs-option="unapplied">Not applied yet</button>'+links;
   }else if(st==="connect"){
@@ -218,7 +248,7 @@
    '<div class="gmv3-choice-heading"><div><span>NEXT STEP</span><h3>'+clean(job.role||"Job")+'</h3></div><button type="button" data-gs-option="close" aria-label="Close options">×</button></div>'+
    '<p>'+clean(job.company||"")+' · '+clean(badge(job))+'</p>'+
    '<div class="gmv3-choice-buttons">'+options+'</div>'+
-   '<p class="gmv3-choice-note">Preview only — choices are saved in this browser, not in Freshmaal or Google Sheets. CV generation does not run here.</p></section></div>';
+   '<p class="gmv3-choice-note">Your selected next step saves to Google Sheets. No paid CV run starts here.</p></section></div>';
   box.querySelector('[data-gs-option="close"]')?.focus();
  }
  function closeOptions(){panelOpen=false;const el=surface?.querySelector("#gmv3-swipe-action-layer");if(el)el.innerHTML="";card?.focus()}
@@ -232,35 +262,52 @@
   const stage=surface?.querySelector("#gmv3-card-stage");
   if(stage)stage.insertAdjacentHTML("beforeend",'<p role="status" class="gmv3-swipe-toast">'+clean(message)+'</p>');
  }
- function act(action){
-  const job=current;if(!job)return;
+ async function act(action){
+  const job=current;
   if(action==="close"){closeOptions();return}
+  if(!job||interactionBusy)return;
   if(action==="jd"){closeOptions();showDetails();return}
   if(action==="later"){closeOptions();finishSwipe("down");return}
-  if(action==="interest"){
-   save(job,{interested:true});closeOptions();park(job);return
-  }
-  if(action==="transfer"){
-   save(job,{interested:true,transferDrafted:true});
-   closeOptions();park(job);return
-  }
-  if(action==="cv"){
-   if(job.cvLink){closeOptions();showNotice("Your CV is already saved. Swipe right to mark the application.");return}
-   save(job,{interested:true,cvDrafted:true});closeOptions();
-   park(job);return
-  }
-  if(action==="applied"){
-   save(job,{progress:"Applied"});closeOptions();park(job);return
-  }
-  if(action==="unapplied"){
-   save(job,{progress:"Unapplied"});closeOptions();park(job);return
-  }
-  if(action==="connected"){
-   save(job,{progress:"Applied + Connected",connected:true});closeOptions();
-   current=null;expanded=false;render();return
-  }
-  if(action==="not-connected"){
-   save(job,{progress:"Applied",connected:false});closeOptions();park(job);
+  if(!["interest","transfer","cv","applied","unapplied","connected","not-connected"].includes(action))return;
+  interactionBusy=true;
+  const ticket=epoch;
+  const actions=surface?.querySelectorAll("[data-gs-option]");
+  actions?.forEach(b=>b.disabled=true);
+  try{
+   const base={candidate,row:job.row,expected:expected(job)};
+   if(action==="interest"){
+    await liveRequest("setJobPreference",{...base,source:job.source,value:"Favorite"});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.favorite=true;job.notInterested=false;
+    save(job,{interested:true,rejected:false});
+   }else if(action==="transfer"){
+    if(job.source!=="taaza"||!job.jdReady)throw Error("Save the complete JD in Discovery before transferring.");
+    await liveRequest("transferJob",{row:job.row,expected:expected(job)});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.transferred=true;save(job,{interested:true});
+   }else if(action==="cv"){
+    if(job.source!=="fresh")throw Error("Prepare the complete JD in Discovery before making a CV.");
+    await liveRequest("updateFreshControl",{...base,field:"cv",value:true});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.cv=true;save(job,{interested:true,cvDrafted:true});
+   }else{
+    if(job.source!=="fresh")throw Error("Application progress is only available in Make CV.");
+    const progress=action==="connected"?"Applied + Connected":
+      action==="not-connected"||action==="applied"?"Applied":"Unapplied";
+    await liveRequest("updateApplicationProgress",{...base,progress});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.progress=progress;save(job,{progress,connected:progress==="Applied + Connected"});
+   }
+   closeOptions();
+   if(action==="connected"){current=null;interactionBusy=false;expanded=false;render();}
+   else {interactionBusy=false;park(job);}
+  }catch(error){
+   interactionBusy=false;
+   actions?.forEach(b=>{if(b.isConnected)b.disabled=false});
+   const place=surface?.querySelector(".gmv3-choice-sheet");
+   if(place){const old=place.querySelector(".gmv3-choice-error");old?.remove();
+    place.insertAdjacentHTML("beforeend",'<p class="gmv3-choice-error" role="alert">'+clean(error.message||"Could not save. Please retry.")+'</p>');
+   }else showNotice(error.message||"Could not save. Please retry.");
   }
  }
  async function showDetails(){
@@ -269,7 +316,7 @@
   const layer=surface.querySelector("#gmv3-swipe-action-layer");
   layer.innerHTML='<div class="gmv3-choice-shade"><section class="gmv3-choice-sheet" role="dialog" aria-modal="true" aria-label="Job description"><div class="gmv3-choice-heading"><h3>Job description</h3><button type="button" data-gs-option="close" aria-label="Close">×</button></div><p role="status">Loading saved JD…</p></section></div>';
   try{
-   const detail=await run("getJob",{source:item.source,row:item.row,candidate});
+   const detail=await read("getJob",{source:item.source,row:item.row,candidate});
    if(!panelOpen||current!==item)return;
    const box=layer.querySelector(".gmv3-choice-sheet");
    if(!box)return;
@@ -277,7 +324,7 @@
     '<p>'+clean(detail?.company||item.company)+'</p><div class="gmv3-choice-jd">'+clean(detail?.jd||"Full job description is not available.")+'</div>'+
     '<div class="gmv3-choice-buttons">'+detailActions(item)+'</div>'+
     (safeLink(item.url)?'<a href="'+clean(safeLink(item.url))+'" target="_blank" rel="noopener noreferrer">Employer listing ↗</a>':"")+
-    '<p class="gmv3-choice-note">Swipe decisions are browser-only. Generate CV prepares a preview request; no paid work is launched.</p>';
+    '<p class="gmv3-choice-note">Your changes save to Google Sheets. A paid CV run must be launched separately.</p>';
   }catch(error){
    if(panelOpen){const p=layer.querySelector('p[role="status"]');if(p)p.textContent=String(error.message||"Could not load JD")}
   }
@@ -285,37 +332,56 @@
  function detailActions(job){
   const st=phase(job,choice(job));
   if(st==="discovery")return '<button type="button" data-gs-option="interest">Interested</button><button type="button" data-gs-option="transfer">Prepare for CV</button>';
-  if(st==="cv"||st==="interest"||st==="cv-pending")return '<button type="button" data-gs-option="cv">Generate CV (preview request)</button>';
+  if(st==="cv"||st==="interest"||st==="cv-pending")return '<button type="button" data-gs-option="cv">Enable Make CV (no paid run)</button>';
   if(st==="apply")return '<button type="button" data-gs-option="applied">Mark applied</button><button type="button" data-gs-option="unapplied">Not applied yet</button>';
   if(st==="connect")return '<button type="button" data-gs-option="connected">Connected</button><button type="button" data-gs-option="not-connected">Not connected yet</button>';
   return "";
+ }
+ function endHold(p){
+  if(p?.timer)clearTimeout(p.timer);
+  if(card)card.classList.remove("gmv3-hold-ready");
  }
  function onPointerDown(e){
   const node=e.target.closest?.(".gmv3-drag-card");
   if(!node||!current||panelOpen||interactionBusy||e.isPrimary===false)return;
   if(e.target.closest("button,a,summary,details,input,textarea,select,.gmv3-swipe-extra"))return;
-  // Expanded cards need native vertical scrolling. Only the top grip handles
-  // gestures then; the rest of the card is free for touch/trackpad scrolling.
-  if(expanded&&!e.target.closest(".gmv3-swipe-drag-grip"))return;
   const fromGrip=!!e.target.closest(".gmv3-swipe-drag-grip");
-  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,fromGrip,scrolling:false};
-  // Browser gets native vertical scrolling when outside the grip; only
-  // capture touch pointers from the grip to reserve the down-to-later gesture.
-  if(fromGrip||e.pointerType!=="touch")node.setPointerCapture?.(e.pointerId);
+  endHold(pointer);
+  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,
+    fromGrip,held:fromGrip,scrolling:false,timer:null};
+  if(e.pointerType==="touch"&&!fromGrip){
+   // Short movements retain native scrolling. A deliberate stationary hold
+   // arms the down gesture without requiring the top grip.
+   const pointerId=e.pointerId;
+   pointer.timer=setTimeout(()=>{
+    if(!pointer||pointer.id!==pointerId||pointer.scrolling||!active||panelOpen)return;
+    if(Math.hypot(pointer.dx,pointer.dy)>12)return;
+    pointer.held=true;
+    node.classList.add("gmv3-hold-ready");
+    node.setPointerCapture?.(pointerId);
+    suppressCardClickUntil=Date.now()+800;
+   },HOLD_MS);
+  }else if(fromGrip||e.pointerType!=="touch"){
+   node.setPointerCapture?.(e.pointerId);
+  }
  }
  function onPointerMove(e){
   if(!pointer||pointer.id!==e.pointerId||!card)return;
   pointer.dx=e.clientX-pointer.x;pointer.dy=e.clientY-pointer.y;
-  // A normal downward reading gesture is NOT a decision. On mobile, swipe
-  // down-to-postpone is deliberately reserved for the visible top grip.
   if(pointer.scrolling)return;
-  if(!pointer.fromGrip&&Math.abs(pointer.dy)>12&&Math.abs(pointer.dy)>Math.abs(pointer.dx)*1.15){
-    pointer.scrolling=true;
-    suppressCardClickUntil=Date.now()+600;
-    if(card){card.style.transform="";delete card.dataset.swiping}
-    return;
+  // Before long-press activation, vertical finger motion is always scrolling.
+  // After activation, drag down chooses Later instead of scrolling the page.
+  if(!pointer.fromGrip&&!pointer.held&&Math.abs(pointer.dy)>11&&
+     Math.abs(pointer.dy)>Math.abs(pointer.dx)*1.15){
+   pointer.scrolling=true;endHold(pointer);
+   suppressCardClickUntil=Date.now()+600;
+   card.style.transform="";delete card.dataset.swiping;
+   return;
   }
-  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
+  if(!pointer.held&&!pointer.fromGrip&&Math.hypot(pointer.dx,pointer.dy)>12)
+   endHold(pointer);
+  if(pointer.held&&e.cancelable)e.preventDefault();
+  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+550;
   const dx=Math.max(-180,Math.min(180,pointer.dx));
   const dy=Math.max(-180,Math.min(180,pointer.dy));
   card.style.transform="translate("+dx+"px,"+Math.max(-12,dy)+"px) rotate("+(dx/32)+"deg)";
@@ -324,15 +390,14 @@
  }
  function onPointerEnd(e){
   if(!pointer||pointer.id!==e.pointerId)return;
-  const scrolling=pointer.scrolling,fromGrip=pointer.fromGrip;
-  const dir=scrolling?null:direction(pointer.dx,pointer.dy);
-  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
-  pointer=null;
+  const p=pointer,dir=p.scrolling?null:direction(p.dx,p.dy);
+  const laterGesture=postponeGesture(p);
+  endHold(p);pointer=null;
+  if(Math.hypot(p.dx,p.dy)>13)suppressCardClickUntil=Date.now()+550;
   if(card){card.style.transform="";delete card.dataset.swiping;}
-  if(scrolling)return;
-  // Never reject/postpone while scrolling vertically outside the grip.
-  if(dir==="down"&&!fromGrip)return;
-  if(dir==="left"||dir==="down")finishSwipe(dir);
+  if(p.scrolling)return;
+  if(dir==="down"&&!laterGesture)return;
+  if(dir==="left"||laterGesture)finishSwipe(laterGesture?"down":"left");
   else if(dir==="right")openOptions();
  }
  function onKeyboard(e){
@@ -353,6 +418,9 @@
   const action=el.getAttribute("data-gs-option");
   if(action){act(action);return}
   const command=el.getAttribute("data-gs");
+  if(command==="reject"){finishSwipe("left");return}
+  if(command==="later"){finishSwipe("down");return}
+  if(command==="next"){openOptions();return}
   if(command==="card"){
     if(panelOpen||interactionBusy||Date.now()<suppressCardClickUntil)return;
     expanded=!expanded;render();card?.focus();return;
@@ -360,11 +428,7 @@
   if(command==="toggle"){expanded=!expanded;render();card?.focus();return}
   if(command==="jd"){showDetails();return}
   if(command==="refresh"){open(surface);return}
-  if(command==="reset"){
-   if(!window.confirm("Clear "+candidate+"'s browser-only swipe test decisions? No Sheets data will change."))return;
-   try{localStorage.removeItem(storageKey(candidate))}catch(_){}
-   open(surface);
-  }
+  if(command==="reset"){open(surface);return;}
  }
  function open(target){
   surface=target||surface;if(!surface)return;
@@ -372,7 +436,7 @@
   shell('<div class="gmv3-swipe-empty" role="status"><strong>Loading your career deck…</strong><p>Personalised jobs from your existing candidate profile.</p></div>');
   refill();
  }
- function close(){active=false;epoch++;panelOpen=false;current=null;pointer=null;expanded=false}
+ function close(){active=false;epoch++;panelOpen=false;current=null;endHold(pointer);pointer=null;expanded=false}
  if(doc.body.classList.contains("gmv3-jobs-workspace")){
   doc.addEventListener("keydown",onKeyboard);
   doc.addEventListener("click",e=>{
@@ -383,7 +447,11 @@
  doc.addEventListener("pointerdown",e=>{if(active&&surface?.contains(e.target))onPointerDown(e)});
  doc.addEventListener("pointermove",e=>{if(active&&pointer)onPointerMove(e)});
  doc.addEventListener("pointerup",e=>{if(active&&pointer)onPointerEnd(e)});
- doc.addEventListener("pointercancel",e=>{if(pointer&&pointer.id===e.pointerId){pointer=null;if(card){card.style.transform="";delete card.dataset.swiping}}});
+ doc.addEventListener("pointercancel",e=>{if(pointer&&pointer.id===e.pointerId){endHold(pointer);pointer=null;if(card){card.style.transform="";delete card.dataset.swiping}}});
+ // Prevent touch scrolling ONLY after the stationary hold has armed dragging.
+ doc.addEventListener("touchmove",e=>{
+  if(active&&pointer?.held&&!pointer.scrolling&&surface?.contains(e.target)&&e.cancelable)e.preventDefault();
+ },{passive:false});
  doc.addEventListener("click",e=>{if(active&&surface?.contains(e.target))onClick(e)});
  global.GaramaalSwipeDeck=Object.freeze({open,close,direction,phase,jobKey});
 })(typeof window!=="undefined"?window:globalThis);

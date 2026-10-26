@@ -6,7 +6,7 @@ const sharp = require("sharp");
 const {GoogleAuth} = require("google-auth-library");
 const {initializeApp, getApps} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
-const {invoke,METHODS} = require("./runtime");
+const {invoke,invokeSwipe,METHODS,SWIPE_METHODS} = require("./runtime");
 const {getCvQueue} = require("./queue");
 const {Readable} = require("node:stream");
 const {DOCX,getDocument} = require("./download");
@@ -200,7 +200,7 @@ app.get("/prototype",(req,res)=>{
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-icons-16"></head>');
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-live-swipe-17"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -208,8 +208,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js?v=m26-neon-held-12"></script>'+
-    '<script src="/prototype/hub-jobs.js?v=m26-neon-held-12"></script>'+ 
-    '<script src="/prototype/hub-swipe.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/hub-jobs.js?v=m26-live-swipe-17"></script>'+ 
+    '<script src="/prototype/hub-swipe.js?v=m26-live-swipe-17"></script>'+
     '<script src="/prototype/location-variants.js?v=m26-location-14"></script>'+
     '<script src="/prototype/filters-stats.js?v=m26-facets-15"></script>'+
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
@@ -453,6 +453,27 @@ app.post("/api/alerts/status",async(req,res)=>{
  }catch(error){
   res.status(error.httpCode||503).json({error:String(error.message||"Workflow status unavailable").slice(0,240)});
  }
+});
+// Swipe uses a candidate-specific release controller with strict method allowlist.
+// It never permits paid CV dispatch, new job insertion, or Social mutations.
+app.post("/api/swipe/:method",async (req,res)=>{
+  try {
+    const method=req.params.method;
+    if(!SWIPE_METHODS.has(method))
+      return res.status(404).json({error:"Unsupported Swipe operation"});
+    const email=await authenticate(req);
+    const client=await auth.getClient();
+    const access=await client.getAccessToken();
+    const token=typeof access==="string"?access:access.token;
+    if(!token)throw Object.assign(Error("Google Sheets access unavailable"),{httpCode:503});
+    const data=await invokeSwipe(method,req.body?.arg,{
+      email,token,ids:IDS,readOnly:READ_ONLY,
+      githubToken:"",allowedEmails:ALLOWED.join(",")
+    });
+    res.json({data});
+  }catch(error){
+    res.status(error.httpCode||500).json({error:String(error.message||"Swipe action failed").slice(0,350)});
+  }
 });
 app.post("/api/:method",async (req,res)=>{
   try {

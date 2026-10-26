@@ -365,8 +365,12 @@ body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-t
 #gmv3-jobs-swipe .gmv3-swipe-heading h2 span{color:#ff4caa}
 #gmv3-jobs-swipe .gmv3-swipe-reset{min-height:40px;padding:9px 12px;border:1px solid #796880;border-radius:9px;background:#29232d;color:#fff7e9;font:750 11px system-ui}
 #gmv3-jobs-swipe .gmv3-swipe-readonly{margin:0 0 14px;padding:10px 12px;background:#382f37;color:#ffe5ae;border-left:4px solid #ffc579;border-radius:7px;font:650 11px/1.5 system-ui}
-#gmv3-jobs-swipe .gmv3-drag-card{position:relative;isolation:isolate;overflow:hidden;min-height:min(56dvh,500px);padding:clamp(18px,4vw,29px);border:2px solid #b78ac6;border-radius:18px;background:#26202c;box-shadow:5px 6px 0 #08070a;cursor:grab;touch-action:none;user-select:none;will-change:transform;transition:transform .18s ease,opacity .18s}
+#gmv3-jobs-swipe .gmv3-drag-card{position:relative;isolation:isolate;overflow:hidden;min-height:min(56dvh,500px);padding:clamp(18px,4vw,29px);border:2px solid #b78ac6;border-radius:18px;background:#26202c;box-shadow:5px 6px 0 #08070a;cursor:grab;touch-action:pan-y;user-select:none;will-change:transform;transition:transform .18s ease,opacity .18s}
 #gmv3-jobs-swipe .gmv3-drag-card:active{cursor:grabbing}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip{touch-action:none}
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-hold-ready{touch-action:none;border-color:#ffd18a;box-shadow:5px 6px 0 #08070a,0 0 0 3px #ffd18a50}
+#gmv3-jobs-swipe .gmv3-choice-error{padding:9px 11px;color:#ffe5ae;background:#5e2739;border-radius:9px;font:700 12px/1.45 system-ui}
+
 #gmv3-jobs-swipe .gmv3-drag-card[data-swiping="left"]{border-color:#ff4caa}
 #gmv3-jobs-swipe .gmv3-drag-card[data-swiping="right"]{border-color:#dfff58}
 #gmv3-jobs-swipe .gmv3-drag-card[data-swiping="down"]{border-color:#ffd18a}
@@ -393,9 +397,12 @@ body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-t
 #gmv3-jobs-swipe :is(.gmv3-jd-expand,.gmv3-employer-link){min-height:44px;touch-action:manipulation;border-radius:8px;font:850 12px system-ui;text-decoration:none;padding:11px 13px;cursor:pointer;background:#423548;color:#fff7e9;border:1px solid #786482}
 #gmv3-jobs-swipe .gmv3-employer-link{background:#dfff58;color:#171218;border-color:#171218}
 #gmv3-jobs-swipe .gmv3-swipe-help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:24px 0 10px}
-#gmv3-jobs-swipe .gmv3-swipe-help span{text-align:center;border:1px solid #82546d;background:#3c2b38;color:#ffcbdf;font:900 12px "Bricolage Grotesque",system-ui;border-radius:8px;padding:10px 2px}
-#gmv3-jobs-swipe .gmv3-swipe-help span:nth-child(2){border-color:#87704b;color:#ffe3ad;background:#433526}
-#gmv3-jobs-swipe .gmv3-swipe-help span:nth-child(3){border-color:#678247;color:#e2ffa4;background:#354326}
+#gmv3-jobs-swipe .gmv3-swipe-help :is(button,span){text-align:center;border:1px solid #82546d;background:#3c2b38;color:#ffcbdf;font:900 12px "Bricolage Grotesque",system-ui;border-radius:8px;padding:13px 5px;min-height:49px;cursor:pointer;touch-action:manipulation}
+#gmv3-jobs-swipe .gmv3-swipe-help button:disabled{opacity:.55;cursor:wait}
+#gmv3-jobs-swipe .gmv3-swipe-help button:active{transform:translateY(2px)}
+#gmv3-jobs-swipe .gmv3-swipe-help button:nth-child(2){border-color:#87704b;color:#ffe3ad;background:#433526}
+#gmv3-jobs-swipe .gmv3-swipe-help button:nth-child(3){border-color:#678247;color:#e2ffa4;background:#354326}
+
 #gmv3-jobs-swipe .gmv3-swipe-small{text-align:center;color:#c9bdcc!important;font:580 11px/1.5 system-ui!important}
 #gmv3-jobs-swipe .gmv3-swipe-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:2px dashed #897393;background:#27212d;border-radius:18px;padding:35px;color:#fff7e9}
 #gmv3-jobs-swipe .gmv3-swipe-empty strong{font:950 24px "Bricolage Grotesque",system-ui}
@@ -415,7 +422,7 @@ body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-t
 #gmv3-jobs-swipe .gmv3-choice-sheet a{color:#dfff58}
 #gmv3-jobs-swipe .gmv3-swipe-toast{color:#ffe5b4;font-size:12px}
 #gmv3-jobs-swipe :is(button,a,.gmv3-drag-card):focus-visible{outline:3px solid #ff4caa!important;outline-offset:3px}
-@media(max-width:390px){#gmv3-jobs-swipe .gmv3-drag-card{padding:16px;min-height:50dvh}#gmv3-jobs-swipe .gmv3-swipe-readonly{font-size:10px}#gmv3-jobs-swipe .gmv3-swipe-help span{font-size:10px}}
+@media(max-width:390px){#gmv3-jobs-swipe .gmv3-drag-card{padding:16px;min-height:50dvh}#gmv3-jobs-swipe .gmv3-swipe-readonly{font-size:10px}#gmv3-jobs-swipe .gmv3-swipe-help button{font-size:10px}}
 @media(prefers-reduced-motion:reduce){#gmv3-jobs-swipe .gmv3-drag-card{transition:none!important}}
 
 

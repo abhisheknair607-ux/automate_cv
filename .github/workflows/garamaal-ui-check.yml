@@ -47,6 +47,8 @@ jobs:
           cd /tmp/garamaal-ui-test
           node --check standalone/server.js
           node --check standalone/mobile_jobs_filters_stats.js
+          node --check standalone/mobile_jobs_swipe.js
+          node --check standalone/swipe_progress.js
           node --test \
             standalone/test/parity.test.js \
             standalone/test/stage3_candidate_progress.test.js \
@@ -55,6 +57,7 @@ jobs:
             standalone/test/stage14_location_filters.test.js \
             standalone/test/stage15_multifacet.test.js \
             standalone/test/stage17_production_gate.test.js \
-            standalone/test/tactile_hold_state.test.js
+            standalone/test/tactile_hold_state.test.js \
+            standalone/test/live_swipe.test.js
       - name: Verify production image can be assembled without modifying CV worker
         run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
