@@ -100,7 +100,11 @@ def candidates(master_rows, regional_rows):
             # K can dispatch an existing scraper-to-Freshmaal transfer.
             # The mirror must never initiate a CV transfer or request.
             # L is retained for reference; M records source tab.
-            additions.append(list(row[:10]) + [False, row[11], tab])
+            # Preserve an explicit review flag without losing the Email Alerts provenance.
+            origin = (tab + " · Needs Review"
+                      if tab == "Email Alerts" and "Needs Review" in str(row[12])
+                      else tab)
+            additions.append(list(row[:10]) + [False, row[11], origin])
             added += 1
         counts[tab] = added
     return additions, counts

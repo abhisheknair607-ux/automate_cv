@@ -37,7 +37,7 @@ def test_manual_duplicate_action_is_authenticated_and_scoped():
 
 
 def test_duplicate_presets_and_grouping_are_discovery_only():
-    assert '"duplicates","Duplicates (all flagged)"' in FILTERS
+    assert '"duplicates","Duplicates"' in FILTERS
     assert '"possible-duplicates","Possible duplicates"' in FILTERS
     assert '"confirmed-duplicates","Confirmed duplicates"' in FILTERS
     assert '"all-including-duplicates","All including duplicates"' in FILTERS

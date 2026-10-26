@@ -18,6 +18,42 @@ function validateDate(value){
   throw error("Select a valid YYYY-MM-DD date",400);
  return date;
 }
+function validateRange(startDate,endDate) {
+ if(!startDate||!endDate)throw error("Select both calendar dates",400);
+ const from=validateDate(startDate),to=validateDate(endDate);
+ const days=(Date.parse(to+"T00:00:00Z")-Date.parse(from+"T00:00:00Z"))/86400000;
+ if(days<0||days>89)throw error("Select a date range of 1 to 90 days",400);
+ return {start_date:from,end_date:to};
+}
+function summarizeLog(rows){
+ const lastById=new Map();let lastImportedDate=null,lastRunAt=null;
+ for(const row of rows||[]){
+  const received=String(row[3]||"").slice(0,10),processed=String(row[0]||"");
+  const id=String(row[1]||""),result=String(row[9]||"");
+  if(id)lastById.set(id,{
+   id,threadId:String(row[2]||""),receivedAt:String(row[3]||""),
+   subject:String(row[4]||"").slice(0,250),owner:String(row[5]||""),
+   result,details:String(row[10]||"").slice(0,300)
+  });
+  if(processed&&(!lastRunAt||processed>lastRunAt))lastRunAt=processed;
+  if(Number(row[7]||0)>0&&/^\d{4}-\d{2}-\d{2}$/.test(received)&&
+     (!lastImportedDate||received>lastImportedDate))lastImportedDate=received;
+ }
+ const pending=[...lastById.values()].filter(v=>v.result==="Review"||v.result==="Partial");
+ pending.sort((a,b)=>b.receivedAt.localeCompare(a.receivedAt));
+ return {lastImportedDate,lastRunAt,pendingReview:pending.length,reviews:pending.slice(0,50)};
+}
+async function loadHistory({token,spreadsheetId,fetcher=fetch}){
+ if(!token)throw error("Google Sheets credential unavailable",503);
+ const range=encodeURIComponent("'Email Import Log'!A2:K");
+ const res=await fetcher("https://sheets.googleapis.com/v4/spreadsheets/"+
+  encodeURIComponent(spreadsheetId)+"/values/"+range,{
+   headers:{Authorization:"Bearer "+token},signal:AbortSignal.timeout(10000)
+  });
+ if(!res.ok)throw error("Import history unavailable ("+res.status+")",503);
+ const data=await res.json();
+ return summarizeLog(data.values||[]);
+}
 function available({dispatchAllowed,applyAllowed,token}){
  return {previewEnabled:Boolean(dispatchAllowed&&token),
    dedupeEnabled:Boolean(dispatchAllowed&&token),
@@ -44,13 +80,15 @@ async function github(token,path,{method="GET",body,fetcher=fetch}={}){
  );
  return obj;
 }
-async function dispatch({kind,date,token,dispatchAllowed,applyAllowed,confirmed=false,fetcher}){
+async function dispatch({kind,date,startDate,endDate,token,dispatchAllowed,applyAllowed,confirmed=false,fetcher}){
  if(!Object.hasOwn(WORKFLOWS,kind))throw error("Unknown workflow request",400);
  if(!dispatchAllowed)throw error("GitHub workflow control is not activated",403);
  if(kind==="apply"&&!applyAllowed)throw error("Manual import approval has not been activated",403);
  if(kind==="apply"&&!confirmed)throw error("Confirm the import before writing validated jobs",400);
- const inputs=kind==="dedupe"?{}:{apply:String(kind==="apply"),on_date:validateDate(date),
-  ...(kind==="apply"?{approval:"IMPORT_VALIDATED_JOBS"}:{})};
+ const dated=kind==="dedupe"?{}:(startDate||endDate?
+  {on_date:"",...validateRange(startDate,endDate)}:{on_date:validateDate(date)});
+ const inputs=kind==="dedupe"?{}:{apply:String(kind==="apply"),
+  ...dated,...(kind==="apply"?{approval:"IMPORT_VALIDATED_JOBS"}:{})};
  await github(token,"actions/workflows/"+WORKFLOWS[kind]+"/dispatches",{
   method:"POST",body:{ref:REF,inputs},fetcher});
  return {accepted:true,kind,message:"GitHub accepted dispatch; completion has not been confirmed",
@@ -67,4 +105,4 @@ async function latest({token,fetcher}){
  }
  return result;
 }
-module.exports={validateDate,available,github,dispatch,latest,WORKFLOWS};
+module.exports={validateDate,validateRange,summarizeLog,loadHistory,available,github,dispatch,latest,WORKFLOWS};

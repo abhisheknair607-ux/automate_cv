@@ -118,7 +118,7 @@ function gmListJobsFaceted(options){
  // Existing listings are not deleted: confirmed duplicates are hidden by default,
  // and only displayed when the user deliberately chooses a duplicates filter.
  if(source==="taaza"){
-  if(status==="duplicates")rows=rows.filter(j=>["Dup","Possible"].includes(j.duplicateStatus));
+  if(status==="duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
   else if(status==="confirmed-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
   else if(status==="possible-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Possible");
   else if(status!=="all-including-duplicates")rows=rows.filter(j=>j.duplicateStatus!=="Dup");
@@ -127,6 +127,7 @@ function gmListJobsFaceted(options){
  if(status==="not-interested")rows=rows.filter(x=>x.notInterested);
  else if(status==="favorites")rows=rows.filter(x=>x.favorite);
  else if(!duplicateView&&status!=="all-including-duplicates")rows=rows.filter(x=>!x.notInterested);
+ if(status==="needs-review"&&source==="taaza")rows=rows.filter(x=>String(x.source||"").includes("Needs Review"));
  if(status==="missing"&&source==="taaza")rows=rows.filter(x=>!x.jdReady);
  if(status==="ready"&&source==="taaza")rows=rows.filter(x=>x.jdReady);
  if(status==="selected"&&source==="fresh")rows=rows.filter(x=>x.selected);

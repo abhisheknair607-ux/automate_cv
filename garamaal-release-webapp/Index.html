@@ -295,7 +295,14 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
  .alerts-foot .btn{flex:1 1 auto}}
 .alerts-manual{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px}
 .alerts-manual label{font-size:11px;font-weight:700;color:var(--muted)}
-.alerts-manual input{max-width:100%;width:170px;min-height:33px;margin-left:9px;border-radius:7px;border:1px solid var(--line);padding:5px;color:var(--ink);background:var(--white)}
+.alerts-manual input{max-width:100%;width:100%;min-height:33px;margin:4px 0 0;border-radius:7px;border:1px solid var(--line);padding:5px;color:var(--ink);background:var(--white)}
+.alerts-calendar-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.alerts-calendar-row label{display:block;min-width:0}
+.alerts-review-item{margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:8px}
+.alerts-review-item strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.alerts-review-item p{margin:4px 0;font-size:11px}
+.alerts-review-item small{color:var(--muted);display:block}
+.alerts-review-email{font-size:11px;font-weight:700;display:inline-block;margin-top:5px}
 .alerts-run-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .alerts-run-buttons .btn{flex:1 1 100px;min-height:34px}
 .alerts-run-buttons .btn:disabled{opacity:.48;cursor:not-allowed}
@@ -497,7 +504,7 @@ function discoveryTabs(){
    all.map(x=>'<button class="chip '+(state.tabId===x.id?'active':'')+'" data-action="category" data-value="'+h(x.id)+'" aria-pressed="'+(state.tabId===x.id)+'" title="'+h(x.name)+'">'+h(x.name)+'</button>').join('')+
    '</div>';
 }
-function filters(){return `<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
+function filters(){return (state.section==='discovery'?'<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn btn-xs" type="button" data-action="review-alert-emails" title="Review alert emails where a job could not be fully parsed">Review alert emails</button></div>':'')+`<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
 function identity(job){return encodeURIComponent(JSON.stringify(expected(job)))}
 
 function activityFor(job){
@@ -644,7 +651,7 @@ async function showCostSource(candidate,row){
     expenseOpen(expenseHeader('Token usage · '+candidate)+costs+'<p class="expense-aggregate">'+h(label)+'</p><p class="expense-note">'+h(data.message||'')+'</p>'+(stages?'<div class="expense-stages">'+stages+'</div>':'')+link+'<p><button class="btn btn-xs" data-action="expenses">Back to totals</button></p>');
   }catch(e){expenseOpen(expenseHeader('Token usage · '+candidate)+'<p class="expense-note">'+h(e.message||'Verification failed')+'</p><button class="btn btn-xs" data-action="expenses">Back to totals</button>')}
 }
-function card(job){const discovery=state.section==='discovery';const cvReady=!!job.cvLink;const interestButton=preferenceMenu(job);const badges=`<div class="badges job-badges">${!discovery&&job.costUsd!==null&&job.costUsd!==undefined?`<button type="button" class="tag cost-tag" data-action="cost-source" data-row="${job.row}" data-candidate="${h(state.candidate)}" title="Recorded estimated CV cost · verify token usage">${usdCost(job.costUsd)}</button>`:''}${job.favorite?'<span class="tag favorite-tag">★ Favorite</span>':''}${discovery&&job.duplicateStatus==='Possible'?'<span class="tag tag-warn">Possible duplicate</span>':discovery&&job.duplicateStatus==='Dup'?'<span class="tag">Duplicate</span>':''}${discovery?`${job.jdReady?'<span class="tag tag-ok">Seems Taaza</span>':'<span class="tag tag-warn">Seems Kacha</span>'}${job.transferred?'<span class="tag tag-blue">In Freshmaal</span>':'<span class="tag">Not transferred</span>'}`:`<span class="tag ${String(job.status)==='Applied'?'tag-ok':'tag-blue'}">${h(job.status||'NA')}</span>${job.cvLink?'<span class="tag tag-ok">Garam CV Ready</span>':job.selected?'<span class="tag tag-ok">Shortlisted</span>':''}${job.workflow?`<span class="tag">${h(job.workflow)}</span>`:''}`}</div>`;const detailButton=`<button type="button" class="btn btn-xs job-more" data-action="detail" data-row="${job.row}" title="More options and job details" aria-label="More options for ${h(job.role)}">${icon('more')}</button>`;const apiReady=Boolean(job.cv&&!job.cvLink&&!job.notInterested&&!activityFor(job)&&String(job.status||'').toLowerCase()!=='applied');const readyButtons=`<button type="button" class="btn btn-xs btn-primary action-icon" data-action="download-cv" data-row="${job.row}" aria-label="Download CV" title="Download the Word CV">${icon('download')}</button>${job.promptReady?`<button type="button" class="btn btn-xs action-icon" data-action="copy-prompt" data-row="${job.row}" aria-label="Copy post-CV prompt" title="Copy the post-CV prompt">${icon('prompt')}</button>`:''}`;const runButton=`<button class="btn btn-xs btn-primary" data-action="run-cv-now" data-row="${job.row}" ${apiReady?'':'disabled'} title="Runs one paid OpenAI API CV job on GitHub Actions">Run CV Now</button>`;return `<article class="job ${cvReady?'cv-ready':''}" data-job-row="${job.row}"><div class="jobtop">${discovery?`<label class="check-label" title="Select for bulk transfer"><input aria-label="Select job" type="checkbox" data-action="bulk-select" data-row="${job.row}" ${state.bulk.has(job.row)?'checked':''}></label>`:''}<div class="jobbody"><h3>${safeUrl(job.url)?`<a class="joblink" href="${h(safeUrl(job.url))}" target="_blank" rel="noopener noreferrer" title="Open employer vacancy in a new tab" aria-label="Open vacancy: ${h(job.role)}">${h(job.role)}</a>`:h(job.role)}${!discovery&&cvReady&&job.jdClue?`<button type="button" class="jd-eye" data-action="jd-clues" data-row="${job.row}" title="JD opportunity clues: salary, visa or contact" aria-label="View JD opportunity clues">${icon('eye')}</button>`:''}</h3><div class="company">${h(job.company)} · ${h(job.location||'Location not specified')}</div>${discovery?badges:''}</div>${discovery?'':compactMetrics(job)}</div>${discovery?'':badges}${discovery?'':`<div class="cv-activity-slot" data-row="${job.row}">${activityMarkup(job)}</div>`}<div class="jobcontrols">${discovery?`<div class="row discovery-actions"><button class="btn btn-xs" data-action="detail" data-row="${job.row}" title="Review or paste the full job description; transfer options are in this view">${icon('file')} Paste JD</button>${interestButton}</div>`:`<div class="checks">${['selected','cv','cl','web'].map(field=>`<label><input type="checkbox" data-action="inline-control" data-row="${job.row}" data-field="${field}" ${job[field]?'checked':''}>${{selected:'Selected',cv:'Make CV',cl:'Make CL',web:'Web'}[field]}</label>`).join('')}</div><div class="row job-card-actions">${cvReady?readyButtons:runButton}${interestButton}<button type="button" class="btn btn-xs action-icon" data-action="connections" data-row="${job.row}" aria-label="Find networking contacts" title="${job.web?'Find connections':'Tick Web to enable Connections'}" ${job.web?'':'disabled'}>${icon('link')}</button>${detailButton}</div>`}</div>${discovery?'':`<div class="job-settings"><div class="job-setting"><label for="tier-row-${job.row}">CV model</label><select class="tier-select" id="tier-row-${job.row}" data-action="tier-mode" data-row="${job.row}" aria-label="CV model for ${h(job.role)}">${tierChoices(job.row)}</select></div><div class="job-setting"><label for="cltier-row-${job.row}">Cover letter model</label><select class="tier-select" id="cltier-row-${job.row}" data-action="cl-tier-mode" data-row="${job.row}" aria-label="Cover letter model for ${h(job.role)}">${tierChoices(job.row,'clTier')}</select></div><div class="job-setting"><label for="status-row-${job.row}">Application status</label><select class="tier-select status-select" id="status-row-${job.row}" data-action="inline-status" data-row="${job.row}" aria-label="Application status for ${h(job.role)}">${statusChoices(job)}</select></div></div>`}</article>`}
+function card(job){const discovery=state.section==='discovery';const cvReady=!!job.cvLink;const interestButton=preferenceMenu(job);const badges=`<div class="badges job-badges">${discovery&&String(job.source||'').includes('Needs Review')?'<span class="tag tag-warn">Needs Review</span>':''}${!discovery&&job.costUsd!==null&&job.costUsd!==undefined?`<button type="button" class="tag cost-tag" data-action="cost-source" data-row="${job.row}" data-candidate="${h(state.candidate)}" title="Recorded estimated CV cost · verify token usage">${usdCost(job.costUsd)}</button>`:''}${job.favorite?'<span class="tag favorite-tag">★ Favorite</span>':''}${discovery&&job.duplicateStatus==='Possible'?'<span class="tag tag-warn">Possible duplicate</span>':discovery&&job.duplicateStatus==='Dup'?'<span class="tag">Duplicate</span>':''}${discovery?`${job.jdReady?'<span class="tag tag-ok">Seems Taaza</span>':'<span class="tag tag-warn">Seems Kacha</span>'}${job.transferred?'<span class="tag tag-blue">In Freshmaal</span>':'<span class="tag">Not transferred</span>'}`:`<span class="tag ${String(job.status)==='Applied'?'tag-ok':'tag-blue'}">${h(job.status||'NA')}</span>${job.cvLink?'<span class="tag tag-ok">Garam CV Ready</span>':job.selected?'<span class="tag tag-ok">Shortlisted</span>':''}${job.workflow?`<span class="tag">${h(job.workflow)}</span>`:''}`}</div>`;const detailButton=`<button type="button" class="btn btn-xs job-more" data-action="detail" data-row="${job.row}" title="More options and job details" aria-label="More options for ${h(job.role)}">${icon('more')}</button>`;const apiReady=Boolean(job.cv&&!job.cvLink&&!job.notInterested&&!activityFor(job)&&String(job.status||'').toLowerCase()!=='applied');const readyButtons=`<button type="button" class="btn btn-xs btn-primary action-icon" data-action="download-cv" data-row="${job.row}" aria-label="Download CV" title="Download the Word CV">${icon('download')}</button>${job.promptReady?`<button type="button" class="btn btn-xs action-icon" data-action="copy-prompt" data-row="${job.row}" aria-label="Copy post-CV prompt" title="Copy the post-CV prompt">${icon('prompt')}</button>`:''}`;const runButton=`<button class="btn btn-xs btn-primary" data-action="run-cv-now" data-row="${job.row}" ${apiReady?'':'disabled'} title="Runs one paid OpenAI API CV job on GitHub Actions">Run CV Now</button>`;return `<article class="job ${cvReady?'cv-ready':''}" data-job-row="${job.row}"><div class="jobtop">${discovery?`<label class="check-label" title="Select for bulk transfer"><input aria-label="Select job" type="checkbox" data-action="bulk-select" data-row="${job.row}" ${state.bulk.has(job.row)?'checked':''}></label>`:''}<div class="jobbody"><h3>${safeUrl(job.url)?`<a class="joblink" href="${h(safeUrl(job.url))}" target="_blank" rel="noopener noreferrer" title="Open employer vacancy in a new tab" aria-label="Open vacancy: ${h(job.role)}">${h(job.role)}</a>`:h(job.role)}${!discovery&&cvReady&&job.jdClue?`<button type="button" class="jd-eye" data-action="jd-clues" data-row="${job.row}" title="JD opportunity clues: salary, visa or contact" aria-label="View JD opportunity clues">${icon('eye')}</button>`:''}</h3><div class="company">${h(job.company)} · ${h(job.location||'Location not specified')}</div>${discovery?badges:''}</div>${discovery?'':compactMetrics(job)}</div>${discovery?'':badges}${discovery?'':`<div class="cv-activity-slot" data-row="${job.row}">${activityMarkup(job)}</div>`}<div class="jobcontrols">${discovery?`<div class="row discovery-actions"><button class="btn btn-xs" data-action="detail" data-row="${job.row}" title="Review or paste the full job description; transfer options are in this view">${icon('file')} Paste JD</button>${interestButton}</div>`:`<div class="checks">${['selected','cv','cl','web'].map(field=>`<label><input type="checkbox" data-action="inline-control" data-row="${job.row}" data-field="${field}" ${job[field]?'checked':''}>${{selected:'Selected',cv:'Make CV',cl:'Make CL',web:'Web'}[field]}</label>`).join('')}</div><div class="row job-card-actions">${cvReady?readyButtons:runButton}${interestButton}<button type="button" class="btn btn-xs action-icon" data-action="connections" data-row="${job.row}" aria-label="Find networking contacts" title="${job.web?'Find connections':'Tick Web to enable Connections'}" ${job.web?'':'disabled'}>${icon('link')}</button>${detailButton}</div>`}</div>${discovery?'':`<div class="job-settings"><div class="job-setting"><label for="tier-row-${job.row}">CV model</label><select class="tier-select" id="tier-row-${job.row}" data-action="tier-mode" data-row="${job.row}" aria-label="CV model for ${h(job.role)}">${tierChoices(job.row)}</select></div><div class="job-setting"><label for="cltier-row-${job.row}">Cover letter model</label><select class="tier-select" id="cltier-row-${job.row}" data-action="cl-tier-mode" data-row="${job.row}" aria-label="Cover letter model for ${h(job.role)}">${tierChoices(job.row,'clTier')}</select></div><div class="job-setting"><label for="status-row-${job.row}">Application status</label><select class="tier-select status-select" id="status-row-${job.row}" data-action="inline-status" data-row="${job.row}" aria-label="Application status for ${h(job.role)}">${statusChoices(job)}</select></div></div>`}</article>`}
 function pagination(){if(!state.data)return'';const d=state.data;const remaining=Math.max(0,d.total-d.rows.length);return `<div class="pagination"><span class="meta" aria-live="polite"><b>${d.rows.length}</b> of <b>${d.total}</b> jobs shown</span>${remaining?`<button class="btn btn-primary" data-action="load-more" ${state.loadingMore?'disabled':''}>${state.loadingMore?'Loading…':'Next · Load '+Math.min(remaining,state.pageSize)+' more'} ${icon('down')}</button>`:'<span class="tag tag-ok">All jobs loaded</span>'}</div>`}
 function selectionBar(){
  const count=state.bulk.size;
@@ -910,6 +917,8 @@ if(!DEMO){
  const workflow="https://github.com/abhisheknair607-ux/automate_cv/blob/main/.github/workflows/linkedin-alerts-to-taaza.yml";
  const dedupeAudit="https://github.com/abhisheknair607-ux/automate_cv/actions/runs/40286629848";
  let opener=null;
+ function isoLocal(date){return String(date.getFullYear())+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
+ function ago(n){const d=new Date();d.setDate(d.getDate()-n);return isoLocal(d)}
  function close(){
   if(!mount||!mount.firstChild)return;
   mount.replaceChildren();
@@ -926,12 +935,15 @@ if(!DEMO){
    '<small>GitHub Actions</small></div>'+
    '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Import Alerts">×</button></div>'+
    '<div class="alerts-body">'+
-   '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="'+(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'))+'" aria-label="Date of alert emails" />'+
+   '<div class="alerts-manual"><div class="alerts-calendar-row">'+
+   '<label for="alerts-start-date">From<input id="alerts-start-date" type="date" value="'+ago(6)+'" aria-label="First alert email date" /></label>'+
+   '<label for="alerts-end-date">To<input id="alerts-end-date" type="date" value="'+ago(0)+'" aria-label="Last alert email date, inclusive" /></label></div>'+
    '<div class="alerts-run-buttons">'+
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
    '<button class="btn btn-primary" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
-   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p></div>'+
+   '</div><p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p>'+
+   '<button class="btn" type="button" data-alert-review>Review flagged emails</button><div id="alerts-review-list"></div></div>'+
    '<div class="alerts-foot">'+
    '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
    '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+ 
@@ -957,6 +969,15 @@ if(!DEMO){
     const control=mount.querySelector('[data-alert-run="'+kind+'"]');
     if(control)control.disabled=!enabled;
    }
+   const coverage=mount.querySelector('#alerts-coverage');
+   if(coverage){
+    const h=data.history;
+    coverage.textContent=h
+     ?'Last successfully imported alert: '+(h.lastImportedDate||'None recorded')+
+      ' · Pending email reviews: '+h.pendingReview+
+      (h.lastRunAt?' · Log updated: '+h.lastRunAt.slice(0,16).replace('T',' ')+' UTC':'')
+     :'Import-history summary unavailable; open Taaza Email Import Log.';
+   }
    const run=data.runs?.dedupe||data.runs?.preview;
    const readiness=data.applyEnabled?'Manual import authorised':
     data.previewEnabled?'Preview ready · Live import authorisation off':
@@ -968,17 +989,64 @@ if(!DEMO){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
  }
+ async function showReviews(){
+  const root=mount?.querySelector('#alerts-review-list');
+  if(!root)return;
+  root.replaceChildren();
+  root.textContent='Loading unresolved emails…';
+  try{
+   const data=await actionHost()('alerts/status',{});
+   if(!mount?.contains(root))return;
+   root.replaceChildren();
+   const history=data.history||{},items=history.reviews||[];
+   if(!items.length){
+    root.textContent=history.pendingReview===0?'No unresolved emails.':'Review data unavailable.';
+    return;
+   }
+   const head=document.createElement('p');
+   head.className='alerts-note';
+   head.textContent='Unresolved email alerts: '+history.pendingReview+
+    '. Verified job links are also available under Discovery → Needs review.';
+   root.append(head);
+   for(const item of items){
+    const article=document.createElement('div');article.className='alerts-review-item';
+    const subject=document.createElement('strong');
+    subject.textContent=item.subject||'Untitled alert';
+    const reason=document.createElement('p');
+    reason.textContent=(item.result||'Review')+' · '+(item.details||'Needs inspection');
+    const details=document.createElement('small');
+    details.textContent=(item.receivedAt||'').slice(0,16).replace('T',' ')+' · '+(item.owner||'Shared');
+    article.append(subject,reason,details);
+    const id=/^[a-f0-9]{10,24}$/i.test(item.threadId||'')?item.threadId:item.id;
+    if(/^[a-f0-9]{10,24}$/i.test(id||'')){
+     const link=document.createElement('a');
+     link.href='https://mail.google.com/mail/u/0/#all/'+id;
+     link.target='_blank';link.rel='noopener noreferrer';
+     link.textContent='Open original email ↗';link.className='alerts-review-email';
+     article.append(link);
+    }
+    root.append(article);
+   }
+  }catch(e){if(mount?.contains(root))root.textContent='Cannot load pending email reviews: '+(e.message||'Check connection.')}
+ }
  async function trigger(kind){
   const feedback=mount?.querySelector('#alerts-live-status');
   if(!feedback||!actionHost())return;
   const button=mount.querySelector('[data-alert-run="'+kind+'"]');
   if(!button||button.disabled)return;
-  if(kind==='apply'&&!window.confirm('Import validated job alerts into Taaza Email Alerts and record the import in the log? Existing jobs will not be deleted, and duplicates will be skipped.'))return;
+  const startDate=mount.querySelector('#alerts-start-date')?.value;
+  const endDate=mount.querySelector('#alerts-end-date')?.value;
+  if(kind!=='dedupe'){
+   const span=(Date.parse(endDate+'T00:00:00Z')-Date.parse(startDate+'T00:00:00Z'))/86400000;
+   if(!startDate||!endDate||!Number.isFinite(span)||span<0||span>89){
+    feedback.textContent='Select a valid start and end date (up to 90 days inclusive).';return;
+   }
+  }
+  if(kind==='apply'&&!window.confirm('Import all verified vacancies from '+startDate+' through '+endDate+' (inclusive)? Duplicates will be skipped and Jobs synced into Discovery. Existing jobs will not be deleted.'))return;
   button.disabled=true;
   feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
   try{
-   const date=mount.querySelector('#alerts-on-date')?.value||(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'));
-   const result=await actionHost()('alerts/run',{kind,date,confirm:kind==='apply'});
+   const result=await actionHost()('alerts/run',{kind,startDate,endDate,confirm:kind==='apply'});
    if(mount?.contains(feedback))feedback.textContent=result.accepted
      ?'Requested · Check Actions for result'
      :'Dispatch not confirmed';
@@ -989,6 +1057,10 @@ if(!DEMO){
   }
  }
  document.addEventListener("click",function(e){
+  const reviewer=e.target.closest('[data-action="review-alert-emails"]');
+  if(reviewer){e.preventDefault();open(reviewer);showReviews();return;}
+  const reviewToggle=e.target.closest('[data-alert-review]');
+  if(reviewToggle){e.preventDefault();showReviews();return;}
   const button=e.target.closest('[data-action="import-alerts"]');
   if(button){e.preventDefault();open(button);return;}
   if(!mount?.firstChild)return;

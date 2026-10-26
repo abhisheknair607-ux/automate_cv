@@ -21,7 +21,7 @@ test("Import Alerts popup is compact with no informational cards or workflow ban
 test("All three original operations, manual safety gates and direct links remain",()=>{
   for(const kind of ["preview","dedupe","apply"])
     assert.ok(html.includes('data-alert-run="'+kind+'" disabled'),kind);
-  for(const label of ["Preview Import","Check Duplicates","Run Import","Alert date","Actions ↗","Workflow ↗","Audit ↗","Close"])
+  for(const label of ["Preview Import","Check Duplicates","Run Import","First alert email date","Actions ↗","Workflow ↗","Audit ↗","Close"])
     assert.ok(html.includes(label),label);
   assert.match(html,/data\.previewEnabled/);
   assert.match(html,/data\.dedupeEnabled/);

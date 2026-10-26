@@ -23,7 +23,7 @@ from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
 from .job_alert_providers import (
-    AlertJob, eligible_location, indeed_job_key, parse_indeed, provider_for,
+    AlertJob, parse_indeed, provider_for,
 )
 
 SHEET_ID = os.getenv("TAAZA_SPREADSHEET_ID", "1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY")
@@ -344,130 +344,186 @@ def _date(message) -> str:
         return ""
 
 
+
+def linked_job_ids(html_body: str, plain_body: str = "") -> set[str]:
+    """Identify genuine LinkedIn job-view links even when card text is incomplete."""
+    p = LinkTextParser()
+    p.feed(html_body or "")
+    found = {key for url, _ in p.links if (key := job_id(url))}
+    for url in re.findall(r"https?://[^\s<>\"']+", plain_body or ""):
+        key = job_id(url.rstrip(").,;>"))
+        if key:
+            found.add(key)
+    return found
+
+
+def list_all_messages(gmail, query: str, max_messages: int) -> list[dict]:
+    """Fetch EVERY Gmail page; fail rather than silently dropping a truncated window."""
+    found = []
+    token = None
+    seen = set()
+    while True:
+        batch = gmail.users().messages().list(
+            userId="me", q=query, maxResults=min(500, max_messages),
+            **({"pageToken": token} if token else {}),
+        ).execute(num_retries=3)
+        for message in batch.get("messages", []):
+            if message["id"] not in seen:
+                seen.add(message["id"])
+                found.append(message)
+        token = batch.get("nextPageToken")
+        if not token:
+            return found
+        if len(found) >= max_messages:
+            raise RuntimeError(
+                f"Gmail query exceeded {max_messages} messages. No import was started; "
+                "split the calendar range into smaller periods."
+            )
+
+
+def mail_window(*, days: int, on_date: str | None,
+                start_date: str | None, end_date: str | None) -> str:
+    """Dublin-local inclusive dates, respecting the October DST boundary."""
+    if on_date and (start_date or end_date):
+        raise ValueError("Use either --on-date or --start-date and --end-date")
+    if bool(start_date) != bool(end_date):
+        raise ValueError("Select both start and end dates")
+    if on_date:
+        start_date = end_date = on_date
+    if start_date and end_date:
+        first = datetime.strptime(start_date, "%Y-%m-%d").date()
+        last = datetime.strptime(end_date, "%Y-%m-%d").date()
+        if first > last or (last - first).days > 89:
+            raise ValueError("Date range must be ordered and at most 90 days inclusive")
+        tz = ZoneInfo("Europe/Dublin")
+        start = datetime.combine(first, datetime.min.time(), tz)
+        end = datetime.combine(last + timedelta(days=1), datetime.min.time(), tz)
+        return f"after:{int(start.timestamp())} before:{int(end.timestamp())}"
+    return f"newer_than:{days}d"
+
+
 def run(gmail, sheets, *, preview: bool, days: int = 7,
-        max_messages: int = 100, retry_review: bool = False,
-        on_date: str | None = None) -> dict:
-    """Import one Gmail message at a time; safe to rerun after partial writes."""
-    check_headers(sheets)  # also ensures permission before processing email
+        max_messages: int = 10000, retry_review: bool = True,
+        on_date: str | None = None, start_date: str | None = None,
+        end_date: str | None = None) -> dict:
+    """Import per vacancy; never discard sound jobs because a sibling card failed."""
+    check_headers(sheets)
     from .taaza_sync import exact_job_key
     states = logged_states(sheets)
     existing = known_job_ids(sheets)
-    window = f"newer_than:{days}d"
-    if on_date:
-        selected = datetime.strptime(on_date, "%Y-%m-%d").date()
-        midnight = datetime.combine(selected, datetime.min.time(), ZoneInfo("Europe/Dublin"))
-        next_midnight = datetime.combine(selected + timedelta(days=1),
-                                         datetime.min.time(), ZoneInfo("Europe/Dublin"))
-        window = f"after:{int(midnight.timestamp())} before:{int(next_midnight.timestamp())}"
+    window = mail_window(days=days, on_date=on_date,
+                         start_date=start_date, end_date=end_date)
     search = (f"{{from:{SENDER} from:donotreply@jobalert.indeed.com "
               f"from:irishjobs.ie from:jobs.ie}} {window} "
               "-in:spam -in:trash")
-    listing = gmail.users().messages().list(
-        userId="me", q=search, maxResults=max_messages).execute(num_retries=3)
-    counters = {"found": 0, "added": 0, "duplicates": 0, "review": 0, "skipped": 0,
-                "confirmation": 0, "messages": 0, "filtered": 0, "excluded_ads": 0,
-                "preview": preview, "samples": [], "review_reasons": []}
-    for item in listing.get("messages", []):
+    messages = list_all_messages(gmail, search, max_messages)
+    counters = {"found": 0, "added": 0, "duplicates": 0, "review": 0,
+                "review_jobs": 0, "skipped": 0, "confirmation": 0,
+                "messages": 0, "totalListed": len(messages), "filtered": 0,
+                "excluded_ads": 0, "preview": preview,
+                "samples": [], "review_reasons": []}
+    for item in messages:
         id_ = item["id"]
         last = states.get(id_, "")
-        if last in ("Processed", "Confirmation", "Filtered") or (last == "Review" and not retry_review):
+        # Review and legacy Filtered records are reconsidered automatically.
+        if last in ("Processed", "Confirmation", "Non-job") or (
+                last in ("Review", "Partial") and not retry_review):
             counters["skipped"] += 1
             continue
         resource = gmail.users().messages().get(
             userId="me", id=id_, format="raw").execute(num_retries=3)
         message = decode_message(resource["raw"])
-        # Gmail query is discovery only: check the original RFC822 From address.
         provider, parser_ready = provider_for(str(message.get("From", "")))
         if provider is None:
             counters["skipped"] += 1
             continue
         subject = str(message.get("Subject", ""))[:250]
         plain = extract_part(message, "plain")
-        parsed = []
-        # Job alerts are a shared discovery feed. Attribution is optional:
-        # preserve a known owner for provenance, otherwise use Shared rather
-        # than guessing a candidate or rejecting a legitimate vacancy.
         owner = original_owner(message) or "Shared"
+        parsed = []
+        pending = []
         result = "Review"
         details = ""
+        excluded_ads = 0
         if provider == "LinkedIn" and is_confirmation(subject, plain):
             counters["confirmation"] += 1
             result = "Confirmation"
-            details = "LinkedIn alert-creation notification, not an ordinary digest"
+            details = "Alert setup confirmation — no vacancy"
         elif not parser_ready:
-            details = f"{provider} parser pending a real reviewed example; no rows imported"
+            details = f"{provider} template not yet verified; needs manual review"
         else:
             if provider == "LinkedIn":
-                jobs, suspicious = parse_jobs(extract_part(message, "html"), plain)
+                html_body = extract_part(message, "html")
+                jobs, suspicious = parse_jobs(html_body, plain)
                 candidates = [AlertJob(
                     provider="LinkedIn", external_id=j.id, title=j.title,
                     company=j.company, location=j.location, url=j.url,
                 ) for j in jobs]
-                excluded_ads = 0
+                # A verified LinkedIn job ID remains a real vacancy even when
+                # the email template does not reveal its title/company.
+                missing_ids = linked_job_ids(html_body, plain) - {j.id for j in jobs}
+                pending = [AlertJob(
+                    provider="LinkedIn", external_id=key,
+                    title=f"Review LinkedIn vacancy #{key}",
+                    company="Employer to verify", location="",
+                    url=f"https://www.linkedin.com/jobs/view/{key}/",
+                ) for key in sorted(missing_ids)]
             elif provider == "Indeed":
                 candidates, suspicious, excluded_ads = parse_indeed(plain)
             else:
-                candidates, suspicious, excluded_ads = [], True, 0
-            # Reject all overseas/unknown-location jobs, including Mumbai.
-            # Do not silently turn a region in the email subject into a job location.
-            parsed = [j for j in candidates if eligible_location(j.location)]
-            excluded_location = len(candidates) - len(parsed)
-            counters["filtered"] += excluded_location
+                candidates, suspicious = [], True
+            parsed = candidates
             counters["excluded_ads"] += excluded_ads
-            if suspicious:
-                details = "Some job cards incomplete or unverified; no rows imported"
-            elif not candidates:
-                details = "No confidently parsed job cards; inspect original Gmail MIME"
-            elif not parsed:
-                result = "Filtered"
-                details = f"All {excluded_location} extracted job(s) outside approved Ireland/UK locations"
-            else:
+            if pending or suspicious:
+                result = "Partial" if parsed or pending else "Review"
+                details = f"{len(pending)} LinkedIn job links need details; parser incomplete"
+            elif parsed:
                 result = "Processed"
-                details = f"{excluded_location} outside Ireland/UK; {excluded_ads} ads without stable link excluded"
+                details = "Job cards extracted; location is retained for user filtering"
+            else:
+                details = "No confidently parsed job cards; inspect original email"
         counters["messages"] += 1
-        counters["found"] += len(parsed)
-        if len(counters["samples"]) < 12:
-            for job in parsed[:12 - len(counters["samples"])]:
-                counters["samples"].append({"source": provider,
-                                            "owner": owner,
-                                            "company": job.company, "title": job.title,
-                                            "location": job.location,
-                                            "job_id": job.external_id,
-                                            "status": result})
-        if result == "Review":
+        counters["found"] += len(parsed) + len(pending)
+        if result in ("Review", "Partial"):
             counters["review"] += 1
+            counters["review_jobs"] += len(pending)
             if len(counters["review_reasons"]) < 8:
                 counters["review_reasons"].append(details)
         added = duplicates = 0
-        # Only commit validated complete messages; individual ownership is optional.
-        if result == "Processed":
-            for job in parsed:
-                exact = exact_job_key(job.url)
-                if not exact:
-                    raise RuntimeError("Unverifiable job URL; stopped before write")
-                if exact in existing:
-                    duplicates += 1
-                    continue
-                existing.add(exact)
-                added += 1
-                if not preview:
-                    append_row(sheets, INTAKE, [
-                        job.company, job.title, job.url, "",
-                        job.location, "", "", "",
-                        datetime.now(timezone.utc).date().isoformat(),
-                        job.salary, False, "", provider + " Job Alert", owner, id_,
-                        job.external_id if provider == "LinkedIn" else "",
-                    ])
+        for job, needs_review in [(j, False) for j in parsed] + [(j, True) for j in pending]:
+            exact = exact_job_key(job.url)
+            if not exact:
+                raise RuntimeError("Unverifiable job URL; stopped before write")
+            if exact in existing:
+                duplicates += 1
+                continue
+            existing.add(exact)
+            added += 1
+            if len(counters["samples"]) < 12:
+                counters["samples"].append({
+                    "source": provider, "owner": owner, "company": job.company,
+                    "title": job.title, "location": job.location,
+                    "job_id": job.external_id,
+                    "status": "Needs Review" if needs_review else result,
+                })
+            if not preview:
+                append_row(sheets, INTAKE, [
+                    job.company, job.title, job.url, "",
+                    job.location, "", "", "",
+                    datetime.now(timezone.utc).date().isoformat(),
+                    job.salary, False, "",
+                    provider + (" Job Alert · Needs Review" if needs_review else " Job Alert"),
+                    owner, id_, job.external_id if provider == "LinkedIn" else "",
+                ])
         counters["added"] += added
         counters["duplicates"] += duplicates
         if not preview:
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             append_row(sheets, LOG, [
                 now, id_, resource.get("threadId", ""), _date(message), subject,
-                owner, len(parsed), added, duplicates, result,
+                owner, len(parsed) + len(pending), added, duplicates, result,
                 provider + ": " + details,
             ])
-        # In preview, keep deduplication across messages without mutating Sheets.
     return counters
 
 
@@ -475,26 +531,29 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Shared Gmail LinkedIn job alert to Taaza importer")
     ap.add_argument("--apply", action="store_true", help="Write to Email Alerts and Email Import Log")
     ap.add_argument("--days", type=int, default=7)
-    ap.add_argument("--max-messages", type=int, default=100)
+    ap.add_argument("--max-messages", type=int, default=10000)
     ap.add_argument("--retry-review", action="store_true")
-    ap.add_argument("--on-date", help="Preview only this Dublin-local date (YYYY-MM-DD)")
+    ap.add_argument("--on-date", help="Legacy single Dublin-local date (YYYY-MM-DD)")
+    ap.add_argument("--start-date", help="First Dublin-local alert date (YYYY-MM-DD)")
+    ap.add_argument("--end-date", help="Final Dublin-local alert date, inclusive (YYYY-MM-DD)")
     args = ap.parse_args(argv)
-    if args.on_date:
-        try:
-            datetime.strptime(args.on_date, "%Y-%m-%d")
-        except ValueError:
-            ap.error("--on-date must be an actual date in YYYY-MM-DD format")
+    try:
+        mail_window(days=args.days, on_date=args.on_date,
+                    start_date=args.start_date, end_date=args.end_date)
+    except ValueError as exc:
+        ap.error(str(exc))
     if args.apply and os.environ.get("GARAMAAL_ALERT_IMPORT_APPROVED") != "true":
         ap.error("Importer writes are locked: explicit parser approval gate is not enabled")
-    if not 1 <= args.days <= 90 or not 1 <= args.max_messages <= 500:
-        ap.error("days must be 1..90, max-messages must be 1..500")
+    if not 1 <= args.days <= 90 or not 1 <= args.max_messages <= 10000:
+        ap.error("days must be 1..90, max-messages must be 1..10000")
     gmail = gmail_service()
     errors = []
     for kind, sheets in sheet_service():
         try:
             result = run(gmail, sheets, preview=not args.apply, days=args.days,
                          max_messages=args.max_messages, retry_review=args.retry_review,
-                         on_date=args.on_date)
+                         on_date=args.on_date, start_date=args.start_date,
+                         end_date=args.end_date)
             print(json.dumps({"sheets_auth": kind, **result}, sort_keys=True))
             return 0
         except Exception as exc:

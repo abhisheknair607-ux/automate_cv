@@ -14,7 +14,7 @@ function fixture(){
   {row:4,company:"PwC",role:"Audit Analyst",location:"Dublin",url:"https://jobs.example.com/c",
    jdReady:true,categories:"Common",preferences:{Abhishek:"",Pooja:"Not Interested"}},
   {row:5,company:"EY",role:"Finance Manager",location:"Cork",url:"https://jobs.example.com/d",
-   jdReady:true,categories:"Common",preferences:{Abhishek:"",Pooja:""}},
+   jdReady:true,categories:"Common",source:"Email Alerts · Needs Review",preferences:{Abhishek:"",Pooja:""}},
  ];
  const rows=["Possible","Dup","Not Dup",""];
  const ctx=vm.createContext({
@@ -48,7 +48,7 @@ test("ordinary Discovery hides confirmed duplicates, retains candidate independe
 });
 test("duplicate presets group candidates, including not-interested rows",()=>{
  const f=fixture();
- assert.deepEqual(Array.from(f.list("duplicates").rows,x=>x.row),[2,3]);
+ assert.deepEqual(Array.from(f.list("duplicates").rows,x=>x.row),[3]);
  assert.deepEqual(Array.from(f.list("confirmed-duplicates").rows,x=>x.row),[3]);
  assert.deepEqual(Array.from(f.list("possible-duplicates").rows,x=>x.row),[2]);
  assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,x=>x.row),[5,4,3,2]);
@@ -58,4 +58,10 @@ test("duplicate grouping sort is applied before pagination",()=>{
  const f=fixture();
  assert.deepEqual(Array.from(f.list("all-including-duplicates","duplicate-group").rows,x=>x.company),
   ["EY","EY","EY","PwC"]);
+});
+
+test("needs-review filter shows unresolved imported jobs without exposing Dup rows",()=>{
+ const f=fixture();
+ assert.deepEqual(Array.from(f.list("needs-review").rows,j=>j.row),[5]);
+ assert.deepEqual(Array.from(f.list("duplicates").rows,j=>j.row),[3]);
 });
