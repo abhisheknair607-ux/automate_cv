@@ -132,20 +132,31 @@ async function check(viewport){
  await page.locator('#gmv3-jobs-tabbar [data-g3-jobs="discovery"]').click();
  await wait(page,"#content .jobs > .job");
  assert.ok(await page.locator("#content .jobs > .job").count()>=2,"Discovery job listing visible");
- await wait(page,'#gmv3-bulk-tools [data-gmv3-bulk="select-visible"]');
- await page.locator('#gmv3-bulk-tools [data-gmv3-bulk="select-visible"]').click();
+ assert.equal(await page.locator('#gmv3-bulk-tools').count(),0,
+  "Select visible / Select more toolbar shortcut is removed");
+ const checks=page.locator('#content .jobs .job input[data-action="bulk-select"]');
+ assert.ok(await checks.count()>=3,"Individual selection checkboxes remain");
+ for(let i=0;i<3;i++)await checks.nth(i).check();
  await wait(page,'#selectionBarMount .selectionbar');
- assert.equal(await page.locator('#content .jobs .job [data-action="bulk-select"]:checked').count(),5,
-   "Select visible checks all five available example listings");
- assert.match(await page.locator('#selectionBarMount .selectionbar').innerText(),/5 selected/);
+ assert.equal(await page.locator('#content .jobs .job input[data-action="bulk-select"]:checked').count(),3,
+  "Native individual checkbox selection still works");
+ assert.match(await page.locator('#selectionBarMount .selectionbar').innerText(),/3 selected/);
  assert.equal(await page.locator('#selectionBarMount [data-action="bulk-preference"]').count(),2,
-   "Original Favorites and Not Interested bulk actions retained");
- const barPos=await page.locator('#selectionBarMount .selectionbar').evaluate(el=>getComputedStyle(el).position);
- assert.equal(barPos,"fixed","Selected action bar must remain visible on phone and desktop");
+  "Favorite and Not Interested actions retained");
+ for(const button of await page.locator('#selectionBarMount .bulk-preference-actions button').all()){
+  assert.equal((await button.innerText()).trim(),"","Bulk control has no visible text");
+  assert.ok((await button.getAttribute("aria-label"))?.length>8,"Accessible icon-only button label");
+  assert.equal(await button.locator('svg').count(),1,"Original icon or clear-X illustrated in button");
+ }
+ assert.equal(await page.locator('#selectionBarMount .gmv3-bulk-limit').count(),0,
+  "Extraneous 20-job helper note removed");
+ const tray=page.locator('#selectionBarMount .selectionbar');
+ assert.equal(await tray.evaluate(el=>getComputedStyle(el).position),"fixed",
+  "Selected action bar remains visible above tab navigation");
  await page.locator('#selectionBarMount [data-gmv3-bulk="clear"]').click();
- assert.equal(await page.locator('#selectionBarMount .selectionbar').count(),0,"Clear selection dismisses bulk action bar");
- assert.equal(await page.locator('#content .jobs .job [data-action="bulk-select"]:checked').count(),0,
-   "Clear selection does not edit job preferences");
+ assert.equal(await tray.count(),0,"Clear selection hides tray");
+ assert.equal(await page.locator('#content .jobs .job input[data-action="bulk-select"]:checked').count(),0,
+  "Clear removes only selection, without updating job preferences");
  await page.locator("#gmv3-filter-button").click();
  await wait(page,"#gmv3-filter-form");
  assert.equal(await page.locator('input[data-gmf-field="location"]').count(),0,"No native location datalist");
