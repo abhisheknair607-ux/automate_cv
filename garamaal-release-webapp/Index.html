@@ -285,15 +285,6 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .alerts-head small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .alerts-head .btn{min-width:34px;min-height:34px}
 .alerts-body{font-size:12px;line-height:1.48}
-.alerts-flow{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;
-  background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 9px;
-  font-weight:700;margin:13px 0}
-.alerts-flow span{white-space:nowrap}.alerts-flow i{font-style:normal;font-size:13px;color:var(--muted)}
-.alerts-text{color:var(--muted);margin:10px 0}
-.alerts-steps{display:grid;gap:7px;margin:11px 0}
-.alerts-step{border:1px solid var(--line);border-radius:10px;padding:9px 10px}
-.alerts-step strong{display:block;font-size:12px}
-.alerts-step span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
 .alerts-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
 .alerts-foot a{min-height:37px;display:inline-flex;align-items:center;justify-content:center;
   text-decoration:none}
@@ -301,7 +292,7 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .alerts-note{font-size:11px;color:var(--muted);margin:10px 0 0}
 .alerts-pop :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 @media(max-width:480px){.alerts-shade{padding:12px}.alerts-pop{padding:13px;max-height:calc(100dvh - 35px)}
- .alerts-flow{font-size:10px;gap:3px}.alerts-step{padding:8px}.alerts-foot .btn{flex:1 1 auto}}
+ .alerts-foot .btn{flex:1 1 auto}}
 .alerts-manual{border:1px solid var(--line);border-radius:10px;padding:10px;margin-top:12px}
 .alerts-manual label{font-size:11px;font-weight:700;color:var(--muted)}
 .alerts-manual input{max-width:100%;width:170px;min-height:33px;margin-left:9px;border-radius:7px;border:1px solid var(--line);padding:5px;color:var(--ink);background:var(--white)}
@@ -928,39 +919,23 @@ if(!DEMO){
   opener=button;
   mount.innerHTML=
    '<div class="alerts-shade" data-alert-dismiss="backdrop">'+
-   '<section class="alerts-pop" role="dialog" aria-modal="true" aria-labelledby="alerts-title" aria-describedby="alerts-subtitle">'+
+   '<section class="alerts-pop" role="dialog" aria-modal="true" aria-labelledby="alerts-title">'+
    '<div class="alerts-head"><div><strong id="alerts-title">Import Alerts</strong>'+
-   '<small id="alerts-subtitle">Manual importer · GitHub Actions</small></div>'+
+   '<small>GitHub Actions</small></div>'+
    '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Import Alerts">×</button></div>'+
    '<div class="alerts-body">'+
-   '<div class="alerts-flow" aria-label="Workflow"><span>Garamaal</span><i>→</i><span>GitHub</span><i>→</i><span>Gmail</span><i>→</i><span>Taaza</span></div>'+
-   '<p class="alerts-text">The dashboard will trigger Python in GitHub Actions, not run the importer in the browser. '+
-   'GitHub dispatch requires an authenticated request; Gmail and Google Sheets APIs are required. No OpenAI API or paid AI ranking is involved.</p>'+
-   '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="2026-10-25" aria-label="Date of alert emails" />'+
+   '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="'+(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'))+'" aria-label="Date of alert emails" />'+
    '<div class="alerts-run-buttons">'+
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
    '<button class="btn" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
-   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking GitHub controls…</p></div>'+
-   '<div class="alerts-steps">'+
-   '<div class="alerts-step"><strong>Preview · no changes</strong>'+
-   '<span>Read alerts and review extracted jobs, candidate, company and location before importing.</span></div>'+
-   '<div class="alerts-step"><strong>Run Import · awaiting approval</strong>'+
-   '<span>LinkedIn and Indeed are staged. IrishJobs and Jobs.ie need real-format validation. '+
-   'Only verified Ireland/UK jobs go to Taaza Email Alerts, with duplicates excluded.</span></div>'+
-   '<div class="alerts-step"><strong>Check Duplicates · Python audit</strong>'+ 
-   '<span>Read-only Python audit verifies exact jobs and flags likely duplicates. Existing jobs are never deleted here. Use Discovery Dup filters to review status.</span></div>'+ 
-   '<div class="alerts-step"><strong>Last run · GitHub Actions</strong>'+
-   '<span>Review workflow history and any errors on GitHub. This popup does not claim a run has started.</span></div>'+
-   '</div>'+
+   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p></div>'+
    '<div class="alerts-foot">'+
-   '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">View GitHub Actions ↗</a>'+
-   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow setup ↗</a>'+ 
-   '<a class="btn" href="'+dedupeAudit+'" target="_blank" rel="noopener noreferrer">View dedupe audit ↗</a>'+
+   '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
+   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+ 
+   '<a class="btn" href="'+dedupeAudit+'" target="_blank" rel="noopener noreferrer">Audit ↗</a>'+
    '<button class="btn" type="button" data-alert-dismiss="close">Close</button>'+
    '</div>'+
-   '<p class="alerts-note">Not active yet: parser approval and shared Gmail authorization are required. '+
-   'No Google Sheet will be updated by opening this popup.</p>'+
    '</div></section></div>';
   mount.querySelector('[data-alert-dismiss="close"]').focus();
   loadStatus();
@@ -970,7 +945,7 @@ if(!DEMO){
   const feedback=mount?.querySelector('#alerts-live-status');
   if(!feedback)return;
   if(!actionHost()){
-   feedback.textContent='Workflow controls require sign-in on Garamaal.';
+   feedback.textContent='Sign in to use actions.';
    return;
   }
   try{
@@ -982,8 +957,8 @@ if(!DEMO){
    }
    const run=data.runs?.dedupe||data.runs?.preview;
    feedback.textContent=run
-    ?'Last GitHub run: '+(run.conclusion||run.status||'Unknown')+'. '+(data.applyEnabled?'Import approved.':'Import write approval is still locked.')
-    :'No recent GitHub run found. '+(data.applyEnabled?'Import approved.':'Import write approval is still locked.');
+    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+(data.applyEnabled?'Import enabled':'Import locked')
+     :'No recent run · '+(data.applyEnabled?'Import enabled':'Import locked');
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
@@ -996,11 +971,11 @@ if(!DEMO){
   button.disabled=true;
   feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
   try{
-   const date=mount.querySelector('#alerts-on-date')?.value||'2026-10-25';
+   const date=mount.querySelector('#alerts-on-date')?.value||(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'));
    const result=await actionHost()('alerts/run',{kind,date});
    if(mount?.contains(feedback))feedback.textContent=result.accepted
-     ?'GitHub accepted the request. This does not mean the run has completed. Check Actions for the result.'
-     :'GitHub did not confirm a dispatch.';
+     ?'Requested · Check Actions for result'
+     :'Dispatch not confirmed';
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent=e.message||'GitHub request failed.';
   }finally{

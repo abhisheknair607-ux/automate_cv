@@ -10,8 +10,10 @@ def test_dashboard_ribbon_and_import_popup():
     assert "<strong>Master Controls</strong>" in INDEX
     start = INDEX.index('data-action="copy-ranking"')
     assert start < INDEX.index('data-action="import-alerts"', start) < INDEX.index('data-action="repair-ranks"', start)
-    assert "Check Duplicates · Python audit" in INDEX
-    assert "No Google Sheet will be updated by opening this popup." in INDEX
+    assert 'data-alert-run="dedupe" disabled' in INDEX
+    assert 'data-alert-run="apply" disabled' in INDEX
+    assert "Read-only Python audit verifies" not in INDEX
+    assert "The dashboard will trigger Python" not in INDEX
 
 
 def test_discovery_dup_button_immediately_after_preferences():
