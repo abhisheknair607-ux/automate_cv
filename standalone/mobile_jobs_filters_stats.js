@@ -189,7 +189,12 @@ doc.addEventListener("click",e=>{
    const next=defaultFilters();next.status=status;
    filters.set(cand()+"|"+destination,next);
    save(cand(),"filter-"+destination,next);
-   nav(destination,status);
+   // Preserve a short tactile lift on phones before rerendering the destination.
+   // Native keyboard/mouse navigation stays immediate.
+   if(window.matchMedia?.("(pointer:coarse)")?.matches &&
+      !window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches){
+     setTimeout(()=>nav(destination,status),190);
+   }else nav(destination,status);
    return;
   }
  }
