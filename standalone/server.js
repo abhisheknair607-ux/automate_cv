@@ -121,6 +121,8 @@ app.get("/",(req,res)=>{
 // This route renders the exact original Jobs HTML/transport and adds a visual
 // launcher IN FRONT. It does not replace the Dashboard/Discovery/Make CV/Add Job
 // DOM or any of their event handlers.
+// Preview assets are always fresh: the UI is evolving rapidly on this QA channel.
+app.use("/prototype",(_req,res,next)=>{res.set("Cache-Control","no-store, max-age=0");next()});
 app.get("/prototype/mobile-shell.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
 app.get("/prototype/mobile-shell.js",(_req,res)=>
@@ -137,6 +139,8 @@ app.get("/prototype/account-drawer.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_drawer.js")));
 app.get("/prototype/profile-editor.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
+app.get("/prototype/tactile-feedback.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_tactile_feedback.js")));
 // Allowlisted branch artwork and intro script; never publicize backend file paths.
 const COLLAGE_ART=new Set(["home-collage-strip.webp","nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"]);
 app.get("/prototype/assets/:file",(req,res)=>{
@@ -160,22 +164,23 @@ app.get("/prototype",(req,res)=>{
   }
   // Use the same backend bridge and dashboard feature modules as GET /.
   html=html.replace("</head>",
-    '<link rel="stylesheet" href="/prototype/mobile-shell.css">'+
-    '<link rel="stylesheet" href="/prototype/hub.css">'+
-    '<link rel="stylesheet" href="/prototype/collage.css"></head>');
+    '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-touch-scroll-10">'+
+    '<link rel="stylesheet" href="/prototype/hub.css?v=m26-touch-scroll-10">'+
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-touch-scroll-10"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
   html=html.replace("</body>",
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
-    '<script src="/prototype/mobile-shell.js"></script>'+
-    '<script src="/prototype/hub-jobs.js"></script>'+ 
-    '<script src="/prototype/hub-swipe.js"></script>'+
-    '<script src="/prototype/filters-stats.js"></script>'+
-     '<script src="/prototype/account-drawer.js"></script>'+
-     '<script src="/prototype/profile-editor.js"></script>'+
-    '<script src="/prototype/collage-intro.js"></script></body>');
+    '<script src="/prototype/mobile-shell.js?v=m26-touch-scroll-10"></script>'+
+    '<script src="/prototype/hub-jobs.js?v=m26-touch-scroll-10"></script>'+ 
+    '<script src="/prototype/hub-swipe.js?v=m26-touch-scroll-10"></script>'+
+    '<script src="/prototype/filters-stats.js?v=m26-touch-scroll-10"></script>'+
+     '<script src="/prototype/tactile-feedback.js?v=m26-touch-scroll-10"></script>'+
+     '<script src="/prototype/account-drawer.js?v=m26-touch-scroll-10"></script>'+
+     '<script src="/prototype/profile-editor.js?v=m26-touch-scroll-10"></script>'+
+    '<script src="/prototype/collage-intro.js?v=m26-touch-scroll-10"></script></body>');
   res.type("html").send(html);
 });
 
