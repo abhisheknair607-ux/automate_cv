@@ -1,0 +1,63 @@
+name: garamaal-stage5-approved-zero-traffic-canary
+# A single, branch-specific approval marker triggers one canary attempt.
+# No schedule, no PR trigger, no main deploy, no GitHub UI token in client.
+on:
+  push:
+    branches:
+      - release/taaza-stage5-canary-20261026
+    paths:
+      - docs/taaza-stage5-canary-trigger-20261026.txt
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: garamaal-stage5-cloudrun-canary
+  cancel-in-progress: false
+
+jobs:
+  deploy-canary:
+    if: github.ref == 'refs/heads/release/taaza-stage5-canary-20261026'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Require single-purpose approval commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "docs/taaza-stage5-canary-trigger-20261026.txt"
+          grep -Fxq 'APPROVED: 0% Cloud Run canary only; no production traffic, imports or Q writes' docs/taaza-stage5-canary-trigger-20261026.txt
+          git merge-base --is-ancestor b1fe5fa01da67c3ad197769a6608ed9a204c47b2 HEAD
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify release safety (no cloud changes)
+        run: |
+          python -m pip install --quiet pytest
+          python -m pytest -q tests/test_stage5_canary_release.py
+          bash -n standalone/deploy-stage5-canary.sh
+      - name: Authenticate to Google Cloud with existing WIF
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          project_id: abhishek-cv-automation
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v3
+        with:
+          project_id: abhishek-cv-automation
+      - name: Deploy tagged revision at 0% traffic and smoke-test health
+        shell: bash
+        env:
+          CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+        run: bash standalone/deploy-stage5-canary.sh --deploy-canary
+      - name: Report strictly non-promoted canary
+        if: success()
+        run: |
+          echo "Stage 5 canary deployment and health verification completed."
+          echo "No production traffic promotion or Gmail/Q status writes were authorized."
