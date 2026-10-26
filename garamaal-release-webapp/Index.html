@@ -298,6 +298,11 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .alerts-manual input{max-width:100%;width:100%;min-height:33px;margin:4px 0 0;border-radius:7px;border:1px solid var(--line);padding:5px;color:var(--ink);background:var(--white)}
 .alerts-calendar-row{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .alerts-calendar-row label{display:block;min-width:0}
+.alerts-review-item{margin-top:8px;padding:9px;border:1px solid var(--line);border-radius:8px}
+.alerts-review-item strong{font-size:12px;display:block;overflow-wrap:anywhere}
+.alerts-review-item p{margin:4px 0;font-size:11px}
+.alerts-review-item small{color:var(--muted);display:block}
+.alerts-review-email{font-size:11px;font-weight:700;display:inline-block;margin-top:5px}
 .alerts-run-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .alerts-run-buttons .btn{flex:1 1 100px;min-height:34px}
 .alerts-run-buttons .btn:disabled{opacity:.48;cursor:not-allowed}
@@ -499,7 +504,7 @@ function discoveryTabs(){
    all.map(x=>'<button class="chip '+(state.tabId===x.id?'active':'')+'" data-action="category" data-value="'+h(x.id)+'" aria-pressed="'+(state.tabId===x.id)+'" title="'+h(x.name)+'">'+h(x.name)+'</button>').join('')+
    '</div>';
 }
-function filters(){return `<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
+function filters(){return (state.section==='discovery'?'<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn btn-xs" type="button" data-action="review-alert-emails" title="Review alert emails where a job could not be fully parsed">Review alert emails</button></div>':'')+`<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
 function identity(job){return encodeURIComponent(JSON.stringify(expected(job)))}
 
 function activityFor(job){
@@ -937,7 +942,8 @@ if(!DEMO){
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
    '<button class="btn btn-primary" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
-   '</div><p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p></div>'+
+   '</div><p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p>'+
+   '<button class="btn" type="button" data-alert-review>Review flagged emails</button><div id="alerts-review-list"></div></div>'+
    '<div class="alerts-foot">'+
    '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
    '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+ 
@@ -983,6 +989,46 @@ if(!DEMO){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
  }
+ async function showReviews(){
+  const root=mount?.querySelector('#alerts-review-list');
+  if(!root)return;
+  root.replaceChildren();
+  root.textContent='Loading unresolved emails…';
+  try{
+   const data=await actionHost()('alerts/status',{});
+   if(!mount?.contains(root))return;
+   root.replaceChildren();
+   const history=data.history||{},items=history.reviews||[];
+   if(!items.length){
+    root.textContent=history.pendingReview===0?'No unresolved emails.':'Review data unavailable.';
+    return;
+   }
+   const head=document.createElement('p');
+   head.className='alerts-note';
+   head.textContent='Unresolved email alerts: '+history.pendingReview+
+    '. Verified job links are also available under Discovery → Needs review.';
+   root.append(head);
+   for(const item of items){
+    const article=document.createElement('div');article.className='alerts-review-item';
+    const subject=document.createElement('strong');
+    subject.textContent=item.subject||'Untitled alert';
+    const reason=document.createElement('p');
+    reason.textContent=(item.result||'Review')+' · '+(item.details||'Needs inspection');
+    const details=document.createElement('small');
+    details.textContent=(item.receivedAt||'').slice(0,16).replace('T',' ')+' · '+(item.owner||'Shared');
+    article.append(subject,reason,details);
+    const id=/^[a-f0-9]{10,24}$/i.test(item.threadId||'')?item.threadId:item.id;
+    if(/^[a-f0-9]{10,24}$/i.test(id||'')){
+     const link=document.createElement('a');
+     link.href='https://mail.google.com/mail/u/0/#all/'+id;
+     link.target='_blank';link.rel='noopener noreferrer';
+     link.textContent='Open original email ↗';link.className='alerts-review-email';
+     article.append(link);
+    }
+    root.append(article);
+   }
+  }catch(e){if(mount?.contains(root))root.textContent='Cannot load pending email reviews: '+(e.message||'Check connection.')}
+ }
  async function trigger(kind){
   const feedback=mount?.querySelector('#alerts-live-status');
   if(!feedback||!actionHost())return;
@@ -1011,6 +1057,10 @@ if(!DEMO){
   }
  }
  document.addEventListener("click",function(e){
+  const reviewer=e.target.closest('[data-action="review-alert-emails"]');
+  if(reviewer){e.preventDefault();open(reviewer);showReviews();return;}
+  const reviewToggle=e.target.closest('[data-alert-review]');
+  if(reviewToggle){e.preventDefault();showReviews();return;}
   const button=e.target.closest('[data-action="import-alerts"]');
   if(button){e.preventDefault();open(button);return;}
   if(!mount?.firstChild)return;
