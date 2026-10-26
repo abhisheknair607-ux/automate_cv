@@ -192,8 +192,14 @@ function selectHtml(name,label,items,value,placeholder){
 function openFilter(){
  const s=sect();if(!s)return;
  dismiss();const c=cand(),f=preference(c,s),lookup=facets.get(c+"|"+s)||{},o=lookup.options||{};
- locationDraft=loc.rule(f.locationSelection);
- locationOptions=normalizeLocationOptions(o.location);
+ facetOptions=Object.fromEntries(FIELDS.map(field=>[field,normalizeLocationOptions(o[field])]));
+ facetDrafts=Object.fromEntries(FIELDS.map(field=>{
+  let rule=loc.rule(f[field+"Selection"]);
+  const legacy=field!=="location"?String(f[field]||"").trim().toLowerCase():"";
+  if(legacy&&rule.mode==="all")
+   rule={mode:"only",values:facetOptions[field].filter(x=>x.toLowerCase().includes(legacy))};
+  return [field,rule];
+ }));
  sheet=doc.createElement("div");sheet.id="gmv3-filter-sheet";sheet.className="gmv3-filter-backdrop";
  const statusOpts=(statuses[s]||[]).map(([v,t])=>'<option value="'+v+'"'+(v===f.status?' selected':'')+'>'+esc(t)+'</option>').join("");
  const sorts=[["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["department","Function A–Z"],["location","Location A–Z"],...(s==="fresh"?[["score","Highest fit score"]]:[])];
@@ -203,10 +209,10 @@ function openFilter(){
  sheet.innerHTML='<section role="dialog" aria-modal="true" aria-label="Filter and sort Jobs" class="gmv3-filter-panel">'+
  '<div class="gmv3-filter-head"><div><small>DISCOVER YOUR WAY</small><h2>Filter & Sort</h2><p>'+esc(s==="fresh"?"Make CV":"Discovery")+' · '+esc(c)+'</p></div><button type="button" data-gmf-act="close" aria-label="Close filter panel">×</button></div>'+
  '<form id="gmv3-filter-form"><div class="gmv3-filter-grid">'+
- selectHtml("company","Company",o.company,f.company,"Search or select a company")+
- locationField()+
- selectHtml("department","Department / function",o.department,f.department,"Choose a functional area")+
- selectHtml("designation","Designation",o.designation,f.designation,"Job title or role")+
+ locationField("company")+
+ locationField("location")+
+ locationField("department")+
+ locationField("designation")+
  tabsHtml+
  '<label class="gmv3-field"><span>Existing job status</span><select data-gmf-field="status">'+statusOpts+'</select></label>'+
  '<label class="gmv3-field"><span>Sort jobs</span><select data-gmf-field="sort">'+sortOpts+'</select></label>'+
@@ -220,7 +226,13 @@ function applyFilter(reset){
  if(!sheet)return;
  const s=sect(),c=cand();if(!s)return;
  const f=reset?defaultFilters():{...preference(c,s)};
- if(!reset){sheet.querySelectorAll("[data-gmf-field]").forEach(el=>f[el.dataset.gmfField]=el.value.trim().slice(0,120));f.locationSelection=loc.rule(locationDraft)}
+ if(!reset){
+  sheet.querySelectorAll("[data-gmf-field]").forEach(el=>f[el.dataset.gmfField]=el.value.trim().slice(0,120));
+  for(const field of FIELDS){
+   f[field+"Selection"]=loc.rule(facetDrafts[field]);
+   if(field!=="location")f[field]="";
+  }
+ }
  filters.set(c+"|"+s,f);save(c,"filter-"+s,f);
  state.filter=f.status;state.sort=f.sort;state.tabId=s==="discovery"?f.category:"all";
  state.page=1;state.bulk.clear();dismiss();fetchList();
