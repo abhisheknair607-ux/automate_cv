@@ -141,7 +141,8 @@ app.get("/prototype/hub.css",(_req,res)=>
 app.get("/prototype/hub-jobs.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_hub.js")));
 app.get("/prototype/hub-swipe.js",(_req,res)=>
-  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_swipe.js")));
+  res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+    .sendFile(path.join(__dirname,"mobile_jobs_swipe.js")));
 app.get("/prototype/location-variants.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_location_variants.js")));
 app.get("/prototype/filters-stats.js",(_req,res)=>
@@ -166,7 +167,9 @@ app.get("/prototype/media/:file",(req,res)=>{
   return res.status(404).end();
  res.type("video/mp4").sendFile(path.join(__dirname,"assets",req.params.file));
 });
-app.get("/prototype/collage.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_collage.css")));
+app.get("/prototype/collage.css",(_req,res)=>
+  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+    .sendFile(path.join(__dirname,"mobile_collage.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
 app.get("/prototype",(req,res)=>{
   if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
@@ -200,7 +203,7 @@ app.get("/prototype",(req,res)=>{
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-live-swipe-17"></head>');
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-cv-controls-18"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -208,8 +211,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
     '<script src="/prototype/mobile-shell.js?v=m26-neon-held-12"></script>'+
-    '<script src="/prototype/hub-jobs.js?v=m26-live-swipe-17"></script>'+ 
-    '<script src="/prototype/hub-swipe.js?v=m26-live-swipe-17"></script>'+
+    '<script src="/prototype/hub-jobs.js?v=m26-cv-controls-18"></script>'+ 
+    '<script src="/prototype/hub-swipe.js?v=m26-cv-controls-18"></script>'+
     '<script src="/prototype/location-variants.js?v=m26-location-14"></script>'+
     '<script src="/prototype/filters-stats.js?v=m26-facets-15"></script>'+
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
