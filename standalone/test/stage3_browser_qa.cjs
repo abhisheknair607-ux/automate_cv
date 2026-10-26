@@ -152,7 +152,7 @@ async function check(viewport){
  await page.locator('[data-gmf-loc="exclude"]').click();
  assert.equal(await page.locator("#gmv3-location-list input[type=checkbox]:checked").count(),0,"Exclude UK matches");
  await page.locator("#gmv3-location-search").fill("United");
- assert.equal(await page.locator("#gmv3-location-list input[type=checkbox]").count(),2,"UK and US label variants visible for United");
+ assert.equal(await page.locator("#gmv3-location-list input[type=checkbox]").count(),3,"Both UK aliases and the US label visible for United");
  await page.locator('[data-gmf-loc="exclude"]').click();
  await page.locator('[data-gmf-loc="done"]').click();
  assert.match(await page.locator("#gmv3-location-trigger").innerText(),/3 excluded/);
