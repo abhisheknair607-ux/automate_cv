@@ -13,6 +13,7 @@ from .profiles import profiles
 from .qa import QAError, factual_report, normalize, one_page
 from .sources import Sources, source_telemetry
 from .optimization import combine_analysis_prompts
+from .openai_client import Stage2HandoffError
 from .model_presets import resolve_preset
 from .writing_guidance import profile_voice, cover_letter_voice
 
@@ -362,15 +363,42 @@ class Workflow:
             # A previously saved analysis can contain a truncated YAML handoff.
             # Repair only the saved Stage 2 draft; do not pay for Stage 1+2 again.
             from .sources import selected_evidence_ids, selected_cv_structure
-            if not selected_evidence_ids(handoff) or (
+            invalid_structure = False
+            try:
+                selected_cv_structure(handoff)
+            except RuntimeError:
+                invalid_structure = True
+            if not selected_evidence_ids(handoff) or invalid_structure or (
                 hasattr(self.ai, '_stage2_handoff_truncated')
                 and self.ai._stage2_handoff_truncated(stage2)
             ):
                 print('[workflow] Saved Stage 2 handoff is incomplete; repairing compact handoff', flush=True)
-                repaired, repair_response = self.retry(
-                    lambda: self.ai.repair_stage2_handoff(stage2, self.s.stage2_model),
-                    'Repair saved Stage 2 handoff',
-                )
+                if app.candidate_key == 'abhishek':
+                    repair_fn = lambda: self.ai.repair_stage2_handoff(
+                        stage2, self.s.stage2_model,
+                        authoritative_context=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
+                        job_context=(
+                            f'Company: {app.company}\nDesignation: {app.designation}\n'
+                            f'Location: {app.location}\nLink: {app.application_link}\n\n'
+                            f'RAW JOB DESCRIPTION\n{app.raw_jd}'
+                        ),
+                    )
+                else:
+                    repair_fn = lambda: self.ai.repair_stage2_handoff(
+                        stage2, self.s.stage2_model
+                    )
+                try:
+                    repaired, repair_response = self.retry(
+                        repair_fn, 'Repair saved Stage 2 handoff',
+                    )
+                except Stage2HandoffError as error:
+                    if error.response is not None:
+                        self._record_usage(
+                            manifest, 'stage2_handoff_repair_failed',
+                            _usage(error.response, self.s.stage2_model),
+                        )
+                        self._save_manifest(manifest, manifest_path, folder)
+                    raise
                 # Preserve this extra paid call in the manifest even if later QA fails.
                 self._record_usage(manifest, 'stage2_handoff_repair',
                                    _usage(repair_response, self.s.stage2_model))
@@ -402,14 +430,23 @@ class Workflow:
         input_text = (f'Company: {app.company}\nDesignation: {app.designation}\n'
                       f'Location: {app.location}\nLink: {app.application_link}\n\n'
                       f'RAW JOB DESCRIPTION\n{app.raw_jd}')
-        output, response = self.retry(
-            lambda: self.ai.text(combined_prompt, input_text,
-                                 self.s.stage2_reasoning_effort,
-                                 self.s.stage2_max_output_tokens,
-                                 model=self.s.stage2_model,
-                                 cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
-                                 cache_key=f'{app.candidate_key}:stage1_2'),
-            'Combined Stage 1/2 AI call')
+        try:
+            output, response = self.retry(
+                lambda: self.ai.text(combined_prompt, input_text,
+                                     self.s.stage2_reasoning_effort,
+                                     self.s.stage2_max_output_tokens,
+                                     model=self.s.stage2_model,
+                                     cache_prefix=f'COMPACT SUMMARY DOC / EVIDENCE ROUTER\n{summary}',
+                                     cache_key=f'{app.candidate_key}:stage1_2'),
+                'Combined Stage 1/2 AI call')
+        except Stage2HandoffError as error:
+            if error.response is not None:
+                self._record_usage(
+                    manifest, 'stage1_2_invalid_handoff',
+                    _usage(error.response, self.s.stage2_model),
+                )
+                self._save_manifest(manifest, manifest_path, folder)
+            raise
         # Record the paid work before validation, including handoff-format repair.
         self._record_usage(manifest, 'stage1_2', _usage(response, self.s.stage2_model))
         self._save_manifest(manifest, manifest_path, folder)

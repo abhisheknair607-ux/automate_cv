@@ -184,3 +184,83 @@ def test_truncated_fortis_yaml_is_repaired_without_repeating_analysis():
     assert result.count('STAGE2_HANDOFF') == 1
     assert 'selected_professional_evidence:' in result
     assert combined.usage.output_tokens == 9100
+
+
+def test_abhishek_repair_is_grounded_in_candidate_router_and_job():
+    """Regression: original repair saw only the draft and had no IDs to select."""
+    ai = ai_with([
+        Response('JD analysis and fit, but no STAGE2_HANDOFF or evidence selections.', 4500, 1800),
+        Response(
+            'STAGE2_HANDOFF\ncv_structure: High Experience\n'
+            'selected_professional_evidence:\n  - key: PR-EY-FINTRANS\n'
+            'selected_projects: []\n'
+            'stage3_evidence_to_retrieve_or_verify: [PR-EY-FINTRANS]',
+            1400, 600,
+        ),
+    ])
+    result, billed = ai.text(
+        'Combined rules requiring STAGE2_HANDOFF',
+        'Company: Davy\\nRAW JOB DESCRIPTION\\nInvestment analysis and portfolio research',
+        model='gpt-5.6-terra',
+        cache_prefix='COMPACT SUMMARY DOC / EVIDENCE ROUTER\\nPR-EY-FINTRANS: supported work',
+        cache_key='abhishek:stage1_2',
+    )
+    repair = ai.client.responses.calls[1]
+    assert 'VERIFIED CANDIDATE EVIDENCE ROUTER' in repair['input']
+    assert 'PR-EY-FINTRANS: supported work' in repair['input']
+    assert 'Investment analysis' in repair['input']
+    assert 'selected_professional_evidence:' in result
+    assert billed.usage.input_tokens == 5900
+
+
+def test_abhishek_existing_but_evidence_free_handoff_gets_repaired():
+    ai = ai_with([
+        Response('STAGE2_HANDOFF\\ncv_structure: High Experience\\nselected_professional_evidence: []', 100, 80),
+        Response(
+            'STAGE2_HANDOFF\\ncv_structure: High Experience\\n'
+            'selected_professional_evidence:\\n  - key: PR-EY-RESEARCH',
+            120, 90,
+        ),
+    ])
+    out, _ = ai.text(
+        'Requires STAGE2_HANDOFF', 'Job research',
+        cache_prefix='PR-EY-RESEARCH: verified evidence',
+        cache_key='abhishek:stage1_2',
+    )
+    assert len(ai.client.responses.calls) == 2
+    assert 'key: PR-EY-RESEARCH' in out
+
+
+def test_invalid_handoff_charges_are_preserved_on_exception():
+    from automate_cv.openai_client import Stage2HandoffError
+    ai = ai_with([
+        Response('Only JD discussion without selected evidence', 500, 300),
+        Response('STAGE2_HANDOFF\\ncv_structure: High Experience\\nselected_professional_evidence: []', 200, 100),
+    ])
+    with __import__('pytest').raises(Stage2HandoffError) as exc:
+        ai.text(
+            'Requires STAGE2_HANDOFF', 'Vacancy',
+            cache_prefix='PR-EY-FAR: verified', cache_key='abhishek:stage1_2',
+        )
+    assert exc.value.response.usage.input_tokens == 700
+    assert exc.value.response.usage.output_tokens == 400
+    assert len(exc.value.response.component_responses) == 2
+
+
+def test_pooja_handoff_repair_still_uses_existing_draft_only():
+    ai = ai_with([
+        Response('No STAGE2_HANDOFF', 100, 50),
+        Response(
+            'STAGE2_HANDOFF\\ncv_structure: High Experience\\n'
+            'selected_professional_evidence:\\n  - key: PR-POOJA-PLANNING',
+            100, 50,
+        ),
+    ])
+    ai.text(
+        'Requires STAGE2_HANDOFF', 'Pooja job',
+        cache_prefix='Private Pooja evidence router',
+        cache_key='pooja:stage1_2',
+    )
+    repair_input = ai.client.responses.calls[1]['input']
+    assert 'STAGE 2 DRAFT TO REPAIR' in repair_input
+    assert 'VERIFIED CANDIDATE EVIDENCE ROUTER' not in repair_input

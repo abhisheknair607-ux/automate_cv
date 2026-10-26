@@ -152,8 +152,8 @@ def test_incomplete_saved_fortis_handoff_is_repaired_without_repaying_analysis(t
     repairs = []
     w.ai = SimpleNamespace(
         text=lambda *args, **kwargs: pytest.fail('Full Stage 1+2 was unnecessarily called'),
-        repair_stage2_handoff=lambda draft, model: (
-            repairs.append((draft, model)) or repaired,
+        repair_stage2_handoff=lambda draft, model, **grounding: (
+            repairs.append((draft, model, grounding)) or repaired,
             SimpleNamespace(usage=None, output=[]),
         ),
         _replace_partial_stage2_handoff=AI._replace_partial_stage2_handoff,
@@ -171,3 +171,27 @@ def test_incomplete_saved_fortis_handoff_is_repaired_without_repaying_analysis(t
     # Checkpoint survives a follow-on resume without paying for a second repair.
     w._merged_analysis(app, 'A', 'B', 'folder', tmp_path, manifest, mp)
     assert len(repairs) == 1
+
+
+def test_failed_abhishek_repair_is_metered_and_not_checkpointed(tmp_path):
+    from automate_cv.openai_client import Stage2HandoffError
+    w, app, _ = setup(tmp_path)
+    response = SimpleNamespace(
+        model='gpt-6-luna',
+        usage=SimpleNamespace(input_tokens=1500, output_tokens=600),
+        output=[],
+    )
+    w.ai.text = lambda *args, **kwargs: (
+        (_ for _ in ()).throw(Stage2HandoffError('no verified handoff', response))
+    )
+    manifest = {}
+    with pytest.raises(Stage2HandoffError, match='no verified handoff'):
+        w._merged_analysis(
+            app, 'prompt1', 'prompt2', 'folder', tmp_path,
+            manifest, tmp_path / 'manifest.json',
+        )
+    assert not manifest.get('stage2_complete')
+    assert len(manifest['usage_history']) == 1
+    assert manifest['usage_history'][0]['stage'] == 'stage1_2_invalid_handoff'
+    assert manifest['cumulative_cost_usd'] > 0
+    assert ('folder', 'manifest.json') in w.drive.files

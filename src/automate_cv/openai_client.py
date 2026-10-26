@@ -11,7 +11,11 @@ from openai import OpenAI
 _STAGE2_HANDOFF_REPAIR_INSTRUCTIONS = '''
 You are repairing the machine-readable handoff from an already-completed Stage 2 CV evidence-selection draft.
 
-Return ONLY one compact machine-readable handoff. Do not repeat the analysis and do not add facts, evidence, metrics, ownership, qualifications, skills or conclusions that are not supported by the supplied Stage 2 draft.
+Return ONLY one compact machine-readable handoff. Do not repeat the analysis and do not invent facts, evidence, metrics, ownership, qualifications, skills or conclusions.
+
+When VERIFIED CANDIDATE EVIDENCE ROUTER and RAW JOB CONTEXT are supplied, use them as authoritative grounding. Preserve selections made in the Stage 2 draft where supported. If the Stage 2 draft has no usable selection, select only actual evidence IDs present verbatim in the verified router that fit the raw job. Do not create evidence IDs, assert unsupported achievements or reuse evidence from another candidate. If no supported selection exists, return empty arrays and let the workflow fail closed.
+
+When the router and job context are not supplied, use only the Stage 2 draft and never invent missing information. Every selected key must appear under selected_professional_evidence, selected_projects, or stage3_evidence_to_retrieve_or_verify (not only a requirement mapping).
 
 The first line MUST be exactly:
 STAGE2_HANDOFF
@@ -55,6 +59,14 @@ stage3_evidence_to_retrieve_or_verify: []
 
 Preserve the Stage 2 draft's own evidence IDs where present. Do not substitute new IDs. Do not write prose before or after the handoff.
 '''.strip()
+
+
+class Stage2HandoffError(RuntimeError):
+    """Invalid AI handoff, retaining paid response usage for durable cost accounting."""
+
+    def __init__(self, message, response=None):
+        super().__init__(message)
+        self.response = response
 
 
 class AI:
@@ -123,16 +135,27 @@ class AI:
             component_responses=list(responses),
         )
 
-    def _repair_stage2_handoff(self, selected_model, draft_text):
+    def _repair_stage2_handoff(
+        self, selected_model, draft_text, authoritative_context='', job_context=''
+    ):
         print(
-            '[openai] Stage 2 output omitted or malformed STAGE2_HANDOFF; '
-            'running compact handoff repair only.',
+            '[openai] Stage 2 handoff missing or invalid; '
+            'running grounded compact handoff repair.',
             flush=True,
         )
+        repair_input = f'STAGE 2 DRAFT TO REPAIR\n\n{draft_text}'
+        if authoritative_context and job_context:
+            repair_input += (
+                '\n\nRAW JOB CONTEXT (authoritative vacancy, not candidate facts)\n'
+                + str(job_context)
+                + '\n\nVERIFIED CANDIDATE EVIDENCE ROUTER '
+                '(the ONLY source for candidate evidence IDs)\n'
+                + str(authoritative_context)
+            )
         return self.client.responses.create(
             model=selected_model,
             instructions=_STAGE2_HANDOFF_REPAIR_INSTRUCTIONS,
-            input=f'STAGE 2 DRAFT TO REPAIR\n\n{draft_text}',
+            input=repair_input,
             reasoning={'effort': 'low'},
             max_output_tokens=3500,
         )
@@ -191,14 +214,19 @@ class AI:
         except (ValueError, RuntimeError):
             return False
 
-    def repair_stage2_handoff(self, draft, model):
-        """A compact, separately metered repair, not a full analysis rerun."""
-        response = self._repair_stage2_handoff(model, draft)
+    def repair_stage2_handoff(
+        self, draft, model, authoritative_context='', job_context=''
+    ):
+        """Repair selected facts only from the candidate router and raw vacancy."""
+        response = self._repair_stage2_handoff(
+            model, draft, authoritative_context, job_context
+        )
         repaired = str(response.output_text or '').strip()
         if not self._usable_stage2_handoff(repaired):
-            raise RuntimeError(
+            raise Stage2HandoffError(
                 'Stage 2 handoff repair has no supported selected evidence IDs or '
-                'CV structure; refusing to proceed with unsupported facts.'
+                'CV structure; refusing to proceed with unsupported facts.',
+                response=response,
             )
         return repaired, response
 
@@ -271,13 +299,29 @@ class AI:
         # before the mandatory machine handoff is emitted. Do not rerun the full
         # expensive Stage 2 analysis in that case. A small Terra/low formatting
         # repair converts only the already-produced draft into the required handoff.
+        # Abhishek's merged analysis can contain a marker but no usable evidence
+        # selection/structure. Repair it while the authoritative router is available.
+        # Pooja's existing trigger and routing stay unchanged.
+        abhishek = str(cache_key or '').startswith('abhishek:')
         if 'STAGE2_HANDOFF' in str(prompt) and (
             not self._has_stage2_handoff(output_text)
             or self._stage2_handoff_truncated(output_text)
+            or (abhishek and not self._usable_stage2_handoff(output_text))
         ):
-            repaired_text, repair = self.repair_stage2_handoff(
-                output_text, selected_model
-            )
+            context = cache_prefix if abhishek else ''
+            job = user_input if abhishek else ''
+            try:
+                repaired_text, repair = self.repair_stage2_handoff(
+                    output_text, selected_model,
+                    authoritative_context=context, job_context=job,
+                )
+            except Stage2HandoffError as error:
+                # The primary analysis and failed repair were paid calls. Keep
+                # their real token usage even though there is no valid handoff.
+                if error.response is not None:
+                    responses.append(error.response)
+                    error.response = self._combined_text_response(responses, output_text)
+                raise
             responses.append(repair)
             output_text = self._replace_partial_stage2_handoff(
                 output_text, repaired_text
