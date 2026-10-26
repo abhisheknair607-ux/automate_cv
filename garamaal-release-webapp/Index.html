@@ -273,6 +273,36 @@ background:var(--white);border:1px solid var(--line);border-radius:14px;padding:
 .expense-stages b{font-variant-numeric:tabular-nums}
 body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 @media(max-width:720px){.expense-shade{padding:54px 9px 76px}.expense-pop{max-height:calc(100dvh - 130px)}#expenseToggle{width:29px;height:29px}}
+
+/* Import Alerts: compact, accessible modal; intentionally no backend dispatch until approved. */
+.alerts-shade{position:fixed;inset:0;z-index:70;background:rgba(10,22,38,.38);display:flex;
+  align-items:center;justify-content:center;padding:16px}
+.alerts-pop{width:min(438px,100%);max-height:min(88dvh,660px);overflow:auto;
+  background:var(--white);border:1px solid var(--line);border-radius:17px;
+  box-shadow:0 22px 58px rgba(10,22,38,.22);padding:17px;color:var(--ink)}
+.alerts-head{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.alerts-head strong{display:block;font-size:17px;font-weight:800;line-height:1.3}
+.alerts-head small{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.alerts-head .btn{min-width:34px;min-height:34px}
+.alerts-body{font-size:12px;line-height:1.48}
+.alerts-flow{display:flex;align-items:center;justify-content:space-between;gap:4px;flex-wrap:wrap;
+  background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 9px;
+  font-weight:700;margin:13px 0}
+.alerts-flow span{white-space:nowrap}.alerts-flow i{font-style:normal;font-size:13px;color:var(--muted)}
+.alerts-text{color:var(--muted);margin:10px 0}
+.alerts-steps{display:grid;gap:7px;margin:11px 0}
+.alerts-step{border:1px solid var(--line);border-radius:10px;padding:9px 10px}
+.alerts-step strong{display:block;font-size:12px}
+.alerts-step span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.alerts-foot{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:14px}
+.alerts-foot a{min-height:37px;display:inline-flex;align-items:center;justify-content:center;
+  text-decoration:none}
+.alerts-foot .btn{min-height:37px}
+.alerts-note{font-size:11px;color:var(--muted);margin:10px 0 0}
+.alerts-pop :focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media(max-width:480px){.alerts-shade{padding:12px}.alerts-pop{padding:13px;max-height:calc(100dvh - 35px)}
+ .alerts-flow{font-size:10px;gap:3px}.alerts-step{padding:8px}.alerts-foot .btn{flex:1 1 auto}}
+
 </style>
 </head>
 <body>
@@ -281,7 +311,7 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
  <div class="main"><header class="topbar"><div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div><div class="top-actions"><span id="modeBadge" class="demo">PREVIEW</span><div id="candidateToggle" class="switch"></div><button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button><div id="avatar" class="avatar">A</div></div></header><main id="content" class="container" aria-live="polite"></main></div>
 </div>
 <div class="mobilebar" id="mobileNav"></div>
-<div id="drawerMount"></div><div id="expenseMount"></div><div id="connectionsMount"></div><div id="toastMount" role="status" aria-live="polite"></div>
+<div id="drawerMount"></div><div id="expenseMount"></div><div id="importAlertsMount"></div><div id="connectionsMount"></div><div id="toastMount" role="status" aria-live="polite"></div>
 <script>
 'use strict';
 const DEMO = !(window.google && google.script && google.script.run);
@@ -457,7 +487,7 @@ function navRender(){applyCandidateTheme();const n=()=>navigation.map(x=>`<butto
 function title(head,sub,button){return `<div class="heading"><div><h1>${h(head)}</h1></div>${button||''}</div>`}
 function isAppInstalled(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
 function kpi(label,value,sublabel,i){return `<div class="kpi"><i>${icon(i)}</i><label>${label}</label><strong>${value}</strong><small>${sublabel}</small></div>`}
-function dash(){return title('Overview','',`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`)+`<section class="panel" style="margin-bottom:12px"><div class="row" style="align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>Rank Jobs with ChatGPT</strong><div class="meta">Score only new Freshmaal jobs · re-rank all scored jobs · no ranking API charges</div></div><div class="row"><button class="btn btn-primary" data-action="copy-ranking">${icon('prompt')} Copy ranking prompt</button><button class="btn" data-action="repair-ranks" title="Optional one-time confirmation: restore AM and AO formulas without changing scores">${icon('refresh')} Fix rank formulas</button></div></div></section>`+`<div class="kpis">${kpi('Discovered',state.stats?state.stats.discovered:'—','Vacancies in Taaza','discover')}${kpi('Applications',state.stats?state.stats.applications:'—','Jobs in Freshmaal','brief')}${kpi('Shortlisted',state.stats?state.stats.selected:'—',state.candidate+' selected','target')}${kpi('CV requested',state.stats?state.stats.cvRequested:'—','Existing CV checkboxes','shield')}</div>${!DEMO&&!isAppInstalled()?`<section class="panel garamaal-install-card"><div><strong>Install Garamaal</strong><span>Open from your phone home screen — no browser menu needed when installation is supported.</span></div><button class="btn btn-primary" type="button" data-action="install-app">Install app</button></section>`:'' }<div class="grid2"><section class="panel"><div class="subhead">Next move</div><div class="quick"><button class="btn" data-action="quick" data-value="missing">${icon('file')} Seems Kacha</button><button class="btn" data-action="quick" data-value="ready">${icon('arrow')} Seems Fresh</button><button class="btn" data-action="quick" data-value="cv">${icon('files')} Make CV</button><button class="btn" data-action="quick" data-value="selected">${icon('target')} Shortlisted</button><button class="btn" data-action="view-not-interested" data-source="discovery">${icon('trash')} Not Interested · Taaza</button><button class="btn" data-action="view-not-interested" data-source="fresh">${icon('trash')} Not Interested · CV</button></div><div style="margin-top:10px"><button class="btn btn-xs" data-action="migrate-preferences">Set up Sheets preference dropdowns</button></div></section><section class="panel flow-strip"><div class="flow-title">From vacancy to CV</div><div class="flow-trail"><span>Seems Kacha</span><span>Seems Taaza</span><span>Seems Fresh</span><span>Garam CV Ready</span></div></section></div>`}
+function dash(){return title('Overview','',`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`)+`<section class="panel" style="margin-bottom:12px"><div class="row" style="align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>Rank Jobs with ChatGPT</strong><div class="meta">Score only new Freshmaal jobs · re-rank all scored jobs · no ranking API charges</div></div><div class="row"><button class="btn btn-primary" data-action="copy-ranking">${icon('prompt')} Copy ranking prompt</button><button class="btn" type="button" data-action="import-alerts" aria-haspopup="dialog" aria-controls="importAlertsMount" title="Preview the manual GitHub job-alert importer">${icon('refresh')} Import Alerts</button><button class="btn" data-action="repair-ranks" title="Optional one-time confirmation: restore AM and AO formulas without changing scores">${icon('refresh')} Fix rank formulas</button></div></div></section>`+`<div class="kpis">${kpi('Discovered',state.stats?state.stats.discovered:'—','Vacancies in Taaza','discover')}${kpi('Applications',state.stats?state.stats.applications:'—','Jobs in Freshmaal','brief')}${kpi('Shortlisted',state.stats?state.stats.selected:'—',state.candidate+' selected','target')}${kpi('CV requested',state.stats?state.stats.cvRequested:'—','Existing CV checkboxes','shield')}</div>${!DEMO&&!isAppInstalled()?`<section class="panel garamaal-install-card"><div><strong>Install Garamaal</strong><span>Open from your phone home screen — no browser menu needed when installation is supported.</span></div><button class="btn btn-primary" type="button" data-action="install-app">Install app</button></section>`:'' }<div class="grid2"><section class="panel"><div class="subhead">Next move</div><div class="quick"><button class="btn" data-action="quick" data-value="missing">${icon('file')} Seems Kacha</button><button class="btn" data-action="quick" data-value="ready">${icon('arrow')} Seems Fresh</button><button class="btn" data-action="quick" data-value="cv">${icon('files')} Make CV</button><button class="btn" data-action="quick" data-value="selected">${icon('target')} Shortlisted</button><button class="btn" data-action="view-not-interested" data-source="discovery">${icon('trash')} Not Interested · Taaza</button><button class="btn" data-action="view-not-interested" data-source="fresh">${icon('trash')} Not Interested · CV</button></div><div style="margin-top:10px"><button class="btn btn-xs" data-action="migrate-preferences">Set up Sheets preference dropdowns</button></div></section><section class="panel flow-strip"><div class="flow-title">From vacancy to CV</div><div class="flow-trail"><span>Seems Kacha</span><span>Seems Taaza</span><span>Seems Fresh</span><span>Garam CV Ready</span></div></section></div>`}
 function filterOptions(){return state.section==='discovery'?[['all','All jobs'],['missing','Seems Kacha'],['ready','Seems Taaza'],['favorites','Favorites ★'],['not-interested','Not Interested']]:[['all','All jobs'],['unapplied','Unapplied · CV ready'],['selected','My shortlist'],['cv','CV requests'],['applied','Applied'],['unscored','Unscored'],['favorites','Favorites ★'],['not-interested','Not Interested']]}
 function discoveryTabs(){
  if(state.section!=='discovery')return '';
@@ -851,5 +881,74 @@ if(!DEMO){
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)pollCvQueue()});
 }
 </script>
+<script>
+/* Import Alerts control lives in the Jobs dashboard beside Copy ranking prompt.
+   No API dispatch or Google Sheets writes. The real Python importer is still
+   held on a feature branch pending user approval and shared-Gmail OAuth. */
+(function(){
+ "use strict";
+ const mount=document.getElementById("importAlertsMount");
+ const actions="https://github.com/abhisheknair607-ux/automate_cv/actions";
+ const workflow="https://github.com/abhisheknair607-ux/automate_cv/blob/feature/linkedin-alerts-taaza-20261026/.github/workflows/linkedin-alerts-to-taaza.yml";
+ let opener=null;
+ function close(){
+  if(!mount||!mount.firstChild)return;
+  mount.replaceChildren();
+  if(opener?.isConnected)opener.focus();
+  opener=null;
+ }
+ function open(button){
+  if(!mount)return;
+  opener=button;
+  mount.innerHTML=
+   '<div class="alerts-shade" data-alert-dismiss="backdrop">'+
+   '<section class="alerts-pop" role="dialog" aria-modal="true" aria-labelledby="alerts-title" aria-describedby="alerts-subtitle">'+
+   '<div class="alerts-head"><div><strong id="alerts-title">Import Alerts</strong>'+
+   '<small id="alerts-subtitle">Manual importer · GitHub Actions</small></div>'+
+   '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Import Alerts">×</button></div>'+
+   '<div class="alerts-body">'+
+   '<div class="alerts-flow" aria-label="Workflow"><span>Garamaal</span><i>→</i><span>GitHub</span><i>→</i><span>Gmail</span><i>→</i><span>Taaza</span></div>'+
+   '<p class="alerts-text">The dashboard will trigger Python in GitHub Actions, not run the importer in the browser. '+
+   'GitHub dispatch requires an authenticated request; Gmail and Google Sheets APIs are required. No OpenAI API or paid AI ranking is involved.</p>'+
+   '<div class="alerts-steps">'+
+   '<div class="alerts-step"><strong>Preview · no changes</strong>'+
+   '<span>Read alerts and review extracted jobs, candidate, company and location before importing.</span></div>'+
+   '<div class="alerts-step"><strong>Run Import · awaiting approval</strong>'+
+   '<span>LinkedIn and Indeed are staged. IrishJobs and Jobs.ie need real-format validation. '+
+   'Only verified Ireland/UK jobs go to Taaza Email Alerts, with duplicates excluded.</span></div>'+
+   '<div class="alerts-step"><strong>Last run · GitHub Actions</strong>'+
+   '<span>Review workflow history and any errors on GitHub. This popup does not claim a run has started.</span></div>'+
+   '</div>'+
+   '<div class="alerts-foot">'+
+   '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">View GitHub Actions ↗</a>'+
+   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow setup ↗</a>'+
+   '<button class="btn" type="button" data-alert-dismiss="close">Close</button>'+
+   '</div>'+
+   '<p class="alerts-note">Not active yet: parser approval and shared Gmail authorization are required. '+
+   'No Google Sheet will be updated by opening this popup.</p>'+
+   '</div></section></div>';
+  mount.querySelector('[data-alert-dismiss="close"]').focus();
+ }
+ document.addEventListener("click",function(e){
+  const button=e.target.closest('[data-action="import-alerts"]');
+  if(button){e.preventDefault();open(button);return;}
+  if(!mount?.firstChild)return;
+  if(e.target.matches('[data-alert-dismiss="backdrop"]') ||
+      e.target.closest('[data-alert-dismiss="close"]')){e.preventDefault();close();}
+ });
+ document.addEventListener("keydown",function(e){
+  if(!mount?.firstChild)return;
+  if(e.key==="Escape"){e.preventDefault();e.stopImmediatePropagation();close();return;}
+  if(e.key!=="Tab")return;
+  const dialog=mount.querySelector('[role="dialog"]');
+  const focusable=Array.from(dialog.querySelectorAll('button:not([disabled]),a[href]'));
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+ },true);
+})();
+</script>
+
 </body>
 </html>
