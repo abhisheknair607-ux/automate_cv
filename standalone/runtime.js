@@ -129,6 +129,28 @@ async function invoke(method,arg,options) {
   const result=vm.runInContext(method+"(__rpcArg)",context,{
     filename:"standalone/call",timeout:120000
   });
+  // The release UI controller owns candidate preferences, while Freshmaal's
+  // separate BE/BF application progress is maintained by the legacy worker.
+  // Merge that read-only progress onto scoped Swipe cards so statuses survive
+  // reloads without changing either Code.gs or the CV-generation workflow.
+  if(scoped && arg?.source==="fresh" && ["listJobs","getJob"].includes(method)){
+    context.__swipeReadResult=result;
+    context.__swipeCandidate=arg.candidate;
+    vm.runInContext(`(function(){
+      const rows=Array.isArray(__swipeReadResult?.rows)
+        ?__swipeReadResult.rows:[__swipeReadResult].filter(Boolean);
+      if(!rows.length)return;
+      const first=Math.min(...rows.map(x=>x.row));
+      const last=Math.max(...rows.map(x=>x.row));
+      const column=__swipeCandidate==="Pooja"?58:57;
+      const cells=sheet_("fresh").getRange(first,column,last-first+1,1).getDisplayValues();
+      for(const job of rows){
+        const stored=String(cells[job.row-first]?.[0]||"").trim();
+        job.progress=stored||(
+          String(job.status||"").toLowerCase()==="applied"?"Applied":"Unapplied");
+      }
+    })()`,context,{filename:"standalone/swipe-progress-read",timeout:15000});
+  }
   return JSON.parse(JSON.stringify(result===undefined?null:result));
 }
 async function invokeSwipe(method,arg,options) {
