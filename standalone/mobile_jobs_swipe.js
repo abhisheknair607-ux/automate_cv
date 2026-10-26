@@ -248,7 +248,7 @@
    '<div class="gmv3-choice-heading"><div><span>NEXT STEP</span><h3>'+clean(job.role||"Job")+'</h3></div><button type="button" data-gs-option="close" aria-label="Close options">×</button></div>'+
    '<p>'+clean(job.company||"")+' · '+clean(badge(job))+'</p>'+
    '<div class="gmv3-choice-buttons">'+options+'</div>'+
-   '<p class="gmv3-choice-note">Actions save to your candidate’s Google Sheets. Preparing a CV does not start a paid run.</p></section></div>';
+   '<p class="gmv3-choice-note">Your selected next step saves to Google Sheets. No paid CV run starts here.</p></section></div>';
   box.querySelector('[data-gs-option="close"]')?.focus();
  }
  function closeOptions(){panelOpen=false;const el=surface?.querySelector("#gmv3-swipe-action-layer");if(el)el.innerHTML="";card?.focus()}
