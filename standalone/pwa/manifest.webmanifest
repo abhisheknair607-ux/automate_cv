@@ -1,0 +1,37 @@
+{
+  "id": "/",
+  "name": "Garamaal — Job Control Centre",
+  "short_name": "Garamaal",
+  "description": "Manage job applications, tailored CVs and cover letters from your phone or desktop.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f5f7fb",
+  "theme_color": "#132a49",
+  "icons": [
+    {
+      "src": "/garamaal-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/garamaal-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/garamaal-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "lang": "en",
+  "categories": [
+    "business",
+    "productivity"
+  ]
+}

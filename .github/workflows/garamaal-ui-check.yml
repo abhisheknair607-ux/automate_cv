@@ -1,0 +1,52 @@
+name: Garamaal UI integration safety
+on:
+  pull_request:
+    paths: ["standalone/**", "garamaal-release-webapp/**", "Dockerfile.garamaal-ui", "package.json", ".github/workflows/garamaal-ui-check.yml"]
+  push:
+    branches: [main]
+    paths: ["standalone/**", "garamaal-release-webapp/**", "Dockerfile.garamaal-ui", "package.json", ".github/workflows/garamaal-ui-check.yml"]
+permissions:
+  contents: read
+jobs:
+  protect-worker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Assert worker and original Dashboard were never changed by UI release
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code HEAD^ HEAD -- Dockerfile src prompts requirements.txt webapp/Code.gs webapp/Index.html
+  standalone-ui:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Test production UI webapp snapshot alongside standalone code
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/garamaal-ui-test
+          cp -R standalone /tmp/garamaal-ui-test/standalone
+          cp -R garamaal-release-webapp /tmp/garamaal-ui-test/webapp
+          cp package.json /tmp/garamaal-ui-test/package.json
+          cp Dockerfile.garamaal-ui /tmp/garamaal-ui-test/Dockerfile.standalone
+          cd /tmp/garamaal-ui-test
+          node --check standalone/server.js
+          node --check standalone/mobile_jobs_filters_stats.js
+          node --test \
+            standalone/test/parity.test.js \
+            standalone/test/stage3_candidate_progress.test.js \
+            standalone/test/stage3_ribbon_drawer.test.js \
+            standalone/test/stage13_live_bulk.test.js \
+            standalone/test/stage14_location_filters.test.js \
+            standalone/test/stage15_multifacet.test.js \
+            standalone/test/stage17_production_gate.test.js \
+            standalone/test/tactile_hold_state.test.js
+      - name: Verify production image can be assembled without modifying CV worker
+        run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
