@@ -10,8 +10,8 @@ var GARAMAAL_ALERTS = Object.freeze({
   sheetId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
   intakeTab: 'Email Alerts',
   logTab: 'Email Import Log',
-  importedLabel: 'Job Discovery/Imported',
-  reviewLabel: 'Job Discovery/Review',
+  importedLabel: 'Job Alerts/Imported',
+  reviewLabel: 'Job Alerts/Error',
   maxThreads: 100,
   search: 'from:jobalerts-noreply@linkedin.com newer_than:7d -in:spam -in:trash'
 });
