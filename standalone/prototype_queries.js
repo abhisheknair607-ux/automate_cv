@@ -113,7 +113,20 @@ function gmListJobsFaceted(options){
  const values=k=>[...new Set(rows.map(x=>short(x[k])).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
  const choices={company:values("company"),location:values("location"),
    designation:values("role"),department:values("department")};
- for(const [field,key] of [["company","company"],["location","location"],["designation","role"],["department","department"]]){
+ // Excel-style location selection. Client sends exact displayed values from
+ // candidate-scoped source options, NOT a raw text expression or a Sheet write.
+ // Exclusions accumulate over multiple text searches on the client.
+ const loc=options.locationSelection&&typeof options.locationSelection==="object"
+   ?options.locationSelection:{};
+ const locMode=String(loc.mode||"all");
+ if(!["all","only","except"].includes(locMode))throw new Error("Invalid location selection mode");
+ const entries=loc.values==null?[]:loc.values;
+ if(!Array.isArray(entries)||entries.length>750)throw new Error("Too many selected location variants");
+ const picked=new Set(entries.map(v=>short(v)).filter(Boolean));
+ if(locMode!=="all"&&picked.size){
+  rows=rows.filter(x=>locMode==="except"?!picked.has(short(x.location)):picked.has(short(x.location)));
+ }
+ for(const [field,key] of [["company","company"],["designation","role"],["department","department"]]){
   const value=text(short(facet[field]));
   if(value)rows=rows.filter(x=>text(x[key]).includes(value));
  }
