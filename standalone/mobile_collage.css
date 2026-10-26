@@ -1043,3 +1043,62 @@ body.gmv3-jobs-workspace .gmv3-followup-stats>div{
     transform:none!important;transition:none!important;
   }
 }
+
+
+/* Stage 10: real touchscreen feedback, not hover-only styling. */
+@keyframes gmv3-tactile-lift{
+  0%{transform:translateY(0) scale(1);filter:brightness(1)}
+  33%{transform:translateY(-6px) scale(1.024);filter:brightness(1.07)}
+  68%{transform:translateY(-5px) scale(1.018);filter:brightness(1.06)}
+  100%{transform:translateY(0) scale(1);filter:brightness(1)}
+}
+body.gmv3-jobs-workspace #content .jobs > .job,
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi,
+body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div{
+  transform-origin:center!important;
+  transition:transform .21s cubic-bezier(.18,.84,.2,1),box-shadow .21s ease,border-color .21s ease!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ body.gmv3-jobs-workspace #content .jobs > .job:hover,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:hover,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div:hover{
+   transform:translateY(-6px) scale(1.024)!important;
+   border-color:#dfff58!important;
+   box-shadow:0 0 0 1px #dfff5870,7px 12px 0 #09070b!important;
+   filter:brightness(1.06);
+ }
+}
+@media(prefers-reduced-motion:no-preference){
+ body.gmv3-jobs-workspace #content .jobs > .job.gmv3-tactile-pulse,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi.gmv3-tactile-pulse,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div.gmv3-tactile-pulse{
+   animation:gmv3-tactile-lift .42s cubic-bezier(.13,.72,.2,1) both!important;
+   border-color:#dfff58!important;
+   box-shadow:0 0 0 1px #dfff5890,7px 12px 0 #09070b!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace #content .jobs > .job.gmv3-tactile-pulse,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi.gmv3-tactile-pulse,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div.gmv3-tactile-pulse{
+   animation:none!important;transform:none!important;transition:none!important;
+ }
+}
+/* Collapsed card must permit natural page scrolling. Swiping DOWN to
+   postpone is still available from the dedicated top drag grip. */
+body.gmv3-jobs-workspace #gmv3-jobs-swipe{
+  touch-action:pan-y!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-drag-card{
+  touch-action:pan-y!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-swipe-drag-grip{
+  touch-action:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra{
+  touch-action:pan-y!important;
+  max-height:min(42dvh,410px)!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+}
