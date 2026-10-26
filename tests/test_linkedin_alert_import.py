@@ -112,6 +112,8 @@ class FakeSheets:
             val = self.tabs[li.INTAKE] if "A1:P1" in a1 else [[r[2]] for r in self.tabs[li.INTAKE][1:]]
         elif a1.startswith("'Email Import Log'!"):
             val = self.tabs[li.LOG] if "A1:K1" in a1 else [r[1:10] for r in self.tabs[li.LOG][1:]]
+        elif a1.startswith("'Jobs'!C2:C"):
+            val = [[url] for url in getattr(self, "master_urls", [])]
         else:
             raise AssertionError(a1)
         return Exec({"values": val})
@@ -302,4 +304,45 @@ def test_review_uses_exact_25_oct_dublin_local_window(monkeypatch):
     assert f"after:{int(start.timestamp())}" in gmail.last_query
     assert f"before:{int(end.timestamp())}" in gmail.last_query
     assert result["preview"] is True
+    assert sheets.added == []
+
+
+def test_alert_skips_job_already_present_only_in_master(monkeypatch):
+    """A vacancy unique to the Jobs tab must not be reimported."""
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    sheets.master_urls = [
+        "https://ie.linkedin.com/jobs/view/4428148635/?trackingId=abc"
+    ]
+    gmail = FakeGmail({"m": fake_digest()})
+    preview = li.run(gmail, sheets, preview=True)
+    assert preview["added"] == 0
+    assert preview["duplicates"] == 1
+    assert sheets.added == []
+    applied = li.run(gmail, sheets, preview=False)
+    assert applied["added"] == 0
+    assert len(sheets.tabs[li.INTAKE]) == 1
+
+
+def test_importer_same_role_different_requisition_not_exact(monkeypatch):
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    sheets.master_urls = ["https://www.linkedin.com/jobs/view/4428148636/"]
+    gmail = FakeGmail({"m": fake_digest()})
+    result = li.run(gmail, sheets, preview=True)
+    assert result["added"] == 1
+    assert result["duplicates"] == 0
+
+
+def test_importer_missing_master_authorization_is_not_ignored(monkeypatch):
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    original = sheets.get
+    def broken_get(**kwargs):
+        if "'Jobs'!C2:C" in kwargs.get("range", ""):
+            raise RuntimeError("master Jobs permissions missing")
+        return original(**kwargs)
+    monkeypatch.setattr(sheets, "get", broken_get)
+    with pytest.raises(RuntimeError, match="master Jobs"):
+        li.run(FakeGmail({"m": fake_digest()}), sheets, preview=False)
     assert sheets.added == []
