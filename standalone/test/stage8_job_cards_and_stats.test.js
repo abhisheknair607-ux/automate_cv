@@ -65,7 +65,7 @@ test("Scroll within expanded Swipe card is native and never mistaken for downwar
  assert.match(js,/if\(e\.target\.closest\?\.\("\.gmv3-swipe-extra"\)\)return/);
  assert.match(js,/if\(command==="toggle"\)/);
  assert.match(js,/remaining\.slice\(0,maxExtra\)/);
- assert.match(js,/maxExtra=Math\.min\(760/);
+ assert.match(js,/maxExtra=Math\.min\(1800/);
  assert.match(css,/\.gmv3-drag-card\.gmv3-card-expanded\{\s*touch-action:pan-y!important/);
  assert.match(css,/\.gmv3-swipe-drag-grip\{[\s\S]*?touch-action:none!important/);
  assert.match(css,/\.gmv3-card-expanded \.gmv3-swipe-extra\{[\s\S]*?overflow-y:auto!important/);
@@ -81,4 +81,39 @@ test("Dashboard KPI and pending counters share pronounced but accessible card li
  assert.match(css,/Stage 9 — dashboard statistics match the tactile listing hover/);
  assert.match(css,/\.gmv3-followup-stats>div:hover\{\s*transform:translateY\(-4px\) scale\(1\.012\)!important/);
  assert.match(css,/\.gmv3-followup-stats>div,\s*body\.gmv3-jobs-workspace #content button\.gmv3-pipeline-kpi\{\s*transform:none!important;transition:none!important/);
+});
+
+
+test("Phone gestures pan vertically through Swipe without deciding to postpone",()=>{
+ const js=read("standalone/mobile_jobs_swipe.js");
+ const css=read("standalone/mobile_collage.css");
+ assert.match(js,/pointer\.scrolling=true/);
+ assert.match(js,/if\(scrolling\)return/);
+ assert.match(js,/if\(dir==="down"&&!fromGrip\)return/);
+ assert.match(js,/const fromGrip=!!e\.target\.closest\("\.gmv3-swipe-drag-grip"\)/);
+ assert.match(js,/if\(fromGrip\|\|e\.pointerType!=="touch"\)node\.setPointerCapture/);
+ assert.match(css,/Stage 10: real touchscreen feedback/);
+ assert.match(css,/\.gmv3-drag-card\{\s*touch-action:pan-y!important/);
+ assert.match(css,/\.gmv3-swipe-drag-grip\{\s*touch-action:none!important/);
+ assert.match(css,/overflow-y:auto!important;-webkit-overflow-scrolling:touch/);
+});
+test("Actual touch/pointer animation applies to both Jobs and dashboard stat tiles",()=>{
+ const js=read("standalone/mobile_tactile_feedback.js");
+ const css=read("standalone/mobile_collage.css");
+ const server=read("standalone/server.js");
+ assert.doesNotThrow(()=>new vm.Script(js));
+ for(const pattern of ['#content .jobs > .job','#content button.gmv3-pipeline-kpi','#gmv3-goal-alerts .gmv3-followup-stats > div']){
+  assert.ok(js.includes(pattern),"touch target "+pattern);
+ }
+ assert.match(js,/e\.pointerType!=="touch"&&e\.pointerType!=="pen"/);
+ assert.match(js,/pointerdown",start/);
+ assert.match(js,/pointermove",move/);
+ assert.match(js,/pointercancel"/);
+ assert.match(css,/@keyframes gmv3-tactile-lift/);
+ assert.match(css,/\.gmv3-tactile-pulse/);
+ assert.match(css,/translateY\(-6px\) scale\(1\.024\)/);
+ assert.match(server,/\/prototype\/tactile-feedback\.js/);
+ assert.match(server,/Cache-Control","no-store, max-age=0/);
+ assert.match(server,/\?v=m26-touch-scroll-10/);
+ assert.match(read("standalone/mobile_jobs_filters_stats.js"),/setTimeout\(\(\)=>nav\(destination,status\),190\)/);
 });
