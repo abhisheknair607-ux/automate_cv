@@ -9,9 +9,13 @@ on:
         type: boolean
         default: false
       on_date:
-        description: Optional Dublin-local date for preview (YYYY-MM-DD)
+        description: Dublin-local alert date (YYYY-MM-DD)
         type: string
         default: "2026-10-25"
+      approval:
+        description: For writes only - explicitly approve importing validated jobs
+        type: string
+        default: ""
 
 permissions:
   contents: read
@@ -48,12 +52,13 @@ jobs:
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           APPLY: ${{ inputs.apply }}
           ON_DATE: ${{ inputs.on_date }}
-          GARAMAAL_ALERT_IMPORT_APPROVED: ${{ vars.GARAMAAL_ALERT_IMPORT_APPROVED }}
+          GARAMAAL_ALERT_IMPORT_APPROVED: ${{ inputs.apply && inputs.approval == 'IMPORT_VALIDATED_JOBS' && 'true' || 'false' }}
+          APPROVAL: ${{ inputs.approval }}
         run: |
           args=()
           if [[ -n "$ON_DATE" ]]; then args+=(--on-date "$ON_DATE"); fi
           if [[ "$APPLY" == "true" ]]; then
-            if [[ "$GARAMAAL_ALERT_IMPORT_APPROVED" != "true" ]]; then
+            if [[ "$GARAMAAL_ALERT_IMPORT_APPROVED" != "true" || "$APPROVAL" != "IMPORT_VALIDATED_JOBS" ]]; then
               echo "Write blocked: parser approval and shared Gmail authorization required." >&2
               exit 1
             fi
