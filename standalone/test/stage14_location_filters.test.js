@@ -78,7 +78,7 @@ test("invalid selections are rejected; filters, location script and CSS contain 
  assert.match(css,/height:100%;max-height:100%/);
  assert.match(js,/window\.visualViewport\?\.addEventListener\("resize",fitLocationViewport\)/);
  assert.match(server,/\/prototype\/location-variants\.js\?v=m26-location-14/);
- assert.match(server,/\/prototype\/filters-stats\.js\?v=m26-location-14/);
+ assert.match(server,/\/prototype\/filters-stats\.js\?v=m26-(?:location-14|facets-15)/);
  assert.doesNotMatch(SOURCE,/\.setValues?\s*\(|\.clearContent\s*\(/);
  const f=fixture();
  assert.throws(()=>f.list("fresh","Abhishek",{mode:"bad",values:["UK"]}),/Invalid location selection mode/);
