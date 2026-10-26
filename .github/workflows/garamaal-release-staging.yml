@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: a6b07d731316e4231d7e946878989ecfc3acd272
+      RELEASE_SHA: ff7e2542ddf6fd1f3250c3aced02832b4ae1685b
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: a6b07d731316e4231d7e946878989ecfc3acd272
+          ref: ff7e2542ddf6fd1f3250c3aced02832b4ae1685b
           path: release-src
       - uses: actions/setup-node@v4
         with:
