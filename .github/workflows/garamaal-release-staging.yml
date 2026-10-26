@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: 875169b9c3380cd629fe3bbcfa627192356e30bf
+      RELEASE_SHA: f3c23012332ac2a01d717b4543aff39b808ebf40
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: 875169b9c3380cd629fe3bbcfa627192356e30bf
+          ref: f3c23012332ac2a01d717b4543aff39b808ebf40
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -51,7 +51,7 @@ jobs:
           node --check release-src/standalone/mobile_jobs_swipe.js
           node --check release-src/standalone/mobile_jobs_filters_stats.js
           cd release-src
-          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js
+          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js
           cd ..
           python3 - <<'PY'
           import json
