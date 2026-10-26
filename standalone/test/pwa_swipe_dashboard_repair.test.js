@@ -11,7 +11,7 @@ test("dashboard ranks and alert importer are visually equal without changing han
  assert.match(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Ranking prompt/);
  assert.match(html,/class="btn btn-primary" type="button" data-action="import-alerts"/);
  assert.doesNotMatch(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Copy ranking prompt/);
- assert.match(html,/if\(a==='import-alerts'\)/);
+ assert.ok(html.includes('e.target.closest(\'[data-action="import-alerts"]\')'));
 });
 
 test("Chrome PWA manifest retains stable identity and has concrete working start route",()=>{
