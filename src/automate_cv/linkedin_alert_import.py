@@ -14,7 +14,8 @@ import os
 import re
 import sys
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from email import policy
 from email.parser import BytesParser
 from email.utils import parseaddr, parsedate_to_datetime
@@ -325,13 +326,21 @@ def _date(message) -> str:
 
 
 def run(gmail, sheets, *, preview: bool, days: int = 7,
-        max_messages: int = 100, retry_review: bool = False) -> dict:
+        max_messages: int = 100, retry_review: bool = False,
+        on_date: str | None = None) -> dict:
     """Import one Gmail message at a time; safe to rerun after partial writes."""
     check_headers(sheets)  # also ensures permission before processing email
     states = logged_states(sheets)
     existing = known_job_ids(sheets)
+    window = f"newer_than:{days}d"
+    if on_date:
+        selected = datetime.strptime(on_date, "%Y-%m-%d").date()
+        midnight = datetime.combine(selected, datetime.min.time(), ZoneInfo("Europe/Dublin"))
+        next_midnight = datetime.combine(selected + timedelta(days=1),
+                                         datetime.min.time(), ZoneInfo("Europe/Dublin"))
+        window = f"after:{int(midnight.timestamp())} before:{int(next_midnight.timestamp())}"
     search = (f"{{from:{SENDER} from:donotreply@jobalert.indeed.com "
-              f"from:irishjobs.ie from:jobs.ie}} newer_than:{days}d "
+              f"from:irishjobs.ie from:jobs.ie}} {window} "
               "-in:spam -in:trash")
     listing = gmail.users().messages().list(
         userId="me", q=search, maxResults=max_messages).execute(num_retries=3)
@@ -444,7 +453,13 @@ def main(argv=None) -> int:
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--max-messages", type=int, default=100)
     ap.add_argument("--retry-review", action="store_true")
+    ap.add_argument("--on-date", help="Preview only this Dublin-local date (YYYY-MM-DD)")
     args = ap.parse_args(argv)
+    if args.on_date:
+        try:
+            datetime.strptime(args.on_date, "%Y-%m-%d")
+        except ValueError:
+            ap.error("--on-date must be an actual date in YYYY-MM-DD format")
     if not 1 <= args.days <= 90 or not 1 <= args.max_messages <= 500:
         ap.error("days must be 1..90, max-messages must be 1..500")
     gmail = gmail_service()
@@ -452,7 +467,8 @@ def main(argv=None) -> int:
     for kind, sheets in sheet_service():
         try:
             result = run(gmail, sheets, preview=not args.apply, days=args.days,
-                         max_messages=args.max_messages, retry_review=args.retry_review)
+                         max_messages=args.max_messages, retry_review=args.retry_review,
+                         on_date=args.on_date)
             print(json.dumps({"sheets_auth": kind, **result}, sort_keys=True))
             return 0
         except Exception as exc:
