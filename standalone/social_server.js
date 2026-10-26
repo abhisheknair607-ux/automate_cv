@@ -108,13 +108,20 @@ app.get("/config",async(_req,res)=>{
 app.get("/social",(req,res)=>{
  if(req.query.gmv3!=="1")return res.type("html").sendFile(path.join(__dirname,"social.html"));
  let html=fs.readFileSync(path.join(__dirname,"social.html"),"utf8");
- const css=fs.readFileSync(path.join(__dirname,"mobile_hubs.css"),"utf8");
+ const css=fs.readFileSync(path.join(__dirname,"mobile_hubs.css"),"utf8")+"\n"+
+   fs.readFileSync(path.join(__dirname,"mobile_collage.css"),"utf8");
  const code=fs.readFileSync(path.join(__dirname,"mobile_social_hub.js"),"utf8");
  if(!html.includes("</head>")||!html.includes("</body>"))
   return res.status(500).type("text/plain").send("Social prototype source marker missing");
  html=html.replace("</head>","<style>"+css+"</style></head>");
  html=html.replace("</body>","<script>"+code+"</script></body>");
  res.type("html").send(html);
+});
+// Social-specific sprite endpoints exist only for the opt-in visual prototype.
+app.get("/social/assets/:file",(req,res)=>{
+ if(!["nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"].includes(req.params.file))
+  return res.status(404).end();
+ res.type(req.params.file.endsWith(".svg")?"image/svg+xml":"image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
 });
 app.get("/social/bridge.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js")));
 

@@ -1,0 +1,172 @@
+name: Garamaal controlled production promotion and rollback
+on:
+  push:
+    branches: [prototype/collage-frontend-integration-20261025]
+    paths: [.github/workflows/garamaal-production-promote.yml]
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: garamaal-production-promotion
+  cancel-in-progress: false
+jobs:
+  promote-tested-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROJECT: abhishek-cv-automation
+      REGION: europe-west1
+      SERVICE: automate-cv-dashboard
+      SOCIAL: automate-cv-social
+      OLD: automate-cv-dashboard-00030-tas
+      NEW: automate-cv-dashboard-00032-hol
+      TAG: gmv3-stage17
+      MAIN_SHA: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
+      VERIFIED_CANARY_RUN: "40268947531"
+      PUBLIC_URL: https://garamaal.web.app
+    steps:
+      - name: Require tested main, successful production canary and branch integrity
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/abhisheknair607-ux/automate_cv/git/ref/heads/main --jq '.object.sha')" = "$MAIN_SHA"
+          test "$(gh api repos/abhisheknair607-ux/automate_cv/actions/runs/$VERIFIED_CANARY_RUN --jq .conclusion)" = success
+          echo 'Verified production canary, merged-main SHA and approved commit.'
+      - name: Verify branch-specific deployment identity
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token=await core.getIDToken();
+            const claims=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8'));
+            const expected='repo:abhisheknair607-ux@245783264/automate_cv@1389062184:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            if(claims.sub!==expected)core.setFailed('Unexpected GitHub OIDC identity; abort promotion');
+      - name: Authenticate with existing scoped Google Cloud deployment identity
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Verify protected configuration, 100%-old routing and tagged canary
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud config set project "$PROJECT" >/dev/null
+          gcloud run services describe "$SERVICE" --region "$REGION" --format=json >/tmp/gm-prod-before-promotion.json
+          gcloud run services describe "$SOCIAL" --region "$REGION" --format=json >/tmp/gm-social-before-promotion.json
+          python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/gm-prod-before-promotion.json'))
+          tr=d['status']['traffic']
+          old=[x for x in tr if x.get('revisionName')==os.environ['OLD']]
+          new=[x for x in tr if x.get('tag')==os.environ['TAG']]
+          assert d['status']['latestReadyRevisionName']==os.environ['NEW'],'Candidate revision drifted'
+          assert len(old)==1 and old[0].get('percent')==100,'Original revision must still have 100%'
+          assert len(new)==1 and new[0].get('revisionName')==os.environ['NEW'] and new[0].get('percent',0)==0,'Canary must start at 0%'
+          spec=d['spec']['template']['spec']
+          assert spec['serviceAccountName']=='automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com'
+          env={e['name']:e for e in spec['containers'][0].get('env',[])}
+          required={'GARAMAAL_UI_V3':'true','APP_READ_ONLY':'false','APP_ALLOW_PRODUCTION_WRITES':'true',
+                    'ALLOW_MANUAL_CV_DISPATCH':'true','TAAZA_SPREADSHEET_ID':'1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
+                    'FRESHMAL_SPREADSHEET_ID':'1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'}
+          for k,v in required.items():assert env.get(k,{}).get('value')==v,'Production setting mismatch: '+k
+          assert env.get('GITHUB_WORKFLOW_TOKEN',{}).get('valueFrom',{}).get('secretKeyRef'),'GitHub secret missing'
+          assert env.get('ALLOWED_EMAILS',{}).get('value'),'Approved accounts restriction absent'
+          print('PROMOTION_PRECHECK_OK old='+os.environ['OLD']+' new='+os.environ['NEW'])
+          PY
+          curl -fsSL --max-time 25 "$PUBLIC_URL/health" |
+            python3 -c 'import json,sys; x=json.load(sys.stdin);assert x["ok"] and x["readOnly"] is False'
+          python3 - <<'PY'
+          import urllib.request,os
+          d=__import__('json').load(open('/tmp/gm-prod-before-promotion.json'))
+          t=next(x for x in d['status']['traffic'] if x.get('tag')==os.environ['TAG'])
+          u=t['url']
+          with urllib.request.urlopen(u+'/',timeout=30) as f:
+           assert b'gmv3-landing' in f.read(),'Candidate root not serving modern UI'
+          with urllib.request.urlopen(u+'/legacy',timeout=30) as f:
+           assert b'<header class="topbar">' in f.read(),'Legacy fallback unavailable'
+          print('CANDIDATE_UI_AND_LEGACY_OK')
+          PY
+      - name: Shift 5% then 100% only on passed checks; automatically roll back on any failure
+        shell: bash
+        run: |
+          set -Eeuo pipefail
+          touched=0
+          rollback() {
+            code=$?
+            trap - ERR
+            if [[ "$touched" -eq 1 ]]; then
+              echo "RELEASE_CHECK_FAILED reverting production traffic to $OLD" >&2
+              if gcloud run services update-traffic "$SERVICE" --region "$REGION" \
+                   --to-revisions "$OLD=100" --quiet; then
+                echo 'ROLLBACK_SUCCEEDED_OLD_REVISION_100_PERCENT' >&2
+              else
+                echo "ROLLBACK_FAILED: manual recovery required: gcloud run services update-traffic $SERVICE --region $REGION --to-revisions $OLD=100" >&2
+              fi
+            fi
+            exit "$code"
+          }
+          trap rollback ERR
+          touched=1
+          gcloud run services update-traffic "$SERVICE" --region "$REGION" \
+            --to-revisions "$OLD=95,$NEW=5" --quiet
+          gcloud run services describe "$SERVICE" --region "$REGION" --format=json >/tmp/gm-prod-5pct.json
+          python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/gm-prod-5pct.json'));tr=d['status']['traffic']
+          def percent(rev):return sum(x.get('percent',0) for x in tr if x.get('revisionName')==rev)
+          assert percent(os.environ['OLD'])==95 and percent(os.environ['NEW'])==5
+          print('PRODUCTION_CANARY_5_PERCENT_OK')
+          PY
+          curl -fsSL --max-time 25 "$PUBLIC_URL/health" |
+            python3 -c 'import json,sys; x=json.load(sys.stdin);assert x["ok"] and x["readOnly"] is False'
+          # Host-bound canary is verified; now promote the same revision to 100%.
+          gcloud run services update-traffic "$SERVICE" --region "$REGION" \
+            --to-revisions "$NEW=100" --quiet
+          gcloud run services describe "$SERVICE" --region "$REGION" --format=json >/tmp/gm-prod-100pct.json
+          python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/gm-prod-100pct.json'))
+          live=[x for x in d['status']['traffic'] if x.get('percent',0)>0]
+          assert len(live)==1 and live[0].get('revisionName')==os.environ['NEW'] and live[0].get('percent')==100
+          print('PRODUCTION_NEW_UI_REVISION_AT_100_PERCENT')
+          PY
+          python3 - <<'PY'
+          import urllib.request,json,os,time
+          root=os.environ['PUBLIC_URL']
+          for path,token in [('/',b'gmv3-landing'),('/prototype',b'garamaal-unified-header'),
+                             ('/legacy',b'<header class="topbar">')]:
+           error=None
+           for attempt in range(8):
+            try:
+             with urllib.request.urlopen(root+path,timeout=30) as response:
+              body=response.read()
+              assert response.status==200 and token in body
+             error=None;break
+            except Exception as e:
+             error=e;time.sleep(2)
+           assert error is None,'Production HTTP verification failed '+path+': '+str(error)
+           print('PRODUCTION_HTTP_OK',path)
+          with urllib.request.urlopen(root+'/health',timeout=30) as response:
+           d=json.load(response)
+          assert d.get('ok') and d.get('readOnly') is False
+          print('PRODUCTION_WRITE_SETTINGS_PRESERVED')
+          PY
+          gcloud run services describe "$SOCIAL" --region "$REGION" --format=json >/tmp/gm-social-after-promotion.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('/tmp/gm-social-before-promotion.json'))
+          b=json.load(open('/tmp/gm-social-after-promotion.json'))
+          def identity(x):return x['status']['latestReadyRevisionName'],[(t.get('revisionName'),t.get('percent')) for t in x['status'].get('traffic',[])]
+          assert identity(a)==identity(b),'Social revision or traffic changed'
+          print('PRODUCTION_SOCIAL_SERVICE_UNCHANGED',identity(a)[0])
+          PY
+          touched=0
+          trap - ERR
+          echo "### Garamaal production release passed" >> "$GITHUB_STEP_SUMMARY"
+          echo "Main: $MAIN_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Old revision: $OLD" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live new revision: $NEW (100% traffic)" >> "$GITHUB_STEP_SUMMARY"
+          echo "Live: $PUBLIC_URL" >> "$GITHUB_STEP_SUMMARY"

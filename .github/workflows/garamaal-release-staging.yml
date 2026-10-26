@@ -1,0 +1,267 @@
+name: Garamaal isolated release-candidate staging
+
+on:
+  push:
+    branches: [prototype/collage-frontend-integration-20261025]
+    paths: [.github/workflows/garamaal-release-staging.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: garamaal-release-candidate-staging-stage3-ui-fix
+  cancel-in-progress: true
+
+jobs:
+  audit-and-stage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      PROJECT: abhishek-cv-automation
+      REGION: europe-west1
+      LIVE_JOBS: automate-cv-dashboard
+      LIVE_SOCIAL: automate-cv-social
+      STAGING_JOBS: garamaal-collage-release-preview
+      RELEASE_SHA: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
+      PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+      ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
+    steps:
+      - name: Check out trusted staging config, not production
+        uses: actions/checkout@v4
+      - name: Check out pinned PR 64 code
+        uses: actions/checkout@v4
+        with:
+          ref: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
+          path: release-src
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Preflight version, source isolation and regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C release-src rev-parse HEAD)" = "$RELEASE_SHA"
+          test "$(git -C release-src rev-parse HEAD:garamaal-release-webapp)" = "60450ccb7ce301260a7f70d2ad096344e58440fb" || { echo "Tested standalone source snapshot changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:webapp)" = "c411474e8afc97eb5c254d2ca070c9ba04733bf2" || { echo "Existing main Jobs webapp changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:src)" = "b9dc561b57da497ab9292974a3d1a1e61e6937c5" || { echo "CV worker source changed, abort"; exit 1; }
+          # Stage tests must execute against the frozen QA-tested standalone HTML.
+          # This changes only the ephemeral CI checkout, never GitHub main.
+          rm -rf release-src/webapp
+          cp -R release-src/garamaal-release-webapp release-src/webapp
+          cp release-src/Dockerfile.garamaal-ui release-src/Dockerfile.standalone
+          node --check release-src/standalone/server.js
+          node --check release-src/standalone/runtime.js
+          node --check release-src/standalone/mobile_jobs_swipe.js
+          node --check release-src/standalone/mobile_jobs_filters_stats.js
+          cd release-src
+          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js standalone/test/stage13_live_bulk.test.js standalone/test/stage14_location_filters.test.js standalone/test/stage15_multifacet.test.js standalone/test/stage17_production_gate.test.js
+          cd ..
+          python3 - <<'PY'
+          import json
+          config=json.load(open('firebase.collage-preview.json'))
+          routes=config['hosting']['rewrites']
+          assert routes[-1]['run']['serviceId']=='garamaal-collage-jobs-preview'
+          assert config['hosting']['site']=='garamaal'
+          assert any(r['source']=='/social' and r['run']['serviceId']=='garamaal-collage-social-preview' for r in routes)
+          routes[-1]['run']['serviceId']='garamaal-collage-release-preview'
+          open('firebase.release-integration.json','w').write(json.dumps(config))
+          PY
+      - name: Verify branch-scoped Google federation, never borrow CV worker credentials
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token=await core.getIDToken();
+            const claims=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8'));
+            const expected='repo:abhisheknair607-ux@245783264/automate_cv@1389062184:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            if(claims.sub!==expected)core.setFailed('Unexpected OIDC identity. Refusing deployment.');
+      - name: Check dedicated preview authorization
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$PREVIEW_WIF_PROVIDER" || -z "$PREVIEW_WIF_SA" ]]; then
+            echo 'Preview deploy identity not configured; production remains untouched' >&2
+            exit 1
+          fi
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Capture production baseline and stage READ-ONLY configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release-audit
+          gcloud config set project "$PROJECT" >/dev/null
+          gcloud run services describe "$LIVE_JOBS" --region "$REGION" --format=json > /tmp/gm-live-jobs.json
+          gcloud run services describe "$LIVE_SOCIAL" --region "$REGION" --format=json > /tmp/gm-live-social.json
+          curl -fsSL --max-time 20 https://garamaal.web.app/config > /tmp/gm-public-config.json
+          curl -fsSL --max-time 20 https://garamaal.web.app/health > /tmp/gm-public-health.json
+          python3 - <<'PY'
+          import json,os
+          def read(p):return json.load(open(p))
+          jobs,social,cfg,health=map(read,['/tmp/gm-live-jobs.json','/tmp/gm-live-social.json','/tmp/gm-public-config.json','/tmp/gm-public-health.json'])
+          env=lambda d:{e['name']:e for e in d['spec']['template']['spec']['containers'][0].get('env',[])}
+          vals=lambda d:{k:v.get('value','') for k,v in env(d).items()}
+          j=vals(jobs);sj=vals(social)
+          assert cfg['projectId']==os.environ['PROJECT'] and all(cfg.get(k) for k in ['apiKey','authDomain','appId'])
+          assert health['ok'] is True and health['readOnly'] is False,'Unexpected public production health'
+          expected={'APP_READ_ONLY':'false','APP_ALLOW_PRODUCTION_WRITES':'true','ALLOW_MANUAL_CV_DISPATCH':'true'}
+          for k,v in expected.items():assert j.get(k)==v,f'Unexpected live gate: {k}'
+          assert env(jobs).get('GITHUB_WORKFLOW_TOKEN',{}).get('valueFrom',{}).get('secretKeyRef'),'Live GitHub secret attachment missing'
+          assert jobs['spec']['template']['spec'].get('serviceAccountName'),'Live runtime service account missing'
+          assert social['spec']['template']['spec'].get('serviceAccountName'),'Live Social service account missing'
+          allow=os.environ.get('ALLOWED_EMAILS_OVERRIDE') or j.get('ALLOWED_EMAILS','')
+          assert allow,'No approved preview accounts'
+          # Baseline artifact includes no user emails, spreadsheet IDs, access tokens or secret values.
+          def summarize(service):
+              status=service.get('status',{})
+              return {'service':service.get('metadata',{}).get('name'),
+                      'latestReadyRevisionName':status.get('latestReadyRevisionName'),
+                      'traffic':[{'revisionName':x.get('revisionName'),'percent':x.get('percent')} for x in status.get('traffic',[])],
+                      'serviceAccountPresent':bool(service['spec']['template']['spec'].get('serviceAccountName'))}
+          baseline={'project':os.environ['PROJECT'],'region':os.environ['REGION'],
+                    'releaseCandidateSha':os.environ['RELEASE_SHA'],
+                    'productionJobs':summarize(jobs),'productionSocial':summarize(social),
+                    'productionHealth':{'ok':health['ok'],'readOnly':health['readOnly']},
+                    'manualCvDispatchEnabled':j['ALLOW_MANUAL_CV_DISPATCH']=='true',
+                    'githubSecretAttached':True}
+          with open('release-audit/production-baseline.json','w') as file:json.dump(baseline,file,indent=2)
+          open('/tmp/release-live-revision','w').write(jobs['status']['latestReadyRevisionName'])
+          open('/tmp/release-runtime-sa','w').write(jobs['spec']['template']['spec']['serviceAccountName'])
+          # Staging only. No GitHub CV dispatch secret; never enable spreadsheet writes.
+          preview={'GOOGLE_CLOUD_PROJECT':os.environ['PROJECT'],'ALLOWED_EMAILS':allow,
+            'FIREBASE_WEB_API_KEY':cfg['apiKey'],'FIREBASE_AUTH_DOMAIN':cfg['authDomain'],'FIREBASE_WEB_APP_ID':cfg['appId'],
+            'TAAZA_SPREADSHEET_ID':j.get('TAAZA_SPREADSHEET_ID',''),
+            'FRESHMAL_SPREADSHEET_ID':j.get('FRESHMAL_SPREADSHEET_ID',''),
+            'APP_READ_ONLY':'true','APP_ALLOW_PRODUCTION_WRITES':'false','ALLOW_MANUAL_CV_DISPATCH':'false','GARAMAAL_UI_V3':'true'}
+          assert all(preview.values()),'Missing staging configuration; no fallback credentials'
+          with open('/tmp/release-preview-env.json','w') as file:json.dump(preview,file)
+          print('BASELINE_CAPTURED',baseline['productionJobs']['latestReadyRevisionName'],flush=True)
+          PY
+      - name: Build and publish pinned release-candidate image, not live image
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud auth configure-docker gcr.io --quiet
+          IMAGE="gcr.io/$PROJECT/$STAGING_JOBS:$RELEASE_SHA"
+          docker build -f release-src/Dockerfile.garamaal-ui -t "$IMAGE" release-src
+          docker push "$IMAGE"
+      - name: Deploy separate Cloud Run service, read-only and min instances zero
+        shell: bash
+        run: |
+          set -euo pipefail
+          IMAGE="gcr.io/$PROJECT/$STAGING_JOBS:$RELEASE_SHA"
+          gcloud run deploy "$STAGING_JOBS" --image "$IMAGE" \
+            --region "$REGION" --quiet --allow-unauthenticated \
+            --min-instances 0 --max-instances 1 --memory 512Mi \
+            --service-account "$(cat /tmp/release-runtime-sa)" \
+            --env-vars-file /tmp/release-preview-env.json
+          URL="$(gcloud run services describe "$STAGING_JOBS" --region "$REGION" --format='value(status.url)')"
+          curl -fsSL --max-time 30 "$URL/health" | python3 -c 'import json,sys; x=json.load(sys.stdin); assert x["ok"] and x["readOnly"] is True'
+      - name: Publish separate Firebase QA channel and test delivered assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes firebase-tools@14.22.0 hosting:channel:deploy collage-release-qa-20261026 \
+            --project "$PROJECT" --config firebase.release-integration.json --expires 7d \
+            --json > /tmp/release-firebase-channel.json
+          python3 - <<'PY'
+          import json,urllib.request,time,os
+          doc=json.load(open('/tmp/release-firebase-channel.json'))
+          urls=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  for v in x.values():walk(v)
+              elif isinstance(x,list):
+                  for v in x:walk(v)
+              elif isinstance(x,str) and x.startswith('https://') and '--' in x and '.web.app' in x:urls.append(x)
+          walk(doc)
+          assert urls,'Firebase returned no release-channel URL'
+          root=urls[0].rstrip('/')
+          paths=[
+           ('/prototype',b'gmv3-launch'),
+           ('/prototype',b'garamaal-header-controls'),
+           ('/prototype',b'/prototype/ui-polish.js?v=m26-icons-16'),
+           ('/prototype/ui-polish.js?v=m26-icons-16',b'gmv3-clear-selected'),
+           ('/prototype',b'/prototype/location-variants.js?v=m26-location-14'),
+           ('/prototype/location-variants.js?v=m26-location-14',b'GaramaalLocationVariants'),
+           ('/prototype',b'/prototype/filters-stats.js?v=m26-facets-15'),
+           ('/prototype/filters-stats.js?v=m26-facets-15',b'locationField("company")'),
+           ('/prototype/collage.css?v=m26-icons-16',b'Stage 16: compact icon-only'),
+           ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 13: minimal LIVE'),
+           ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 12: sustained neon halo'),
+           ('/prototype/tactile-feedback.js?v=m26-neon-held-12',b'gmv3-tactile-held'),
+           ('/prototype/hub-swipe.js?v=m26-neon-held-12',b'pointer.scrolling=true'),
+           ('/prototype/assets/home-collage-strip.webp',b'WEBP'),
+           ('/health',b'"readOnly":true'),
+           ('/social?gmv3=1',b'')
+          ]
+          for suffix,needle in paths:
+              err=None
+              for attempt in range(6):
+                  try:
+                      with urllib.request.urlopen(root+suffix,timeout=25) as response:
+                          content=response.read(1000000)
+                          assert response.status==200 and (not needle or needle in content),f'Missing expected content: {suffix}'
+                      print('RELEASE_QA_SMOKE_OK '+suffix,flush=True)
+                      err=None
+                      break
+                  except Exception as e:
+                      err=e
+                      time.sleep(3)
+              if err:raise SystemExit('RELEASE_QA_SMOKE_FAILED '+suffix+': '+str(err))
+          with urllib.request.urlopen(root+'/',timeout=25) as response:
+              html=response.read()
+              assert b'gmv3-launch' in html,'Enabled homepage did not show approved collage launcher'
+          print('RELEASE_QA_URL: '+root+'/prototype',flush=True)
+          open('release-audit/release-qa-url.txt','w').write(root+'/prototype\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GARAMAAL_QA_URL='+root+'/prototype\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+              f.write('### Separate read-only PR #64 integration staging\n\n')
+              f.write('**QA:** '+root+'/prototype\n\n')
+              f.write('Live Firebase Hosting and production Cloud Run were not deployed.\n')
+          PY
+      - name: Install Chrome browser QA harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v google-chrome || command -v google-chrome-stable
+          npm install --no-audit --no-fund --prefix /tmp/garamaal-browserqa --no-save playwright-core@1.56.1
+          node --check release-src/standalone/test/stage3_browser_qa.cjs
+      - name: Simulated browser QA on actual staging HTML and assets (desktop and mobile)
+        shell: bash
+        env:
+          PLAYWRIGHT_CORE_PATH: /tmp/garamaal-browserqa/node_modules/playwright-core
+          GARAMAAL_QA_SHOTS: release-audit/screenshots
+        run: |
+          set -euo pipefail
+          mkdir -p release-audit/screenshots
+          timeout 180s node release-src/standalone/test/stage3_browser_qa.cjs
+      - name: Assert production Cloud Run revision and traffic unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud run services describe "$LIVE_JOBS" --region "$REGION" --format=json > /tmp/gm-live-after.json
+          python3 - <<'PY'
+          import json
+          before=json.load(open('/tmp/gm-live-jobs.json'))
+          after=json.load(open('/tmp/gm-live-after.json'))
+          def snapshot(d):
+              return d['status']['latestReadyRevisionName'],[(x.get('revisionName'),x.get('percent')) for x in d['status'].get('traffic',[])]
+          assert snapshot(before)==snapshot(after),'Production Cloud Run revision or traffic changed during staging'
+          print('PRODUCTION_REVISION_AND_TRAFFIC_UNCHANGED',flush=True)
+          PY
+      - name: Preserve sanitized production baseline and staging URL
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: garamaal-release-qa-baseline
+          path: release-audit/
+          if-no-files-found: warn
+          retention-days: 14

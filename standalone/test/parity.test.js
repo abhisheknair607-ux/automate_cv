@@ -16,8 +16,14 @@ test("legacy source unchanged and all exposed operations wrapped",()=>{
   const operations=["getBootstrap","listJobs","getJob","setNotInterested","addDiscovery",
     "saveDiscovery","transferJob","bulkTransfer","updateFreshJD","getCopyPrompt",
     "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","updateApplicationProgress","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
-  assert.deepEqual([...METHODS].sort(),operations.sort());
-  for(const name of METHODS)assert.ok(names.includes(name),name+" missing");
+  const previewOnly=["gmPipelineStats","gmListJobsFaceted"];
+  assert.deepEqual([...METHODS].filter(x=>!previewOnly.includes(x)).sort(),operations.sort());
+  for(const name of METHODS)if(!previewOnly.includes(name))assert.ok(names.includes(name),name+" missing");
+  // New preview endpoints are derived from legacy reads and cannot write to Sheets.
+  for(const name of previewOnly){
+    assert.ok(METHODS.has(name),name+" must be a known endpoint");
+    assert.ok(READ_ONLY_METHODS.has(name),name+" must remain read-only");
+  }
   // The migration must not fork candidate-specific sheet mappings or logic.
   assert.match(source,/Abhishek:\s*\{cv:8/);
   assert.match(source,/Pooja:\s*\{cv:5/);

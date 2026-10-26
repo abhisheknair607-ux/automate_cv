@@ -42,7 +42,7 @@ test("Standalone /prototype route composes the original bridge and unchanged fea
   '<body class="gmv3-landing">','What do','Update profile','Apply jobs','Network','Statistics',
   'id="deskNav"','id="mobileNav"','function nav(','function render(){',
   'src="/bridge.js"','src="/dashboard-ranking.js"','src="/dashboard-connections.js"',
-  'src="/prototype/mobile-shell.js"','href="/prototype/mobile-shell.css"'
+  'src="/prototype/mobile-shell.js?v=m26-neon-held-12"','href="/prototype/mobile-shell.css?v=m26-neon-held-12"'
  ])assert.ok(served.includes(fragment),"Missing output "+fragment);
  assert.equal((served.match(/id="gmv3-launch"/g)||[]).length,1);
  assert.equal((served.match(/id="deskNav"/g)||[]).length,1);
@@ -75,7 +75,7 @@ test("Stage 1 client script compiles and launcher actions never override the leg
  vm.runInNewContext(source,{document,window:win,state:{candidate:"Abhishek"},nav:page=>navigation.push(page)},{timeout:1000});
  assert.ok(launch.handlers.click);
  assert.ok(barButton);
- assert.equal(avatar.textContent,"A");
+ assert.equal(avatar.textContent,"E");
  const click=(action)=>{
   const target={closest:()=>({getAttribute:()=>action})};
   launch.handlers.click({target});
@@ -84,8 +84,8 @@ test("Stage 1 client script compiles and launcher actions never override the leg
  click("home");assert.equal(subview.hidden,true);
  click("jobs");assert.equal(navigation.at(-1),"dashboard");assert.ok(classes.has("gmv3-workspace")&&!classes.has("gmv3-landing"));
  assert.equal(barButton.textContent,"‹");barButton.handlers.click();assert.ok(classes.has("gmv3-landing"));
- click("statistics");assert.ok(subbody.innerHTML.includes("Existing live Jobs statistics"));
- click("targets");assert.ok(subbody.innerHTML.includes("weekly target"));
+ click("statistics");assert.equal(navigation.at(-1),"dashboard");assert.ok(classes.has("gmv3-workspace"));
+ click("targets");assert.equal(navigation.at(-1),"dashboard");assert.ok(classes.has("gmv3-workspace"));
  click("reminders");assert.ok(subbody.innerHTML.includes("Review shortlisted jobs"));
  click("network");assert.equal(opened[0],"/social?gmv3=1");
 });

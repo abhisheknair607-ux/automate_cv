@@ -1,0 +1,148 @@
+name: Garamaal protected production 0%-traffic canary
+on:
+  push:
+    branches: [prototype/collage-frontend-integration-20261025]
+    paths: [.github/workflows/garamaal-production-canary.yml]
+permissions:
+  contents: read
+  actions: read
+  id-token: write
+concurrency:
+  group: garamaal-protected-production-canary
+  cancel-in-progress: false
+jobs:
+  production-canary:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PROJECT: abhishek-cv-automation
+      REGION: europe-west1
+      SERVICE: automate-cv-dashboard
+      SOCIAL: automate-cv-social
+      EXPECTED_LIVE: automate-cv-dashboard-00030-tas
+      EXPECTED_CANARY: automate-cv-dashboard-00032-hol
+      PINNED_MAIN_SHA: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
+      PINNED_STAGING_RUN: "40268412983"
+      TAG: gmv3-stage17
+    steps:
+      - name: Prove main image passed isolated staging before any production action
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          test "$(gh api repos/abhisheknair607-ux/automate_cv/actions/runs/$PINNED_STAGING_RUN --jq .conclusion)" = success
+          test "$(gh api repos/abhisheknair607-ux/automate_cv/git/ref/heads/main --jq '.object.sha')" = "$PINNED_MAIN_SHA"
+          echo "Main source and isolated browser-tested staging both pinned."
+      - name: Verify restricted deployment identity
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token=await core.getIDToken();
+            const claims=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8'));
+            const expected='repo:abhisheknair607-ux@245783264/automate_cv@1389062184:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            if(claims.sub!==expected)core.setFailed('Unexpected GitHub branch identity; deny production release');
+      - name: Authenticate with existing limited preview deployer; never copy production secrets
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Capture old live revision and enforce protected CV/Sheets configuration
+        run: |
+          set -euo pipefail
+          gcloud config set project "$PROJECT" >/dev/null
+          gcloud run services describe "$SERVICE" --region "$REGION" --format=json > /tmp/garamaal-prod-before.json
+          gcloud run services describe "$SOCIAL" --region "$REGION" --format=json > /tmp/garamaal-social-before.json
+          python3 - <<'PY'
+          import json,os
+          d=json.load(open('/tmp/garamaal-prod-before.json'))
+          spec=d['spec']['template']['spec']
+          assert d['status']['latestReadyRevisionName'] in (os.environ['EXPECTED_LIVE'],os.environ['EXPECTED_CANARY']),'Unknown live/canary revision'
+          serving=[x for x in d['status'].get('traffic',[]) if x.get('percent',0)>0]
+          assert len(serving)==1 and serving[0].get('revisionName')==os.environ['EXPECTED_LIVE'] and serving[0].get('percent')==100,'Live service traffic unexpectedly split'
+          assert spec['serviceAccountName']=='automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com'
+          env={e['name']:e for e in spec['containers'][0].get('env',[])}
+          gates={'APP_READ_ONLY':'false','APP_ALLOW_PRODUCTION_WRITES':'true','ALLOW_MANUAL_CV_DISPATCH':'true',
+                 'TAAZA_SPREADSHEET_ID':'1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
+                 'FRESHMAL_SPREADSHEET_ID':'1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'}
+          for k,v in gates.items(): assert env.get(k,{}).get('value')==v,'Live gate '+k+' differs'
+          assert env.get('GITHUB_WORKFLOW_TOKEN',{}).get('valueFrom',{}).get('secretKeyRef'),'Secret attachment missing'
+          if d['status']['latestReadyRevisionName']==os.environ['EXPECTED_LIVE']:
+           assert env.get('GARAMAAL_UI_V3',{}).get('value','false')!='true','Homepage switch unexpectedly enabled'
+          else:
+           assert env.get('GARAMAAL_UI_V3',{}).get('value')=='true','Unexpected canary flag'
+           canary=[x for x in d['status'].get('traffic',[]) if x.get('tag')==os.environ['TAG']]
+           assert len(canary)==1 and canary[0].get('revisionName')==os.environ['EXPECTED_CANARY'] and canary[0].get('percent',0)==0,'Canary not at 0%'
+
+          assert env.get('ALLOWED_EMAILS',{}).get('value',''),'Approved account restriction missing'
+          print('LIVE_BASELINE_SAFE',d['status']['latestReadyRevisionName'])
+          PY
+          curl -fsSL --max-time 25 https://garamaal.web.app/health |
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["ok"] and d["readOnly"] is False'
+      - name: Publish merged-main image to new production revision with 0 percent traffic
+        run: |
+          set -euo pipefail
+          IMAGE="gcr.io/$PROJECT/garamaal-collage-release-preview:$PINNED_MAIN_SHA"
+          CURRENT="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.latestReadyRevisionName)')"
+          if [[ "$CURRENT" == "$EXPECTED_CANARY" ]]; then
+            echo 'Using existing audited zero-traffic revision; no duplicate deployment.'
+          elif [[ "$CURRENT" == "$EXPECTED_LIVE" ]]; then
+            gcloud run deploy "$SERVICE" --region "$REGION" --image "$IMAGE" \
+              --no-traffic --tag "$TAG" --update-env-vars GARAMAAL_UI_V3=true --quiet
+          else
+            echo "Unknown revision. Aborting without changing traffic" >&2; exit 1
+          fi
+      - name: Verify new revision, untouched production traffic, environment and tagged UI
+        run: |
+          set -euo pipefail
+          gcloud run services describe "$SERVICE" --region "$REGION" --format=json > /tmp/garamaal-prod-after-canary.json
+          python3 - <<'PY'
+          import json,os
+          before=json.load(open('/tmp/garamaal-prod-before.json'))
+          after=json.load(open('/tmp/garamaal-prod-after-canary.json'))
+          old=os.environ['EXPECTED_LIVE']
+          new=after['status']['latestReadyRevisionName']
+          assert new==os.environ['EXPECTED_CANARY'],'Tagged canary revision does not match authorized one'
+          tr=after['status']['traffic']
+          original=[x for x in tr if x.get('revisionName')==old]
+          assert len(original)==1 and original[0].get('percent')==100,'Production traffic changed prematurely'
+          candidate=[x for x in tr if x.get('tag')==os.environ['TAG']]
+          assert len(candidate)==1 and candidate[0].get('revisionName')==new,'Tagged revision not exposed'
+          assert candidate[0].get('percent',0)==0,'New production revision must have zero traffic'
+          spec=after['spec']['template']['spec'];orig=before['spec']['template']['spec']
+          assert spec['serviceAccountName']==orig['serviceAccountName'],'Runtime service account changed'
+          e={x['name']:x for x in spec['containers'][0].get('env',[])}
+          prev={x['name']:x for x in orig['containers'][0].get('env',[])}
+          assert e.get('GARAMAAL_UI_V3',{}).get('value')=='true','New UI release flag not enabled'
+          for name,prior in prev.items():
+           assert e.get(name)==prior,'Existing production env/secret changed: '+name
+          tagurl=candidate[0].get('url')
+          assert tagurl and tagurl.startswith('https://'),'No tagged canary URL'
+          with open('/tmp/canary-url','w') as f:f.write(tagurl)
+          print('SAFE_ZERO_TRAFFIC_CANARY',new,tagurl)
+          PY
+          URL="$(cat /tmp/canary-url)"
+          curl -fsSL --max-time 30 "$URL/health" |
+            python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") and d.get("readOnly") is False'
+          # Read full response bodies: grep -q closes curl pipes prematurely (curl 23).
+          python3 - <<'PY'
+          import os,urllib.request
+          root=open('/tmp/canary-url').read().strip()
+          for endpoint,needle in [('/',b'gmv3-landing'),('/prototype',b'garamaal-unified-header'),
+                                  ('/legacy',b'<header class="topbar">')]:
+           with urllib.request.urlopen(root+endpoint,timeout=30) as response:
+            body=response.read()
+            assert response.status==200 and needle in body,'Canary UI endpoint failed: '+endpoint
+           print('CANARY_HTTP_OK',endpoint)
+          PY
+          gcloud run services describe "$SOCIAL" --region "$REGION" --format=json >/tmp/garamaal-social-after.json
+          python3 - <<'PY'
+          import json
+          a=json.load(open('/tmp/garamaal-social-before.json'));b=json.load(open('/tmp/garamaal-social-after.json'))
+          def snap(x):return x['status']['latestReadyRevisionName'],[(y.get('revisionName'),y.get('percent')) for y in x['status'].get('traffic',[])]
+          assert snap(a)==snap(b),'Social service changed unexpectedly'
+          print('SOCIAL_UNCHANGED',snap(a)[0])
+          PY
+          echo '### Production canary published at 0% traffic' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Live website still routes 100% of requests to the previous revision.' >> "$GITHUB_STEP_SUMMARY"
+          echo "Tagged canary: $URL" >> "$GITHUB_STEP_SUMMARY"

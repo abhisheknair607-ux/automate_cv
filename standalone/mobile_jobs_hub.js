@@ -31,11 +31,12 @@
   if(mode!=="swipe" && typeof state!=="undefined"&&["dashboard","discovery","fresh","add"].includes(state.section)){
    mode=state.section==="add"?"more":state.section;
   }
-  bar.innerHTML=items.map(([id,label,icon])=>'<button type="button" data-g3-jobs="'+id+'" '+(mode===id?'aria-current="page"':'')+' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'"><span class="gmv3-tabicon" aria-hidden="true">'+icon+'</span>'+label+'</button>').join("");
+  bar.innerHTML=items.map(([id,label,icon])=>'<button type="button" data-g3-jobs="'+id+'" '+(mode===id?'aria-current="page"':'')+' class="'+(id==="swipe"?'gmv3-swipe-tab':'')+'" aria-label="'+label+'" title="'+label+'"><span class="gmv3-tabicon" aria-hidden="true">'+icon+'</span></button>').join("");
   bar.hidden=doc.body.classList.contains("gmv3-landing");
  }
  function openMore(){
-  mode="more";sync();swipe.hidden=true;
+  if(window.GaramaalDrawer){window.GaramaalDrawer.open();return}
+  mode="more";sync();swipe.hidden=true;window.GaramaalSwipeDeck?.close();
   overlay.hidden=false;
   overlay.innerHTML='<div class="gmv3-panel" role="dialog" aria-modal="true" aria-label="More Jobs tools">'+
   '<div class="gmv3-panel-top"><h2>More Jobs tools</h2><button class="gmv3-close" data-g3-more="close" aria-label="Close">×</button></div>'+
@@ -50,28 +51,15 @@
  }
  function openSwipe(){
   hideOverlay();mode="swipe";sync();
-  // Stage 2 is display-only. Do NOT infer discovery eligibility from a page slice,
-  // mark real candidates interested, nor copy private JD text to a new store.
-  swipe.innerHTML='<div class="gmv3-swipe-body"><span class="gmv3-readonly">STAGE 2 · READ-ONLY</span>'+
-   '<h2>Jobs Swipe</h2><p style="font-size:12px;color:#65768c;margin:5px 0 12px">Preview the swipe-card layout. Verified Discovery/JD eligibility and interest saving will be connected only in Stage 3.</p>'+
-   '<article class="gmv3-job"><div class="gmv3-jobheader"><span style="font-size:11px;color:#dcff5b;font-weight:850">FICTIONAL EXAMPLE</span>'+
-   '<h3>Corporate Finance Analyst</h3><div style="font-size:12px;color:#e5e5e5">Example Capital · Dublin · Hybrid</div></div>'+
-   '<div class="gmv3-jobdetails"><p><strong>At a glance</strong></p>'+
-   '<p>• Financial models, valuation and transaction analysis</p>'+
-   '<p>• Support due diligence and client presentations</p>'+
-   '<p>• Prepare clear, accurate financial deliverables</p>'+
-   '<details><summary>Read full example job description</summary>'+
-   '<div class="fulljd">Example vacancy — not from Google Sheets.\n\nSupport a corporate finance team by preparing financial models, researching businesses and helping with valuation and transaction materials.\n\nThis sample illustrates how a full employer JD would appear after the Stage 3 eligibility and source checks. No real vacancy decisions are saved.</div></details></div></article>'+
-   '<div class="gmv3-ghost"><button type="button" disabled aria-disabled="true">← Not interested</button><button type="button" disabled aria-disabled="true">Interested →</button></div>'+
-   '<div class="gmv3-noactions">Swiping is disabled in Stage 2. No application status, job preference, Sheet row, CV queue or cost is changed.</div></div>';
-  swipe.hidden=false;
-  swipe.scrollTop=0;
+  swipe.hidden=false;swipe.scrollTop=0;
+  // Real candidate-aware gesture feed. Browser-only QA never writes to Sheets.
+  window.GaramaalSwipeDeck?.open(swipe);
  }
  function selectPage(id){
   if(id==="more"){openMore();return}
   if(id==="swipe"){openSwipe();return}
   if(!["dashboard","discovery","fresh","add"].includes(id))return;
-  hideOverlay();swipe.hidden=true;mode=id==="add"?"more":id;
+  hideOverlay();swipe.hidden=true;window.GaramaalSwipeDeck?.close();mode=id==="add"?"more":id;
   // Calls the original full application navigation and fetches from the same APIs.
   nav(id);
   sync();
@@ -86,7 +74,7 @@
   if(!button)return;
   const action=button.dataset.g3More;
   if(action==="close"){hideOverlay();return}
-  if(action==="home"){hideOverlay();swipe.hidden=true;window.GaramaalPrototypeHome?.showHome();return}
+  if(action==="home"){hideOverlay();swipe.hidden=true;window.GaramaalSwipeDeck?.close();window.GaramaalPrototypeHome?.showHome();return}
   if(action==="social"){window.location.assign("/social?gmv3=1");return}
   if(action==="stats"){selectPage("dashboard");return}
   if(action==="ranking"){selectPage("dashboard");doc.querySelector('[data-action="copy-ranking"]')?.focus();return}
@@ -103,7 +91,7 @@
  const root=doc.getElementById("gmv3-launch");
  root?.addEventListener("click",event=>{
   if(event.target.closest('[data-gmv3="jobs"]')){
-   mode="dashboard";swipe.hidden=true;hideOverlay();sync();
+   mode="dashboard";swipe.hidden=true;window.GaramaalSwipeDeck?.close();hideOverlay();sync();
   }
  });
  window.addEventListener("pageshow",sync);

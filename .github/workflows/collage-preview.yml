@@ -1,0 +1,185 @@
+name: Garamaal collage staging preview
+
+on:
+  push:
+    branches: [prototype/collage-frontend-integration-20261025]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: garamaal-collage-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PROJECT: abhishek-cv-automation
+      REGION: europe-west1
+      JOBS_NAME: garamaal-collage-jobs-preview
+      SOCIAL_NAME: garamaal-collage-social-preview
+      PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+      ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run UI/backend contract tests and verify isolation
+        run: |
+          node --test standalone/mobile_home_shell.test.js standalone/mobile_hubs.test.js standalone/test/collage_frontend.test.js
+          node --check standalone/server.js
+          node --check standalone/social_server.js
+          node --check standalone/mobile_collage_intro.js
+          python3 - <<'PY'
+          import json
+          o=json.load(open('firebase.collage-preview.json'))['hosting']
+          services={r.get('run',{}).get('serviceId') for r in o['rewrites']}
+          assert services=={'garamaal-collage-jobs-preview','garamaal-collage-social-preview'},services
+          PY
+      - name: Verify exact GitHub OIDC subject against IAM binding (no token disclosure)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken();
+            const claims = JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+            const expected = 'repo:abhisheknair607-ux@245783264/automate_cv@1389062184:ref:refs/heads/prototype/collage-frontend-integration-20261025';
+            core.info('GitHub OIDC subject: ' + claims.sub);
+            core.info('GitHub OIDC repository: ' + claims.repository);
+            core.info('GitHub OIDC ref: ' + claims.ref);
+            if (claims.sub !== expected) {
+              core.setFailed('Unexpected GitHub OIDC subject. Preview branch IAM binding does not match.');
+            }
+      - name: Check existing GitHub-to-Google Workload Identity
+        id: preflight
+        shell: bash
+        run: |
+          if [[ -z "$PREVIEW_WIF_PROVIDER" || -z "$PREVIEW_WIF_SA" ]]; then
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+            echo "### Code passed tests; preview deployment is blocked" >> "$GITHUB_STEP_SUMMARY"
+            echo "Set the GitHub Actions variable GARAMAAL_PREVIEW_DEPLOY_SA to a *dedicated*, preview-authorized service account, and configure its Workload Identity binding. Existing CV worker credentials are never used for deploy." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Authenticate via existing repository Workload Identity
+        if: steps.preflight.outputs.enabled == 'true'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - if: steps.preflight.outputs.enabled == 'true'
+        uses: google-github-actions/setup-gcloud@v2
+      - name: Prepare read-only runtime configs without copying secrets
+        if: steps.preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud config set project "$PROJECT" >/dev/null
+          gcloud run services describe automate-cv-dashboard --region "$REGION" --format=json > /tmp/livejobs.json
+          gcloud run services describe automate-cv-social --region "$REGION" --format=json > /tmp/livesocial.json
+          curl -fsSL --max-time 15 https://garamaal.web.app/config > /tmp/firebasepublic.json
+          python3 - <<'PY'
+          import json,os
+          def load(f):return json.load(open(f))
+          jobs,social,cfg=map(load,['/tmp/livejobs.json','/tmp/livesocial.json','/tmp/firebasepublic.json'])
+          def envvars(doc):return {e['name']:e.get('value','') for e in doc['spec']['template']['spec']['containers'][0].get('env',[])}
+          def sa(doc):return doc['spec']['template']['spec'].get('serviceAccountName','')
+          allowed=os.getenv('ALLOWED_EMAILS_OVERRIDE') or envvars(jobs).get('ALLOWED_EMAILS','')
+          if not allowed:raise SystemExit('Add GARAMAAL_PREVIEW_ALLOWED_EMAILS; no accounts have been authorized.')
+          if cfg.get('projectId')!=os.getenv('PROJECT'):raise SystemExit('Firebase config project mismatch')
+          if any(not cfg.get(k) for k in ('apiKey','authDomain','appId')):raise SystemExit('Firebase web config missing.')
+          for name,doc in [('jobs',jobs),('social',social)]:
+              if not sa(doc):raise SystemExit('Runtime service identity missing for '+name)
+              open('/tmp/'+name+'.sa','w').write(sa(doc))
+          base=dict(GOOGLE_CLOUD_PROJECT=os.environ['PROJECT'],ALLOWED_EMAILS=allowed,
+              FIREBASE_WEB_API_KEY=cfg['apiKey'],FIREBASE_AUTH_DOMAIN=cfg['authDomain'],
+              FIREBASE_WEB_APP_ID=cfg['appId'])
+          jobenv=envvars(jobs); socenv=envvars(social)
+          # Preview can read the same candidate-owned existing Sheets but never write to them.
+          j={**base,'TAAZA_SPREADSHEET_ID':jobenv.get('TAAZA_SPREADSHEET_ID') or '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
+             'FRESHMAL_SPREADSHEET_ID':jobenv.get('FRESHMAL_SPREADSHEET_ID') or '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc',
+             'APP_READ_ONLY':'true','APP_ALLOW_PRODUCTION_WRITES':'false'}
+          s={**base,'FRESHMAL_SPREADSHEET_ID':socenv.get('FRESHMAL_SPREADSHEET_ID') or j['FRESHMAL_SPREADSHEET_ID'],
+             'SOCIAL_READ_ONLY':'true','SOCIAL_ALLOW_LIVE_WRITES':'false','SOCIAL_GIT_SHA':os.environ['GITHUB_SHA']}
+          for name,obj in [('jobs',j),('social',s)]:
+              if not all(obj.values()):raise SystemExit('Incomplete preview '+name+' settings')
+              open('/tmp/'+name+'.env.yaml','w').write(json.dumps(obj))
+          PY
+      - name: Build and upload dedicated preview images
+        if: steps.preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud auth configure-docker gcr.io --quiet
+          docker build -f Dockerfile.standalone -t "gcr.io/$PROJECT/$JOBS_NAME:$GITHUB_SHA" .
+          docker build -f Dockerfile.social -t "gcr.io/$PROJECT/$SOCIAL_NAME:$GITHUB_SHA" .
+          docker push "gcr.io/$PROJECT/$JOBS_NAME:$GITHUB_SHA"
+          docker push "gcr.io/$PROJECT/$SOCIAL_NAME:$GITHUB_SHA"
+      - name: Deploy staging services only (read-only, min-instances zero)
+        if: steps.preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud run deploy "$JOBS_NAME" --image "gcr.io/$PROJECT/$JOBS_NAME:$GITHUB_SHA" --region "$REGION" --quiet --allow-unauthenticated --min-instances 0 --max-instances 1 --memory 512Mi --service-account "$(cat /tmp/jobs.sa)" --env-vars-file /tmp/jobs.env.yaml
+          gcloud run deploy "$SOCIAL_NAME" --image "gcr.io/$PROJECT/$SOCIAL_NAME:$GITHUB_SHA" --region "$REGION" --quiet --allow-unauthenticated --min-instances 0 --max-instances 1 --memory 512Mi --service-account "$(cat /tmp/social.sa)" --env-vars-file /tmp/social.env.yaml
+      - name: Publish 7-day Firebase preview channel, never live Hosting
+        if: steps.preflight.outputs.enabled == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          npx --yes firebase-tools@14.22.0 hosting:channel:deploy collage-v3-20261025 --project "$PROJECT" --config firebase.collage-preview.json --expires 7d --json > /tmp/channel.json
+          python3 - <<'PY'
+          import json,os
+          doc=json.load(open('/tmp/channel.json'))
+          urls=[]
+          def walk(x):
+              if isinstance(x,dict):
+                  for value in x.values():walk(value)
+              elif isinstance(x,list):
+                  for value in x:walk(value)
+              elif isinstance(x,str) and x.startswith('https://') and '--' in x and '.web.app' in x:
+                  urls.append(x)
+          walk(doc)
+          if not urls:
+              raise SystemExit('Firebase returned no preview URL; inspect /tmp/channel.json in the runner.')
+          for u in dict.fromkeys(urls):
+              print('FIREBASE_PREVIEW_URL: '+u.rstrip('/')+'/prototype',flush=True)
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as s:
+              s.write('### Browser test link (connected backend, read-only)\n\n')
+              for u in dict.fromkeys(urls):s.write('- '+u.rstrip('/')+'/prototype\n')
+              s.write('\nThe live Garamaal Hosting channel and Cloud Run services were not changed.\n')
+          # Verify that the published URL serves the real routed prototype and sprite asset.
+          import time,urllib.request
+          root=urls[0].rstrip('/')
+          paths=[
+            ('/prototype',b'm26-neon-held-12'),
+            ('/prototype/assets/home-collage-strip.webp',b'WEBP'),
+            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 12: sustained neon halo'),
+            ('/prototype/tactile-feedback.js?v=m26-neon-held-12',b'gmv3-tactile-held'),
+            ('/prototype/hub-swipe.js?v=m26-neon-held-12',b'pointer.scrolling=true'),
+            ('/social?gmv3=1',b'')
+          ]
+          for suffix,needle in paths:
+              error=None
+              for _ in range(6):
+                  try:
+                      with urllib.request.urlopen(root+suffix,timeout=25) as response:
+                          body=response.read(700000)
+                          if response.status!=200 or (needle and needle not in body):
+                              raise RuntimeError('Unexpected preview content at '+suffix)
+                      print('PREVIEW_SMOKE_OK: '+suffix,flush=True)
+                      error=None
+                      break
+                  except Exception as e:
+                      error=str(e)
+                      time.sleep(3)
+              if error:
+                  raise SystemExit('PREVIEW_SMOKE_FAILED '+suffix+': '+error)
+          PY

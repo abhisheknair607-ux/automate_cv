@@ -9,6 +9,11 @@ COPY standalone/social_research.js /app/standalone/social_research.js
 COPY standalone/social.html /app/standalone/social.html
 # Only used by the opt-in /social?gmv3=1 prototype. Unflagged /social remains unchanged.
 COPY standalone/mobile_hubs.css /app/standalone/mobile_hubs.css
+COPY standalone/mobile_collage.css /app/standalone/mobile_collage.css
+COPY standalone/assets/nav-collage-states.webp /app/standalone/assets/nav-collage-states.webp
+COPY standalone/assets/back-avatar-controls.webp /app/standalone/assets/back-avatar-controls.webp
+COPY standalone/assets/swipe-sticker.svg /app/standalone/assets/swipe-sticker.svg
+COPY standalone/assets/back-sticker.svg /app/standalone/assets/back-sticker.svg
 COPY standalone/mobile_social_hub.js /app/standalone/mobile_social_hub.js
 COPY standalone/bridge.js /app/standalone/bridge.js
 USER node

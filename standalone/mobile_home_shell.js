@@ -19,7 +19,7 @@
     try{return typeof state!=="undefined"&&state?.candidate==="Pooja"?"Pooja":"Abhishek";}
     catch(_){return "Abhishek";}
   }
-  function syncAvatar(){initial.textContent=candidate().slice(0,1);}
+  function syncAvatar(){initial.textContent="E";}
   function showHome(){
     syncAvatar();
     subview.hidden=true;
@@ -48,6 +48,7 @@
   }
   function escapeHtml(value){return String(value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
   function showPanel(page){
+    if(page==="profile" && window.GaramaalProfile){window.GaramaalProfile.open();return;}
     syncAvatar();
     subview.hidden=false;
     let html="";
@@ -88,6 +89,13 @@
     if(!control)return;
     const action=control.getAttribute("data-gmv3");
     if(action==="jobs"){enterJobs();return;}
+    if(action==="more"){window.GaramaalDrawer?.open();return;}
+    // Homepage Statistics routes to the original authenticated Jobs dashboard.
+    // Never substitute browser-local example numbers for actual job statistics.
+    if(action==="statistics"){enterJobs();return;}
+    // The homepage target shortcut opens the real candidate-scoped dashboard goals,
+    // instead of the obsolete Stage 1 example target counter.
+    if(action==="targets"){enterJobs();document.getElementById("gmv3-goal-alerts")?.scrollIntoView?.({behavior:"smooth",block:"start"});return;}
     if(action==="network"){window.location.assign("/social?gmv3=1");return;}
     if(action==="home"){showHome();return;}
     if(action==="target-up"||action==="target-down"){
