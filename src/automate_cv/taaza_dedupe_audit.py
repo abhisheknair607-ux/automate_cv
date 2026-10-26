@@ -99,6 +99,26 @@ def read_live_jobs(client) -> list[Job]:
     return jobs
 
 
+def _count_redundant_exact(matches) -> int:
+    """Count independent exact-identity components, never fuzzy-chain groups."""
+    parent = {}
+    def root(x):
+        parent.setdefault(x, x)
+        while x != parent[x]:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+    for pair in matches:
+        a, b = root(pair.left), root(pair.right)
+        if a != b:
+            parent[b] = a
+    components = {}
+    for ref in parent:
+        lead = root(ref)
+        components[lead] = components.get(lead, 0) + 1
+    return sum(size - 1 for size in components.values())
+
+
 def summarize(jobs: list[Job]) -> dict:
     report = analyze(jobs)
     byref = {j.row_ref: j for j in jobs}
@@ -126,14 +146,7 @@ def summarize(jobs: list[Job]) -> dict:
         "possible_pairs": len(report.possible_pairs),
         "exact_groups": len([g for g in groups if g["classification"] == "contains_exact"]),
         "possible_only_groups": len([g for g in groups if g["classification"] == "possible_only"]),
-        "redundant_exact_rows_upper_bound": sum(
-            len([ref for ref in g["refs"]]) - 1 for g in groups
-            if g["classification"] == "contains_exact" and
-            all(
-                a.kind.startswith("EXACT")
-                for a in report.exact_pairs if a.left in g["refs"] and a.right in g["refs"]
-            )
-        ),
+        "redundant_exact_rows_upper_bound": _count_redundant_exact(report.exact_pairs),
         "groups": groups,
         "exact_matches": [vars(m) for m in report.exact_pairs],
         "possible_matches": [vars(m) for m in report.possible_pairs],
