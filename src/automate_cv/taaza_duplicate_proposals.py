@@ -31,6 +31,7 @@ class Vacancy:
     status: str
     # Presence of candidate preferences, CV status, unique details etc.
     protected: bool
+    fingerprint: tuple[str, ...] = ()  # all A:Q values, for stale-row detection
 
 
 def parse_rows(values: list[list], first_row: int = 2) -> list[Vacancy]:
@@ -51,7 +52,7 @@ def parse_rows(values: list[list], first_row: int = 2) -> list[Vacancy]:
                      or fields[10].casefold() in {"true", "yes", "1"})
         job = Job("Jobs", first_row + index, fields[0], fields[1], fields[4],
                   fields[2], has_jd=has_jd, protected=protected)
-        output.append(Vacancy(job, status, protected))
+        output.append(Vacancy(job, status, protected, tuple(fields)))
     return output
 
 
