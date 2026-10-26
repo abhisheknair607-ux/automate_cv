@@ -60,13 +60,14 @@ if [[ "$MODE" == "--plan" ]]; then
   exit 0
 fi
 command -v curl >/dev/null || { echo "curl missing" >&2; exit 2; }
-cp "$ROOT/Dockerfile.garamaal-ui" "$TMP/Dockerfile"
-cp "$ROOT/package.json" "$TMP/package.json"
-cp -R "$ROOT/standalone" "$TMP/standalone"
-cp -R "$ROOT/garamaal-release-webapp" "$TMP/garamaal-release-webapp"
+mkdir -p "$TMP/build"
+cp "$ROOT/Dockerfile.garamaal-ui" "$TMP/build/Dockerfile"
+cp "$ROOT/package.json" "$TMP/build/package.json"
+cp -R "$ROOT/standalone" "$TMP/build/standalone"
+cp -R "$ROOT/garamaal-release-webapp" "$TMP/build/garamaal-release-webapp"
 # Never use standalone/deploy-live-update.sh: it references a different image.
 # No --set-env-vars, --update-env-vars, --set-secrets, or traffic promotion.
-gcloud run deploy "$SERVICE" --source "$TMP" --project "$PROJECT" --region "$REGION" \
+gcloud run deploy "$SERVICE" --source "$TMP/build" --project "$PROJECT" --region "$REGION" \
   --no-traffic --tag "$TAG" --quiet
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/after.json"
 TAG_URL="$(python3 - "$TMP/before.json" "$TMP/after.json" "$TAG" <<'PY'
