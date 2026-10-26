@@ -131,6 +131,8 @@ app.get("/prototype/hub-swipe.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_swipe.js")));
 app.get("/prototype/filters-stats.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_filters_stats.js")));
+app.get("/prototype/ui-polish.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_ui_polish.js")));
 app.get("/prototype/account-drawer.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_drawer.js")));
 app.get("/prototype/profile-editor.js",(_req,res)=>
@@ -195,6 +197,7 @@ app.get("/prototype",(req,res)=>{
     '<script src="/prototype/hub-swipe.js?v=m26-neon-held-12"></script>'+
     '<script src="/prototype/filters-stats.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/ui-polish.js?v=m26-neon-held-13"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
     '<script src="/prototype/collage-intro.js?v=m26-neon-held-12"></script></body>');
