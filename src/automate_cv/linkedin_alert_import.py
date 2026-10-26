@@ -21,6 +21,10 @@ from email.utils import parseaddr, parsedate_to_datetime
 from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
+from .job_alert_providers import (
+    AlertJob, eligible_location, indeed_job_key, parse_indeed, provider_for,
+)
+
 SHEET_ID = os.getenv("TAAZA_SPREADSHEET_ID", "1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY")
 INBOX = "abhisheknair607@gmail.com"
 SENDER = "jobalerts-noreply@linkedin.com"
@@ -262,16 +266,21 @@ def append_row(sheets, tab: str, row: list) -> None:
 
 
 def known_job_ids(sheets) -> set[str]:
-    """Deduplicate against all Taaza job-source tabs, not only this importer."""
+    """Deduplicate by source+stable ID against every verified job-source tab."""
     from .taaza_sync import discover_job_tabs
     found = set()
     for tab in discover_job_tabs(sheets):
         title = tab["name"].replace("'", "''")
         for row in sheet_values(sheets, f"'{title}'!C2:C"):
-            if row:
-                id_ = job_id(str(row[0]))
-                if id_:
-                    found.add(id_)
+            if not row:
+                continue
+            url = str(row[0])
+            li_id = job_id(url)
+            indeed_id = indeed_job_key(url)
+            if li_id:
+                found.add("linkedin:" + li_id)
+            if indeed_id:
+                found.add("indeed:" + indeed_id)
     return found
 
 
@@ -321,23 +330,26 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
     check_headers(sheets)  # also ensures permission before processing email
     states = logged_states(sheets)
     existing = known_job_ids(sheets)
-    search = f"from:{SENDER} newer_than:{days}d -in:spam -in:trash"
+    search = (f"{{from:{SENDER} from:donotreply@jobalert.indeed.com "
+              f"from:irishjobs.ie from:jobs.ie}} newer_than:{days}d "
+              "-in:spam -in:trash")
     listing = gmail.users().messages().list(
         userId="me", q=search, maxResults=max_messages).execute(num_retries=3)
     counters = {"found": 0, "added": 0, "duplicates": 0, "review": 0, "skipped": 0,
-                "confirmation": 0, "messages": 0, "preview": preview,
-                "samples": [], "review_reasons": []}
+                "confirmation": 0, "messages": 0, "filtered": 0, "excluded_ads": 0,
+                "preview": preview, "samples": [], "review_reasons": []}
     for item in listing.get("messages", []):
         id_ = item["id"]
         last = states.get(id_, "")
-        if last in ("Processed", "Confirmation") or (last == "Review" and not retry_review):
+        if last in ("Processed", "Confirmation", "Filtered") or (last == "Review" and not retry_review):
             counters["skipped"] += 1
             continue
         resource = gmail.users().messages().get(
             userId="me", id=id_, format="raw").execute(num_retries=3)
         message = decode_message(resource["raw"])
-        # Gmail query is discovery only; verify signed RFC822 sender separately.
-        if parseaddr(str(message.get("From", "")))[1].lower() != SENDER:
+        # Gmail query is discovery only: check the original RFC822 From address.
+        provider, parser_ready = provider_for(str(message.get("From", "")))
+        if provider is None:
             counters["skipped"] += 1
             continue
         subject = str(message.get("Subject", ""))[:250]
@@ -346,27 +358,51 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         owner = original_owner(message)
         result = "Review"
         details = ""
-        if is_confirmation(subject, plain):
+        if provider == "LinkedIn" and is_confirmation(subject, plain):
             counters["confirmation"] += 1
             result = "Confirmation"
             details = "LinkedIn alert-creation notification, not an ordinary digest"
+        elif not parser_ready:
+            details = f"{provider} parser pending a real reviewed example; no rows imported"
         else:
-            parsed, suspicious = parse_jobs(extract_part(message, "html"), plain)
+            if provider == "LinkedIn":
+                jobs, suspicious = parse_jobs(extract_part(message, "html"), plain)
+                candidates = [AlertJob(
+                    provider="LinkedIn", external_id=j.id, title=j.title,
+                    company=j.company, location=j.location, url=j.url,
+                ) for j in jobs]
+                excluded_ads = 0
+            elif provider == "Indeed":
+                candidates, suspicious, excluded_ads = parse_indeed(plain)
+            else:
+                candidates, suspicious, excluded_ads = [], True, 0
+            # Reject all overseas/unknown-location jobs, including Mumbai.
+            # Do not silently turn a region in the email subject into a job location.
+            parsed = [j for j in candidates if eligible_location(j.location)]
+            excluded_location = len(candidates) - len(parsed)
+            counters["filtered"] += excluded_location
+            counters["excluded_ads"] += excluded_ads
             if owner is None:
                 details = "Original recipient unknown or ambiguous; no rows imported"
-            elif not parsed:
-                details = "No confidently parsed job cards; inspect original Gmail MIME"
             elif suspicious:
-                details = "Some LinkedIn job URLs lack confident role/company data"
+                details = "Some job cards incomplete or unverified; no rows imported"
+            elif not candidates:
+                details = "No confidently parsed job cards; inspect original Gmail MIME"
+            elif not parsed:
+                result = "Filtered"
+                details = f"All {excluded_location} extracted job(s) outside approved Ireland/UK locations"
             else:
                 result = "Processed"
+                details = f"{excluded_location} outside Ireland/UK; {excluded_ads} ads without stable link excluded"
         counters["messages"] += 1
         counters["found"] += len(parsed)
         if len(counters["samples"]) < 12:
             for job in parsed[:12 - len(counters["samples"])]:
-                counters["samples"].append({"owner": owner or "Unassigned",
+                counters["samples"].append({"source": provider,
+                                            "owner": owner or "Unassigned",
                                             "company": job.company, "title": job.title,
-                                            "location": job.location, "job_id": job.id,
+                                            "location": job.location,
+                                            "job_id": job.external_id,
                                             "status": result})
         if result == "Review":
             counters["review"] += 1
@@ -376,17 +412,18 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         # Only commit validated complete messages with confirmed candidate ownership.
         if result == "Processed":
             for job in parsed:
-                if job.id in existing:
+                if job.key in existing:
                     duplicates += 1
                     continue
-                existing.add(job.id)
+                existing.add(job.key)
                 added += 1
                 if not preview:
                     append_row(sheets, INTAKE, [
-                        job.company, job.title, job.url, "Open original job description",
+                        job.company, job.title, job.url, "",
                         job.location, "", "", "",
                         datetime.now(timezone.utc).date().isoformat(),
-                        "", False, "", "LinkedIn Job Alert", owner, id_, job.id,
+                        job.salary, False, "", provider + " Job Alert", owner, id_,
+                        job.external_id if provider == "LinkedIn" else "",
                     ])
         counters["added"] += added
         counters["duplicates"] += duplicates
@@ -394,7 +431,8 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             append_row(sheets, LOG, [
                 now, id_, resource.get("threadId", ""), _date(message), subject,
-                owner or "Unassigned", len(parsed), added, duplicates, result, details,
+                owner or "Unassigned", len(parsed), added, duplicates, result,
+                provider + ": " + details,
             ])
         # In preview, keep deduplication across messages without mutating Sheets.
     return counters
