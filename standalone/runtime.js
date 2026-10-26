@@ -16,7 +16,7 @@ const SNAPSHOT=path.resolve(__dirname,"../garamaal-release-webapp/Code.gs");
 const SWIPE_SCRIPT=fs.readFileSync(fs.existsSync(SNAPSHOT)?
   SNAPSHOT:path.resolve(__dirname,"../webapp/Code.gs"),"utf8");
 const SWIPE_METHODS = new Set(["listJobs","getJob","setJobPreference","transferJob",
-  "updateFreshControl","updateApplicationProgress"]);
+  "updateFreshControl","updateApplicationProgress","gmSwipeFeed"]);
 // Keep Code.gs immutable while binding its two spreadsheet IDs to the
 // deployment environment. Production pilot IDs remain identical; staging
 // deployments use COPIES, not the hard-coded production IDs.
@@ -100,7 +100,7 @@ function constructServices({token,email,ids,githubToken,allowedEmails}) {
 }
 const READ_ONLY_METHODS = new Set([
   "getBootstrap", "listJobs", "getJob", "getCopyPrompt", "getStats", "getExpenses",
-  "gmPipelineStats", "gmListJobsFaceted"
+  "gmPipelineStats", "gmListJobsFaceted", "gmSwipeFeed"
 ]);
 async function invoke(method,arg,options) {
   const scoped=options?.swipeScoped===true;
@@ -114,6 +114,9 @@ async function invoke(method,arg,options) {
   const source=scoped?SWIPE_SCRIPT:SCRIPT;
   vm.runInContext(sourceWithSheetIds(options?.ids,source),context,{
     filename:scoped?"scoped-release/Code.gs":"webapp/Code.gs",timeout:5000});
+  if(scoped&&method==="gmSwipeFeed")
+    vm.runInContext(require("./swipe_feed").SOURCE,context,{
+      filename:"standalone/swipe_feed.js",timeout:5000});
   if(scoped&&method==="updateApplicationProgress")
     vm.runInContext(require("./swipe_progress").SOURCE,context,{
       filename:"standalone/swipe_progress.js",timeout:5000});
@@ -138,12 +141,14 @@ async function invoke(method,arg,options) {
   // separate BE/BF application progress is maintained by the legacy worker.
   // Merge that read-only progress onto scoped Swipe cards so statuses survive
   // reloads without changing either Code.gs or the CV-generation workflow.
-  if(scoped && arg?.source==="fresh" && ["listJobs","getJob"].includes(method)){
+  if(scoped && ["listJobs","getJob","gmSwipeFeed"].includes(method) &&
+    (arg?.source==="fresh"||method==="gmSwipeFeed")){
     context.__swipeReadResult=result;
     context.__swipeCandidate=arg.candidate;
     vm.runInContext(`(function(){
-      const rows=Array.isArray(__swipeReadResult?.rows)
-        ?__swipeReadResult.rows:[__swipeReadResult].filter(Boolean);
+      const rows=(Array.isArray(__swipeReadResult?.rows)
+        ?__swipeReadResult.rows:[__swipeReadResult].filter(Boolean))
+        .filter(x=>(x.source||__rpcArg.source)==="fresh");
       if(!rows.length)return;
       const first=Math.min(...rows.map(x=>x.row));
       const last=Math.max(...rows.map(x=>x.row));
