@@ -73,3 +73,12 @@ test("Scroll within expanded Swipe card is native and never mistaken for downwar
  assert.match(css,/-webkit-overflow-scrolling:touch/);
  assert.match(css,/scrollbar-width:thin/);
 });
+
+
+test("Dashboard KPI and pending counters share pronounced but accessible card lift",()=>{
+ const css=read("standalone/mobile_collage.css");
+ assert.match(css,/button\.gmv3-pipeline-kpi:hover\{\s*transform:translateY\(-4px\) scale\(1\.012\)!important/);
+ assert.match(css,/Stage 9 — dashboard statistics match the tactile listing hover/);
+ assert.match(css,/\.gmv3-followup-stats>div:hover\{\s*transform:translateY\(-4px\) scale\(1\.012\)!important/);
+ assert.match(css,/\.gmv3-followup-stats>div,\s*body\.gmv3-jobs-workspace #content button\.gmv3-pipeline-kpi\{\s*transform:none!important;transition:none!important/);
+});
