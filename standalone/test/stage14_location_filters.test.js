@@ -18,7 +18,7 @@ function fixture(){
  ];
  const taaza=raw.map(([row,company,location,url])=>({row,company,role:"Finance Analyst",location,url,
   jdReady:true,preferences:{Abhishek:"",Pooja:""},categories:"",score:75}));
- const fresh=raw.map(([row,company,location,url])=>({row:row+1,company,role:"Finance Analyst",location,url,
+ const fresh=raw.map(([row,company,location,url])=>({row:row+1,company,role:"Finance Analyst",location,url:url+"/fresh",
   person:{Abhishek:{preference:"",status:"NA",cvLink:""},Pooja:{preference:"",status:"NA",cvLink:""}}}));
  const ctx=vm.createContext({
   authorise_:()=>true,person_:c=>{if(!["Abhishek","Pooja"].includes(c))throw Error("Unknown candidate");return {status:11}},
