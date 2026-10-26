@@ -121,6 +121,18 @@ function toggleLocation(value,checked){
   updateLocations({mode:"except",values:[...set]});
  }
 }
+function fitLocationViewport(){
+ if(!locationPicker||!window.visualViewport||window.innerWidth>600)return;
+ const vv=window.visualViewport;
+ locationPicker.style.top=vv.offsetTop+"px";
+ locationPicker.style.left=vv.offsetLeft+"px";
+ locationPicker.style.right="auto";
+ locationPicker.style.bottom="auto";
+ locationPicker.style.height=vv.height+"px";
+ locationPicker.style.width=vv.width+"px";
+}
+window.visualViewport?.addEventListener("resize",fitLocationViewport);
+window.visualViewport?.addEventListener("scroll",fitLocationViewport);
 function openLocationPicker(){
  if(!sheet||locationPicker)return;
  locationBefore=loc.rule(locationDraft);locationTerm="";
@@ -140,6 +152,7 @@ function openLocationPicker(){
   '<footer class="gmv3-location-foot"><button type="button" data-gmf-loc="reset">Reset to all</button>'+
   '<button type="button" data-gmf-loc="done">Done</button></footer></section>';
  doc.body.append(locationPicker);
+ fitLocationViewport();
  renderLocationMatches();
  // The search does not automatically focus: phone users can view options before opening keyboard.
  locationPicker.querySelector('[data-gmf-loc="cancel"]')?.focus({preventScroll:true});
