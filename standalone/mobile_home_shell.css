@@ -74,3 +74,14 @@ body.gmv3-workspace #gmv3-launch{display:none!important}
 #gmv3-launch .gmv3-sticker{font-size:15px;padding:6px}
 }
 @media(prefers-reduced-motion:reduce){#gmv3-launch *,#gmv3-home-button{animation:none!important;transition:none!important}}
+
+/* The launch overlay covers the normal dashboard header: installation needs
+   its own reachable action on the launch screen. */
+#gmv3-launch .gmv3-head-actions{display:flex;align-items:center;gap:9px}
+#gmv3-launch .gmv3-install{min-height:39px;border:1px solid #c69be3;
+  border-radius:12px;background:#342742;color:#fff;padding:8px 11px;
+  font:800 11px/1.2 "Bricolage Grotesque",system-ui;white-space:nowrap}
+#gmv3-launch .gmv3-install:active{transform:translateY(1px)}
+#gmv3-launch .gmv3-install[hidden]{display:none!important}
+@media(max-width:350px){#gmv3-launch .gmv3-head-actions{gap:5px}
+  #gmv3-launch .gmv3-install{padding:7px 8px;font-size:10px}}
