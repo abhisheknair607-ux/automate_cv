@@ -72,7 +72,8 @@ test("invalid selections are rejected; filters, location script and CSS contain 
  assert.match(js,/data-gmf-loc="only"/);
  assert.match(js,/data-gmf-loc="include"/);
  assert.match(js,/locationSelection:loc.rule\(f.locationSelection\)/);
- assert.match(js,/locationOptions.filter\(v=>loc.matches\(v,locationTerm\)\)/);
+ assert.match(js,/locationOptions.filter\(v=>currentFacet==="location"/);
+ assert.match(js,/loc.matches\(v,locationTerm\)/);
  assert.match(css,/#gmv3-location-picker .gmv3-location-list/);
  assert.match(css,/height:100%;max-height:100%/);
  assert.match(js,/window\.visualViewport\?\.addEventListener\("resize",fitLocationViewport\)/);
