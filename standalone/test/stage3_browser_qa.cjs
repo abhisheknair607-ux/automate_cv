@@ -63,9 +63,10 @@ const mock=String.raw`(()=>{
  }
  function handle(method,arg){
   window.__gmMockCalls.push(method);
-  if(["getBootstrap","getStats","gmPipelineStats","listJobs","gmListJobsFaceted","getJob","getExpenses"].includes(method)){
+  if(["getBootstrap","getStats","gmPipelineStats","listJobs","gmListJobsFaceted","getJob","getExpenses","getCvQueue"].includes(method)){
    if(method==="getBootstrap")return {email:"qa-test@example.invalid",people:["Abhishek","Pooja"],links:{}};
    if(method==="getStats")return {discovered:3,applications:3,selected:1,cvRequested:0,applied:2,missingJD:1};
+   if(method==="getCvQueue")return {data:[]};
    if(method==="gmPipelineStats")return summary(arg);
    if(method==="listJobs"||method==="gmListJobsFaceted")return list(method,arg||{});
    if(method==="getExpenses")return {entries:[],total:0};
@@ -90,6 +91,7 @@ const mock=String.raw`(()=>{
 async function wait(page,selector){return page.locator(selector).first().waitFor({state:"visible",timeout:15000});}
 async function check(viewport){
  const browser=await chromium.launch({channel:"chrome",headless:true,args:["--no-sandbox"]});
+ try {
  const context=await browser.newContext({...viewport,ignoreHTTPSErrors:false,locale:"en-IE"});
  const page=await context.newPage();
  const errors=[];
@@ -151,7 +153,7 @@ async function check(viewport){
  const screenshot=process.env.GARAMAAL_QA_SHOTS;
  if(screenshot)await page.screenshot({path:screenshot+"/"+viewport.name+".png",fullPage:true});
  console.log("BROWSER_QA_PASS",viewport.name,"dashboard, candidate separation, cards, filters, Swipe, CV controls, touch state, no writes");
- await browser.close();
+ } finally {await browser.close().catch(()=>{});}
 }
 (async()=>{
  await check({name:"desktop",viewport:{width:1440,height:900},isMobile:false,hasTouch:false});
