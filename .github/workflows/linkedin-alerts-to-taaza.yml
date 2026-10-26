@@ -1,13 +1,17 @@
-name: linkedin-alerts-to-taaza
+name: job-alerts-to-taaza
 
 # Manual-only until Gmail authorization and real-mail preview are verified.
 on:
   workflow_dispatch:
     inputs:
       apply:
-        description: Write validated LinkedIn jobs to Taaza
+        description: Write approved validated jobs to Taaza (do NOT enable until approval)
         type: boolean
         default: false
+      on_date:
+        description: Optional Dublin-local date for preview (YYYY-MM-DD)
+        type: string
+        default: "2026-10-25"
 
 permissions:
   contents: read
@@ -43,9 +47,9 @@ jobs:
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           APPLY: ${{ inputs.apply }}
+          ON_DATE: ${{ inputs.on_date }}
         run: |
-          if [[ "$APPLY" == "true" ]]; then
-            python -m src.automate_cv.linkedin_alert_import --apply
-          else
-            python -m src.automate_cv.linkedin_alert_import
-          fi
+          args=()
+          if [[ -n "$ON_DATE" ]]; then args+=(--on-date "$ON_DATE"); fi
+          if [[ "$APPLY" == "true" ]]; then args+=(--apply); fi
+          python -m src.automate_cv.linkedin_alert_import "${args[@]}"
