@@ -37,7 +37,7 @@
   const v=raw&&typeof raw==="object"?raw:{};
   const mode=["only","except"].includes(v.mode)?v.mode:"all";
   const values=Array.isArray(v.values)?[...new Set(v.values.filter(x=>typeof x==="string").map(x=>x.trim().slice(0,120)).filter(Boolean))].slice(0,750):[];
-  return {mode:values.length?mode:"all",values};
+  return {mode:mode==="except"&&!values.length?"all":mode,values};
  }
  function isIncluded(value,selection){
   const r=rule(selection);
