@@ -10,15 +10,20 @@ const {execFileSync} = require("node:child_process");
 const {createSpreadsheetApp} = require("./sheets");
 
 const SCRIPT = fs.readFileSync(path.resolve(__dirname,"../webapp/Code.gs"),"utf8");
+// Scoped Swipe-only snapshot enables candidate preferences without altering
+// the existing Jobs/CV controller or its original Code.gs.
+const SWIPE_SCRIPT = fs.readFileSync(path.resolve(__dirname,"../garamaal-release-webapp/Code.gs"),"utf8");
+const SWIPE_METHODS = new Set(["listJobs","getJob","setJobPreference","transferJob",
+  "updateFreshControl","updateApplicationProgress"]);
 // Keep Code.gs immutable while binding its two spreadsheet IDs to the
 // deployment environment. Production pilot IDs remain identical; staging
 // deployments use COPIES, not the hard-coded production IDs.
-function sourceWithSheetIds(ids) {
+function sourceWithSheetIds(ids,script=SCRIPT) {
   const requested={taazaId:String(ids?.taaza||""),freshId:String(ids?.fresh||"")};
   if(Object.values(requested).some(id=>!/^[A-Za-z0-9_-]{20,}$/.test(id)))
     throw new Error("Valid Taaza and Freshmaal spreadsheet IDs are required");
   const occurrences={taazaId:0,freshId:0};
-  const bound=SCRIPT.replace(/\b(taazaId|freshId):\s*'[^']+'/g,(_match,key)=>{
+  const bound=script.replace(/\b(taazaId|freshId):\s*'[^']+'/g,(_match,key)=>{
     occurrences[key]++;
     return key+": '"+requested[key]+"'";
   });
@@ -96,13 +101,17 @@ const READ_ONLY_METHODS = new Set([
   "gmPipelineStats", "gmListJobsFaceted"
 ]);
 async function invoke(method,arg,options) {
-  if(!METHODS.has(method))throw new Error("Unknown application operation");
+  const scoped=options?.swipeScoped===true;
+  if(scoped?!SWIPE_METHODS.has(method):!METHODS.has(method))
+    throw new Error("Unknown application operation");
   if(options?.readOnly && !READ_ONLY_METHODS.has(method)) {
     throw Object.assign(new Error("Read-only pilot: changes are disabled until the new app is approved."),{httpCode:403});
   }
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
-  vm.runInContext(sourceWithSheetIds(options?.ids),context,{filename:"webapp/Code.gs",timeout:5000});
+  const source=scoped&&method!=="updateApplicationProgress"?SWIPE_SCRIPT:SCRIPT;
+  vm.runInContext(sourceWithSheetIds(options?.ids,source),context,{
+    filename:scoped?"garamaal-release-webapp/Code.gs":"webapp/Code.gs",timeout:5000});
   // Two opt-in UI projections only. These use the existing candidate-scoped read adapter.
   if(method==="gmPipelineStats"||method==="gmListJobsFaceted") {
     vm.runInContext(require("./prototype_queries").SOURCE,context,{filename:"standalone/prototype_queries.js",timeout:5000});
@@ -122,4 +131,8 @@ async function invoke(method,arg,options) {
   });
   return JSON.parse(JSON.stringify(result===undefined?null:result));
 }
-module.exports={invoke,METHODS,READ_ONLY_METHODS,constructServices,sourceWithSheetIds};
+async function invokeSwipe(method,arg,options) {
+  if(!SWIPE_METHODS.has(method))throw new Error("Unsupported Swipe operation");
+  return invoke(method,arg,{...options,swipeScoped:true});
+}
+module.exports={invoke,invokeSwipe,METHODS,SWIPE_METHODS,READ_ONLY_METHODS,constructServices,sourceWithSheetIds};
