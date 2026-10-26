@@ -73,6 +73,36 @@ def test_plaintext_digest_fallback():
     assert not uncertain
 
 
+
+@pytest.mark.parametrize("title", [
+    "1 new job matches your preferences.",
+    "---------------------------------------------------------",
+    "Your job alert for Dublin",
+    "View job",
+    "See all jobs",
+])
+def test_digest_boilerplate_is_not_accepted_as_job_title(title):
+    assert not li.plausible_title(title)
+    html = job_html("4480051569", title, "EY", "Dublin, Ireland")
+    parsed, flagged = li.parse_jobs(html)
+    assert parsed == []
+    assert flagged is True
+
+
+def test_malformed_plaintext_digest_card_cannot_bypass_html_title_validation():
+    bad = ("Your job alert\n\n"
+           "---------------------------------------------------------\n"
+           "PwC Ireland\nDublin, Ireland\n"
+           "View job: https://www.linkedin.com/jobs/view/4169754769/\n")
+    parsed, flagged = li.parse_jobs("", bad)
+    assert parsed == []
+    assert flagged
+
+
+def test_normal_finance_job_title_is_still_accepted():
+    assert li.plausible_title("Senior Financial Consultant, Industry Relations")
+    assert li.plausible_title("EY Parthenon Strategy - Senior Consultant")
+
 def test_original_recipient_from_to_header_and_forwarded_body():
     assert li.original_owner(mail()) == "Abhishek"
     forwarded = "---------- Forwarded message ---------\nFrom: LinkedIn\nTo: Pooja <poojaktirupati@gmail.com>\n"
