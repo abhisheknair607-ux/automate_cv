@@ -121,8 +121,6 @@ app.get("/",(req,res)=>{
 // This route renders the exact original Jobs HTML/transport and adds a visual
 // launcher IN FRONT. It does not replace the Dashboard/Discovery/Make CV/Add Job
 // DOM or any of their event handlers.
-// Preview assets are always fresh: the UI is evolving rapidly on this QA channel.
-app.use("/prototype",(_req,res,next)=>{res.set("Cache-Control","no-store, max-age=0");next()});
 app.get("/prototype/mobile-shell.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
 app.get("/prototype/mobile-shell.js",(_req,res)=>
@@ -156,6 +154,7 @@ app.get("/prototype/media/:file",(req,res)=>{
 app.get("/prototype/collage.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_collage.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
 app.get("/prototype",(req,res)=>{
+  if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
   if(!html.includes("<body>")||!html.includes("</head>")||
