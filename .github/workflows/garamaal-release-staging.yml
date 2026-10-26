@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: f3c23012332ac2a01d717b4543aff39b808ebf40
+      RELEASE_SHA: b49c34349fd9726b1dc0ea9c103220c18c31a08c
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: f3c23012332ac2a01d717b4543aff39b808ebf40
+          ref: b49c34349fd9726b1dc0ea9c103220c18c31a08c
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -206,11 +206,28 @@ jobs:
               assert b'gmv3-launch' not in html,'Default home route unexpectedly replaced'
           print('RELEASE_QA_URL: '+root+'/prototype',flush=True)
           open('release-audit/release-qa-url.txt','w').write(root+'/prototype\n')
+          with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GARAMAAL_QA_URL='+root+'/prototype\n')
           with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
               f.write('### Separate read-only PR #64 integration staging\n\n')
               f.write('**QA:** '+root+'/prototype\n\n')
               f.write('Live Firebase Hosting and production Cloud Run were not deployed.\n')
           PY
+      - name: Install Chrome browser QA harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v google-chrome || command -v google-chrome-stable
+          npm install --no-audit --no-fund --prefix /tmp/garamaal-browserqa --no-save playwright-core@1.56.1
+          node --check release-src/standalone/test/stage3_browser_qa.cjs
+      - name: Simulated browser QA on actual staging HTML and assets (desktop and mobile)
+        shell: bash
+        env:
+          PLAYWRIGHT_CORE_PATH: /tmp/garamaal-browserqa/node_modules/playwright-core
+          GARAMAAL_QA_SHOTS: release-audit/screenshots
+        run: |
+          set -euo pipefail
+          mkdir -p release-audit/screenshots
+          node release-src/standalone/test/stage3_browser_qa.cjs
       - name: Assert production Cloud Run revision and traffic unchanged
         shell: bash
         run: |
