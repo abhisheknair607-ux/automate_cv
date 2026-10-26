@@ -59,6 +59,7 @@ jobs:
             standalone/test/stage17_production_gate.test.js \
             standalone/test/tactile_hold_state.test.js \
             standalone/test/live_swipe.test.js \
-            standalone/test/pwa_swipe_dashboard_repair.test.js
+            standalone/test/pwa_swipe_dashboard_repair.test.js \
+            standalone/test/swipe_full_cv_controls.test.js
       - name: Verify production image can be assembled without modifying CV worker
         run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
