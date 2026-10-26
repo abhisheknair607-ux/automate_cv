@@ -26,17 +26,22 @@ function validateRange(startDate,endDate) {
  return {start_date:from,end_date:to};
 }
 function summarizeLog(rows){
- const latestStates=new Map();let lastImportedDate=null,lastRunAt=null;
+ const lastById=new Map();let lastImportedDate=null,lastRunAt=null;
  for(const row of rows||[]){
   const received=String(row[3]||"").slice(0,10),processed=String(row[0]||"");
-  const key=String(row[1]||"");
-  if(key)latestStates.set(key,String(row[9]||""));
-  if(processed && (!lastRunAt||processed>lastRunAt))lastRunAt=processed;
+  const id=String(row[1]||""),result=String(row[9]||"");
+  if(id)lastById.set(id,{
+   id,threadId:String(row[2]||""),receivedAt:String(row[3]||""),
+   subject:String(row[4]||"").slice(0,250),owner:String(row[5]||""),
+   result,details:String(row[10]||"").slice(0,300)
+  });
+  if(processed&&(!lastRunAt||processed>lastRunAt))lastRunAt=processed;
   if(Number(row[7]||0)>0&&/^\d{4}-\d{2}-\d{2}$/.test(received)&&
      (!lastImportedDate||received>lastImportedDate))lastImportedDate=received;
  }
- return {lastImportedDate,lastRunAt,pendingReview:[...latestStates.values()]
-   .filter(v=>v==="Review"||v==="Partial").length};
+ const pending=[...lastById.values()].filter(v=>v.result==="Review"||v.result==="Partial");
+ pending.sort((a,b)=>b.receivedAt.localeCompare(a.receivedAt));
+ return {lastImportedDate,lastRunAt,pendingReview:pending.length,reviews:pending.slice(0,50)};
 }
 async function loadHistory({token,spreadsheetId,fetcher=fetch}){
  if(!token)throw error("Google Sheets credential unavailable",503);
