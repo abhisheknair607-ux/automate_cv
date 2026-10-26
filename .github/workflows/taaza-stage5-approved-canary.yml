@@ -40,11 +40,21 @@ jobs:
           python -m pip install --quiet pytest
           python -m pytest -q tests/test_stage5_canary_release.py
           bash -n standalone/deploy-stage5-canary.sh
-      - name: Authenticate to Google Cloud with existing WIF
+      - name: Require a separate Cloud Run deployment identity
+        shell: bash
+        env:
+          STAGE5_DEPLOYER: ${{ vars.STAGE5_CLOUD_RUN_DEPLOYER_SERVICE_ACCOUNT }}
+        run: |
+          set -euo pipefail
+          if [[ -z "$STAGE5_DEPLOYER" || "$STAGE5_DEPLOYER" == "cv-automation@abhishek-cv-automation.iam.gserviceaccount.com" ]]; then
+            echo "Stage 5 needs a dedicated deployer, not the shared CV worker service account." >&2
+            exit 2
+          fi
+      - name: Authenticate dedicated deployer through existing WIF
         uses: google-github-actions/auth@v3
         with:
           workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
-          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          service_account: ${{ vars.STAGE5_CLOUD_RUN_DEPLOYER_SERVICE_ACCOUNT }}
           project_id: abhishek-cv-automation
           create_credentials_file: true
           export_environment_variables: true
