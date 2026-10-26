@@ -4,6 +4,11 @@ name: taaza-dedupe-check
 # Only metadata and read-only values methods; no cleanup and no cron.
 on:
   workflow_dispatch:
+    inputs:
+      apply_statuses:
+        description: 'Write reviewed duplicate status proposals to Q only (no deletions)'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -30,10 +35,21 @@ jobs:
           python-version: '3.12'
       - name: Install Sheets read-only client
         run: pip install --quiet google-api-python-client google-auth google-auth-httplib2
-      - name: Check existing Taaza duplicates without changing the workbook
+      - name: Check protected Taaza duplicate proposals (read-only by default)
         env:
           TAAZA_SPREADSHEET_ID: 1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY
+          GARAMAAL_DEDUPE_STATUS_APPROVED: ${{ vars.GARAMAAL_DEDUPE_STATUS_APPROVED }}
+          APPLY_STATUSES: ${{ inputs.apply_statuses }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
-        run: PYTHONPATH=src python -m automate_cv.taaza_dedupe_audit --live
+        run: |
+          args=()
+          if [[ "$APPLY_STATUSES" == "true" ]]; then
+            if [[ "$GARAMAAL_DEDUPE_STATUS_APPROVED" != "true" ]]; then
+              echo "Duplicate status writes are still approval-locked." >&2
+              exit 1
+            fi
+            args+=(--apply-statuses)
+          fi
+          PYTHONPATH=src python -m automate_cv.taaza_duplicate_proposals "${args[@]}"
