@@ -80,8 +80,8 @@ async function dispatch({kind,date,startDate,endDate,token,dispatchAllowed,apply
  if(!dispatchAllowed)throw error("GitHub workflow control is not activated",403);
  if(kind==="apply"&&!applyAllowed)throw error("Manual import approval has not been activated",403);
  if(kind==="apply"&&!confirmed)throw error("Confirm the import before writing validated jobs",400);
- const dated=startDate||endDate?
-  {on_date:"",...validateRange(startDate,endDate)}:{on_date:validateDate(date)};
+ const dated=kind==="dedupe"?{}:(startDate||endDate?
+  {on_date:"",...validateRange(startDate,endDate)}:{on_date:validateDate(date)});
  const inputs=kind==="dedupe"?{}:{apply:String(kind==="apply"),
   ...dated,...(kind==="apply"?{approval:"IMPORT_VALIDATED_JOBS"}:{})};
  await github(token,"actions/workflows/"+WORKFLOWS[kind]+"/dispatches",{
