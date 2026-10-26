@@ -92,7 +92,7 @@ test("Phone gestures pan vertically through Swipe without deciding to postpone",
  assert.match(js,/if\(dir==="down"&&!fromGrip\)return/);
  assert.match(js,/const fromGrip=!!e\.target\.closest\("\.gmv3-swipe-drag-grip"\)/);
  assert.match(js,/if\(fromGrip\|\|e\.pointerType!=="touch"\)node\.setPointerCapture/);
- assert.match(css,/Stage 10: lift is a held visual STATE/);
+ assert.match(css,/Stage 12: sustained neon halo/);
  assert.match(css,/\.gmv3-drag-card\{\s*touch-action:pan-y!important/);
  assert.match(css,/\.gmv3-swipe-drag-grip\{\s*touch-action:none!important/);
  assert.match(css,/overflow-y:auto!important;-webkit-overflow-scrolling:touch/);
@@ -112,11 +112,12 @@ test("Actual touch/pointer animation applies to both Jobs and dashboard stat til
  assert.match(js,/node\.classList\.add\("gmv3-tactile-held"\)/);
  assert.match(js,/node\.classList\.remove\("gmv3-tactile-held"\)/);
  assert.match(css,/\.gmv3-tactile-held/);
+ assert.match(css,/box-shadow:0 0 0 2px #dfff58,0 0 16px #dfff58b0/);
  assert.doesNotMatch(css,/\.gmv3-tactile-pulse/);
  assert.match(css,/translateY\(-6px\) scale\(1\.024\)/);
  assert.match(server,/\/prototype\/tactile-feedback\.js/);
  assert.match(server,/Cache-Control","no-store, max-age=0/);
- assert.match(server,/\?v=m26-touch-scroll-10/);
+ assert.match(server,/\?v=m26-neon-held-12/);
  assert.match(read("standalone/mobile_jobs_filters_stats.js"),/setTimeout\(\(\)=>nav\(destination,status\),190\)/);
 });
 
