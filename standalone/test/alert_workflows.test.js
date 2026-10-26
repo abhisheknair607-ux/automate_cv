@@ -91,3 +91,36 @@ test("approved import still refuses missing confirmation",async()=>{
  await assert.rejects(a.dispatch({kind:"apply",token:"SECRET",dispatchAllowed:true,applyAllowed:true,fetcher:m.fetcher}),/Confirm the import/);
  assert.equal(m.calls.length,0);
 });
+
+
+test("inclusive calendar range passes both dates, with no stale single-day input",async()=>{
+ const m=mock();
+ await a.dispatch({kind:"apply",startDate:"2026-10-20",endDate:"2026-10-26",
+  token:"SECRET",dispatchAllowed:true,applyAllowed:true,confirmed:true,
+  fetcher:m.fetcher});
+ const req=JSON.parse(m.calls[0].options.body).inputs;
+ assert.equal(req.on_date,"");
+ assert.equal(req.start_date,"2026-10-20");
+ assert.equal(req.end_date,"2026-10-26");
+ assert.equal(req.apply,"true");
+});
+test("bad calendar range cannot dispatch a workflow",async()=>{
+ const m=mock();
+ for(const [startDate,endDate] of [["2026-10-26","2026-10-20"],["2026-10-20",""],["2026-01-01","2026-10-20"]]){
+  await assert.rejects(a.dispatch({kind:"preview",startDate,endDate,
+   token:"SECRET",dispatchAllowed:true,fetcher:m.fetcher}),/date/i);
+ }
+ assert.equal(m.calls.length,0);
+});
+test("history summary distinguishes last imported jobs from pending email reviews",()=>{
+ const rows=[
+  ["2026-10-26T20:00:00Z","m1","","2026-10-26T07:00:00Z","","",3,2,1,"Processed",""],
+  ["2026-10-26T21:00:00Z","m2","","2026-10-26T08:00:00Z","","",1,0,0,"Review",""],
+  ["2026-10-26T22:00:00Z","m2","","2026-10-26T08:00:00Z","","",1,1,0,"Processed",""],
+  ["2026-10-26T23:00:00Z","m3","","2026-10-25T08:00:00Z","","",1,0,0,"Partial",""]
+ ];
+ const h=a.summarizeLog(rows);
+ assert.equal(h.lastImportedDate,"2026-10-26");
+ assert.equal(h.pendingReview,1);
+ assert.equal(h.lastRunAt,"2026-10-26T23:00:00Z");
+});
