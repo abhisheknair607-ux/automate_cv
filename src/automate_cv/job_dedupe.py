@@ -154,7 +154,10 @@ def location_key(value: str) -> str:
     # Same city can appear as "Dublin, Ireland" or "Dublin, County Dublin";
     # never infer an exact location from a country-only, remote or hybrid tag.
     words = value.split()
-    city = next((x for x in CITIES if re.search(r"\b" + re.escape(x) + r"\b", value)), "")
+    locations = sorted(((m.start(), city) for city in CITIES
+                        for m in [re.search(r"\b" + re.escape(city) + r"\b", value)]
+                        if m is not None))
+    city = locations[0][1] if locations else ""
     if city:
         return city
     first = " ".join(words[:2])
@@ -178,7 +181,8 @@ def identity(url: str) -> tuple[str, str]:
         host = p.hostname.lower().removeprefix("www.")
         path = re.sub(r"/+$", "", p.path) or "/"
         query = dict(parse_qsl(p.query, keep_blank_values=True))
-        if host == "linkedin.com":
+        if host in {"linkedin.com", "uk.linkedin.com", "ie.linkedin.com",
+                    "nl.linkedin.com", "pl.linkedin.com"}:
             m = JOB_LINKEDIN.fullmatch(path)
             if m:
                 return "id", "linkedin:" + m.group(1)
