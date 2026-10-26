@@ -7,6 +7,7 @@
  */
 const express=require("express");
 const path=require("node:path");
+const fs=require("node:fs");
 const {GoogleAuth}=require("google-auth-library");
 const {initializeApp,getApps}=require("firebase-admin/app");
 const {getAuth}=require("firebase-admin/auth");
@@ -103,7 +104,38 @@ app.get("/config",async(_req,res)=>{
  catch{res.status(503).json({error:"Social sign-in configuration unavailable."})}
 });
 
-app.get("/social",(_req,res)=>res.type("html").sendFile(path.join(__dirname,"social.html")));
+// Render the original functional Social app unchanged, then mount the tested
+// collage visual shell. Keep every native Research, Verify, Swipe, follow-up,
+// upload, OAuth and status handler from social.html.
+app.get("/social",(req,res)=>{
+ const html=fs.readFileSync(path.join(__dirname,"social.html"),"utf8");
+ const theme='<link rel="stylesheet" href="/social/theme-hubs.css?v=social-26">'+
+  '<link rel="stylesheet" href="/social/theme-collage.css?v=social-26">'+
+  '<link rel="stylesheet" href="/social/theme-restore.css?v=social-26">';
+ res.type("html").send(
+  html.replace("</head>",theme+"</head>")
+   .replace("</body>",'<script src="/social/theme-shell.js?v=social-26"></script></body>')
+ );
+});
+const THEME_ASSETS={
+ "/social/theme-hubs.css":"social_theme_hubs.css",
+ "/social/theme-collage.css":"social_theme_collage.css",
+ "/social/theme-restore.css":"social_theme_restore.css",
+ "/social/theme-shell.js":"mobile_social_hub.js"
+};
+for(const [route,file] of Object.entries(THEME_ASSETS)){
+ app.get(route,(_req,res)=>{
+  res.type(file.endsWith(".js")?"text/javascript":"text/css").sendFile(path.join(__dirname,file));
+ });
+}
+// This art was already deployed with the Jobs collage. Reuse it on Hosting:
+// no duplicate files, no modifications to Social data or Jobs build.
+const SOCIAL_ART=new Set(["nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"]);
+app.get("/social/assets/:file",(req,res)=>{
+ const file=req.params.file;
+ if(!SOCIAL_ART.has(file))return res.status(404).end();
+ res.redirect(302,"https://garamaal.web.app/prototype/assets/"+file);
+});
 app.get("/social/bridge.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js")));
 
 app.post("/api/social/*",async(req,res)=>{

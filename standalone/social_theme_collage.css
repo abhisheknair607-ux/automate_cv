@@ -1,0 +1,1349 @@
+
+/* Garamaal collage front-end, additive and scoped to the prototype only.
+   Approved artwork sprites from supplied Garamaal visual QA. */
+:root{--gm-collage-lime:#dfff58;--gm-collage-purple:#d493ef;--gm-collage-pink:#fd279d}
+#gmv3-launch{background:#18181b!important}
+#gmv3-launch .gmv3-head{max-width:1180px;height:64px}
+#gmv3-launch .gmv3-wordmark{font-weight:970;font-size:16px;letter-spacing:-.05em;text-transform:uppercase;text-decoration:underline;text-decoration-color:var(--gm-collage-lime);text-decoration-thickness:3px;text-underline-offset:5px}
+#gmv3-launch .gmv3-wordmark:before{content:"✦";display:inline-block;margin-right:11px;color:#fff;font-size:26px;vertical-align:-3px}
+#gmv3-launch .gmv3-scroll{max-width:1180px;padding:15px 22px 35px}
+#gmv3-launch .gmv3-eyebrow{display:none}
+#gmv3-launch h1{font-size:clamp(46px,8.5vw,104px);letter-spacing:-.085em;line-height:.92;margin:17px 0 21px}
+#gmv3-launch h1 em{color:var(--gm-collage-purple);font-family:"Segoe Print",Georgia,cursive;font-style:italic;text-transform:none}
+#gmv3-launch .gmv3-pills{gap:7px}
+#gmv3-launch .gmv3-pills button{background:#fffbea;color:#181818;border:2px solid #181818;border-radius:6px 12px 6px 10px;box-shadow:3px 3px 0 var(--gm-collage-lime);min-height:36px;padding:6px 10px;font-size:11px;font-weight:860;transition:transform .2s,box-shadow .2s}
+#gmv3-launch .gmv3-pills button:nth-child(2){background:#dca0f2;box-shadow:3px 3px 0 #171717}
+#gmv3-launch .gmv3-pills button:hover{transform:translateY(-3px) rotate(-2deg);box-shadow:5px 6px 0 #fa2aa0}
+#gmv3-launch .gmv3-cards{gap:14px}
+#gmv3-launch .gmv3-action{isolation:isolate;min-height:133px;border:2px solid #111;border-radius:24px;box-shadow:3px 5px 0 #090909;padding:16px 18px;transform-origin:25% 50%;transition:transform .34s cubic-bezier(.2,1.4,.3,1),box-shadow .28s,filter .3s}
+#gmv3-launch .gmv3-action .gmv3-symbol,#gmv3-launch .gmv3-action .gmv3-card-art,#gmv3-launch .gmv3-action .gmv3-sticker{display:none}
+#gmv3-launch .gmv3-action .gmv3-copy{z-index:3;position:relative;max-width:60%;padding:0}
+#gmv3-launch .gmv3-action .gmv3-copy strong{font-size:clamp(23px,5vw,30px);font-weight:960;line-height:1.02;letter-spacing:-.055em}
+#gmv3-launch .gmv3-action .gmv3-copy small{font-size:clamp(11px,2.2vw,13px);font-weight:770;line-height:1.22;margin-top:8px}
+#gmv3-launch .gmv3-action:before{content:"";display:block;position:absolute;z-index:2;top:-9%;bottom:-9%;right:-3%;width:66%;background-image:url("/prototype/assets/home-collage-strip.webp");background-size:400% 100%;background-repeat:no-repeat;pointer-events:none;transition:transform .36s cubic-bezier(.2,1.5,.3,1);-webkit-mask-image:linear-gradient(90deg,transparent,#000 22%);mask-image:linear-gradient(90deg,transparent,#000 22%)}
+#gmv3-launch .gmv3-action:after{content:"";pointer-events:none;position:absolute;z-index:2;left:0;inset-block:0;width:48%;background:linear-gradient(90deg,var(--tile) 44%,transparent)}
+#gmv3-launch .gmv3-action.gm-lime{--tile:#dfff58;background:var(--tile)}
+#gmv3-launch .gmv3-action.gm-white{--tile:#fffaf0;background:var(--tile)}
+#gmv3-launch .gmv3-action.gm-purple{--tile:#d493ef;background:var(--tile)}
+#gmv3-launch .gmv3-action:nth-child(4){--tile:#f5f5e8}
+#gmv3-launch .gmv3-action:nth-child(1):before{background-position:0% 50%}
+#gmv3-launch .gmv3-action:nth-child(2):before{background-position:33.333% 50%}
+#gmv3-launch .gmv3-action:nth-child(3):before{background-position:66.667% 50%}
+#gmv3-launch .gmv3-action:nth-child(4):before{background-position:100% 50%}
+#gmv3-launch .gmv3-action:hover{transform:translateY(-5px) rotate(-.9deg);box-shadow:5px 9px 0 #070707;filter:saturate(1.08)}
+#gmv3-launch .gmv3-action:nth-child(even):hover{transform:translateY(-5px) rotate(.9deg)}
+#gmv3-launch .gmv3-action:hover:before{transform:rotate(4deg) scale(1.055) translateY(-4px)}
+#gmv3-launch .gmv3-action:active{transform:translateY(2px) scale(.985)}
+#gmv3-launch .gmv3-journey{font-size:clamp(24px,4vw,33px);margin-top:21px}
+#gmv3-launch .gmv3-journey span:first-child{text-decoration:underline;text-decoration-color:var(--gm-collage-pink);text-underline-offset:6px;text-decoration-thickness:3px}
+/* Approved visual states are a 5-column by 3-row sprite: default, hover, active. */
+.gmv3-tabbar{background:#171719!important;border-top:1px solid #4e4653!important;max-width:940px;box-shadow:0 -6px 24px #0005!important}
+.gmv3-tabbar button{color:#fdf9f0!important;background:none!important;font-weight:830!important;transition:transform .22s}
+.gmv3-tabbar button:hover{transform:translateY(-3px)}
+.gmv3-tabbar button[aria-current="page"]{color:#dfff58!important;background:#252327!important}
+.gmv3-tabbar .gmv3-tabicon{font-size:0!important;width:46px!important;height:47px!important;min-height:47px!important;display:block!important;background:url("/prototype/assets/nav-collage-states.webp") no-repeat;background-size:500% 300%;background-position-y:0}
+.gmv3-tabbar button:nth-child(1) .gmv3-tabicon{background-position-x:0%}
+.gmv3-tabbar button:nth-child(2) .gmv3-tabicon{background-position-x:25%}
+.gmv3-tabbar button:nth-child(3) .gmv3-tabicon{background-position-x:50%}
+.gmv3-tabbar button:nth-child(4) .gmv3-tabicon{background-position-x:75%}
+.gmv3-tabbar button:nth-child(5) .gmv3-tabicon{background-position-x:100%}
+.gmv3-tabbar button:hover .gmv3-tabicon{background-position-y:50%;transform:rotate(-7deg) scale(1.04)}
+.gmv3-tabbar button[aria-current="page"] .gmv3-tabicon{background-position-y:100%;transform:scale(1.06)}
+.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{margin:0!important;background-color:transparent!important;border:0!important;box-shadow:none!important;border-radius:0!important}
+.gmv3-jobs-workspace #gmv3-home-button,.gmv3-social-workspace #gmv3-social-back{font-size:0!important;background:#fff url("/prototype/assets/back-avatar-controls.webp") no-repeat 0% 50%!important;background-size:700% 100%!important;border:0!important;border-radius:8px!important;width:48px!important;min-width:48px!important;height:48px!important}
+.gmv3-jobs-workspace #gmv3-home-button:hover,.gmv3-social-workspace #gmv3-social-back:hover{background-position:16.6667% 50%!important}
+.gmv3-social-workspace .gmv3-tabbar .gmv3-tabicon{background-image:url("/social/assets/nav-collage-states.webp")}
+.gmv3-social-workspace #gmv3-social-back{background-image:url("/social/assets/back-avatar-controls.webp")!important}
+/* Intro: actual paper fold animation hands off to SAME interactive /prototype DOM. */
+#gmv3-collage-intro[hidden]{display:none!important}
+#gmv3-collage-intro{position:fixed;inset:0;z-index:130;overflow:hidden;display:grid;place-items:center;background:#101012;pointer-events:auto;opacity:1;transition:opacity .6s ease}
+#gmv3-collage-intro.gmv3-out{opacity:0;pointer-events:none}
+#gmv3-collage-intro .gmv3-paper{position:relative;display:grid;place-items:center;overflow:hidden;width:min(86vw,690px);aspect-ratio:1.65;background:repeating-linear-gradient(27deg,#f5f0df 0px,#f5f0df 21px,#eee6d5 23px,#fbf9eb 40px);border:7px solid #eee8d9;clip-path:polygon(0 2%,18% 0,34% 2%,51% 0,70% 2%,86% 0,100% 3%,99% 84%,100% 98%,80% 100%,61% 97%,39% 100%,13% 98%,1% 100%);box-shadow:0 30px 90px #0007;transform:scale(.17) rotate(-25deg) skew(9deg,11deg);opacity:0;animation:gmv3-unfold 2.1s .3s cubic-bezier(.18,.8,.18,1) forwards}
+#gmv3-collage-intro .gmv3-paper:before{content:"";position:absolute;inset:0;background:linear-gradient(100deg,transparent 26%,#91897333 30%,transparent 35%,transparent 57%,#95857034 62%,transparent 67%),linear-gradient(5deg,transparent 50%,#af9f8730 52%,transparent 54%);pointer-events:none}
+#gmv3-collage-intro .gmv3-doodles{position:absolute;inset:7% 2%;display:flex;align-items:flex-start;justify-content:space-between;gap:8px;font:800 clamp(11px,2vw,18px) "Segoe Print",cursive;color:#191919;transform:rotate(-6deg)}
+#gmv3-collage-intro .gmv3-doodles span:nth-child(2){align-self:flex-end;transform:rotate(12deg)}
+#gmv3-collage-intro .gmv3-paper strong{z-index:2;color:#111;font:italic 950 clamp(40px,10vw,95px) "Segoe Print",Georgia,cursive;letter-spacing:-.09em;text-shadow:3px 4px 0 #dfff58;transform:rotate(-7deg);animation:gmv3-word .65s 1.9s both}
+#gmv3-collage-intro .gmv3-star{position:absolute;font-size:clamp(29px,6vw,90px);color:var(--gm-collage-lime);animation:gmv3-shards 1.2s both}
+#gmv3-collage-intro .gmv3-star:nth-child(2){left:12%;top:18%;color:var(--gm-collage-pink)}
+#gmv3-collage-intro .gmv3-star:nth-child(3){right:9%;top:20%;animation-delay:.1s;color:#ac5bf1}
+#gmv3-collage-intro .gmv3-star:nth-child(4){left:19%;bottom:13%;animation-delay:.2s}
+#gmv3-collage-intro .gmv3-star:nth-child(5){right:18%;bottom:11%;animation-delay:.15s;color:#fd279d}
+#gmv3-collage-intro .gmv3-intro-skip{position:absolute;right:20px;bottom:calc(24px + env(safe-area-inset-bottom));background:#dfff58;color:#111;border:0;border-radius:50px;padding:10px 17px;font:800 13px system-ui;cursor:pointer;min-height:43px}
+#gmv3-collage-intro .gmv3-intro-label{position:absolute;left:20px;bottom:28px;font:700 11px system-ui;letter-spacing:.12em;color:#fff}
+@keyframes gmv3-unfold{0%{transform:scale(.12) rotate(-27deg) skew(18deg,18deg);opacity:0}21%{transform:scale(.26) rotate(15deg) skew(-7deg,16deg);opacity:1}42%{transform:scale(.47) rotate(-8deg) skew(9deg,-6deg)}77%{transform:scale(.98) rotate(2deg) skew(0,1deg)}100%{transform:scale(1) rotate(0) skew(0,0);opacity:1}}
+@keyframes gmv3-word{0%{opacity:0;transform:rotate(-10deg) scale(.5)}70%{opacity:1;transform:rotate(-5deg) scale(1.13)}100%{opacity:1;transform:rotate(-7deg) scale(1)}}
+@keyframes gmv3-shards{0%{opacity:0;transform:scale(.3) rotate(95deg) translateY(90px)}60%{opacity:1;transform:scale(1.12) rotate(10deg)}100%{opacity:1;transform:scale(1) rotate(-6deg)}}
+@media(min-width:850px){
+#gmv3-launch .gmv3-scroll{display:grid;grid-template-columns: minmax(290px,.82fr) minmax(450px,1.18fr);column-gap:clamp(24px,5vw,90px);align-content:center;align-items:center}
+#gmv3-launch .gmv3-hero{grid-column:1;grid-row:1}
+#gmv3-launch .gmv3-cards{grid-column:2;grid-row:1 / span 2;grid-template-columns:repeat(2,minmax(0,1fr));gap:17px}
+#gmv3-launch .gmv3-action{min-height:275px;align-items:flex-end;padding:20px}
+#gmv3-launch .gmv3-action .gmv3-copy{max-width:96%;background:#fff9e8ed;padding:9px;border-radius:8px}
+#gmv3-launch .gmv3-action:before{top:0;right:-2%;height:92%;width:104%;bottom:auto;-webkit-mask-image:linear-gradient(0deg,transparent,#000 27%);mask-image:linear-gradient(0deg,transparent,#000 27%)}
+#gmv3-launch .gmv3-action:after{display:none}
+#gmv3-launch .gmv3-journey{grid-column:1;grid-row:2}
+#gmv3-launch .gmv3-footnote{grid-column:1 / 3;grid-row:3}
+}
+@media(max-width:430px){#gmv3-launch .gmv3-scroll{padding:7px 15px 25px}#gmv3-launch h1{font-size:clamp(43px,11vw,56px)}#gmv3-launch .gmv3-action{min-height:116px;padding:12px 14px}#gmv3-launch .gmv3-action:before{width:66%}#gmv3-launch .gmv3-action .gmv3-copy{max-width:57%}#gmv3-launch .gmv3-action .gmv3-copy strong{font-size:23px}.gmv3-tabbar .gmv3-tabicon{width:43px!important;height:43px!important;min-height:43px!important}}
+@media(prefers-reduced-motion:reduce){#gmv3-collage-intro *,#gmv3-launch .gmv3-action,.gmv3-tabbar *{animation:none!important;transition:none!important}#gmv3-collage-intro{display:none!important}}
+
+/* Play the approved footage full-frame; hand off before the old mock-screen. */
+#gmv3-collage-intro .gmv3-intro-video{width:100%;height:100%;position:absolute;inset:0;display:block;object-fit:contain;background:#0d0d10}
+#gmv3-collage-intro .gmv3-intro-controls{position:absolute;z-index:3;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));display:flex;gap:8px;align-items:center}
+#gmv3-collage-intro .gmv3-intro-sound{color:#fff;background:#1a161dcf;border:1px solid #706071;border-radius:30px;padding:10px 14px;font:750 12px system-ui;min-height:44px;cursor:pointer}
+#gmv3-collage-intro .gmv3-intro-controls .gmv3-intro-skip{position:static;background:#dfff58;color:#111}
+#gmv3-collage-intro.gmv3-film-fallback .gmv3-paper{animation:gmv3-unfold 1.6s cubic-bezier(.18,.8,.18,1) forwards}
+body.gmv3-transfer #gmv3-launch .gmv3-hero{animation:gmv3-landing-in .72s cubic-bezier(.15,1,.3,1) both}
+body.gmv3-transfer #gmv3-launch .gmv3-action{animation:gmv3-landing-in .6s cubic-bezier(.18,1,.3,1) both}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(2){animation-delay:.08s}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(3){animation-delay:.13s}
+body.gmv3-transfer #gmv3-launch .gmv3-action:nth-child(4){animation-delay:.18s}
+@keyframes gmv3-landing-in{0%{opacity:.25;transform:translateY(20px) scale(.98)}100%{opacity:1;transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){body.gmv3-transfer #gmv3-launch .gmv3-hero,body.gmv3-transfer #gmv3-launch .gmv3-action{animation:none!important}}
+
+
+/* Garamaal After Dark | COLLAGE PREVIEW ONLY | CSS-only, Oct 2026.
+   Original Jobs/Social markup, logic, candidate data, backend calls and routes
+   are deliberately untouched. Flat illustrated stickers, not neon gradients. */
+body.gmv3-jobs-workspace,body.gmv3-social-workspace{
+  color-scheme:dark;
+  --gm-night:#131216;--gm-surface:#211e25;--gm-raised:#29252e;
+  --gm-edge:#514656;--gm-paper:#fff7e9;--gm-muted:#c4bac8;
+  --gm-lime:#dfff58;--gm-pink:#ff4caa;--gm-violet:#d493ef;
+  --navy:#17141a;--navy2:#33283c;--blue:#dfff58;--blueSoft:#2d3522;
+  --ink:#fff7e9;--text:#fff7e9;--muted:#c4bac8;--line:#514656;
+  --bg:#131216;--white:#211e25;--green:#b9f8ca;--amber:#ffe09b;
+  --rose:#ffb7cc;--lavender:#d493ef;--shadow:3px 4px 0 #08070b;
+  background:var(--gm-night)!important;color:var(--gm-paper)!important;
+}
+body.gmv3-jobs-workspace ::selection,body.gmv3-social-workspace ::selection{background:var(--gm-pink);color:#151218}
+body.gmv3-jobs-workspace a,body.gmv3-social-workspace a{color:var(--gm-lime);text-underline-offset:3px}
+body.gmv3-jobs-workspace a:hover,body.gmv3-social-workspace a:hover{color:var(--gm-violet)}
+body.gmv3-jobs-workspace :is(a,button,input,textarea,select):focus-visible,
+body.gmv3-social-workspace :is(a,button,input,textarea,select):focus-visible{
+  outline:3px solid var(--gm-pink)!important;outline-offset:2px
+}
+/* Funky editorial display: heavy compressed headlines, gently offset ink marker. */
+body.gmv3-jobs-workspace :is(.heading h1,.subhead,.flow-title,.drawer h2,.drawer h3,.gmv3-panel h2,.gmv3-swipe-body h2),
+body.gmv3-social-workspace :is(.heading h1,.section-head b,.research-card-head h2,.swipe-card h2,.gmv3-panel h2,.gmv3-swipe-body h2),
+#gmv3-launch :is(.gmv3-subbar strong,.gmv3-subbody h2){
+  font-family:"Bricolage Grotesque","Trebuchet MS","Arial Black",system-ui,sans-serif!important;
+  font-weight:950!important;letter-spacing:-.045em!important;line-height:1.15;
+}
+body.gmv3-jobs-workspace .heading h1,
+body.gmv3-social-workspace .heading h1{
+  color:var(--gm-paper)!important;font-size:clamp(22px,3vw,30px)!important
+}
+body.gmv3-jobs-workspace .heading h1::after,
+body.gmv3-social-workspace .heading h1::after{
+  content:"";display:block;width:49px;height:4px;margin-top:5px;
+  background:var(--gm-pink);transform:rotate(-2deg);border-radius:2px
+}
+body.gmv3-jobs-workspace :is(.shell,.main,.container,#content),
+body.gmv3-social-workspace main{background:var(--gm-night);color:var(--gm-paper)}
+body.gmv3-jobs-workspace .topbar,body.gmv3-social-workspace>header{
+  background:#1a171e!important;color:var(--gm-paper)!important;
+  border-bottom:2px solid var(--gm-violet)!important;box-shadow:0 3px 0 #08070b!important
+}
+body.gmv3-jobs-workspace .sidebar{background:#17151b;border-right:2px solid #4f3c56}
+body.gmv3-jobs-workspace .sidebar .nav-btn{color:#e7dbe8}
+body.gmv3-jobs-workspace .sidebar .nav-btn:is(.active,:hover){background:#3a2b40;color:var(--gm-lime);box-shadow:inset 4px 0 0 var(--gm-lime)}
+body.gmv3-jobs-workspace .brandmark{background:var(--gm-violet);color:#151218;box-shadow:3px 3px 0 #08070b}
+body.gmv3-jobs-workspace :is(.crumb,.crumb strong,.heading h1,.subhead),
+body.gmv3-social-workspace :is(.logo,.heading h1,.section-head b){color:var(--gm-paper)!important}
+body.gmv3-jobs-workspace :is(.heading p,.meta,.eyebrow,.step p,.job .company,.kpi label,.kpi small,.field small,.tier-note,.flow-note),
+body.gmv3-social-workspace :is(.muted,.subtle,.small,.counter,.stat label,.person small,.research-progress,.research-source-context,.research-searchline,.research-target-info small,.research-file-field small,.research-targets-heading small,.research-tip){
+  color:var(--gm-muted)!important
+}
+body.gmv3-jobs-workspace .overline,body.gmv3-social-workspace .research-eyebrow{color:var(--gm-pink)!important}
+/* Actual content surfaces: matte charcoal with tactile printed borders. */
+body.gmv3-jobs-workspace :is(.kpi,.panel,.job,.callout,.toolbar,.tier-banner,.tier-detail,.tier-cell,.cv-queue-overview,.empty),
+body.gmv3-social-workspace :is(.card,.stat,.swipe-card,.filter-panel,.note,.research-card,.research-campaign,.research-expand,.campaign-current,.empty){
+  background:var(--gm-surface)!important;color:var(--gm-paper)!important;
+  border:1.5px solid var(--gm-edge)!important;box-shadow:3px 4px 0 #08070b!important;
+  border-radius:15px
+}
+body.gmv3-jobs-workspace .kpi,body.gmv3-social-workspace .stat{border-top:4px solid var(--gm-lime)!important}
+body.gmv3-jobs-workspace .kpi:nth-child(4n+2),body.gmv3-social-workspace .stat:nth-child(4n+2){border-top-color:var(--gm-violet)!important}
+body.gmv3-jobs-workspace .kpi:nth-child(4n+3),body.gmv3-social-workspace .stat:nth-child(4n+3){border-top-color:var(--gm-pink)!important}
+body.gmv3-jobs-workspace .kpi:nth-child(4n+4),body.gmv3-social-workspace .stat:nth-child(4n+4){border-top-color:var(--gm-violet)!important}
+body.gmv3-jobs-workspace .kpi strong,body.gmv3-social-workspace .stat strong{color:var(--gm-paper)!important;font-weight:950;letter-spacing:-.05em}
+body.gmv3-jobs-workspace .kpi i{background:#392943;color:var(--gm-violet);border:1px solid #6b4d77}
+body.gmv3-jobs-workspace :is(.job h3,.step strong,.tier-banner strong,.flow-title),
+body.gmv3-social-workspace :is(.person strong,.research-card-head h2,.research-source-context strong,.research-target-info strong,.research-empty strong){color:var(--gm-paper)!important}
+body.gmv3-jobs-workspace :is(.jobcontrols,.job-settings,.form-footer,.drawer-head,.drawer-footer,.divider),
+body.gmv3-social-workspace :is(.person,.search-target,.research-target-row,.research-expand-body,.research-tip,.research-footer){border-color:var(--gm-edge)!important}
+body.gmv3-jobs-workspace :is(.checks label,.check-label,.job-setting label,.field label),
+body.gmv3-social-workspace :is(.field,label){color:#eadfeb}
+body.gmv3-jobs-workspace :is(.score,.flow-trail span,.stepnum,.tier-pill),
+body.gmv3-social-workspace :is(.research-meta,.count,.tag){background:#3c2a48;color:#f5dbff;border:1px solid #715180}
+body.gmv3-jobs-workspace .tag{background:#36313b;color:#eddfef;border:1px solid #5d5062}
+body.gmv3-jobs-workspace .tag-ok,body.gmv3-social-workspace :is(.tag.accepted,.tag.replied){background:#244333;color:#c5f8d4;border-color:#52735e}
+body.gmv3-jobs-workspace .tag-warn,body.gmv3-social-workspace .tag.later{background:#493921;color:#ffe1aa;border-color:#867043}
+body.gmv3-jobs-workspace .tag-red{background:#532c3d;color:#ffd1df;border-color:#885268}
+body.gmv3-jobs-workspace .tag-blue,body.gmv3-social-workspace .tag.sent{background:#352b4b;color:#ead1ff;border-color:#6e5487}
+/* Printed stickers: light background always means DARK type/icons. */
+body.gmv3-jobs-workspace :is(.btn,.chip,.switch button,.close,.avatar,#cv-install-app),
+body.gmv3-social-workspace :is(.btn,.chip,.pill,.mini,.pair button,.research-icon-button){
+  background:#322c38;color:var(--gm-paper);border:1.5px solid #76627b;
+  border-radius:9px;box-shadow:2px 2px 0 #08070b;font-weight:800;
+}
+body.gmv3-jobs-workspace :is(.btn-primary,.btn-navy),
+body.gmv3-social-workspace :is(.btn.primary,.btn.good){
+  background:var(--gm-lime)!important;color:#161318!important;
+  border-color:#0d0c0e!important;box-shadow:3px 3px 0 var(--gm-violet)!important
+}
+body.gmv3-jobs-workspace :is(.btn-primary,.btn-navy) :is(svg,span),
+body.gmv3-social-workspace :is(.btn.primary,.btn.good) :is(svg,span){color:inherit}
+body.gmv3-jobs-workspace :is(.btn,.chip,.switch button):hover:not(:disabled),
+body.gmv3-social-workspace :is(.btn,.chip,.pill,.mini,.pair button):hover:not(:disabled){border-color:var(--gm-pink);background:#48364f;color:var(--gm-lime)}
+body.gmv3-jobs-workspace .btn-primary:hover:not(:disabled),
+body.gmv3-social-workspace .btn.primary:hover:not(:disabled){background:#efff99!important;color:#161318!important}
+body.gmv3-jobs-workspace :is(.switch button.active,.chip.active),
+body.gmv3-social-workspace :is(.pill.active,.mini.active,.pair button.active,.chip.selected,.research-tab.active){
+  background:var(--gm-violet)!important;color:#19131d!important;border-color:#0d0c0e!important
+}
+body.gmv3-jobs-workspace :is(.switch,.score),
+body.gmv3-social-workspace :is(.pair,.research-tabs){border-color:var(--gm-edge);background:#29222d}
+body.gmv3-jobs-workspace :is(.selectionbar,.toast),
+body.gmv3-social-workspace #toast{background:#36243d!important;color:var(--gm-paper)!important;border:1px solid var(--gm-violet)}
+body.gmv3-jobs-workspace :is(input:not([type=checkbox]):not([type=radio]),textarea,select),
+body.gmv3-social-workspace :is(input:not([type=checkbox]):not([type=radio]),textarea,select){
+  background:#2b2630!important;color:var(--gm-paper)!important;
+  border:1.5px solid #78617e!important;border-radius:9px;caret-color:var(--gm-lime)
+}
+body.gmv3-jobs-workspace :is(input,textarea)::placeholder,
+body.gmv3-social-workspace :is(input,textarea)::placeholder{color:#c7b2c9!important;opacity:1}
+body.gmv3-jobs-workspace select option,body.gmv3-social-workspace select option{background:#2b2630;color:var(--gm-paper)}
+body.gmv3-jobs-workspace :is(input[type=checkbox],input[type=radio]),
+body.gmv3-social-workspace :is(input[type=checkbox],input[type=radio]){accent-color:var(--gm-lime)}
+body.gmv3-jobs-workspace :is(.notice,.cv-activity,.cv-queue-overview,.warning),
+body.gmv3-social-workspace :is(.preview-note,.upload-label,.research-tip){
+  background:#332b38!important;color:#fff0e7!important;border:1px solid #746078!important
+}
+body.gmv3-jobs-workspace .warning,body.gmv3-social-workspace .preview-note{border-left:4px solid #ffcf77!important}
+body.gmv3-jobs-workspace .app-error{background:#4c293b!important;color:#ffd5e1;border-color:#c87594}
+body.gmv3-jobs-workspace .drawer,body.gmv3-social-workspace dialog{background:#211b25!important;color:var(--gm-paper)!important;border-color:var(--gm-edge)}
+body.gmv3-jobs-workspace .drawer :is(h2,h3),body.gmv3-social-workspace dialog :is(h2,h3){color:var(--gm-paper)}
+body.gmv3-jobs-workspace .close{background:var(--gm-pink);color:#171218}
+body.gmv3-jobs-workspace .quick svg{color:var(--gm-lime)}
+body.gmv3-social-workspace :is(.research-target-scroll,.research-saved,.research-campaign,.research-expand-body,.org-options,.research-target-open){background:#27222c!important;border-color:var(--gm-edge)!important}
+body.gmv3-social-workspace :is(.research-tab,.research-expand>summary,.research-campaign>summary,.research-target-select,.research-link,.research-tab-number,.campaign-step){color:#f2e6ef!important}
+body.gmv3-social-workspace .research-tab.active,body.gmv3-social-workspace .campaign-step.active{background:var(--gm-violet)!important;color:#19131d!important}
+body.gmv3-social-workspace .campaign-step{background:#302936!important;border-color:var(--gm-edge)!important}
+body.gmv3-social-workspace .search input{background:#2b2630!important}
+body.gmv3-social-workspace .swipe-card{background:#28232e!important}
+/* Launcher subpages were still default blue/white; bring into the same theme. */
+#gmv3-launch .gmv3-subview{background:#131216!important;color:#fff7e9!important}
+#gmv3-launch .gmv3-subbar{background:#201c24!important;border-bottom:2px solid #d493ef!important;color:#fff7e9}
+#gmv3-launch .gmv3-subbar button{color:#dfff58}
+#gmv3-launch .gmv3-subbody p,#gmv3-launch .gmv3-micro{color:#c4bac8}
+#gmv3-launch .gmv3-panel{background:#231f28!important;border:1.5px solid #605064!important;color:#fff7e9;box-shadow:3px 4px 0 #08070b}
+#gmv3-launch .gmv3-panel label{color:#fff7e9;border-color:#514656}
+#gmv3-launch .gmv3-primary{background:#dfff58!important;color:#171218!important;border:1px solid #111;border-radius:9px;font-weight:850}
+#gmv3-launch .gmv3-secondary,#gmv3-launch .gmv3-stepper button{background:#392e43!important;color:#fff7e9!important;border:1px solid #765987;border-radius:9px}
+#gmv3-launch .gmv3-stepper output{color:#dfff58}
+#gmv3-launch .gmv3-panel input[type=checkbox]{accent-color:#dfff58}
+/* Existing visual five-tabs sprite: preserve its real art, boost active contrast. */
+body.gmv3-jobs-workspace .gmv3-tabbar,body.gmv3-social-workspace .gmv3-tabbar{background:#121115!important;border-top:2px solid #9a6bae!important;box-shadow:0 -4px 0 #08070b!important}
+body.gmv3-jobs-workspace .gmv3-tabbar button[aria-current=page],
+body.gmv3-social-workspace .gmv3-tabbar button[aria-current=page]{background:#2d2434!important;color:#dfff58!important}
+body.gmv3-jobs-workspace .gmv3-panelmask,body.gmv3-social-workspace .gmv3-panelmask{background:#07050ac7}
+body.gmv3-jobs-workspace .gmv3-panel,body.gmv3-social-workspace .gmv3-panel{background:#231e28!important;border:2px solid #9e75af;color:#fff7e9;box-shadow:0 -5px 0 #08070b}
+body.gmv3-jobs-workspace .gmv3-panel :is(.gmv3-options button,.gmv3-preview),
+body.gmv3-social-workspace .gmv3-panel :is(.gmv3-options button,.gmv3-preview){background:#332a3a;color:#fff7e9;border-color:#735f7e}
+body.gmv3-jobs-workspace .gmv3-panel :is(.gmv3-subtle,.gmv3-preview p){color:#c4bac8}
+body.gmv3-jobs-workspace .gmv3-panel .gmv3-close{color:#dfff58}
+body.gmv3-jobs-workspace .gmv3-swipe-surface,
+body.gmv3-social-workspace .gmv3-swipe-surface{background:#131216!important;color:#fff7e9}
+body.gmv3-jobs-workspace .gmv3-swipe-body :is(h2,h3,p),
+body.gmv3-social-workspace .gmv3-swipe-body :is(h2,h3,p){color:#fff7e9}
+body.gmv3-jobs-workspace .gmv3-job,body.gmv3-social-workspace .gmv3-job{background:#231e28!important;border:1.5px solid #6c5a73!important}
+body.gmv3-jobs-workspace .gmv3-jobheader{background:#32243c}
+body.gmv3-jobs-workspace .gmv3-jobdetails{background:#231e28;color:#fff7e9}
+body.gmv3-jobs-workspace .gmv3-jobdetails summary{color:#dfff58}
+body.gmv3-jobs-workspace .gmv3-ghost button{background:#342e38;color:#bdb5c0;border-color:#5d5063}
+body.gmv3-jobs-workspace .gmv3-noactions,body.gmv3-social-workspace .gmv3-noactions{background:#382e28;color:#ffe3b5;border-color:#856949}
+body.gmv3-social-workspace .gmv3-stat{background:#231e28;border:1.5px solid #66556d;color:#fff7e9}
+body.gmv3-social-workspace .gmv3-stat strong{color:#dfff58}
+body.gmv3-social-workspace .gmv3-stat span{color:#c4bac8}
+body.gmv3-social-workspace .gmv3-return-targets{background:#dfff58;color:#171218;border:1px solid #111;border-radius:9px;padding:12px 15px;font-weight:850}
+/* Visible status semantics, contrast on all accent backgrounds. */
+body.gmv3-jobs-workspace :is(.btn-primary,.btn-navy,.chip.active,.switch button.active) *,
+body.gmv3-social-workspace :is(.btn.primary,.btn.good,.chip.selected,.research-tab.active,.campaign-step.active) *{color:inherit!important}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace :is(.job,.kpi):hover,
+  body.gmv3-social-workspace :is(.stat,.swipe-card):hover{border-color:#d493ef!important;box-shadow:4px 6px 0 #08070b!important;transform:translateY(-2px);transition:transform .2s,border-color .2s}
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace :is(.job,.kpi),body.gmv3-social-workspace :is(.stat,.swipe-card){transition:none!important;transform:none!important}
+}
+
+
+/* INTRO / SCREEN-FIT 2026-10-25 | visual-only:
+   keep every frame intact at any aspect ratio. Artwork-filled stage behind
+   the contained film avoids stark letterboxing and never crops the paper/logo. */
+#gmv3-collage-intro{
+  inset:0;width:100%;height:100%;height:100dvh;min-height:100svh;
+  padding:0;overflow:hidden;isolation:isolate;
+  background:#101013;
+}
+#gmv3-collage-intro::before{
+  content:"";position:absolute;inset:-9%;z-index:-2;pointer-events:none;
+  background:linear-gradient(110deg,#17121ca6,#0d0d10ed 52%,#211423a0),
+    url("/prototype/assets/home-collage-strip.webp") center / cover no-repeat;
+  filter:blur(clamp(22px,4vw,64px)) saturate(.65);
+  opacity:.25;transform:scale(1.13)
+}
+#gmv3-collage-intro::after{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 72% 65% at center,transparent 45%,#0b0a10bc 100%)
+}
+#gmv3-collage-intro .gmv3-intro-video{
+  position:absolute;inset:0;width:100%;height:100%;max-width:100%;max-height:100%;
+  display:block;object-fit:contain;object-position:50% 50%;background:transparent;
+}
+#gmv3-collage-intro .gmv3-intro-controls{
+  position:absolute;z-index:5;right:max(14px,env(safe-area-inset-right));
+  bottom:calc(15px + env(safe-area-inset-bottom));left:auto;
+  display:flex;justify-content:flex-end;align-items:center;flex-wrap:wrap;
+  gap:8px;max-width:calc(100% - 28px)
+}
+#gmv3-collage-intro .gmv3-intro-sound,
+#gmv3-collage-intro .gmv3-intro-skip{
+  min-height:44px;min-width:44px;max-width:100%;
+  white-space:nowrap;touch-action:manipulation
+}
+/* Paper-only fallback for unsupported video codecs also obeys screen height. */
+#gmv3-collage-intro .gmv3-paper{
+  width:min(92vw,840px,calc(78dvh * 1.65));
+  max-height:78dvh;max-width:calc(100vw - 20px);aspect-ratio:1.65;
+}
+#gmv3-collage-intro .gmv3-paper strong{
+  font-size:clamp(23px, min(8vw,9dvh),95px);
+  max-width:94%;text-align:center
+}
+#gmv3-collage-intro .gmv3-doodles{font-size:clamp(9px, min(2vw,2.4dvh),18px)}
+@media (orientation:portrait){
+ #gmv3-collage-intro .gmv3-intro-video{object-position:center center}
+ #gmv3-collage-intro .gmv3-intro-controls{
+   right:max(12px,env(safe-area-inset-right));
+   bottom:calc(12px + env(safe-area-inset-bottom))
+ }
+}
+@media (orientation:landscape) and (max-height:490px){
+ #gmv3-collage-intro .gmv3-intro-controls{
+   bottom:calc(5px + env(safe-area-inset-bottom));right:max(10px,env(safe-area-inset-right))
+ }
+ #gmv3-collage-intro .gmv3-intro-controls button{min-height:40px;padding:6px 12px}
+ #gmv3-collage-intro .gmv3-paper{width:min(84vw,calc(73dvh * 1.65));max-height:73dvh}
+}
+@media (max-width:360px){
+ #gmv3-collage-intro .gmv3-intro-controls{gap:6px}
+ #gmv3-collage-intro .gmv3-intro-controls button{font-size:11px;padding:7px 10px}
+}
+
+
+/* Cinematic edge-fill: the centered paper stays uncut, the side columns become motion rather than black bands. */
+#gmv3-collage-intro .gmv3-intro-ambient{
+ position:absolute;inset:-6%;width:112%;height:112%;object-fit:cover;object-position:center;
+ filter:blur(clamp(13px,2vw,38px)) brightness(.68) saturate(.86);
+ opacity:.95;pointer-events:none;transform:scale(1.045);z-index:0;
+}
+#gmv3-collage-intro .gmv3-intro-video{z-index:1}
+#gmv3-collage-intro .gmv3-intro-controls{z-index:5}
+#gmv3-collage-intro.gmv3-film-fallback .gmv3-intro-ambient{display:none}
+@media(prefers-reduced-motion:reduce){#gmv3-collage-intro .gmv3-intro-ambient{display:none!important}}
+
+
+/* Jobs Stage 3: dark 2D tactile gesture cards; isolated to prototype. */
+#gmv3-jobs-swipe{overscroll-behavior:contain;overflow-x:hidden;padding:clamp(12px,2.5vw,25px);background:#131216;color:#fff7e9}
+#gmv3-jobs-swipe .gmv3-gesture-screen{max-width:660px;padding-bottom:30px}
+#gmv3-jobs-swipe .gmv3-swipe-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin:0 0 12px}
+#gmv3-jobs-swipe .gmv3-swipe-kicker{font:900 10px system-ui;letter-spacing:.12em;color:#d493ef}
+#gmv3-jobs-swipe .gmv3-swipe-heading h2{font:950 clamp(27px,5.3vw,38px)/1 "Bricolage Grotesque","Arial Black",sans-serif!important;color:#fff7e9!important;letter-spacing:-.05em;margin:5px 0}
+#gmv3-jobs-swipe .gmv3-swipe-heading h2 span{color:#ff4caa}
+#gmv3-jobs-swipe .gmv3-swipe-reset{min-height:40px;padding:9px 12px;border:1px solid #796880;border-radius:9px;background:#29232d;color:#fff7e9;font:750 11px system-ui}
+#gmv3-jobs-swipe .gmv3-swipe-readonly{margin:0 0 14px;padding:10px 12px;background:#382f37;color:#ffe5ae;border-left:4px solid #ffc579;border-radius:7px;font:650 11px/1.5 system-ui}
+#gmv3-jobs-swipe .gmv3-drag-card{position:relative;isolation:isolate;overflow:hidden;min-height:min(56dvh,500px);padding:clamp(18px,4vw,29px);border:2px solid #b78ac6;border-radius:18px;background:#26202c;box-shadow:5px 6px 0 #08070a;cursor:grab;touch-action:pan-y;user-select:none;will-change:transform;transition:transform .18s ease,opacity .18s}
+#gmv3-jobs-swipe .gmv3-drag-card:active{cursor:grabbing}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip{touch-action:none}
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-hold-ready{touch-action:none;border-color:#ffd18a;box-shadow:5px 6px 0 #08070a,0 0 0 3px #ffd18a50}
+#gmv3-jobs-swipe .gmv3-choice-error{padding:9px 11px;color:#ffe5ae;background:#5e2739;border-radius:9px;font:700 12px/1.45 system-ui}
+
+#gmv3-jobs-swipe .gmv3-drag-card[data-swiping="left"]{border-color:#ff4caa}
+#gmv3-jobs-swipe .gmv3-drag-card[data-swiping="right"]{border-color:#dfff58}
+#gmv3-jobs-swipe .gmv3-drag-card[data-swiping="down"]{border-color:#ffd18a}
+#gmv3-jobs-swipe .gmv3-dismiss-left{transform:translateX(-130%) rotate(-12deg)!important;opacity:.1}
+#gmv3-jobs-swipe .gmv3-dismiss-down{transform:translateY(130%) rotate(5deg)!important;opacity:.1}
+#gmv3-jobs-swipe .gmv3-drag-flash{position:absolute;top:44%;font:950 29px "Bricolage Grotesque","Arial Black",sans-serif;letter-spacing:-.05em;border:3px solid;padding:8px 13px;opacity:0;pointer-events:none;z-index:7}
+#gmv3-jobs-swipe .gmv3-left{left:12px;color:#ff4caa;transform:rotate(-9deg)}
+#gmv3-jobs-swipe .gmv3-right{right:12px;color:#dfff58;transform:rotate(9deg)}
+#gmv3-jobs-swipe .gmv3-down{left:33%;top:57%;color:#ffd18a;transform:rotate(3deg)}
+#gmv3-jobs-swipe [data-swiping="left"] .gmv3-left,
+#gmv3-jobs-swipe [data-swiping="right"] .gmv3-right,
+#gmv3-jobs-swipe [data-swiping="down"] .gmv3-down{opacity:1}
+#gmv3-jobs-swipe .gmv3-swipe-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:25px}
+#gmv3-jobs-swipe .gmv3-swipe-source{font:900 10px "Bricolage Grotesque",system-ui;letter-spacing:.07em;background:#dfff58;color:#171218;padding:7px 10px;border:1px solid #09070b;border-radius:6px;transform:rotate(-2deg)}
+#gmv3-jobs-swipe .gmv3-swipe-score{background:#d493ef;color:#18121c;padding:7px 10px;border-radius:8px;font:900 12px system-ui}
+#gmv3-jobs-swipe .gmv3-drag-card h3{font:950 clamp(28px,5.8vw,43px)/1.06 "Bricolage Grotesque","Arial Black",sans-serif;color:#fff7e9;letter-spacing:-.05em;margin:0 0 14px;overflow-wrap:anywhere}
+#gmv3-jobs-swipe .gmv3-swipe-company{color:#d493ef!important;font:850 17px system-ui!important;margin:0 0 8px!important}
+#gmv3-jobs-swipe .gmv3-swipe-place{color:#c5b9c8!important;font:650 13px system-ui!important;margin:0 0 25px!important}
+#gmv3-jobs-swipe .gmv3-swipe-seal{display:inline-block;font:900 13px "Bricolage Grotesque",system-ui;background:#ff4caa;color:#191219;border:1px solid #161019;padding:8px 10px;border-radius:6px;transform:rotate(-2deg);margin:0 0 16px}
+#gmv3-jobs-swipe .gmv3-swipe-tags{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+#gmv3-jobs-swipe .gmv3-swipe-tags span{background:#3b2f40;color:#efe1f2;border:1px solid #755c7a;border-radius:8px;font:750 10px system-ui;padding:7px 9px}
+#gmv3-jobs-swipe .gmv3-swipe-card-note{color:#d9cddd!important;font:650 12px/1.5 system-ui!important;margin:19px 0!important}
+#gmv3-jobs-swipe .gmv3-swipe-card-foot{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+#gmv3-jobs-swipe :is(.gmv3-jd-expand,.gmv3-employer-link){min-height:44px;touch-action:manipulation;border-radius:8px;font:850 12px system-ui;text-decoration:none;padding:11px 13px;cursor:pointer;background:#423548;color:#fff7e9;border:1px solid #786482}
+#gmv3-jobs-swipe .gmv3-employer-link{background:#dfff58;color:#171218;border-color:#171218}
+#gmv3-jobs-swipe .gmv3-swipe-help{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:24px 0 10px}
+#gmv3-jobs-swipe .gmv3-swipe-help :is(button,span){text-align:center;border:1px solid #82546d;background:#3c2b38;color:#ffcbdf;font:900 12px "Bricolage Grotesque",system-ui;border-radius:8px;padding:13px 5px;min-height:49px;cursor:pointer;touch-action:manipulation}
+#gmv3-jobs-swipe .gmv3-swipe-help button:disabled{opacity:.55;cursor:wait}
+#gmv3-jobs-swipe .gmv3-swipe-help button:active{transform:translateY(2px)}
+#gmv3-jobs-swipe .gmv3-swipe-help button:nth-child(2){border-color:#87704b;color:#ffe3ad;background:#433526}
+#gmv3-jobs-swipe .gmv3-swipe-help button:nth-child(3){border-color:#678247;color:#e2ffa4;background:#354326}
+
+#gmv3-jobs-swipe .gmv3-swipe-small{text-align:center;color:#c9bdcc!important;font:580 11px/1.5 system-ui!important}
+#gmv3-jobs-swipe .gmv3-swipe-empty{min-height:260px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:2px dashed #897393;background:#27212d;border-radius:18px;padding:35px;color:#fff7e9}
+#gmv3-jobs-swipe .gmv3-swipe-empty strong{font:950 24px "Bricolage Grotesque",system-ui}
+#gmv3-jobs-swipe .gmv3-swipe-empty button{background:#dfff58;color:#171218;border:0;border-radius:9px;padding:12px 18px;min-height:44px;font-weight:850}
+#gmv3-jobs-swipe .gmv3-choice-shade{position:fixed;inset:0;background:#08050aba;z-index:115;display:grid;place-items:end center;padding:12px 12px calc(83px + env(safe-area-inset-bottom))}
+#gmv3-jobs-swipe .gmv3-choice-sheet{max-height:77dvh;overflow:auto;width:min(100%,580px);background:#29232f;color:#fff7e9;border:2px solid #bc92cc;border-radius:20px;padding:20px;box-shadow:5px 5px 0 #09070b}
+#gmv3-jobs-swipe .gmv3-choice-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+#gmv3-jobs-swipe .gmv3-choice-heading h3{font:950 clamp(19px,4vw,27px) "Bricolage Grotesque",system-ui;color:#fff7e9;margin:4px 0 8px}
+#gmv3-jobs-swipe .gmv3-choice-heading span{font-size:10px;font-weight:900;color:#d493ef;letter-spacing:.1em}
+#gmv3-jobs-swipe .gmv3-choice-heading button{border:1px solid #6a546f;border-radius:9px;background:#392e3e;color:#fff7e9;min-width:44px;min-height:44px;font-size:24px}
+#gmv3-jobs-swipe .gmv3-choice-sheet>p{font:630 12px/1.5 system-ui;color:#d7cadb}
+#gmv3-jobs-swipe .gmv3-choice-buttons{display:grid;grid-template-columns:1fr;gap:9px;margin:20px 0}
+#gmv3-jobs-swipe .gmv3-choice-buttons button{min-height:52px;text-align:left;padding:13px 16px;font:900 14px "Bricolage Grotesque",system-ui;background:#dfff58;color:#18121b;border:1px solid #171218;border-radius:10px;cursor:pointer}
+#gmv3-jobs-swipe .gmv3-choice-buttons button:nth-child(even){background:#d493ef;color:#18121b}
+#gmv3-jobs-swipe .gmv3-choice-note{padding:10px;border-radius:8px;background:#41323c;color:#ffe5b4!important}
+#gmv3-jobs-swipe .gmv3-choice-jd{white-space:pre-wrap;color:#f3e7ee;line-height:1.55;font-size:13px;max-height:46dvh;overflow:auto;border:1px solid #604d67;border-radius:9px;padding:13px;margin:12px 0}
+#gmv3-jobs-swipe .gmv3-choice-sheet a{color:#dfff58}
+#gmv3-jobs-swipe .gmv3-swipe-toast{color:#ffe5b4;font-size:12px}
+#gmv3-jobs-swipe :is(button,a,.gmv3-drag-card):focus-visible{outline:3px solid #ff4caa!important;outline-offset:3px}
+@media(max-width:390px){#gmv3-jobs-swipe .gmv3-drag-card{padding:16px;min-height:50dvh}#gmv3-jobs-swipe .gmv3-swipe-readonly{font-size:10px}#gmv3-jobs-swipe .gmv3-swipe-help button{font-size:10px}}
+@media(prefers-reduced-motion:reduce){#gmv3-jobs-swipe .gmv3-drag-card{transition:none!important}}
+
+
+/* Garamaal 2D Dark / Stage 4 — preview-only advanced toolbar and pipeline */
+.gmv3-jobs-workspace #content .toolbar .filter-scroll,
+.gmv3-jobs-workspace #content #categoryTabs{display:none!important}
+.gmv3-jobs-workspace #content .toolbar-bottom{align-items:flex-start!important;justify-content:flex-end!important;padding-top:5px!important}
+.gmv3-jobs-workspace #content .toolbar-bottom #jobCount{color:#cfc3d0!important;font-weight:730}
+.gmv3-jobs-workspace #content .toolbar-main{gap:7px!important;align-items:stretch}
+.gmv3-jobs-workspace #content .toolbar-main .searchbox{min-width:0;flex:1}
+.gmv3-jobs-workspace .gmv3-filter-button{
+  flex-shrink:0;white-space:nowrap;background:#dfff58!important;color:#171218!important;
+  border:1.5px solid #100d13!important;border-radius:10px!important;
+  font:900 11px "Bricolage Grotesque",system-ui!important;box-shadow:2px 3px 0 #c184df!important;
+  padding:10px 12px;min-height:42px;
+}
+.gmv3-jobs-workspace .gmv3-filter-button:hover{background:#edff9b!important;color:#161218!important}
+#gmv3-filter-sheet{z-index:180;position:fixed;inset:0;display:flex;align-items:flex-end;
+  background:#070409c4;padding:12px 12px calc(11px + env(safe-area-inset-bottom))}
+#gmv3-filter-sheet .gmv3-filter-panel{margin:0 auto;width:min(100%,610px);
+  max-height:calc(92dvh - env(safe-area-inset-bottom));overflow:auto;background:#241e29;
+  border:2px solid #b58bc5;border-radius:19px;box-shadow:5px 6px 0 #08070a;
+  padding:clamp(14px,3.5vw,22px);color:#fff7e9}
+#gmv3-filter-sheet .gmv3-filter-head{display:flex;justify-content:space-between;gap:10px;margin:0 0 16px}
+#gmv3-filter-sheet .gmv3-filter-head small{color:#d493ef;font:850 10px system-ui;letter-spacing:.12em}
+#gmv3-filter-sheet .gmv3-filter-head h2{font:950 clamp(23px,5vw,34px)/1.12 "Bricolage Grotesque",system-ui;
+  letter-spacing:-.05em;color:#fff7e9;margin:3px 0}
+#gmv3-filter-sheet .gmv3-filter-head p{color:#c5b9c6;font:650 12px system-ui;margin:5px 0}
+#gmv3-filter-sheet .gmv3-filter-head button{min-width:44px;height:44px;border:1px solid #83678d;
+  border-radius:10px;background:#3a2d3f;color:#fff7e9;font:850 25px system-ui}
+#gmv3-filter-sheet .gmv3-filter-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#gmv3-filter-sheet .gmv3-field{display:flex;min-width:0;flex-direction:column;gap:6px;
+  color:#e8dce7;font:800 12px "Bricolage Grotesque",system-ui}
+#gmv3-filter-sheet .gmv3-field input,#gmv3-filter-sheet .gmv3-field select{
+  background:#332b3b!important;color:#fff7e9!important;border:1px solid #7c6685!important;
+  width:100%;max-width:100%;min-width:0;min-height:46px;padding:12px 11px;
+  border-radius:9px;font:680 12px system-ui}
+#gmv3-filter-sheet input::placeholder{color:#c7b5cb;opacity:1}
+#gmv3-filter-sheet .gmv3-filter-hint{color:#c9becc;font:600 11px/1.5 system-ui;margin:14px 0}
+#gmv3-filter-sheet .gmv3-filter-actions{display:flex;gap:10px;margin:14px 0 0}
+#gmv3-filter-sheet .gmv3-filter-actions button{
+  flex:1;min-height:47px;border-radius:10px;padding:10px;font:900 13px "Bricolage Grotesque",system-ui;
+  border:1px solid #7c6685;background:#38303c;color:#fff7e9}
+#gmv3-filter-sheet .gmv3-filter-actions button[type=submit]{
+  flex:1.5;background:#dfff58;color:#171218;border-color:#161218;box-shadow:3px 3px 0 #c18be2}
+.gmv3-jobs-workspace #content .gmv3-five-kpis{
+  display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px!important;margin:11px 0 14px}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi{
+  background:#25202b;color:#fff7e9;border:1.5px solid #75617d;border-top:4px solid #dfff58;
+  border-radius:13px;box-shadow:3px 4px 0 #09070b;min-height:128px;padding:14px 11px;display:flex;flex-direction:column;gap:5px}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+2){border-top-color:#d493ef}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+3){border-top-color:#ff4caa}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+4){border-top-color:#ffd17c}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+5){border-top-color:#a4ebbf}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi span{font:850 11px/1.25 "Bricolage Grotesque",system-ui;color:#e8dcea}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi strong{font:950 29px/1 "Bricolage Grotesque",system-ui;color:#fff7e9}
+.gmv3-jobs-workspace .gmv3-pipeline-kpi small{margin-top:auto;font:560 10px/1.4 system-ui;color:#bfb3c6}
+.gmv3-jobs-workspace #gmv3-goal-alerts{
+  background:#211c26;border:1.5px solid #665372;border-radius:15px;box-shadow:3px 4px 0 #08070a;
+  padding:15px;margin:14px 0 17px;color:#fff7e9}
+.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-goal-heading{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-goal-heading small{font:900 9px system-ui;letter-spacing:.13em;color:#d493ef}
+.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-goal-heading h2{font:950 22px "Bricolage Grotesque",system-ui;color:#fff7e9;margin:3px 0}
+.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-goal-heading>span{
+  color:#dfff58;font:800 10px system-ui;white-space:nowrap}
+.gmv3-jobs-workspace .gmv3-goal-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+.gmv3-jobs-workspace .gmv3-goal-grid>div{background:#302834;border:1px solid #5c4d62;border-radius:11px;padding:11px}
+.gmv3-jobs-workspace .gmv3-goal-grid label{display:block;font:850 11px "Bricolage Grotesque",system-ui;color:#e8dce7}
+.gmv3-jobs-workspace .gmv3-goal-step{display:flex;align-items:center;gap:10px;margin-top:9px}
+.gmv3-jobs-workspace .gmv3-goal-step button{background:#d493ef;border:1px solid #171218;color:#1c1620;border-radius:7px;
+  min-width:39px;min-height:39px;font:950 22px system-ui;cursor:pointer}
+.gmv3-jobs-workspace .gmv3-goal-step output{font:950 24px "Bricolage Grotesque",system-ui;color:#dfff58;min-width:2ch;text-align:center}
+.gmv3-jobs-workspace .gmv3-followup-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}
+.gmv3-jobs-workspace .gmv3-followup-stats>div{padding:10px;background:#322b39;border:1px solid #55475d;border-radius:9px}
+.gmv3-jobs-workspace .gmv3-followup-stats strong{font:950 23px "Bricolage Grotesque",system-ui;color:#dfff58;display:block}
+.gmv3-jobs-workspace .gmv3-followup-stats span{font:650 10px/1.4 system-ui;color:#dbccda;display:block}
+.gmv3-jobs-workspace .gmv3-alert-choices{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0}
+.gmv3-jobs-workspace .gmv3-alert-choices label{display:flex;gap:6px;align-items:center;color:#f5e9f1;font:750 11px system-ui}
+.gmv3-jobs-workspace .gmv3-alert-choices input{accent-color:#dfff58}
+.gmv3-jobs-workspace .gmv3-alert-line{display:flex;gap:12px;align-items:center;justify-content:space-between}
+.gmv3-jobs-workspace .gmv3-alert-line p{color:#c9bdcd;font:600 11px/1.5 system-ui;margin:0;max-width:540px}
+.gmv3-jobs-workspace .gmv3-alert-line button{flex-shrink:0;min-height:44px;padding:9px 12px;
+ background:#dfff58;border:1px solid #171218;border-radius:8px;font:900 11px "Bricolage Grotesque",system-ui;color:#18131d;cursor:pointer}
+.gmv3-jobs-workspace .gmv3-alert-foot{color:#ad9db5;font:570 10px/1.5 system-ui;margin:12px 0 0}
+.gmv3-jobs-workspace #content .grid2:has(.flow-strip):not(:has(.quick)){grid-template-columns:minmax(0,1fr)!important}
+@media(max-width:1100px){.gmv3-jobs-workspace #content .gmv3-five-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){
+ #gmv3-filter-sheet .gmv3-filter-grid{grid-template-columns:1fr}
+ .gmv3-jobs-workspace #content .gmv3-five-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .gmv3-jobs-workspace .gmv3-pipeline-kpi{min-height:113px}
+ .gmv3-jobs-workspace .gmv3-alert-line{align-items:stretch;flex-direction:column}
+ .gmv3-jobs-workspace .gmv3-followup-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .gmv3-jobs-workspace .gmv3-followup-stats>div{padding:7px}
+ .gmv3-jobs-workspace .gmv3-followup-stats span{font-size:9px}
+}
+@media(max-width:370px){
+ .gmv3-jobs-workspace #content .toolbar-main{flex-wrap:wrap}
+ .gmv3-jobs-workspace #content .toolbar-main .searchbox{flex-basis:100%}
+ .gmv3-jobs-workspace .gmv3-filter-button{flex:1}
+ #gmv3-filter-sheet .gmv3-filter-panel{padding:12px}
+}
+
+
+/* Stage 5 UI-only: compressed toolbar, readable scoring, visible swipe artwork. */
+body.gmv3-jobs-workspace #content .toolbar-main{display:flex!important;flex-wrap:nowrap!important;align-items:center!important;gap:7px!important}
+body.gmv3-jobs-workspace #content .toolbar-main .searchbox{flex:1 1 0%!important;min-width:0!important;width:auto!important;max-width:none!important}
+body.gmv3-jobs-workspace #content .toolbar-main .searchbox input{min-width:0;width:100%;font-size:clamp(12px,3vw,14px);min-height:45px}
+body.gmv3-jobs-workspace #content .toolbar-main [data-action="refresh"],
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{flex:0 0 44px!important;min-width:44px!important;width:44px!important;min-height:44px!important;height:44px!important;padding:0!important;display:flex!important;justify-content:center;align-items:center!important}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{
+  font-size:0!important;position:relative;line-height:0!important
+}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button:before{
+  content:"☷";font-size:27px!important;line-height:1!important;font-weight:950;color:#171218
+}
+body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button[data-count]:after{
+  content:attr(data-count);display:grid;place-items:center;position:absolute;top:-6px;right:-5px;
+  background:#ff4caa;color:#161218;font:900 9px system-ui;min-width:16px;height:16px;padding:1px;border-radius:50%
+}
+@media(max-width:370px){
+ body.gmv3-jobs-workspace #content .toolbar-main{flex-wrap:nowrap!important}
+ body.gmv3-jobs-workspace #content .toolbar-main .searchbox{flex:1 1 0%!important;min-width:0!important}
+ body.gmv3-jobs-workspace #content .toolbar-main .gmv3-filter-button{flex:0 0 42px!important}
+ body.gmv3-jobs-workspace #content .toolbar-main [data-action="refresh"]{flex:0 0 42px!important}
+}
+body.gmv3-jobs-workspace .score-compact,body.gmv3-jobs-workspace[data-candidate="Pooja"] .score-compact{
+  background:#34293e!important;border:1.5px solid #9e7ab0!important;box-shadow:2px 3px 0 #09070a!important;color:#fff7e9!important
+}
+body.gmv3-jobs-workspace .score-avg strong{color:#dfff58!important;font-family:"Bricolage Grotesque",system-ui;font-weight:950}
+body.gmv3-jobs-workspace .score-rank strong{color:#e6acff!important;font-family:"Bricolage Grotesque",system-ui;font-weight:950}
+body.gmv3-jobs-workspace .score-compact :is(.score-components,.score-rank span){color:#ead9eb!important;letter-spacing:0!important}
+body.gmv3-jobs-workspace .score-rank{border-left:1px solid #a280ac!important}
+body.gmv3-jobs-workspace .score-four{background:#332a3c!important;border:1px solid #745780!important}
+body.gmv3-jobs-workspace .score-stat strong{color:#dfff58!important}
+body.gmv3-jobs-workspace .score-stat span{color:#e5d5e7!important}
+/* Source sprite's third cell is blank in some previews. Use a visible inked sticker, not a hidden icon. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background-image:none!important;display:grid!important;place-items:center!important;
+ color:#151218!important;background-color:#d493ef!important;border:2px solid #100b13!important;
+ border-radius:9px 13px 8px 11px!important;box-shadow:3px 3px 0 #dfff58!important;
+ font-size:0!important;position:relative;transform:rotate(-5deg)
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon:after{
+ content:"⇄";position:absolute;inset:0;display:grid;place-items:center;
+ color:#151218;font:950 32px "Bricolage Grotesque",system-ui;line-height:1
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon{
+ background-color:#dfff58!important;box-shadow:3px 3px 0 #ff4caa!important
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar button.gmv3-swipe-tab .gmv3-tabicon:hover{transform:rotate(3deg) scale(1.04)}
+
+
+/* Profile V1 + More: matte charcoal, lilac outline and compact print-style actions. */
+body.gmv3-jobs-workspace .garamaal-header-controls #candidateToggle,
+body.gmv3-jobs-workspace .garamaal-header-controls #avatar,
+body.gmv3-jobs-workspace .garamaal-header-controls #cv-account-switch{display:none!important}
+body.gmv3-jobs-workspace .garamaal-header-controls{align-items:center;justify-content:flex-end!important;gap:7px!important}
+.gmv3-jobs-workspace #gmv3-account-drawer-button{
+ flex:none;min-width:49px;width:49px;height:43px;display:flex;align-items:center;justify-content:space-around;gap:2px;
+ padding:3px 5px;color:#171218;background:#d493ef;border:2px solid #101016;border-radius:13px;
+ box-shadow:2px 3px 0 #dfff58;cursor:pointer;font-weight:950
+}
+#gmv3-account-drawer-button span:first-child{font-size:20px;font-family:"Bricolage Grotesque",system-ui}
+#gmv3-account-drawer-button .gmv3-account-menu-bars{font-size:17px;color:#171218;line-height:1}
+#gmv3-account-drawer-button:hover{transform:rotate(-3deg)}
+#gmv3-account-drawer-button:focus-visible{outline:3px solid #ff4caa;outline-offset:2px}
+#gmv3-account-veil{position:fixed;inset:0;z-index:195;background:#07050ac9;display:flex;justify-content:flex-end;overflow:hidden}
+#gmv3-account-veil .gmv3-account-drawer{
+ width:min(420px,94vw);height:100%;height:100dvh;background:#211b25;border-left:2px solid #b68bc8;
+ color:#fff7e9;display:flex;flex-direction:column;overflow:hidden;
+ box-shadow:-8px 0 0 #09080b;animation:gmv3-side-in .25s cubic-bezier(.1,.8,.25,1)
+}
+@keyframes gmv3-side-in{from{transform:translateX(105%)}to{transform:translateX(0)}}
+.gmv3-account-top{padding:20px 18px 10px;display:flex;justify-content:space-between;align-items:center}
+.gmv3-account-top small{font:900 9px system-ui;letter-spacing:.13em;color:#d493ef}
+.gmv3-account-top h2{font:950 29px/1 "Bricolage Grotesque",system-ui;letter-spacing:-.06em;margin:5px 0;color:#fff7e9}
+.gmv3-account-top h2 span{color:#ff4caa}
+.gmv3-account-top button,.gmv3-pf-top button{
+ background:#3c3241;border:1px solid #766480;color:#fff7e9;border-radius:10px;
+ min-width:44px;min-height:44px;font-size:25px;cursor:pointer
+}
+.gmv3-account-person{display:flex;align-items:center;gap:12px;padding:11px 18px 13px}
+.gmv3-account-avatar{width:48px;height:48px;border-radius:13px;display:grid;place-items:center;
+ background:#dfff58;color:#171218;font:950 28px "Bricolage Grotesque",system-ui;transform:rotate(-4deg)}
+.gmv3-account-person strong{display:block;font:900 18px "Bricolage Grotesque",system-ui}
+.gmv3-account-person small{display:block;color:#c4b5c9;font-size:11px;margin-top:2px}
+.gmv3-account-switch{border:1px solid #5b4c62;border-radius:12px;margin:3px 16px 11px;padding:7px 9px 9px}
+.gmv3-account-switch legend{font:850 11px system-ui;color:#c4b5c9;padding:0 5px}
+.gmv3-account-switch>div{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.gmv3-account-switch button{min-height:42px;border-radius:9px;background:#372c3c;border:1px solid #706078;
+ color:#f6e9f4;font:850 13px "Bricolage Grotesque",system-ui;cursor:pointer}
+.gmv3-account-switch button.active{background:#d493ef;color:#171218;border-color:#161218;box-shadow:2px 2px 0 #dfff58}
+.gmv3-account-options{padding:0 15px 10px;overflow-y:auto;overscroll-behavior:contain;flex:1}
+.gmv3-account-action{display:flex;gap:11px;align-items:center;text-align:left;border:0;border-bottom:1px solid #44374a;
+ min-height:56px;width:100%;color:#fff7e9;background:transparent;padding:6px 1px;cursor:pointer}
+.gmv3-account-action .gmv3-account-ico{flex:none;width:34px;height:34px;display:grid;place-items:center;
+ color:#171218;background:#d493ef;border-radius:8px;font:950 21px "Bricolage Grotesque",system-ui}
+.gmv3-account-action:nth-child(3n) .gmv3-account-ico{background:#dfff58}
+.gmv3-account-action>span:nth-child(2){flex:1;min-width:0}
+.gmv3-account-action strong{font:850 13px "Bricolage Grotesque",system-ui;display:block}
+.gmv3-account-action small{font:570 10px/1.35 system-ui;color:#c4b5c9;display:block;margin-top:2px}
+.gmv3-account-action>span:last-child{font-size:24px;color:#b7a6bc}
+.gmv3-account-action:hover{background:#302633}
+.gmv3-account-footer{padding:13px 15px calc(15px + env(safe-area-inset-bottom));border-top:1px solid #5f4b69;
+ text-align:center;font:800 12px "Bricolage Grotesque",system-ui;color:#dfff58}
+#gmv3-profile-modal{position:fixed;inset:0;z-index:205;font-family:system-ui}
+#gmv3-profile-modal *{box-sizing:border-box}
+.gmv3-pf-backdrop{width:100%;height:100%;background:#09060cd6;display:flex;justify-content:center;align-items:center;padding:0}
+.gmv3-pf-dialog{display:flex;flex-direction:column;width:min(100%,740px);max-height:100dvh;height:100dvh;
+ color:#fff7e9;background:#19151e;border-inline:2px solid #80678a;box-shadow:0 0 0 7px #09070b;overflow:hidden}
+.gmv3-pf-top{padding:12px clamp(12px,3vw,22px);display:flex;align-items:center;gap:12px;background:#221b29;
+ border-bottom:2px solid #7f628a;flex:none}
+.gmv3-pf-top>div:nth-child(2){flex:1}
+.gmv3-pf-top div>span{color:#d493ef;font:900 9px system-ui;letter-spacing:.12em}
+.gmv3-pf-top h1{font:950 clamp(24px,5.4vw,36px)/1.1 "Bricolage Grotesque",system-ui!important;margin:1px 0;color:#fff7e9;letter-spacing:-.06em}
+.gmv3-pf-top h1 span{color:#ff4caa}
+.gmv3-pf-candidate{color:#171218;background:#dfff58;border:1px solid #131018;border-radius:7px;
+ font:850 11px "Bricolage Grotesque",system-ui;padding:7px 8px}
+.gmv3-pf-scroll{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:13px clamp(12px,3vw,24px) 20px}
+.gmv3-pf-progress{border:1px solid #5b4e63;background:#2b2431;border-radius:13px;padding:12px;margin-bottom:13px}
+.gmv3-pf-progress>div:first-child{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.gmv3-pf-progress strong{font:850 13px "Bricolage Grotesque",system-ui}
+.gmv3-pf-progress small{font:610 11px system-ui;color:#c6b6cb}
+.gmv3-pf-track{height:8px;width:100%;border-radius:99px;background:#4b3e4e;margin-top:9px;overflow:hidden}
+.gmv3-pf-track span{display:block;height:100%;background:#dfff58;border-radius:99px;transition:width .25s}
+.gmv3-pf-section{border:1px solid #675772;background:#28212d;border-radius:13px;margin-bottom:9px;overflow:hidden}
+.gmv3-pf-section[open]{border-color:#b78dc7}
+.gmv3-pf-section summary{display:flex;align-items:center;gap:11px;min-height:67px;padding:10px 13px;cursor:pointer;list-style:none}
+.gmv3-pf-section summary::-webkit-details-marker{display:none}
+.gmv3-pf-number{flex:none;color:#171218;background:#d493ef;border-radius:7px;min-width:30px;height:30px;display:grid;place-items:center;
+ font:900 12px "Bricolage Grotesque",system-ui}
+.gmv3-pf-section:nth-of-type(even) .gmv3-pf-number{background:#dfff58}
+.gmv3-pf-section-title{min-width:0;flex:1}
+.gmv3-pf-section-title strong{font:900 14px "Bricolage Grotesque",system-ui;display:block;color:#fff7e9}
+.gmv3-pf-section-title small{display:block;margin-top:3px;color:#c5b6ca;font:580 10px/1.35 system-ui}
+.gmv3-pf-dot{flex:none;width:9px;height:9px;background:#5e4f65;border:1px solid #9582a1;border-radius:50%}
+.gmv3-pf-dot.is-filled{background:#dfff58;border-color:#dfff58}
+.gmv3-pf-section-fields{padding:2px 13px 15px;border-top:1px solid #4c4052}
+.gmv3-pf-field{display:flex;flex-direction:column;gap:5px;padding:10px 0 0}
+.gmv3-pf-field>span{font:820 11px "Bricolage Grotesque",system-ui;color:#f2e3f1}
+.gmv3-pf-field input,.gmv3-pf-field textarea{width:100%;min-width:0;background:#332b3c;border:1px solid #7c6289;
+ border-radius:8px;color:#fff7e9;padding:11px 12px;min-height:42px;font:620 13px/1.5 system-ui;outline:0}
+.gmv3-pf-field input::placeholder,.gmv3-pf-field textarea::placeholder{color:#b7a7bc}
+.gmv3-pf-field :is(input,textarea):focus{border-color:#dfff58;box-shadow:0 0 0 2px #dfff5830}
+.gmv3-pf-field textarea{resize:vertical}
+.gmv3-pf-dual{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gmv3-pf-entry{margin:10px 0;padding:11px;border:1px solid #5c5063;background:#211c26;border-radius:10px}
+.gmv3-pf-entry-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.gmv3-pf-entry-head strong{font:870 12px "Bricolage Grotesque",system-ui}
+.gmv3-pf-entry-head button{background:#422d3c;border:1px solid #8e5f79;color:#ffe2ed;border-radius:8px;
+ padding:7px 11px;min-height:35px;font:800 11px system-ui;cursor:pointer}
+.gmv3-pf-add{margin-top:7px;padding:10px;background:#d493ef;color:#171218;
+ border:1px solid #141218;border-radius:9px;font:880 12px "Bricolage Grotesque",system-ui;cursor:pointer}
+.gmv3-pf-footnote{color:#c6b6cb;font:590 11px/1.55 system-ui;padding:2px 0}
+.gmv3-pf-footer{display:flex;gap:10px;padding:11px 16px calc(11px + env(safe-area-inset-bottom));
+ background:#241c29;border-top:1px solid #766080;flex:none}
+.gmv3-pf-footer button{min-height:46px;padding:11px 14px;border-radius:10px;cursor:pointer;
+ font:900 13px "Bricolage Grotesque",system-ui}
+.gmv3-pf-reset{background:#372a3a;color:#fff7e9;border:1px solid #7c6685;flex:1}
+.gmv3-pf-save{background:#dfff58;color:#161318;border:1px solid #111;box-shadow:2px 2px 0 #d493ef;flex:2}
+.gmv3-pf-message{font-size:12px;color:#dfff58;text-align:center;min-height:0}
+@media(min-width:740px){.gmv3-pf-dialog{height:min(92dvh,900px);max-height:92dvh;border-radius:20px}}
+@media(max-width:380px){.gmv3-pf-dual{grid-template-columns:1fr}.gmv3-pf-candidate{font-size:10px;padding:5px}}
+@media(prefers-reduced-motion:reduce){#gmv3-account-veil *,#gmv3-profile-modal *{animation:none!important;transition:none!important}}
+
+
+/* Stage 6: shared collage navigation, unambiguous status and compact E profile. */
+body.gmv3-jobs-workspace .topbar.garamaal-unified-header{display:flex!important;justify-content:space-between!important;gap:7px!important;align-items:center}
+body.gmv3-jobs-workspace .topbar .crumb{display:none!important} /* Don't repeat Discovery / Make CV above the same labelled tab and page heading. */
+body.gmv3-jobs-workspace .topbar #modeBadge{
+ order:0!important;display:inline-flex!important;position:static!important;
+ flex:0 1 auto;max-width:clamp(82px,33vw,160px);overflow:hidden;text-overflow:ellipsis;
+ white-space:nowrap;color:#ddff58!important;background:#293523!important;border:1px solid #6b8d45!important;
+ padding:6px 11px!important;margin-right:auto!important;min-height:30px!important;
+ font:900 10px "Bricolage Grotesque",system-ui!important;letter-spacing:.03em;
+}
+body.gmv3-jobs-workspace .topbar #modeBadge.garamaal-editing{
+ color:#ffe8ac!important;background:#4b3b25!important;border-color:#b18b4d!important;
+}
+body.gmv3-jobs-workspace .garamaal-header-controls{flex:0 1 auto;width:auto!important;justify-content:flex-end!important;gap:6px}
+body.gmv3-jobs-workspace .garamaal-header-controls #expenseToggle,
+body.gmv3-jobs-workspace #garamaal-install-dock,
+body.gmv3-jobs-workspace .topbar #cv-install-app{display:none!important}
+body.gmv3-jobs-workspace .garamaal-header-controls #jobHeaderLink,
+body.gmv3-jobs-workspace .garamaal-header-controls #socialHeaderLink{
+ color:#efe4f2!important;background:#2a2330!important;border:1px solid #634f6b!important;
+ min-width:0;min-height:36px;padding:0 9px!important;
+}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button{
+ width:42px!important;min-width:42px!important;height:42px!important;
+ border-radius:50%!important;display:grid!important;place-items:center!important;
+ font:950 24px "Bricolage Grotesque",system-ui!important;
+ transform:none!important;box-shadow:2px 3px 0 #dfff58!important;
+}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button span:first-child{font-size:24px}
+.gmv3-account-install{display:flex;justify-content:space-between;align-items:center;gap:9px;padding:11px 13px;margin:5px 15px 14px;
+ background:#dfff58;border:2px solid #151218;border-radius:13px;box-shadow:3px 4px 0 #d493ef;color:#171218}
+.gmv3-account-install div{flex:1;min-width:0}
+.gmv3-account-install strong{display:block;color:#171218;font:950 13px/1.25 "Bricolage Grotesque",system-ui}
+.gmv3-account-install small{display:block;margin-top:4px;color:#39322a;font:650 10px/1.4 system-ui}
+.gmv3-account-install button{border:1px solid #141218;border-radius:9px;background:#171218;color:#dfff58;min-width:81px;min-height:43px;
+ padding:8px 10px;font:900 11px "Bricolage Grotesque",system-ui;cursor:pointer}
+#gmv3-launch .gmv3-avatar{font:950 22px "Bricolage Grotesque",system-ui!important;display:grid;place-items:center}
+.gmv3-tabbar{justify-content:space-between!important;gap:2px;max-width:none!important;
+ padding:5px max(5px,env(safe-area-inset-left)) calc(5px + env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-right))}
+.gmv3-tabbar button{min-height:62px;gap:0!important;letter-spacing:-.01em;
+ font:850 clamp(9px,2.7vw,11px)/1.15 "Bricolage Grotesque",system-ui!important;color:#fff7e9!important}
+.gmv3-tabbar .gmv3-tabicon{background-size:500% 300%!important;background-color:transparent!important;position:relative;
+ width:clamp(37px,9.5vw,46px)!important;height:clamp(37px,9.5vw,46px)!important;min-height:unset!important;margin:0 auto 3px!important}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon{
+ width:clamp(37px,9.5vw,46px)!important;height:clamp(37px,9.5vw,46px)!important;min-height:unset!important;
+ background:url("/prototype/assets/nav-collage-states.webp") no-repeat 50% 0%!important;
+ background-size:500% 300%!important;border:none!important;border-radius:0!important;
+ box-shadow:none!important;transform:none!important;margin:0 auto 3px!important;display:block!important;
+}
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon{
+ background-image:url("/social/assets/nav-collage-states.webp")!important
+}
+/* If the third sprite cell lacks ink, the glyph remains on the identical sprite cell,
+   never as a mismatched raised purple circle. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab .gmv3-tabicon::after,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab .gmv3-tabicon::after{
+ content:"⇄";inset:0;display:grid;place-items:center;position:absolute;
+ color:#171218!important;font:950 18px "Bricolage Grotesque",system-ui!important;
+ text-shadow:0 1px #e5b8fa;pointer-events:none;opacity:.85;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab:hover .gmv3-tabicon{background-position:50% 50%!important;transform:rotate(-4deg)!important}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs .gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon{background-position:50% 100%!important}
+#gmv3-profile-modal .gmv3-pf-source{border:1.5px solid #876c94;background:#28202c;padding:12px;margin:0 0 12px;border-radius:13px;box-shadow:2px 3px 0 #09070b}
+#gmv3-profile-modal .gmv3-pf-source-header{display:flex;align-items:center;justify-content:space-between;gap:9px}
+#gmv3-profile-modal .gmv3-pf-source-header strong{font:900 14px "Bricolage Grotesque",system-ui;color:#fff7e9}
+#gmv3-profile-modal .gmv3-pf-source-header span{border-radius:8px;padding:6px 8px;background:#dfff58;color:#171218;font:900 10px system-ui;white-space:nowrap}
+#gmv3-profile-modal .gmv3-pf-source-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px;margin:12px 0}
+#gmv3-profile-modal .gmv3-pf-source-switch button{min-height:44px;padding:8px 9px;border:1px solid #705b77;background:#373041;color:#fff7e9;
+ border-radius:9px;font:850 12px "Bricolage Grotesque",system-ui}
+#gmv3-profile-modal .gmv3-pf-source-switch button[aria-pressed="true"]{background:#d493ef;color:#161218;border-color:#151218;box-shadow:2px 2px 0 #dfff58}
+#gmv3-profile-modal .gmv3-pf-source p{color:#e8ddec;font:650 11px/1.55 system-ui;margin:9px 0}
+#gmv3-profile-modal .gmv3-pf-source small{color:#c3b0c9;font:550 10px/1.5 system-ui}
+@media(max-width:385px){body.gmv3-jobs-workspace .garamaal-header-controls #jobHeaderLink,
+body.gmv3-jobs-workspace .garamaal-header-controls #socialHeaderLink{font-size:10px!important;padding:0 6px!important}
+body.gmv3-jobs-workspace #gmv3-account-drawer-button{width:39px!important;min-width:39px!important;height:39px!important}
+}
+
+
+/* Stage 7: One visual language. Sticker artwork IS the navigation label.
+   Remove raised Swipe glyph and rectangular white back-tile, keep aria-labels. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar{
+ display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;
+ align-items:center!important;justify-items:center!important;gap:clamp(2px,1vw,9px)!important;
+ padding:6px max(6px,env(safe-area-inset-left)) calc(8px + env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-right))!important;
+ min-height:75px!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button{
+ display:grid!important;place-items:center!important;min-width:0!important;width:100%!important;
+ max-width:90px!important;min-height:65px!important;padding:4px 1px!important;
+ overflow:visible!important;line-height:1!important;
+ background:transparent!important;border:0!important;box-shadow:none!important;
+ font-size:0!important;letter-spacing:0!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button[aria-current="page"],
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button[aria-current="page"]{
+ background:transparent!important;border-radius:0!important;box-shadow:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button .gmv3-tabicon{
+ display:block!important;width:clamp(49px,14vw,64px)!important;height:clamp(49px,14vw,64px)!important;
+ min-width:0!important;min-height:0!important;aspect-ratio:1!important;
+ padding:0!important;margin:0 auto!important;
+ background-size:500% 300%!important;background-position-y:0%;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ color:transparent!important;font-size:0!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background:transparent url("/prototype/assets/swipe-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ transform:rotate(-3deg)!important;
+}
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ background:transparent url("/social/assets/swipe-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ transform:rotate(-3deg)!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon::after,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon::after{
+ content:none!important;display:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button:hover .gmv3-tabicon{
+ transform:rotate(-4deg) scale(1.05)!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab:hover .gmv3-tabicon{
+ transform:rotate(4deg) scale(1.05)!important;
+}
+body.gmv3-jobs-workspace #gmv3-home-button,
+body.gmv3-social-workspace #gmv3-social-back{
+ display:block!important;width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;
+ background:transparent url("/prototype/assets/back-sticker.svg") center / contain no-repeat!important;
+ border:0!important;border-radius:0!important;box-shadow:none!important;
+ outline-offset:2px!important;
+}
+body.gmv3-social-workspace #gmv3-social-back{
+ background-image:url("/social/assets/back-sticker.svg")!important;
+}
+body.gmv3-jobs-workspace #gmv3-home-button:hover,
+body.gmv3-social-workspace #gmv3-social-back:hover{
+ background-position:center!important;transform:rotate(-5deg) scale(1.04);
+}
+@media(max-width:360px){
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button{min-height:58px!important}
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button .gmv3-tabicon,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button .gmv3-tabicon{
+  width:clamp(43px,13vw,51px)!important;height:clamp(43px,13vw,51px)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar .gmv3-tabicon,
+ body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar .gmv3-tabicon{transform:none!important;transition:none!important}
+}
+
+/* Active artwork, never a square tile behind it. */
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button[aria-current="page"]:is(:focus,:hover),
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button[aria-current="page"]:is(:focus,:hover){
+ background:transparent!important;box-shadow:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-tabbar.gmv3-tabbar button.gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon,
+body.gmv3-social-workspace #gmv3-social-tabs.gmv3-tabbar button.gmv3-swipe-tab[aria-current="page"] .gmv3-tabicon{
+ filter:saturate(1.15) brightness(1.07) drop-shadow(2px 3px 0 #c58ee5)!important;
+ transform:rotate(3deg) scale(1.05)!important;
+}
+
+
+/* Stage 8 — minimal tactile job-card feedback and actionable dashboard KPIs. */
+body.gmv3-jobs-workspace #content .jobs > .job{
+  transition:transform .16s ease-out,border-color .16s ease-out,box-shadow .16s ease-out!important;
+  will-change:auto;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:hover{
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+@media(hover:none) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:active{transform:scale(.997)!important}
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+  width:100%;min-width:0;cursor:pointer;text-align:left;font-family:inherit;
+  appearance:none;-webkit-appearance:none;
+  transition:border-color .15s ease-out,transform .15s ease-out,box-shadow .15s ease-out!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:hover{
+    transform:translateY(-4px) scale(1.012)!important;border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:focus-visible{
+  outline:3px solid #dfff58!important;outline-offset:3px;
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:active{
+  transform:translateY(0)!important;box-shadow:1px 2px 0 #09070b!important;
+}
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
+  content:" ›";display:inline;color:#dfff58;font-weight:900;
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace #content .jobs > .job,
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{transition:none!important;transform:none!important}
+}
+
+
+/* Stage 8 Swipe: optional highlights expanded by tap; JD remains in its drawer. */
+#gmv3-jobs-swipe .gmv3-drag-card{
+  transition:transform .18s ease,opacity .18s ease,border-color .18s ease,
+   min-height .18s ease,padding .18s ease!important;
+}
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-card-expanded{
+  border-color:#d9a1ec!important;
+  box-shadow:5px 6px 0 #08070b,0 0 0 1px #d493ef!important;
+  min-height:min(62dvh,565px);
+  padding-bottom:clamp(22px,5vw,34px);
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra[hidden]{display:none!important}
+#gmv3-jobs-swipe .gmv3-swipe-extra{
+  margin:13px 0;padding:14px 13px 12px;
+  border:1px solid #695475;border-radius:11px;
+  background:#34283c;
+  display:flex;flex-wrap:wrap;gap:7px 9px;align-items:center;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra strong{
+  flex-basis:100%;color:#dfff58;
+  font:900 12px "Bricolage Grotesque",system-ui;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra span{
+  display:inline-flex;border-radius:7px;
+  padding:7px 9px;border:1px solid #755f81;
+  color:#f2e4ee;background:#43334b;
+  font:750 11px/1.4 system-ui;
+}
+#gmv3-jobs-swipe .gmv3-swipe-extra .gmv3-swipe-more-excerpt{
+  flex:1 1 100%;margin:3px 0 5px!important;
+  color:#f3e7ef!important;
+  font:600 12px/1.55 system-ui!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-title-link{
+  color:#fff7e9!important;text-decoration:underline;
+  text-decoration-color:#d493ef;text-decoration-thickness:2px;
+  text-underline-offset:5px;
+}
+#gmv3-jobs-swipe .gmv3-swipe-title-link:hover{
+  color:#dfff58!important;text-decoration-color:#dfff58;
+}
+#gmv3-jobs-swipe .gmv3-expand-hint{
+  color:#d7b4e4;font:800 11px "Bricolage Grotesque",system-ui;
+  display:inline-flex;align-items:center;
+}
+#gmv3-jobs-swipe .gmv3-expand-hint::before{
+  content:"+";margin-right:6px;color:#dfff58;font-size:17px;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-expand-hint::before{content:"−"}
+#gmv3-jobs-swipe .gmv3-drag-card:focus-visible{
+  outline:3px solid #dfff58!important;outline-offset:3px;
+}
+@media(prefers-reduced-motion:reduce){
+  #gmv3-jobs-swipe .gmv3-drag-card{transition:none!important}
+}
+
+
+#gmv3-jobs-swipe .gmv3-swipe-company-link{color:#18121b!important;text-decoration:none!important;display:inline}
+#gmv3-jobs-swipe .gmv3-swipe-company-link:hover{text-decoration:underline!important;text-underline-offset:3px}
+#gmv3-jobs-swipe .gmv3-swipe-company-link:focus-visible{outline:3px solid #ff4caa!important;outline-offset:3px}
+
+
+/* Stage 9 — expanded Swipe details scroll independently of the swipe grip.
+   Parent touch-action must allow pan-y; child touch-action alone cannot override
+   an ancestor set to none. Collapsed cards retain whole-card gestures. */
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-card-expanded{
+  touch-action:pan-y!important;
+  user-select:text!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip{
+  display:flex;justify-content:center;align-items:center;gap:8px;
+  min-height:34px;margin:-11px -10px 13px;padding:4px 10px;
+  border-bottom:1px dashed #65536e;color:#dfc1ef;
+  font:850 10px/1.3 "Bricolage Grotesque",system-ui;
+  letter-spacing:.035em;cursor:grab;
+  touch-action:none!important;user-select:none!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip:active{cursor:grabbing}
+#gmv3-jobs-swipe .gmv3-swipe-grip-mark{font:950 18px/1 system-ui;color:#dfff58}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra{
+  display:block!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  max-height:clamp(155px,34dvh,315px)!important;
+  min-height:110px;
+  scrollbar-width:thin;scrollbar-color:#b884d0 #32263c;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y!important;
+  user-select:text!important;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar{width:6px}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar-track{background:#32263c;border-radius:9px}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar-thumb{background:#b884d0;border-radius:9px}
+#gmv3-jobs-swipe .gmv3-swipe-extra:focus-visible{outline:2px solid #dfff58!important;outline-offset:-3px}
+#gmv3-jobs-swipe button.gmv3-expand-hint{
+  color:#d7b4e4!important;background:transparent!important;
+  min-height:44px;touch-action:manipulation;
+  border:0!important;box-shadow:none!important;cursor:pointer;
+  padding:8px 6px 8px 0;text-decoration:none!important;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-more-excerpt{
+  overflow-wrap:anywhere;white-space:normal;
+  line-height:1.65!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:focus-within{
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace #content .jobs > .job{transform:none!important;transition:none!important}
+}
+
+
+/* Stage 9 — dashboard statistics match the tactile listing hover. */
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+  transform-origin:50% 55%;
+}
+body.gmv3-jobs-workspace .gmv3-followup-stats>div{
+  transition:transform .17s ease-out,border-color .17s ease-out,box-shadow .17s ease-out!important;
+  box-shadow:2px 3px 0 #151019;
+  transform-origin:center;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div:hover{
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:focus-visible{
+    transform:translateY(-4px) scale(1.012)!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+@media(hover:none) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div:active{
+    transform:scale(.992)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div,
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+    transform:none!important;transition:none!important;
+  }
+}
+
+
+/* Stage 12: sustained neon halo + touch-held lift, never a short bounce-back animation.
+   Pointerdown adds gmv3-tactile-held; pointerup/cancel/scroll removes it.
+   Mouse users retain the raised card while hovering. */
+body.gmv3-jobs-workspace #content .jobs > .job,
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi,
+body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div{
+  transform-origin:center!important;
+  transition:transform .21s cubic-bezier(.18,.84,.2,1),box-shadow .21s ease,border-color .21s ease,filter .21s ease!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+ body.gmv3-jobs-workspace #content .jobs > .job:hover,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:hover,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div:hover{
+   transform:translateY(-6px) scale(1.024)!important;
+   border-color:#dfff58!important;
+   box-shadow:0 0 0 2px #dfff58,0 0 13px #dfff5880,0 0 23px #d493ef55,8px 14px 0 #09070b!important;
+   filter:brightness(1.06);
+ }
+}
+@media(prefers-reduced-motion:no-preference){
+ body.gmv3-jobs-workspace #content .jobs > .job.gmv3-tactile-held,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi.gmv3-tactile-held,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div.gmv3-tactile-held{
+   animation:none!important;
+   transform:translateY(-6px) scale(1.024)!important;
+   border-color:#dfff58!important;
+   box-shadow:0 0 0 2px #dfff58,0 0 16px #dfff58b0,0 0 28px #d493ef77,8px 14px 0 #09070b!important;
+   filter:brightness(1.06)!important;
+ }
+}
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace #content .jobs > .job.gmv3-tactile-held,
+ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi.gmv3-tactile-held,
+ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div.gmv3-tactile-held{
+   animation:none!important;transform:none!important;transition:none!important;
+ }
+}
+/* Stage 11: laptop/desktop Jobs uses the same five illustrated bottom tabs as mobile.
+   Keep the original sidebar in the DOM (existing handlers remain intact), hide it
+   ONLY in the opted-in prototype workspace, and return the width to the job grid. */
+@media(min-width:721px){
+ body.gmv3-workspace.gmv3-jobs-workspace .shell > .sidebar{display:none!important}
+ body.gmv3-workspace.gmv3-jobs-workspace .shell > .main{
+   flex:1 1 100%!important;width:100%!important;min-width:0!important;
+ }
+ body.gmv3-workspace.gmv3-jobs-workspace .shell > .main .container{
+   width:100%!important;max-width:1720px!important;
+ }
+}
+/* Collapsed card must permit natural page scrolling. Swiping DOWN to
+   postpone is still available from the dedicated top drag grip. */
+body.gmv3-jobs-workspace #gmv3-jobs-swipe{
+  touch-action:pan-y!important;overflow-y:auto!important;-webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-drag-card{
+  touch-action:pan-y!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-swipe-drag-grip{
+  touch-action:none!important;
+}
+body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra{
+  touch-action:pan-y!important;
+  max-height:min(42dvh,410px)!important;
+  overflow-y:auto!important;
+  -webkit-overflow-scrolling:touch;
+}
+
+/* Stage 13: minimal LIVE connectivity pulse + reachable Discovery bulk actions.
+   All selectors apply to opt-in collage Jobs; original live UI is untouched. */
+body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge {
+  display:inline-flex!important;align-items:center!important;gap:7px!important;
+  width:auto!important;max-width:none!important;min-width:0!important;
+  font:900 10px/1 "Bricolage Grotesque",system-ui!important;
+  letter-spacing:.07em!important;padding:7px 11px!important;
+  color:#e3ff8a!important;background:#263625!important;border:1px solid #647c45!important;
+  border-radius:999px!important;white-space:nowrap!important
+}
+body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge::before {
+  content:"";display:block;flex:none;
+  width:7px;height:7px;margin:0!important;border-radius:50%;
+  background:#dfff58;box-shadow:0 0 0 1px #a0d24c,0 0 7px #dfff58b5;
+  animation:gmv3-live-pulse 1.8s ease-in-out infinite
+}
+@keyframes gmv3-live-pulse {
+  0%,100% {opacity:1;box-shadow:0 0 0 1px #a0d24c,0 0 5px #dfff5866}
+  50% {opacity:.38;box-shadow:0 0 0 4px #dfff5833,0 0 10px #dfff58bb}
+}
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
+  position:fixed!important;z-index:125;
+  bottom:clamp(87px,10vh,105px);left:50%;transform:translateX(-50%);
+  width:min(calc(100vw - 32px),980px);display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;padding:12px 15px!important;
+  border:2px solid #d493ef!important;border-radius:16px!important;
+  background:#241d29!important;color:#fff7e9!important;
+  box-shadow:0 10px 0 #08070b,0 0 0 3px #08070b,0 0 22px #d493ef55!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar b{font:950 15px "Bricolage Grotesque",system-ui;color:#dfff58}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{display:flex;flex-wrap:wrap;gap:7px}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button {
+  min-height:40px!important;padding:9px 12px!important;white-space:nowrap;
+  border-radius:9px!important;background:#3c2e44!important;
+  color:#fff7e9!important;border:1px solid #70587d!important;
+  font:800 12px "Bricolage Grotesque",system-ui!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button[data-value="Favorite"] {
+  background:#dfff58!important;border-color:#dfff58!important;color:#171218!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button[data-value="Not Interested"] {
+  background:#47313d!important;border-color:#da8fa9!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button:disabled {opacity:.55;cursor:wait}
+body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {
+  font:650 10px "Bricolage Grotesque",system-ui;color:#c9b3d2;white-space:nowrap
+}
+@media(max-width:720px){
+ body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge {font-size:9px!important;padding:6px 8px!important}
+ body.gmv3-jobs-workspace #content .toolbar-main{gap:5px}
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
+   bottom:calc(89px + env(safe-area-inset-bottom));width:calc(100vw - 20px);
+   gap:6px;padding:10px!important;border-radius:12px!important
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar b{font-size:12px}
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions {flex:1;justify-content:space-between;gap:4px}
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button {
+   flex:1;min-width:0!important;padding:8px 6px!important;min-height:38px!important;
+   font-size:10px!important;gap:3px
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {font-size:9px}
+}
+@media(prefers-reduced-motion:reduce) {
+ body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge::before{animation:none!important;opacity:1}
+}
+
+/* Stage 14 — compact Excel-style location picker; fully contained on phones.
+ * No Android/Chrome native datalist; scrollable list remains within the viewport.
+ */
+body.gmv3-jobs-workspace [data-gmf-loc="open"] {
+ display:flex;align-items:center;justify-content:space-between;gap:10px;
+ width:100%;min-height:46px;padding:10px 12px;border-radius:10px;
+ background:#332b3b;color:#fff7e9;border:1px solid #80698c;
+ text-align:left;cursor:pointer;font:750 12px "Bricolage Grotesque",system-ui;
+}
+body.gmv3-jobs-workspace [data-gmf-loc="open"] .gmv3-location-summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.gmv3-jobs-workspace [data-gmf-loc="open"] .gmv3-location-chevron{color:#dfff58;font-size:19px;flex:none}
+body.gmv3-jobs-workspace .gmv3-location-field small{color:#bbaac3;font:600 10px system-ui}
+#gmv3-location-picker.gmv3-location-backdrop {
+ position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;
+ padding:12px;background:#08060ad9;overscroll-behavior:contain;
+}
+#gmv3-location-picker .gmv3-location-panel{
+ box-sizing:border-box;display:grid;grid-template-rows:auto auto auto auto minmax(0,1fr) auto;
+ gap:9px;width:min(100%,540px);height:min(730px,92dvh);max-height:92dvh;
+ min-height:0;overflow:hidden;padding:14px;border:2px solid #c694dc;border-radius:17px;
+ background:#211b26;color:#fff7e9;box-shadow:5px 7px 0 #08070b;
+ font-family:"Bricolage Grotesque",system-ui,sans-serif;
+}
+#gmv3-location-picker .gmv3-location-head{display:flex;align-items:start;justify-content:space-between;gap:8px}
+#gmv3-location-picker .gmv3-location-head h2{margin:3px 0;font:950 23px/1.12 "Bricolage Grotesque",system-ui;color:#fff7e9}
+#gmv3-location-picker .gmv3-location-head small{font:850 9px system-ui;letter-spacing:.12em;color:#d493ef}
+#gmv3-location-picker .gmv3-location-head p{margin:4px 0 0;font:750 11px system-ui;color:#dfff58}
+#gmv3-location-picker .gmv3-location-head button{
+ flex:none;min-width:40px;min-height:40px;border:1px solid #776082;
+ border-radius:10px;background:#392b3e;color:#fff;font:850 25px system-ui;cursor:pointer
+}
+#gmv3-location-picker .gmv3-location-search{display:flex;align-items:center;gap:6px}
+#gmv3-location-picker #gmv3-location-search{
+ box-sizing:border-box;min-width:0;width:100%;min-height:43px;padding:10px 12px;
+ background:#322939;color:#fff7e9;border:1px solid #987bad;border-radius:9px;
+ font:650 13px system-ui;outline-offset:2px
+}
+#gmv3-location-picker #gmv3-location-search::placeholder{color:#c6b6cb;opacity:1}
+#gmv3-location-picker #gmv3-location-search{font-size:16px} /* Prevent iOS keyboard focus zoom. */
+#gmv3-location-picker .gmv3-location-search button{
+ flex:none;min-width:41px;min-height:41px;border:1px solid #645469;
+ border-radius:9px;background:#362c3b;color:#fff7e9;font:850 19px system-ui;cursor:pointer
+}
+#gmv3-location-picker .gmv3-location-matches{margin:0;color:#d1c3d5;font:650 10px/1.3 system-ui}
+#gmv3-location-picker .gmv3-location-batch{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+#gmv3-location-picker .gmv3-location-batch button{
+ min-width:0;min-height:40px;padding:7px 5px;border-radius:8px;
+ background:#372c3d;color:#fff7e9;border:1px solid #7d648a;
+ font:850 10px/1.2 "Bricolage Grotesque",system-ui;cursor:pointer
+}
+#gmv3-location-picker .gmv3-location-batch [data-gmf-loc="exclude"]{color:#ffccd9;border-color:#b4698b}
+#gmv3-location-picker .gmv3-location-batch [data-gmf-loc="only"]{background:#dfff58;color:#171218;border-color:#dfff58}
+#gmv3-location-picker .gmv3-location-list{
+ min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;
+ border:1px solid #56465e;border-radius:10px;background:#292230;padding:3px 6px;
+ -webkit-overflow-scrolling:touch;
+}
+#gmv3-location-picker .gmv3-location-option{
+ display:flex;align-items:center;gap:10px;min-height:43px;padding:7px 6px;
+ border-bottom:1px solid #423749;color:#fff7e9;cursor:pointer;
+}
+#gmv3-location-picker .gmv3-location-option:last-child{border-bottom:none}
+#gmv3-location-picker .gmv3-location-option input{
+ flex:none;appearance:auto;-webkit-appearance:checkbox;accent-color:#dfff58;
+ width:19px;height:19px;margin:0;cursor:pointer;
+}
+#gmv3-location-picker .gmv3-location-option>span{display:block;min-width:0;overflow-wrap:anywhere}
+#gmv3-location-picker .gmv3-location-option strong{display:block;font:750 12px/1.35 system-ui}
+#gmv3-location-picker .gmv3-location-option small{display:block;margin-top:2px;color:#bba5ca;font:550 10px/1.25 system-ui}
+#gmv3-location-picker .gmv3-location-empty{color:#cdbed5;font:650 12px/1.5 system-ui;padding:8px}
+#gmv3-location-picker .gmv3-location-foot{display:flex;gap:8px;padding-top:7px;border-top:1px solid #5f5068}
+#gmv3-location-picker .gmv3-location-foot button{
+ min-width:0;min-height:44px;padding:8px 12px;border-radius:9px;
+ color:#fff7e9;background:#392e42;border:1px solid #806a8d;
+ font:850 12px "Bricolage Grotesque",system-ui;cursor:pointer
+}
+#gmv3-location-picker .gmv3-location-foot [data-gmf-loc="reset"]{flex:1}
+#gmv3-location-picker .gmv3-location-foot [data-gmf-loc="done"]{
+ flex:1.6;color:#171218;background:#dfff58;border-color:#dfff58
+}
+#gmv3-location-picker button:focus-visible,
+body.gmv3-jobs-workspace [data-gmf-loc="open"]:focus-visible {
+ outline:2px solid #ff4caa;outline-offset:2px
+}
+@media(max-width:600px){
+ #gmv3-filter-sheet{padding:0!important;align-items:flex-end}
+ #gmv3-filter-sheet .gmv3-filter-panel{
+  box-sizing:border-box;width:100%;max-height:min(94dvh,780px);border-radius:16px 16px 0 0;
+  padding:14px 14px calc(14px + env(safe-area-inset-bottom))
+ }
+ #gmv3-filter-sheet .gmv3-filter-head{margin-bottom:10px}
+ #gmv3-filter-sheet .gmv3-filter-grid{gap:9px!important}
+ #gmv3-filter-sheet .gmv3-field{gap:4px}
+ #gmv3-filter-sheet .gmv3-field input,
+ #gmv3-filter-sheet .gmv3-field select,
+ body.gmv3-jobs-workspace [data-gmf-loc="open"]{
+  min-height:43px;padding:9px 10px;font-size:13px
+ }
+ #gmv3-filter-sheet .gmv3-filter-hint{font-size:10px;margin:10px 0}
+ #gmv3-filter-sheet .gmv3-filter-actions{
+  position:sticky;bottom:0;background:#241e29;padding:8px 0 max(2px,env(safe-area-inset-bottom));
+  margin-top:8px;z-index:1
+ }
+ #gmv3-location-picker.gmv3-location-backdrop{padding:0;align-items:stretch}
+ #gmv3-location-picker .gmv3-location-panel{
+  width:100%;height:100%;max-height:100%;padding:12px 12px calc(9px + env(safe-area-inset-bottom));
+  border-radius:0;border-left:0;border-right:0;border-top:0;border-bottom:0;box-shadow:none;
+  gap:8px;
+ }
+ #gmv3-location-picker .gmv3-location-head h2{font-size:21px}
+ #gmv3-location-picker .gmv3-location-batch button{font-size:10px;min-height:39px}
+ #gmv3-location-picker .gmv3-location-option{min-height:42px}
+}
+@media(max-width:365px){
+ #gmv3-location-picker .gmv3-location-batch button{font-size:9px;padding:7px 3px}
+ #gmv3-location-picker .gmv3-location-panel{padding-left:9px;padding-right:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ #gmv3-location-picker *,body.gmv3-jobs-workspace [data-gmf-loc="open"]{animation:none!important;transition:none!important}
+}
+
+/* Stage 16: compact icon-only Discovery batch actions; no select-all shortcut. */
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar{
+ width:max-content!important;max-width:calc(100vw - 20px)!important;
+ justify-content:center!important;flex-wrap:nowrap!important;
+ padding:8px 11px!important;gap:10px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{
+ flex:0 0 auto!important;justify-content:center!important;flex-wrap:nowrap!important;gap:7px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;
+ min-height:42px!important;padding:8px!important;gap:0!important;border-radius:11px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon svg{
+ width:21px!important;height:21px!important;max-width:100%;flex:none;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon:focus-visible{
+ outline:2px solid #ff4caa;outline-offset:2px;
+}
+body.gmv3-jobs-workspace #selectionBarMount .gmv3-clear-selected{
+ background:#362b3e!important;color:#fff7e9!important;
+}
+@media(max-width:720px){
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar{
+  width:max-content!important;max-width:calc(100vw - 14px)!important;
+  justify-content:center!important;flex-wrap:nowrap!important;
+  padding:7px 9px!important;gap:8px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{
+  flex:0 0 auto!important;gap:5px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon{
+  flex:0 0 38px!important;width:38px!important;height:38px!important;
+  min-width:38px!important;min-height:38px!important;padding:7px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon svg{
+  width:19px!important;height:19px!important;
+ }
+}

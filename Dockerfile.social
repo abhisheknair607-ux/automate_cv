@@ -9,6 +9,11 @@ COPY standalone/social_research.js /app/standalone/social_research.js
 COPY standalone/social_review.js /app/standalone/social_review.js
 COPY standalone/social.html /app/standalone/social.html
 COPY standalone/bridge.js /app/standalone/bridge.js
+# Visual-only restoration. The original Social HTML and API code remain unchanged.
+COPY standalone/mobile_social_hub.js /app/standalone/mobile_social_hub.js
+COPY standalone/social_theme_hubs.css /app/standalone/social_theme_hubs.css
+COPY standalone/social_theme_collage.css /app/standalone/social_theme_collage.css
+COPY standalone/social_theme_restore.css /app/standalone/social_theme_restore.css
 USER node
 ENV PORT=8080
 EXPOSE 8080
