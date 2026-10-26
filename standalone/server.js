@@ -187,7 +187,7 @@ app.get("/prototype",(req,res)=>{
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-facets-15"></head>');
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-icons-16"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -200,7 +200,7 @@ app.get("/prototype",(req,res)=>{
     '<script src="/prototype/location-variants.js?v=m26-location-14"></script>'+
     '<script src="/prototype/filters-stats.js?v=m26-facets-15"></script>'+
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
-     '<script src="/prototype/ui-polish.js?v=m26-neon-held-13"></script>'+
+     '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
     '<script src="/prototype/collage-intro.js?v=m26-neon-held-12"></script></body>');
