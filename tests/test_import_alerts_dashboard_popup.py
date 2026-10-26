@@ -27,12 +27,18 @@ def test_popup_is_compact_accessible_and_mobile_responsive():
 
 
 def test_popup_does_not_trigger_import_before_user_parser_approval():
-    assert "Run Import · awaiting approval" in SOURCE
-    assert "No Google Sheet will be updated by opening this popup." in SOURCE
+    # The three controls are initially disabled and enabled only by a
+    # successful authenticated status response.
+    for kind in ("preview", "dedupe", "apply"):
+        assert f'data-alert-run="{kind}" disabled' in SOURCE
+    assert 'id="alerts-live-status"' in SOURCE
     popup_script = SOURCE.split('/* Import Alerts control lives in the Jobs dashboard', 1)[1]
     assert "fetch(" not in popup_script
     assert "google.script.run" not in popup_script
     assert "requestSpecial(" not in popup_script
     assert "workflow_dispatch" not in popup_script
-    assert "View GitHub Actions" in popup_script
-    assert "GitHub dispatch requires an authenticated request" in popup_script
+    assert "Actions ↗" in popup_script
+    assert "Workflow ↗" in popup_script
+    assert "Audit ↗" in popup_script
+    assert "if(!button||button.disabled)return;" in popup_script
+    assert "data.applyEnabled" in popup_script
