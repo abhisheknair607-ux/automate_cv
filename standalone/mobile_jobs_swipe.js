@@ -77,6 +77,7 @@
  }
  function eligible(job){return phase(job,choice(job))!=="hidden"}
  function resetState(name){
+  endHold(pointer);pointer=null;
   candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;expanded=false;suppressCardClickUntil=0;
   for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
   decisions={};metadata.clear();
@@ -336,32 +337,51 @@
   if(st==="connect")return '<button type="button" data-gs-option="connected">Connected</button><button type="button" data-gs-option="not-connected">Not connected yet</button>';
   return "";
  }
+ function endHold(p){
+  if(p?.timer)clearTimeout(p.timer);
+  if(card)card.classList.remove("gmv3-hold-ready");
+ }
  function onPointerDown(e){
   const node=e.target.closest?.(".gmv3-drag-card");
   if(!node||!current||panelOpen||interactionBusy||e.isPrimary===false)return;
   if(e.target.closest("button,a,summary,details,input,textarea,select,.gmv3-swipe-extra"))return;
-  // Expanded cards need native vertical scrolling. Only the top grip handles
-  // gestures then; the rest of the card is free for touch/trackpad scrolling.
-  if(expanded&&!e.target.closest(".gmv3-swipe-drag-grip"))return;
   const fromGrip=!!e.target.closest(".gmv3-swipe-drag-grip");
-  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,fromGrip,scrolling:false};
-  // Browser gets native vertical scrolling when outside the grip; only
-  // capture touch pointers from the grip to reserve the down-to-later gesture.
-  if(fromGrip||e.pointerType!=="touch")node.setPointerCapture?.(e.pointerId);
+  endHold(pointer);
+  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,
+    fromGrip,held:fromGrip,scrolling:false,timer:null};
+  if(e.pointerType==="touch"&&!fromGrip){
+   // Short movements retain native scrolling. A deliberate stationary hold
+   // arms the down gesture without requiring the top grip.
+   const pointerId=e.pointerId;
+   pointer.timer=setTimeout(()=>{
+    if(!pointer||pointer.id!==pointerId||pointer.scrolling||!active||panelOpen)return;
+    if(Math.hypot(pointer.dx,pointer.dy)>12)return;
+    pointer.held=true;
+    node.classList.add("gmv3-hold-ready");
+    node.setPointerCapture?.(pointerId);
+    suppressCardClickUntil=Date.now()+800;
+   },HOLD_MS);
+  }else if(fromGrip||e.pointerType!=="touch"){
+   node.setPointerCapture?.(e.pointerId);
+  }
  }
  function onPointerMove(e){
   if(!pointer||pointer.id!==e.pointerId||!card)return;
   pointer.dx=e.clientX-pointer.x;pointer.dy=e.clientY-pointer.y;
-  // A normal downward reading gesture is NOT a decision. On mobile, swipe
-  // down-to-postpone is deliberately reserved for the visible top grip.
   if(pointer.scrolling)return;
-  if(!pointer.fromGrip&&Math.abs(pointer.dy)>12&&Math.abs(pointer.dy)>Math.abs(pointer.dx)*1.15){
-    pointer.scrolling=true;
-    suppressCardClickUntil=Date.now()+600;
-    if(card){card.style.transform="";delete card.dataset.swiping}
-    return;
+  // Before long-press activation, vertical finger motion is always scrolling.
+  // After activation, drag down chooses Later instead of scrolling the page.
+  if(!pointer.fromGrip&&!pointer.held&&Math.abs(pointer.dy)>11&&
+     Math.abs(pointer.dy)>Math.abs(pointer.dx)*1.15){
+   pointer.scrolling=true;endHold(pointer);
+   suppressCardClickUntil=Date.now()+600;
+   card.style.transform="";delete card.dataset.swiping;
+   return;
   }
-  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
+  if(!pointer.held&&!pointer.fromGrip&&Math.hypot(pointer.dx,pointer.dy)>12)
+   endHold(pointer);
+  if(pointer.held&&e.cancelable)e.preventDefault();
+  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+550;
   const dx=Math.max(-180,Math.min(180,pointer.dx));
   const dy=Math.max(-180,Math.min(180,pointer.dy));
   card.style.transform="translate("+dx+"px,"+Math.max(-12,dy)+"px) rotate("+(dx/32)+"deg)";
@@ -370,15 +390,14 @@
  }
  function onPointerEnd(e){
   if(!pointer||pointer.id!==e.pointerId)return;
-  const scrolling=pointer.scrolling,fromGrip=pointer.fromGrip;
-  const dir=scrolling?null:direction(pointer.dx,pointer.dy);
-  if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
-  pointer=null;
+  const p=pointer,dir=p.scrolling?null:direction(p.dx,p.dy);
+  const laterGesture=postponeGesture(p);
+  endHold(p);pointer=null;
+  if(Math.hypot(p.dx,p.dy)>13)suppressCardClickUntil=Date.now()+550;
   if(card){card.style.transform="";delete card.dataset.swiping;}
-  if(scrolling)return;
-  // Never reject/postpone while scrolling vertically outside the grip.
-  if(dir==="down"&&!fromGrip)return;
-  if(dir==="left"||dir==="down")finishSwipe(dir);
+  if(p.scrolling)return;
+  if(dir==="down"&&!laterGesture)return;
+  if(dir==="left"||laterGesture)finishSwipe(laterGesture?"down":"left");
   else if(dir==="right")openOptions();
  }
  function onKeyboard(e){
@@ -417,7 +436,7 @@
   shell('<div class="gmv3-swipe-empty" role="status"><strong>Loading your career deck…</strong><p>Personalised jobs from your existing candidate profile.</p></div>');
   refill();
  }
- function close(){active=false;epoch++;panelOpen=false;current=null;pointer=null;expanded=false}
+ function close(){active=false;epoch++;panelOpen=false;current=null;endHold(pointer);pointer=null;expanded=false}
  if(doc.body.classList.contains("gmv3-jobs-workspace")){
   doc.addEventListener("keydown",onKeyboard);
   doc.addEventListener("click",e=>{
@@ -428,7 +447,11 @@
  doc.addEventListener("pointerdown",e=>{if(active&&surface?.contains(e.target))onPointerDown(e)});
  doc.addEventListener("pointermove",e=>{if(active&&pointer)onPointerMove(e)});
  doc.addEventListener("pointerup",e=>{if(active&&pointer)onPointerEnd(e)});
- doc.addEventListener("pointercancel",e=>{if(pointer&&pointer.id===e.pointerId){pointer=null;if(card){card.style.transform="";delete card.dataset.swiping}}});
+ doc.addEventListener("pointercancel",e=>{if(pointer&&pointer.id===e.pointerId){endHold(pointer);pointer=null;if(card){card.style.transform="";delete card.dataset.swiping}}});
+ // Prevent touch scrolling ONLY after the stationary hold has armed dragging.
+ doc.addEventListener("touchmove",e=>{
+  if(active&&pointer?.held&&!pointer.scrolling&&surface?.contains(e.target)&&e.cancelable)e.preventDefault();
+ },{passive:false});
  doc.addEventListener("click",e=>{if(active&&surface?.contains(e.target))onClick(e)});
  global.GaramaalSwipeDeck=Object.freeze({open,close,direction,phase,jobKey});
 })(typeof window!=="undefined"?window:globalThis);
