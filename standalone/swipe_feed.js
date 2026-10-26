@@ -28,7 +28,9 @@ function gmSwipeFeed(options){
     const prefs=job.person[candidate]||{};
     const preference=effectivePreference_(prefs.preference,other?.preferences?.[candidate]);
     if(preference==="Not Interested")continue;
-    freshJobs.push({...job,...prefs,source:"fresh",preference,
+    // Never send the other candidate's private Freshmaal settings.
+    const {person,...view}=job;
+    freshJobs.push({...view,...prefs,source:"fresh",preference,
       favorite:preference==="Favorite",notInterested:false});
   }
   const discoveryJobs=[];
