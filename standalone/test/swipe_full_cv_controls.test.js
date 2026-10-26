@@ -24,11 +24,13 @@ test("each setting persists through the existing scoped identity-checked API",()
  const swipe=read("standalone/mobile_jobs_swipe.js");
  const app=read("garamaal-release-webapp/Code.gs");
  assert.match(swipe,/const base=\{candidate,row:job\.row,expected:expected\(job\)\}/);
- assert.match(swipe,/liveRequest\("updateFreshControl",\{\.\.\.base,\.\.\.change\}\)/);
+ assert.match(swipe,/liveRequest\("updateFreshControl",\{\.\.\.freshBase,field,value\}\)/);
+ assert.match(swipe,/target=\{\.\.\.ready,source:"fresh"\}/);
+ assert.match(swipe,/settings=cvControlPanel\(job\)/);
  assert.match(app,/function updateFreshControl\(payload\)/);
  assert.match(app,/expected_\(sh,payload\.row,3,payload\.expected\)/);
  assert.match(app,/\['Economy', 'Balanced', 'Premium'\]/);
- assert.match(swipe,/field==="clTier"\)job\.clTierExplicit=true/);
+ assert.match(swipe,/if\(field==="clTier"\)target\.clTierExplicit=true/);
 });
 test("the paid run requires explicit confirmation and uses the legacy guarded API",()=>{
  const swipe=read("standalone/mobile_jobs_swipe.js");
@@ -36,7 +38,7 @@ test("the paid run requires explicit confirmation and uses the legacy guarded AP
  const app=read("garamaal-release-webapp/Code.gs");
  const runtime=read("standalone/runtime.js");
  assert.match(swipe,/window\.confirm\(/);
- assert.match(swipe,/run\("runCvApiNow",\{\.\.\.base,confirm:true\}\)/);
+ assert.match(swipe,/run\("runCvApiNow",\{\.\.\.freshBase,confirm:true\}\)/);
  assert.match(server,/ALLOW_MANUAL_CV_DISPATCH/);
  assert.match(server,/queue\.byJob\[candidate\+":"\+row\]/);
  assert.match(app,/payload\.confirm !== true/);
@@ -52,4 +54,21 @@ test("Discovery transfers to the verified Freshmaal row and exposes its own cont
  assert.match(swipe,/safeLink\(ready\.url\)===safeLink\(job\.url\)/);
  assert.match(swipe,/current=\{\.\.\.ready,source:"fresh"\}/);
  assert.match(swipe,/render\(\);openOptions\(\);return/);
+});
+
+test("right Swipe exposes full Make CV settings before a Discovery transfer",()=>{
+ const swipe=read("standalone/mobile_jobs_swipe.js");
+ assert.match(swipe,/if\(job\.source==="taaza"\)\{\s*settings=cvControlPanel\(job\)/);
+ assert.match(swipe,/Transfer &amp; Save/);
+ assert.match(swipe,/if\(job\.source==="taaza"&&!job\.jdReady\)/);
+ assert.match(swipe,/await liveRequest\("transferJob"/);
+ assert.match(swipe,/const freshRow=Number\(transferred\?\.freshRow\)/);
+ assert.match(swipe,/const ready=await read\("getJob",\{source:"fresh",candidate,row:freshRow\}\)/);
+ assert.match(swipe,/if\(!ready\|\|safeLink\(ready\.url\)!==safeLink\(job\.url\)\)/);
+ assert.match(swipe,/current=target/);
+ assert.match(swipe,/save\(target,\{interested:true,cvDrafted:!!target\.cv\}\)/);
+ assert.match(swipe,/window\.confirm\(/);
+ const confirmAt=swipe.indexOf("const confirmRun=window.confirm(");
+ const transferAt=swipe.indexOf('const transferred=await liveRequest("transferJob"');
+ assert.ok(confirmAt>=0&&transferAt>confirmAt,"confirm paid run before transfer or Sheet writes");
 });
