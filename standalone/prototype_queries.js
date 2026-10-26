@@ -74,6 +74,16 @@ function gmPipelineStats(candidate){
   basis:"Current candidate-specific Freshmaal status and generated-CV links; not dated daily or weekly activity."
  };
 }
+function gmDuplicateStatuses_(){
+ // Candidate-neutral global duplicate metadata; never replace N/O preferences.
+ const sh=sheet_("taaza");
+ const cap=Math.min(sh.getLastRow(),sh.getMaxRows());
+ if(cap<1)return {ready:false,values:[]};
+ const header=String(sh.getRange(1,17).getValue()||"");
+ if(header!=="Duplicate Status")return {ready:false,values:[]};
+ return {ready:true,values:cap>=2?sh.getRange(2,17,cap-1,1).getValues()
+   .map(row=>String(row[0]||"").trim()):[]};
+}
 function gmListJobsFaceted(options){
  authorise_();options=options||{};
  const source=options.source==="fresh"?"fresh":"taaza";
@@ -86,6 +96,11 @@ function gmListJobsFaceted(options){
  const tabId=short(options.tabId||"all");
  const sort=short(options.sort||"newest");
  let rows=gmCandidateRows_(source,candidate);
+ if(source==="taaza"){
+  const dup=gmDuplicateStatuses_();
+  rows=rows.map(j=>({...j,duplicateStatus:dup.ready?(dup.values[j.row-2]||""):"",
+    duplicateSchemaReady:dup.ready}));
+ }
  if(source==="taaza"&&tabId!=="all"){
   const allTabs=taazaCategoryTabs_();
   const selected=allTabs.find(x=>String(x.id)===tabId);
@@ -95,6 +110,14 @@ function gmListJobsFaceted(options){
     return tabId==="common"?!categories.length||categories.includes("Common"):categories.includes(selected.name);
    });
   }
+ }
+ // Existing listings are not deleted: confirmed duplicates are hidden by default,
+ // and only displayed when the user deliberately chooses a duplicates filter.
+ if(source==="taaza"){
+  if(status==="duplicates")rows=rows.filter(j=>["Dup","Possible"].includes(j.duplicateStatus));
+  else if(status==="confirmed-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
+  else if(status==="possible-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Possible");
+  else if(status!=="all-including-duplicates")rows=rows.filter(j=>j.duplicateStatus!=="Dup");
  }
  if(status==="not-interested")rows=rows.filter(x=>x.notInterested);
  else if(status==="favorites")rows=rows.filter(x=>x.favorite);
@@ -143,7 +166,10 @@ function gmListJobsFaceted(options){
   const old=text(short(facet[field]));
   if(old)rows=rows.filter(x=>text(x[key]).includes(old));
  }
- if(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
+ if(sort==="duplicate-group"&&source==="taaza")rows.sort((a,b)=>
+   String(a.company||"").localeCompare(String(b.company||""))||
+   String(a.role||"").localeCompare(String(b.role||""))||a.row-b.row);
+ elseif(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
  else if(sort==="company")rows.sort((a,b)=>a.company.localeCompare(b.company));
  else if(sort==="designation")rows.sort((a,b)=>a.role.localeCompare(b.role));
  else if(sort==="location")rows.sort((a,b)=>a.location.localeCompare(b.location));
