@@ -274,6 +274,11 @@ def known_job_ids(sheets) -> set[str]:
     skipping the dedupe check.
     """
     from .taaza_sync import discover_job_tabs, exact_job_key, MASTER
+    # A readable column C is not enough: a renamed or shifted master column
+    # could silently bypass duplicate detection and admit repeated jobs.
+    headers = sheet_values(sheets, f"'{MASTER}'!A1:C1")
+    if headers != [["Company Name", "Designation", "Link"]]:
+        raise RuntimeError("master Jobs headers missing or changed; importer stopped without writing")
     found = set()
     all_names = [MASTER, *(tab["name"] for tab in discover_job_tabs(sheets))]
     for tab in dict.fromkeys(all_names):
