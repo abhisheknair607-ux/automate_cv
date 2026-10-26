@@ -77,10 +77,14 @@ function gmPipelineStats(candidate){
 function gmDuplicateStatuses_(){
  // Candidate-neutral global duplicate metadata; never replace N/O preferences.
  const sh=sheet_("taaza");
- const cap=Math.min(sh.getLastRow(),sh.getMaxRows());
- if(cap<1)return {ready:false,values:[]};
- const header=String(sh.getRange(1,17).getValue()||"");
+ // On old deployments/test adapters, Q may be unavailable; preserve the
+ // original Discovery behavior instead of breaking all existing filters.
+ const hdr=sh.getRange(1,17);
+ if(!hdr||typeof hdr.getValue!=="function")return {ready:false,values:[]};
+ const header=String(hdr.getValue()||"");
  if(header!=="Duplicate Status")return {ready:false,values:[]};
+ const cap=typeof sh.getLastRow==="function"?Math.min(sh.getLastRow(),sh.getMaxRows()):sh.getMaxRows();
+ if(!Number.isInteger(cap)||cap<1)return {ready:false,values:[]};
  return {ready:true,values:cap>=2?sh.getRange(2,17,cap-1,1).getValues()
    .map(row=>String(row[0]||"").trim()):[]};
 }
