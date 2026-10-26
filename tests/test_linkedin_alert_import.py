@@ -201,15 +201,41 @@ def test_apply_and_rerun_is_idempotent(monkeypatch):
     assert len(sheets.tabs[li.INTAKE]) == 3
 
 
-def test_unknown_recipient_review_never_imports(monkeypatch):
+@pytest.mark.parametrize("recipient", [
+    li.INBOX,
+    "itsabhisheknnair@gmail.com, poojaktirupati@gmail.com",
+])
+def test_unassigned_or_ambiguous_owner_is_shared_and_idempotent(monkeypatch, recipient):
     with_fake_source_tabs(monkeypatch)
     sheets = FakeSheets()
-    gmail = FakeGmail({"m": fake_digest(to=li.INBOX)})
+    gmail = FakeGmail({"m": fake_digest(to=recipient)})
+    preview = li.run(gmail, sheets, preview=True)
+    assert preview["review"] == 0
+    assert preview["added"] == 1
+    assert preview["samples"][0]["owner"] == "Shared"
+    assert sheets.added == []
+
     report = li.run(gmail, sheets, preview=False)
-    assert report["review"] == 1
+    assert report["added"] == 1
+    assert report["review"] == 0
+    assert sheets.tabs[li.INTAKE][1][13] == "Shared"
+    assert sheets.tabs[li.LOG][1][5] == "Shared"
+    assert sheets.tabs[li.LOG][1][9] == "Processed"
+    assert li.run(gmail, sheets, preview=False)["skipped"] == 1
+
+
+def test_unknown_owner_does_not_override_unverified_job_card(monkeypatch):
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    gmail = FakeGmail({"m": fake_digest(
+        to=li.INBOX,
+        html_body=job_html() + '<a href="https://www.linkedin.com/jobs/view/4455512345/">View job</a>',
+    )})
+    result = li.run(gmail, sheets, preview=False)
+    assert result["review"] == 1
+    assert result["added"] == 0
     assert len(sheets.tabs[li.INTAKE]) == 1
     assert sheets.tabs[li.LOG][1][9] == "Review"
-    assert li.run(gmail, sheets, preview=False)["skipped"] == 1
 
 
 def test_confirmation_skip_and_spoofed_sender(monkeypatch):

@@ -371,7 +371,10 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         subject = str(message.get("Subject", ""))[:250]
         plain = extract_part(message, "plain")
         parsed = []
-        owner = original_owner(message)
+        # Job alerts are a shared discovery feed. Attribution is optional:
+        # preserve a known owner for provenance, otherwise use Shared rather
+        # than guessing a candidate or rejecting a legitimate vacancy.
+        owner = original_owner(message) or "Shared"
         result = "Review"
         details = ""
         if provider == "LinkedIn" and is_confirmation(subject, plain):
@@ -398,9 +401,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
             excluded_location = len(candidates) - len(parsed)
             counters["filtered"] += excluded_location
             counters["excluded_ads"] += excluded_ads
-            if owner is None:
-                details = "Original recipient unknown or ambiguous; no rows imported"
-            elif suspicious:
+            if suspicious:
                 details = "Some job cards incomplete or unverified; no rows imported"
             elif not candidates:
                 details = "No confidently parsed job cards; inspect original Gmail MIME"
@@ -415,7 +416,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         if len(counters["samples"]) < 12:
             for job in parsed[:12 - len(counters["samples"])]:
                 counters["samples"].append({"source": provider,
-                                            "owner": owner or "Unassigned",
+                                            "owner": owner,
                                             "company": job.company, "title": job.title,
                                             "location": job.location,
                                             "job_id": job.external_id,
@@ -425,7 +426,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
             if len(counters["review_reasons"]) < 8:
                 counters["review_reasons"].append(details)
         added = duplicates = 0
-        # Only commit validated complete messages with confirmed candidate ownership.
+        # Only commit validated complete messages; individual ownership is optional.
         if result == "Processed":
             for job in parsed:
                 exact = exact_job_key(job.url)
@@ -450,7 +451,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
             append_row(sheets, LOG, [
                 now, id_, resource.get("threadId", ""), _date(message), subject,
-                owner or "Unassigned", len(parsed), added, duplicates, result,
+                owner, len(parsed), added, duplicates, result,
                 provider + ": " + details,
             ])
         # In preview, keep deduplication across messages without mutating Sheets.
