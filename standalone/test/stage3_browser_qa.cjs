@@ -40,10 +40,15 @@ const mock=String.raw`(()=>{
  }
  function list(method,arg){
   const source=arg.source||"taaza",candidate=arg.candidate||"Abhishek";
-  let out=rows(source,candidate).map(x=>({...x,statusOptions:["NA","Applied"],favorite:false,notInterested:false}));
+  let out=rows(source,candidate).map(x=>({...x,
+   department:/transfer pricing/i.test(x.role)?"Transfer Pricing":
+     /wealth|planning|planner/i.test(x.role)?"Wealth & Financial Planning":
+     /valuation|corporate finance/i.test(x.role)?"Corporate Finance & Deals":
+     /investment/i.test(x.role)?"Investments & Funds":"Accounting & Control",
+   statusOptions:["NA","Applied"],favorite:false,notInterested:false}));
   const q=String(arg.query||"").toLowerCase();
   const choices={company:[...new Set(out.map(x=>x.company))],location:[...new Set(out.map(x=>x.location))],
-    designation:[...new Set(out.map(x=>x.role))],department:["Corporate Finance & Deals","Wealth & Financial Planning"]};
+    designation:[...new Set(out.map(x=>x.role))],department:[...new Set(out.map(x=>x.department))]};
   if(q)out=out.filter(x=>(x.company+" "+x.role+" "+x.location).toLowerCase().includes(q));
   const f=arg.filter||"all";
   if(f==="missing")out=out.filter(x=>!x.jdReady);
@@ -57,6 +62,11 @@ const mock=String.raw`(()=>{
   const selection=arg.locationSelection||{mode:"all",values:[]};
   if(selection.mode==="except")out=out.filter(x=>!selection.values.includes(x.location));
   if(selection.mode==="only")out=out.filter(x=>selection.values.includes(x.location));
+  for(const [field,key] of [["company","company"],["designation","role"],["department","department"]]){
+   const rule=arg.facetSelections?.[field]||{mode:"all",values:[]};
+   if(rule.mode==="only")out=out.filter(x=>rule.values.includes(x[key]));
+   if(rule.mode==="except")out=out.filter(x=>!rule.values.includes(x[key]));
+  }
   for(const [field,key] of [["company","company"],["designation","role"]]){
     const want=String(arg.facets?.[field]||"").toLowerCase();
     if(want)out=out.filter(x=>String(x[key]||"").toLowerCase().includes(want));
@@ -164,10 +174,31 @@ async function check(viewport){
  await page.waitForFunction(()=>document.querySelectorAll("#content .jobs > .job").length===5,{timeout:15000});
  await page.locator("#gmv3-filter-button").click();
  await wait(page,"#gmv3-filter-form");
- await page.locator('[data-gmf-field="company"]').fill("Sample Partner B");
+ for(const field of ["company","location","department","designation"])
+  assert.equal(await page.locator("#gmv3-"+field+"-trigger").count(),1,"All primary filters have a picker");
+ await page.locator("#gmv3-company-trigger").click();
+ await page.locator("#gmv3-location-search").fill("Partner B");
+ assert.equal(await page.locator("#gmv3-location-list input[type=checkbox]").count(),1);
+ await page.locator('[data-gmf-loc="only"]').click();
+ await page.locator('[data-gmf-loc="done"]').click();
+ assert.match(await page.locator("#gmv3-company-trigger").innerText(),/1 included/);
  await page.locator('#gmv3-filter-form button[type="submit"]').click();
  await page.waitForTimeout(500);
  assert.equal(await page.locator("#content .jobs > .job").count(),1,"Company filter narrows listings");
+ await page.locator("#gmv3-filter-button").click();
+ await page.locator("#gmv3-department-trigger").click();
+ await page.locator("#gmv3-location-search").fill("Wealth");
+ assert.equal(await page.locator("#gmv3-location-list input[type=checkbox]").count(),1);
+ await page.locator('[data-gmf-loc="only"]').click();
+ await page.locator('[data-gmf-loc="done"]').click();
+ await page.locator("#gmv3-designation-trigger").click();
+ await page.locator("#gmv3-location-search").fill("Private Wealth");
+ await page.locator('[data-gmf-loc="only"]').click();
+ await page.locator('[data-gmf-loc="done"]').click();
+ await page.locator('#gmv3-filter-form button[type="submit"]').click();
+ await page.waitForFunction(()=>document.querySelectorAll("#content .jobs > .job").length===1,{timeout:15000});
+ assert.match(await page.locator("#content .jobs > .job").first().innerText(),/Partner B/,"Combined facets");
+
  if(viewport.name==="mobile"){
   const card=page.locator("#content .jobs > .job").first();
   await card.evaluate(node=>node.dispatchEvent(new PointerEvent("pointerdown",{bubbles:true,pointerId:53,pointerType:"touch",isPrimary:true,clientX:15,clientY:15})));
