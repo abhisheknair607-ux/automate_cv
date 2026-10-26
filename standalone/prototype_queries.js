@@ -123,7 +123,7 @@ function gmListJobsFaceted(options){
  const entries=loc.values==null?[]:loc.values;
  if(!Array.isArray(entries)||entries.length>750)throw new Error("Too many selected location variants");
  const picked=new Set(entries.map(v=>short(v)).filter(Boolean));
- if(locMode!=="all"&&picked.size){
+ if(locMode!=="all"){
   rows=rows.filter(x=>locMode==="except"?!picked.has(short(x.location)):picked.has(short(x.location)));
  }
  for(const [field,key] of [["company","company"],["designation","role"],["department","department"]]){
