@@ -92,7 +92,7 @@ test("Phone gestures pan vertically through Swipe without deciding to postpone",
  assert.match(js,/if\(dir==="down"&&!fromGrip\)return/);
  assert.match(js,/const fromGrip=!!e\.target\.closest\("\.gmv3-swipe-drag-grip"\)/);
  assert.match(js,/if\(fromGrip\|\|e\.pointerType!=="touch"\)node\.setPointerCapture/);
- assert.match(css,/Stage 10: real touchscreen feedback/);
+ assert.match(css,/Stage 10: lift is a held visual STATE/);
  assert.match(css,/\.gmv3-drag-card\{\s*touch-action:pan-y!important/);
  assert.match(css,/\.gmv3-swipe-drag-grip\{\s*touch-action:none!important/);
  assert.match(css,/overflow-y:auto!important;-webkit-overflow-scrolling:touch/);
