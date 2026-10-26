@@ -38,7 +38,7 @@
   if(sentence.length>=35)summary=sentence.slice(0,165)+(sentence.length>165?"…":"");
   // Bounded additional excerpt: never expose the entire saved JD on the swipe card.
   const remaining=raw.slice(Math.min(raw.length,Math.min(sentence.length,165))).trim();
-  const maxExtra=Math.min(760,Math.max(0,remaining.length-40));
+  const maxExtra=Math.min(1800,Math.max(0,remaining.length-40));
   const more=maxExtra>=20?remaining.slice(0,maxExtra).trim()+(remaining.length>maxExtra?"…":""):"";
   return {pay,visa,summary,more};
  }
@@ -297,12 +297,24 @@
   // Expanded cards need native vertical scrolling. Only the top grip handles
   // gestures then; the rest of the card is free for touch/trackpad scrolling.
   if(expanded&&!e.target.closest(".gmv3-swipe-drag-grip"))return;
-  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};
-  node.setPointerCapture?.(e.pointerId);
+  const fromGrip=!!e.target.closest(".gmv3-swipe-drag-grip");
+  pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0,fromGrip,scrolling:false};
+  // Browser gets native vertical scrolling when outside the grip; only
+  // capture touch pointers from the grip to reserve the down-to-later gesture.
+  if(fromGrip||e.pointerType!=="touch")node.setPointerCapture?.(e.pointerId);
  }
  function onPointerMove(e){
   if(!pointer||pointer.id!==e.pointerId||!card)return;
   pointer.dx=e.clientX-pointer.x;pointer.dy=e.clientY-pointer.y;
+  // A normal downward reading gesture is NOT a decision. On mobile, swipe
+  // down-to-postpone is deliberately reserved for the visible top grip.
+  if(pointer.scrolling)return;
+  if(!pointer.fromGrip&&Math.abs(pointer.dy)>12&&Math.abs(pointer.dy)>Math.abs(pointer.dx)*1.15){
+    pointer.scrolling=true;
+    suppressCardClickUntil=Date.now()+600;
+    if(card){card.style.transform="";delete card.dataset.swiping}
+    return;
+  }
   if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
   const dx=Math.max(-180,Math.min(180,pointer.dx));
   const dy=Math.max(-180,Math.min(180,pointer.dy));
@@ -312,10 +324,14 @@
  }
  function onPointerEnd(e){
   if(!pointer||pointer.id!==e.pointerId)return;
-  const dir=direction(pointer.dx,pointer.dy);
+  const scrolling=pointer.scrolling,fromGrip=pointer.fromGrip;
+  const dir=scrolling?null:direction(pointer.dx,pointer.dy);
   if(Math.hypot(pointer.dx,pointer.dy)>13)suppressCardClickUntil=Date.now()+450;
   pointer=null;
   if(card){card.style.transform="";delete card.dataset.swiping;}
+  if(scrolling)return;
+  // Never reject/postpone while scrolling vertically outside the grip.
+  if(dir==="down"&&!fromGrip)return;
   if(dir==="left"||dir==="down")finishSwipe(dir);
   else if(dir==="right")openOptions();
  }
