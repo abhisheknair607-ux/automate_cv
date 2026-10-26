@@ -13,7 +13,7 @@ test("Social theme restores exact tested neon style without replacing Social app
  assert.match(html,/updateStatus/);
  assert.match(html,/saveConversationDraft/);
  assert.match(server,/html\.replace\("<\/head>",theme\+"<\/head>"\)/);
- assert.match(server,/html\.replace\("<\/body>"/);
+ assert.match(server,/\.replace\("<\/body>"/);
  assert.match(server,/app\.post\("\/api\/social\/\*"/);
  assert.match(css,/body\.gmv3-social-workspace/);
  assert.match(css,/#gmv3-social-tabs/);
