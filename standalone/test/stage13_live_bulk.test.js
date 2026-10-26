@@ -28,17 +28,22 @@ test("original Jobs and CV functions remain untouched while only prototype injec
  assert.match(backend,/function bulkSetJobPreferences\(payload\)/);
  assert.match(backend,/if\(payload\.source!=='taaza'\)/);
 });
-test("visible batch controls use original candidate-scoped 20-row selection and do not invoke APIs",()=>{
- assert.match(ui,/const BATCH_LIMIT=20/);
- assert.match(ui,/store\.set\(row,item\)/);
+test("icon-only selected job actions preserve native preference controls and do not add writes",()=>{
  assert.match(ui,/syncSelectionBar=function\(\)/);
  assert.match(ui,/nativeSyncSelectionBar\(\)/);
  assert.match(ui,/const nativeRender=render/);
  assert.match(ui,/selection\(\)\.clear\(\)/);
- assert.match(ui,/Select visible/);
- assert.match(ui,/Clear selection/);
+ assert.match(ui,/if\(node\.nodeType===3\)node\.remove\(\)/);
+ assert.match(ui,/button\.querySelector\("svg"\)/);
+ assert.match(ui,/button\.setAttribute\("aria-label"/);
+ assert.match(ui,/button\.dataset\.gmv3Bulk="clear"/);
+ assert.match(ui,/button\.innerHTML='<svg aria-hidden="true"/);
+ assert.match(css,/Stage 16: compact icon-only/);
  assert.match(css,/#selectionBarMount \.selectionbar/);
  assert.match(css,/position:fixed!important/);
+ assert.doesNotMatch(ui,/select-visible|Select visible|Select more/);
+ assert.doesNotMatch(css,/gmv3-select-visible/);
+ assert.doesNotMatch(ui,/gmv3-bulk-limit|Up to 20 jobs/);
  const executable=ui.replace(/\/\*[\s\S]*?\*\//g,"");
  assert.doesNotMatch(executable,/bulkSetJobPreferences|setJobPreference|\.fetch\(/);
  assert.doesNotMatch(ui,/\.setValues?\(/);
