@@ -4,7 +4,8 @@
 set -Eeuo pipefail
 MODE="${1:---plan}"
 [[ "$MODE" == "--plan" || "$MODE" == "--release" ]] || { echo "Usage: $0 [--plan|--release]" >&2; exit 2; }
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR=$(dirname -- "${BASH_SOURCE[0]}")
+ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 PROJECT=abhishek-cv-automation
 REGION=europe-west1
 SOCIAL=automate-cv-social
