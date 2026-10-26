@@ -134,7 +134,7 @@ def test_stage2_with_valid_handoff_does_not_make_repair_call():
 
 
 def test_cache_prefix_context_is_still_sent_when_explicit_cache_is_disabled():
-    first = Response('STAGE2_HANDOFF\ncompany: PwC\nselected_professional_evidence: []', 2000, 800)
+    first = Response('STAGE2_HANDOFF\ncompany: PwC\ncv_structure: High Experience\nselected_professional_evidence:\n  - key: PR-EY-FAR', 2000, 800)
     ai = ai_with([first])
 
     ai.text(
@@ -200,9 +200,9 @@ def test_abhishek_repair_is_grounded_in_candidate_router_and_job():
     ])
     result, billed = ai.text(
         'Combined rules requiring STAGE2_HANDOFF',
-        'Company: Davy\\nRAW JOB DESCRIPTION\\nInvestment analysis and portfolio research',
+        'Company: Davy\nRAW JOB DESCRIPTION\nInvestment analysis and portfolio research',
         model='gpt-5.6-terra',
-        cache_prefix='COMPACT SUMMARY DOC / EVIDENCE ROUTER\\nPR-EY-FINTRANS: supported work',
+        cache_prefix='COMPACT SUMMARY DOC / EVIDENCE ROUTER\nPR-EY-FINTRANS: supported work',
         cache_key='abhishek:stage1_2',
     )
     repair = ai.client.responses.calls[1]
@@ -215,10 +215,10 @@ def test_abhishek_repair_is_grounded_in_candidate_router_and_job():
 
 def test_abhishek_existing_but_evidence_free_handoff_gets_repaired():
     ai = ai_with([
-        Response('STAGE2_HANDOFF\\ncv_structure: High Experience\\nselected_professional_evidence: []', 100, 80),
+        Response('STAGE2_HANDOFF\ncv_structure: High Experience\nselected_professional_evidence: []', 100, 80),
         Response(
-            'STAGE2_HANDOFF\\ncv_structure: High Experience\\n'
-            'selected_professional_evidence:\\n  - key: PR-EY-RESEARCH',
+            'STAGE2_HANDOFF\ncv_structure: High Experience\n'
+            'selected_professional_evidence:\n  - key: PR-EY-RESEARCH',
             120, 90,
         ),
     ])
@@ -235,7 +235,7 @@ def test_invalid_handoff_charges_are_preserved_on_exception():
     from automate_cv.openai_client import Stage2HandoffError
     ai = ai_with([
         Response('Only JD discussion without selected evidence', 500, 300),
-        Response('STAGE2_HANDOFF\\ncv_structure: High Experience\\nselected_professional_evidence: []', 200, 100),
+        Response('STAGE2_HANDOFF\ncv_structure: High Experience\nselected_professional_evidence: []', 200, 100),
     ])
     with __import__('pytest').raises(Stage2HandoffError) as exc:
         ai.text(
@@ -251,8 +251,8 @@ def test_pooja_handoff_repair_still_uses_existing_draft_only():
     ai = ai_with([
         Response('No STAGE2_HANDOFF', 100, 50),
         Response(
-            'STAGE2_HANDOFF\\ncv_structure: High Experience\\n'
-            'selected_professional_evidence:\\n  - key: PR-POOJA-PLANNING',
+            'STAGE2_HANDOFF\ncv_structure: High Experience\n'
+            'selected_professional_evidence:\n  - key: PR-POOJA-PLANNING',
             100, 50,
         ),
     ])
