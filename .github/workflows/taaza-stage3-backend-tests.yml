@@ -24,4 +24,4 @@ jobs:
       - run: node --check standalone/server.js
       - run: node --check standalone/bridge.js
       - run: node -e 'new (require("node:vm").Script)(require("./standalone/prototype_queries").SOURCE)'
-      - run: node --test standalone/test/duplicate_status.test.js
+      - run: node --test standalone/test/duplicate_status.test.js standalone/test/stage3_duplicate_projection.test.js
