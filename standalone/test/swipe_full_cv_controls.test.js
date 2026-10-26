@@ -2,7 +2,8 @@
 const test=require("node:test"),assert=require("node:assert/strict");
 const fs=require("node:fs"),path=require("node:path"),vm=require("node:vm");
 const root=path.resolve(__dirname,"../..");
-const read=p=>fs.readFileSync(path.join(root,p),"utf8");
+const read=p=>fs.readFileSync(path.join(root,p.startsWith("garamaal-release-webapp/")&&
+ !fs.existsSync(path.join(root,p))?p.replace("garamaal-release-webapp/","webapp/"):p),"utf8");
 test("all original Make CV configuration switches are available in Swipe",()=>{
  const swipe=read("standalone/mobile_jobs_swipe.js");
  const app=read("garamaal-release-webapp/Code.gs");
