@@ -877,8 +877,8 @@ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
 }
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
   body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:hover{
-    transform:translateY(-2px)!important;border-color:#d493ef!important;
-    box-shadow:4px 6px 0 #09070b!important;
+    transform:translateY(-4px) scale(1.012)!important;border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
   }
 }
 body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:focus-visible{
@@ -1009,4 +1009,37 @@ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
 }
 @media(prefers-reduced-motion:reduce){
   body.gmv3-jobs-workspace #content .jobs > .job{transform:none!important;transition:none!important}
+}
+
+
+/* Stage 9 — dashboard statistics match the tactile listing hover. */
+body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+  transform-origin:50% 55%;
+}
+body.gmv3-jobs-workspace .gmv3-followup-stats>div{
+  transition:transform .17s ease-out,border-color .17s ease-out,box-shadow .17s ease-out!important;
+  box-shadow:2px 3px 0 #151019;
+  transform-origin:center;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div:hover{
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi:focus-visible{
+    transform:translateY(-4px) scale(1.012)!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+@media(hover:none) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div:active{
+    transform:scale(.992)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace .gmv3-followup-stats>div,
+  body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi{
+    transform:none!important;transition:none!important;
+  }
 }
