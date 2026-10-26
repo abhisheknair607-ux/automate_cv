@@ -32,7 +32,7 @@ def test_release_is_zero_traffic_canary_first_then_auto_rollback():
     assert "active(before)==active(after)" in S
     assert '"$URL/health"' in S
     assert '"$URL/prototype"' in S
-    assert "Import setup required" in S
+    assert "Live import authorisation off" in S
     assert 'PROMOTION_ATTEMPTED=1' in S
     assert 'trap rollback ERR' in S
     assert '--to-revisions="$BASELINE"' in S
