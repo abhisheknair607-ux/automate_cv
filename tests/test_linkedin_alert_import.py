@@ -189,7 +189,7 @@ def test_apply_and_rerun_is_idempotent(monkeypatch):
     assert first["added"] == 2
     assert [r[13] for r in sheets.tabs[li.INTAKE][1:]] == ["Abhishek", "Pooja"]
     assert all(row[10] is False for row in sheets.tabs[li.INTAKE][1:])
-    assert all(row[3] == "Open original job description" for row in sheets.tabs[li.INTAKE][1:])
+    assert all(row[3] == "" for row in sheets.tabs[li.INTAKE][1:])
     assert li.run(gmail, sheets, preview=False)["added"] == 0
     assert len(sheets.tabs[li.LOG]) == 3
     assert len(sheets.tabs[li.INTAKE]) == 3
@@ -229,3 +229,60 @@ def test_schema_change_fails_before_writing(monkeypatch):
     with pytest.raises(RuntimeError, match="headers changed"):
         li.run(FakeGmail({"m": fake_digest()}), sheets, preview=False)
     assert sheets.added == []
+
+
+def test_indeed_mail_imports_into_existing_sheet_without_linkedin_column(monkeypatch):
+    with_fake_source_tabs(monkeypatch)
+    from test_job_alert_providers import email_sample
+    from email.message import EmailMessage
+    import base64
+
+    msg = EmailMessage()
+    msg["From"] = "Indeed <donotreply@jobalert.indeed.com>"
+    msg["To"] = "itsabhisheknnair@gmail.com"
+    msg["Subject"] = "Graduate Associate, M&A at Interpath Advisory. 13 more valuation jobs"
+    msg.set_content(email_sample())
+    gmail = FakeGmail({"indeed1": {
+        "raw": base64.urlsafe_b64encode(msg.as_bytes()).decode().rstrip("="),
+        "threadId": "i-thread",
+    }})
+    sheets = FakeSheets()
+    result = li.run(gmail, sheets, preview=True)
+    assert result["added"] == 3
+    assert result["excluded_ads"] == 1
+    assert result["samples"][0]["source"] == "Indeed"
+    assert len(sheets.tabs[li.INTAKE]) == 1
+
+    li.run(gmail, sheets, preview=False)
+    jobs = sheets.tabs[li.INTAKE][1:]
+    assert len(jobs) == 3
+    assert all(job[12] == "Indeed Job Alert" for job in jobs)
+    assert all(job[13] == "Abhishek" for job in jobs)
+    assert all(job[15] == "" for job in jobs)
+    assert all(job[10] is False for job in jobs)
+    assert all("utm_" not in job[2] for job in jobs)
+    assert li.run(gmail, sheets, preview=False)["added"] == 0
+
+
+def test_indeed_unwanted_mumbai_is_filtered_without_write(monkeypatch):
+    with_fake_source_tabs(monkeypatch)
+    from email.message import EmailMessage
+    import base64
+
+    msg = EmailMessage()
+    msg["From"] = "Indeed <donotreply@jobalert.indeed.com>"
+    msg["To"] = "itsabhisheknnair@gmail.com"
+    msg.set_content("Indeed Job Alert\\n\\nTax Manager - Associate\\n"
+                    "JPMorganChase - Mumbai (On-site)\\n"
+                    "Role information\\n3 days ago\\n"
+                    "https://ie.indeed.com/rc/clk/dl?jk=0536af9cba329ebb")
+    gmail = FakeGmail({"m": {
+        "raw": base64.urlsafe_b64encode(msg.as_bytes()).decode().rstrip("="),
+        "threadId": "i-thread",
+    }})
+    sheets = FakeSheets()
+    result = li.run(gmail, sheets, preview=False)
+    assert result["filtered"] == 1
+    assert result["added"] == 0
+    assert sheets.tabs[li.LOG][1][9] == "Filtered"
+    assert len(sheets.tabs[li.INTAKE]) == 1
