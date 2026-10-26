@@ -1,12 +1,14 @@
-/* Garamaal /prototype Jobs Swipe — gesture-first Stage 3.
- * Uses existing per-candidate listJobs/getJob read APIs.
- * PREVIEW MODE: all gestures and decisions are browser-only. Never call
- * setJobPreference, transferJob, updateFreshControl, updateApplicationProgress,
- * or the paid runCvApiNow API against live Freshmaal.
+/* Garamaal /prototype Jobs Swipe — live candidate-scoped decisions.
+ * Reads via authenticated Swipe APIs. Only explicit user actions save to
+ * Google Sheets; never starts a paid CV run automatically.
  */
 (function(global){
  "use strict";
  const types=Object.freeze({left:"Not interested",down:"Maybe later",right:"Review next step"});
+ const HOLD_MS=460;
+ function postponeGesture({fromGrip=false,held=false,scrolling=false,dx=0,dy=0}={}){
+   return !scrolling&&(fromGrip||held)&&direction(dx,dy)==="down";
+ }
  function clean(v){return String(v==null?"":v).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
  function direction(dx,dy){
   if(Math.abs(dx)>=72 && Math.abs(dx)>=Math.abs(dy)*1.22)return dx<0?"left":"right";
@@ -44,7 +46,7 @@
  }
  function phase(job,local){
   local=local||{};
-  const progress=local.progress||job.progress||"Unapplied";
+  const progress=local.progress||job.progress||(String(job.status||"").toLowerCase()==="applied"?"Applied":"Unapplied");
   if(local.rejected||job.notInterested||progress==="Applied + Connected"||progress==="Accepted")return "hidden";
   if(local.connected&&progress==="Applied")return "hidden";
   if(progress==="Applied")return "connect";
@@ -53,24 +55,31 @@
   if(local.cvDrafted)return "cv-pending";
   return local.interested||job.favorite?"cv":"interest";
  }
- const helpers=Object.freeze({direction,phase,jobKey,workTerms});
+ const helpers=Object.freeze({direction,phase,jobKey,workTerms,postponeGesture,HOLD_MS});
  if(typeof module!=="undefined"&&module.exports)module.exports=helpers;
  if(typeof document==="undefined"||typeof window==="undefined")return;
  const doc=document;
  let surface=null,active=false,candidate="",epoch=0,loading=false,deck=[],later=[],seen=new Set(),current=null,details=null,panelOpen=false;
  const cursors={fresh:{page:1,done:false},taaza:{page:1,done:false}};
  let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map(),expanded=false,suppressCardClickUntil=0;
- const storageKey=name=>"gmv3-swipe-preview-v2:"+name;
  function person(){try{return typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek"}catch(_){return "Abhishek"}}
- function loadDecisions(name){try{const v=JSON.parse(localStorage.getItem(storageKey(name))||"{}");return v&&typeof v==="object"&&!Array.isArray(v)?v:{}}catch(_){return {}}}
- function persist(){try{localStorage.setItem(storageKey(candidate),JSON.stringify(decisions))}catch(_){}}
  function choice(job){return decisions[jobKey(job)]||{}}
- function save(job,partial){decisions[jobKey(job)]=Object.assign({},choice(job),partial);persist()}
+ function save(job,partial){decisions[jobKey(job)]=Object.assign({},choice(job),partial)}
+ function expected(job){return {company:job.company,role:job.role,url:job.url}}
+ function liveRequest(method,arg){
+   const host=window.__cvStandalone?.requestSpecial;
+   if(typeof host!=="function")return Promise.reject(Error("Sign in to Garamaal to save Swipe decisions."));
+   return host("swipe/"+method,{arg});
+ }
+ function read(method,arg){
+   return typeof window.__cvStandalone?.requestSpecial==="function"?
+     liveRequest(method,arg):run(method,arg);
+ }
  function eligible(job){return phase(job,choice(job))!=="hidden"}
  function resetState(name){
   candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;expanded=false;suppressCardClickUntil=0;
   for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
-  decisions=loadDecisions(name);metadata.clear();
+  decisions={};metadata.clear();
  }
  function activeJob(){return current||deck[0]||null}
  function badge(job){
@@ -78,13 +87,17 @@
   return {discovery:"Interested? Start here",interest:"Ready to shortlist",cv:"Prepare a CV", "cv-pending":"CV request drafted",apply:"CV ready — application step",connect:"Applied — connection step"}[st]||"Review";
  }
  function safeLink(v){try{const u=new URL(String(v||""));return /^https?:$/.test(u.protocol)?u.href:""}catch(_){return ""}}
- function footer(){return '<div class="gmv3-swipe-help"><span>← Reject</span><span>↓ Later</span><span>Continue →</span></div><p class="gmv3-swipe-small">Swipe the card itself in any direction. Drag with a mouse on desktop, or use ← ↓ → when the card is focused.</p>'}
+ function footer(){return '<div class="gmv3-swipe-help" role="group" aria-label="Swipe actions">'+
+  '<button type="button" data-gs="reject" aria-label="Not interested: reject job">← Pass</button>'+
+  '<button type="button" data-gs="later" aria-label="Maybe later: move job to bottom">↓ Later</button>'+
+  '<button type="button" data-gs="next" aria-label="Interested: choose next step">Next →</button>'+
+  '</div><p class="gmv3-swipe-small">Scroll normally to read. Hold a finger on the card, then drag down to save for later. ← / ↓ / → also work on the focused card.</p>'}
  function shell(content){
   if(!surface)return;
   surface.innerHTML='<div class="gmv3-swipe-body gmv3-gesture-screen">'+
    '<div class="gmv3-swipe-heading"><div><span class="gmv3-swipe-kicker">CAREER DECK · '+clean(candidate)+'</span><h2>Swipe & apply<span aria-hidden="true">.</span></h2></div>'+
-   '<button class="gmv3-swipe-reset" type="button" data-gs="reset" title="Clear browser-only swipe decisions">Reset test</button></div>'+
-   '<p class="gmv3-swipe-readonly">Browser-only QA · Reads your real Jobs list · No Sheet edits, application changes or paid CV runs</p>'+
+   '<button class="gmv3-swipe-reset" type="button" data-gs="refresh" title="Reload live Swipe feed">Refresh</button></div>'+
+   '<p class="gmv3-swipe-readonly">Live preferences · Saved to your candidate’s Sheets · CV runs always require separate approval</p>'+
    '<div id="gmv3-card-stage" aria-live="polite">'+content+'</div>'+footer()+
    '<div id="gmv3-swipe-action-layer" aria-live="polite"></div></div>';
   card=surface.querySelector(".gmv3-drag-card");
@@ -123,7 +136,7 @@
   if(metadata.has(key))return;
   const ticket=epoch;
   try{
-   const detail=await run("getJob",{source:job.source,row:job.row,candidate});
+   const detail=await read("getJob",{source:job.source,row:job.row,candidate});
    if(ticket!==epoch||!active)return;
    const info=workTerms(detail||{});
    metadata.set(key,info);
@@ -159,7 +172,7 @@
    for(const src of ["fresh","taaza"]){
     const cursor=cursors[src];if(cursor.done)continue;
     // Existing server-side candidate-aware listJobs is the only source.
-    const result=await run("listJobs",{source:src,candidate,tabId:"all",filter:"all",sort:src==="fresh"?"score":"newest",page:cursor.page,pageSize:15,query:""});
+    const result=await read("listJobs",{source:src,candidate,tabId:"all",filter:"all",sort:src==="fresh"?"score":"newest",page:cursor.page,pageSize:15,query:""});
     if(!active||ticket!==epoch)return;
     const rows=Array.isArray(result.rows)?result.rows:[];
     for(const entry of rows){
@@ -206,9 +219,9 @@
     (job.jdReady?'<button data-gs-option="transfer">Prepare for CV</button>':'<button data-gs-option="jd">Review missing JD first</button>');
   }else if(st==="interest"||st==="cv"){
    options=(st==="interest"?'<button data-gs-option="interest">★ Interested</button>':"")+
-    '<button data-gs-option="cv">Generate CV</button>';
+    '<button data-gs-option="cv">Enable Make CV (no paid run)</button>';
   }else if(st==="cv-pending"){
-   options='<button data-gs-option="cv">Review CV request</button><button data-gs-option="later">Check later</button>';
+   options='<button data-gs-option="cv">Enable Make CV</button><button data-gs-option="later">Check later</button>';
   }else if(st==="apply"){
    options='<button data-gs-option="applied">Mark applied</button><button data-gs-option="unapplied">Not applied yet</button>'+links;
   }else if(st==="connect"){
@@ -218,7 +231,7 @@
    '<div class="gmv3-choice-heading"><div><span>NEXT STEP</span><h3>'+clean(job.role||"Job")+'</h3></div><button type="button" data-gs-option="close" aria-label="Close options">×</button></div>'+
    '<p>'+clean(job.company||"")+' · '+clean(badge(job))+'</p>'+
    '<div class="gmv3-choice-buttons">'+options+'</div>'+
-   '<p class="gmv3-choice-note">Preview only — choices are saved in this browser, not in Freshmaal or Google Sheets. CV generation does not run here.</p></section></div>';
+   '<p class="gmv3-choice-note">Actions save to your candidate’s Google Sheets. Preparing a CV does not start a paid run.</p></section></div>';
   box.querySelector('[data-gs-option="close"]')?.focus();
  }
  function closeOptions(){panelOpen=false;const el=surface?.querySelector("#gmv3-swipe-action-layer");if(el)el.innerHTML="";card?.focus()}
@@ -269,7 +282,7 @@
   const layer=surface.querySelector("#gmv3-swipe-action-layer");
   layer.innerHTML='<div class="gmv3-choice-shade"><section class="gmv3-choice-sheet" role="dialog" aria-modal="true" aria-label="Job description"><div class="gmv3-choice-heading"><h3>Job description</h3><button type="button" data-gs-option="close" aria-label="Close">×</button></div><p role="status">Loading saved JD…</p></section></div>';
   try{
-   const detail=await run("getJob",{source:item.source,row:item.row,candidate});
+   const detail=await read("getJob",{source:item.source,row:item.row,candidate});
    if(!panelOpen||current!==item)return;
    const box=layer.querySelector(".gmv3-choice-sheet");
    if(!box)return;
@@ -277,7 +290,7 @@
     '<p>'+clean(detail?.company||item.company)+'</p><div class="gmv3-choice-jd">'+clean(detail?.jd||"Full job description is not available.")+'</div>'+
     '<div class="gmv3-choice-buttons">'+detailActions(item)+'</div>'+
     (safeLink(item.url)?'<a href="'+clean(safeLink(item.url))+'" target="_blank" rel="noopener noreferrer">Employer listing ↗</a>':"")+
-    '<p class="gmv3-choice-note">Swipe decisions are browser-only. Generate CV prepares a preview request; no paid work is launched.</p>';
+    '<p class="gmv3-choice-note">Your changes save to Google Sheets. A paid CV run must be launched separately.</p>';
   }catch(error){
    if(panelOpen){const p=layer.querySelector('p[role="status"]');if(p)p.textContent=String(error.message||"Could not load JD")}
   }
@@ -285,7 +298,7 @@
  function detailActions(job){
   const st=phase(job,choice(job));
   if(st==="discovery")return '<button type="button" data-gs-option="interest">Interested</button><button type="button" data-gs-option="transfer">Prepare for CV</button>';
-  if(st==="cv"||st==="interest"||st==="cv-pending")return '<button type="button" data-gs-option="cv">Generate CV (preview request)</button>';
+  if(st==="cv"||st==="interest"||st==="cv-pending")return '<button type="button" data-gs-option="cv">Enable Make CV (no paid run)</button>';
   if(st==="apply")return '<button type="button" data-gs-option="applied">Mark applied</button><button type="button" data-gs-option="unapplied">Not applied yet</button>';
   if(st==="connect")return '<button type="button" data-gs-option="connected">Connected</button><button type="button" data-gs-option="not-connected">Not connected yet</button>';
   return "";
