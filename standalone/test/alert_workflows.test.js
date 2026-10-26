@@ -56,10 +56,11 @@ test("invalid date and unknown operation are fail-closed",async()=>{
 test("GitHub accepts dispatch but completion is never asserted",async()=>{
  const m=mock();
  const out=await a.dispatch({kind:"apply",token:"SECRET",
-  dispatchAllowed:true,applyAllowed:true,fetcher:m.fetcher});
+  dispatchAllowed:true,applyAllowed:true,confirmed:true,fetcher:m.fetcher});
  assert.equal(out.accepted,true);
  assert.match(out.message,/not been confirmed/);
  assert.equal(JSON.parse(m.calls[0].options.body).inputs.apply,"true");
+ assert.equal(JSON.parse(m.calls[0].options.body).inputs.approval,"IMPORT_VALIDATED_JOBS");
 });
 test("GitHub authentication failure gives a safe error without exposing token",async()=>{
  const m=mock(403,{message:"bad credential"});
@@ -83,4 +84,10 @@ test("last runs status never invents timestamps or statuses",async()=>{
  assert.equal(res.preview.runId,42);
  assert.equal(res.dedupe.conclusion,"success");
  assert.equal(calls.length,2);
+});
+
+test("approved import still refuses missing confirmation",async()=>{
+ const m=mock();
+ await assert.rejects(a.dispatch({kind:"apply",token:"SECRET",dispatchAllowed:true,applyAllowed:true,fetcher:m.fetcher}),/Confirm the import/);
+ assert.equal(m.calls.length,0);
 });
