@@ -72,7 +72,7 @@ tags=[x for x in b["status"]["traffic"] if x.get("tag")==sys.argv[5]]
 assert len(tags)==1 and not int(tags[0].get("percent",0)),"Canary not at 0%"
 print(tags[0].get("revisionName",""));print(tags[0].get("url",""))
 PY
-)"
+)
 REV="${DATA[0]:-}";URL="${DATA[1]:-}"
 [[ "$REV" == automate-cv-social-* && "$URL" == https://* ]] || { echo "Invalid Social canary" >&2;exit 3; }
 for route in /social /social/theme-collage.css /social/theme-hubs.css /social/theme-restore.css /social/theme-shell.js; do
