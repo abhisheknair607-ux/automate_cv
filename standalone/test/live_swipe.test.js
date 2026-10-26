@@ -106,6 +106,7 @@ test("Swipe source, scoped progress overlay and browser entrypoints compile",()=
   "standalone/runtime.js","standalone/bridge.js","standalone/server.js"
  ])new vm.Script(fs.readFileSync(path.join(root,f),"utf8"),{filename:f});
  assert.equal(phase({source:"fresh",status:"Applied",cvLink:""},{}),"connect");
+ assert.equal(phase({source:"fresh",cv:true,cvLink:""},{}),"cv-pending");
  assert.equal(phase({source:"taaza",notInterested:true},{}),"hidden");
  const page=server;
  assert.match(page,/\/prototype\/hub-swipe\.js\?v=m26-live-swipe-17/);
