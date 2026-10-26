@@ -12,6 +12,14 @@ on:
         description: Dublin-local alert date (YYYY-MM-DD)
         type: string
         default: "2026-10-25"
+      start_date:
+        description: Dublin-local start date, inclusive (YYYY-MM-DD)
+        type: string
+        default: ""
+      end_date:
+        description: Dublin-local end date, inclusive (YYYY-MM-DD)
+        type: string
+        default: ""
       approval:
         description: For writes only - explicitly approve importing validated jobs
         type: string
@@ -52,11 +60,17 @@ jobs:
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
           APPLY: ${{ inputs.apply }}
           ON_DATE: ${{ inputs.on_date }}
+          START_DATE: ${{ inputs.start_date }}
+          END_DATE: ${{ inputs.end_date }}
           GARAMAAL_ALERT_IMPORT_APPROVED: ${{ inputs.apply && inputs.approval == 'IMPORT_VALIDATED_JOBS' && 'true' || 'false' }}
           APPROVAL: ${{ inputs.approval }}
         run: |
           args=()
-          if [[ -n "$ON_DATE" ]]; then args+=(--on-date "$ON_DATE"); fi
+          if [[ -n "$START_DATE" || -n "$END_DATE" ]]; then
+            args+=(--start-date "$START_DATE" --end-date "$END_DATE")
+          elif [[ -n "$ON_DATE" ]]; then
+            args+=(--on-date "$ON_DATE")
+          fi
           if [[ "$APPLY" == "true" ]]; then
             if [[ "$GARAMAAL_ALERT_IMPORT_APPROVED" != "true" || "$APPROVAL" != "IMPORT_VALIDATED_JOBS" ]]; then
               echo "Write blocked: parser approval and shared Gmail authorization required." >&2
@@ -65,3 +79,7 @@ jobs:
             args+=(--apply)
           fi
           python -m src.automate_cv.linkedin_alert_import "${args[@]}"
+          if [[ "$APPLY" == "true" ]]; then
+            echo "Syncing imported alert vacancies into Discovery master Jobs..."
+            python -m src.automate_cv.taaza_sync
+          fi
