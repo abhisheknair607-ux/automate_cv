@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: b49c34349fd9726b1dc0ea9c103220c18c31a08c
+      RELEASE_SHA: ed3080d5385aa57de08a568300d6b6b42e58623a
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: b49c34349fd9726b1dc0ea9c103220c18c31a08c
+          ref: ed3080d5385aa57de08a568300d6b6b42e58623a
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -51,7 +51,7 @@ jobs:
           node --check release-src/standalone/mobile_jobs_swipe.js
           node --check release-src/standalone/mobile_jobs_filters_stats.js
           cd release-src
-          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js
+          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js
           cd ..
           python3 - <<'PY'
           import json
@@ -180,6 +180,7 @@ jobs:
           root=urls[0].rstrip('/')
           paths=[
            ('/prototype',b'gmv3-launch'),
+           ('/prototype',b'garamaal-header-controls'),
            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 12: sustained neon halo'),
            ('/prototype/tactile-feedback.js?v=m26-neon-held-12',b'gmv3-tactile-held'),
            ('/prototype/hub-swipe.js?v=m26-neon-held-12',b'pointer.scrolling=true'),
@@ -227,7 +228,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p release-audit/screenshots
-          node release-src/standalone/test/stage3_browser_qa.cjs
+          timeout 180s node release-src/standalone/test/stage3_browser_qa.cjs
       - name: Assert production Cloud Run revision and traffic unchanged
         shell: bash
         run: |
