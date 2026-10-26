@@ -35,6 +35,7 @@ jobs:
           cp -R standalone /tmp/garamaal-ui-test/standalone
           cp -R garamaal-release-webapp /tmp/garamaal-ui-test/webapp
           cp package.json /tmp/garamaal-ui-test/package.json
+          cp Dockerfile.garamaal-ui /tmp/garamaal-ui-test/Dockerfile.standalone
           cd /tmp/garamaal-ui-test
           node --check standalone/server.js
           node --check standalone/mobile_jobs_filters_stats.js
