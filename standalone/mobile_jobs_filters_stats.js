@@ -16,14 +16,21 @@ const statuses={
  fresh:[["all","All jobs"],["unapplied","CV ready, not applied"],["selected","Shortlisted"],["cv","CV requested"],["prepared","CV prepared"],["applied","Applied"],["connected","Applied + Connected"],["unscored","Unscored"],["favorites","Favourites"],["not-interested","Not interested"]]
 };
 const key=(c,t)=>"gmv3-preview-"+c+"-"+t;
-const defaultFilters=()=>({company:"",designation:"",department:"",locationSelection:{mode:"all",values:[]},status:"all",sort:"newest",category:"all"});
+const FIELD_LABELS={company:"Company",location:"Location",department:"Department / function",designation:"Designation"};
+const FIELDS=Object.keys(FIELD_LABELS);
+const defaultFilters=()=>({company:"",designation:"",department:"",
+ companySelection:{mode:"all",values:[]},locationSelection:{mode:"all",values:[]},
+ departmentSelection:{mode:"all",values:[]},designationSelection:{mode:"all",values:[]},
+ status:"all",sort:"newest",category:"all"});
 const loc=window.GaramaalLocationVariants;
 if(!loc)throw Error("Location filter helpers were not loaded");
 const defaultGoals=()=>({daily:3,weekly:15,apply:true,connect:true,alerts:false});
 function load(c,t,d){try{const x=JSON.parse(localStorage.getItem(key(c,t))||"null");return x&&typeof x==="object"&&!Array.isArray(x)?Object.assign({},d,x):{...d}}catch(_){return {...d}}}
 function save(c,t,x){try{localStorage.setItem(key(c,t),JSON.stringify(x))}catch(_){}}
 function preference(c,s){const k=c+"|"+s;if(!filters.has(k))filters.set(k,load(c,"filter-"+s,defaultFilters()));return filters.get(k)}
-function count(v){return ["company","designation","department"].filter(k=>v[k]).length+Number(loc.rule(v.locationSelection).mode!=="all")+Number(v.status!=="all")+Number(v.sort!=="newest")+Number(v.category!=="all")}
+function count(v){return FIELDS.filter(k=>loc.rule(v[k+"Selection"]).mode!=="all"||
+  (k!=="location"&&v[k])).length+Number(v.status!=="all")+
+  Number(v.sort!=="newest")+Number(v.category!=="all")}
 function notSwipe(){return doc.getElementById("gmv3-jobs-swipe")?.hidden!==false}
 function activeList(arg){return sect()&&notSwipe()&&((sect()==="discovery"?"taaza":"fresh")===arg.source)&&arg.candidate===cand()}
 run=async function(method,arg,opts){
@@ -31,12 +38,20 @@ run=async function(method,arg,opts){
  const section=sect(),c=cand(),f=preference(c,section);
  const result=await baseRun("gmListJobsFaceted",{...arg,filter:f.status,sort:f.sort,tabId:section==="discovery"?f.category:"all",facets:{
   company:f.company,designation:f.designation,department:f.department
- },locationSelection:loc.rule(f.locationSelection)},opts);
+ },locationSelection:loc.rule(f.locationSelection),
+ facetSelections:{
+  company:loc.rule(f.companySelection),
+  designation:loc.rule(f.designationSelection),
+  department:loc.rule(f.departmentSelection)
+ }},opts);
  if(sect()===section&&cand()===c){facets.set(c+"|"+section,{options:result.facetOptions||{},tabs:result.tabs||[],basis:result.departmentBasis||""});}
  return result;
 };
-let sheet=null,locationPicker=null,locationDraft=null,locationBefore=null,locationOptions=[],locationTerm="";
-function dismiss(){closeLocationPicker(false);sheet?.remove();sheet=null;locationDraft=null;}
+let sheet=null,locationPicker=null,locationDraft=null,locationBefore=null,
+ locationOptions=[],locationTerm="",currentFacet="location",
+ facetDrafts={},facetOptions={};
+function dismiss(){closeLocationPicker(false);sheet?.remove();sheet=null;
+ locationDraft=null;facetDrafts={};}
 function normalizeLocationOptions(items){
  return [...new Set((Array.isArray(items)?items:[]).filter(x=>typeof x==="string").map(x=>x.trim().slice(0,120)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
 }
