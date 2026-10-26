@@ -267,21 +267,22 @@ def append_row(sheets, tab: str, row: list) -> None:
 
 
 def known_job_ids(sheets) -> set[str]:
-    """Deduplicate by source+stable ID against every verified job-source tab."""
-    from .taaza_sync import discover_job_tabs
+    """Global exact keys across master and all supported Taaza intake tabs.
+
+    This must include MASTER Jobs: a vacancy already in master may not exist
+    in any regional tab. Missing headers/permissions fail closed rather than
+    skipping the dedupe check.
+    """
+    from .taaza_sync import discover_job_tabs, exact_job_key, MASTER
     found = set()
-    for tab in discover_job_tabs(sheets):
-        title = tab["name"].replace("'", "''")
+    all_names = [MASTER, *(tab["name"] for tab in discover_job_tabs(sheets))]
+    for tab in dict.fromkeys(all_names):
+        title = tab.replace("'", "''")
         for row in sheet_values(sheets, f"'{title}'!C2:C"):
-            if not row:
-                continue
-            url = str(row[0])
-            li_id = job_id(url)
-            indeed_id = indeed_job_key(url)
-            if li_id:
-                found.add("linkedin:" + li_id)
-            if indeed_id:
-                found.add("indeed:" + indeed_id)
+            if row:
+                key = exact_job_key(str(row[0]))
+                if key:
+                    found.add(key)
     return found
 
 
@@ -330,6 +331,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         on_date: str | None = None) -> dict:
     """Import one Gmail message at a time; safe to rerun after partial writes."""
     check_headers(sheets)  # also ensures permission before processing email
+    from .taaza_sync import exact_job_key
     states = logged_states(sheets)
     existing = known_job_ids(sheets)
     window = f"newer_than:{days}d"
@@ -421,10 +423,13 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         # Only commit validated complete messages with confirmed candidate ownership.
         if result == "Processed":
             for job in parsed:
-                if job.key in existing:
+                exact = exact_job_key(job.url)
+                if not exact:
+                    raise RuntimeError("Unverifiable job URL; stopped before write")
+                if exact in existing:
                     duplicates += 1
                     continue
-                existing.add(job.key)
+                existing.add(exact)
                 added += 1
                 if not preview:
                     append_row(sheets, INTAKE, [
@@ -460,6 +465,8 @@ def main(argv=None) -> int:
             datetime.strptime(args.on_date, "%Y-%m-%d")
         except ValueError:
             ap.error("--on-date must be an actual date in YYYY-MM-DD format")
+    if args.apply and os.environ.get("GARAMAAL_ALERT_IMPORT_APPROVED") != "true":
+        ap.error("Importer writes are locked: explicit parser approval gate is not enabled")
     if not 1 <= args.days <= 90 or not 1 <= args.max_messages <= 500:
         ap.error("days must be 1..90, max-messages must be 1..500")
     gmail = gmail_service()
