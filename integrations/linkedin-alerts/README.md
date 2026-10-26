@@ -16,7 +16,7 @@
 2. Log into **the common mailbox** (`abhisheknair607@gmail.com`) and confirm it has **Editor** access to [Taaza Videsi Maal](https://docs.google.com/spreadsheets/d/1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY/edit). The importer's credentials must be authorised for Gmail and Google Sheets; they are **not** your GitHub CV worker OAuth credentials.
 3. From the common mailbox, open [script.google.com](https://script.google.com), create a **standalone** Apps Script project called `Garamaal LinkedIn Alerts`, and paste all of [Code.gs](Code.gs). Do not paste it into the existing Garamaal dashboard's `Code.gs`; that would mix unrelated permissions.
 4. Set project timezone to `Europe/Dublin`. Run `previewLinkedInJobAlerts` first (the two tabs have already been added to Taaza). Review **Executions > Logs** and the counts. This method does not write rows or change Gmail labels.
-5. After verifying at least one real LinkedIn digest with correct company, title, and location, run `installLinkedInAlertImporter`. Complete the Google consent flow using the **common mailbox** account. It installs only the `importLinkedInJobAlerts` 15-minute time trigger and creates `Job Discovery/Imported` / `Job Discovery/Review` labels if missing.
+5. After verifying at least one real LinkedIn digest with correct company, title, and location, run `installLinkedInAlertImporter`. Complete the Google consent flow using the **common mailbox** account. It installs only the `importLinkedInJobAlerts` 15-minute time trigger and creates `Job Alerts/Imported` / `Job Alerts/Error` labels if missing.
 6. Run `importLinkedInJobAlerts` once manually, then verify `Email Alerts!A:P` and `Email Import Log!A:K`. Each Gmail **message ID** is logged to prevent reprocessing. LinkedIn job IDs are deduplicated against existing Taaza job tabs.
 7. Verify the independent regional sync (GitHub Actions `taaza-regional-master-sync`), and check the imported job in Taaza `Jobs` and Garamaal **Discovery**. Full job descriptions remain **missing** until manually saved; new rows never trigger CV generation.
 
@@ -36,4 +36,4 @@ Run `node --test integrations/linkedin-alerts/parse.test.cjs` from the repositor
 
 ## Initial rollout note
 
-Some LinkedIn digest formats vary. A real incoming email with an uncommon HTML layout may end up in `Job Discovery/Review` with no job row, rather than being misparsed. Review these manually before widening parsing rules. Live end-to-end Gmail and Apps Script execution cannot be completed without authorising the common Gmail account.
+Some LinkedIn digest formats vary. A real incoming email with an uncommon HTML layout may end up in `Job Alerts/Error` with no job row, rather than being misparsed. Review these manually before widening parsing rules. Live end-to-end Gmail and Apps Script execution cannot be completed without authorising the common Gmail account.
