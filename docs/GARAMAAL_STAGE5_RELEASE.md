@@ -47,3 +47,31 @@ That command needs an authorized `gcloud` session with Cloud Run source deployme
 - Any production traffic migration must be separately approved after signed-in canary checks, and should use Cloud Run controlled traffic routing rather than a blind source deploy.
 
 See GitHub PR #72 and the Stage 5 release-preparation PR for evidence and tests.
+
+
+## Canary attempt: GitHub identity lacks Cloud Run permission (26 October 2026)
+
+The one-time, approval-marked GitHub run [40295548369](https://github.com/abhisheknair607-ux/automate_cv/actions/runs/40295548369) authenticated correctly through WIF, but its existing shared CV worker service account `cv-automation@abhishek-cv-automation.iam.gserviceaccount.com` was denied `run.services.get` on `automate-cv-dashboard`. The release exited at `gcloud run services describe` **before creating any revision or changing traffic**. This is an IAM blocker, not a test failure or deployed release.
+
+**Do not give Cloud Run deployment privileges to the shared CV-worker account.** The GitHub canary workflow now explicitly requires a separate repository variable `STAGE5_CLOUD_RUN_DEPLOYER_SERVICE_ACCOUNT`, wired to a dedicated short-lived WIF deployment identity. That identity should have only Google-documented Cloud Run source-deploy roles and `iam.serviceAccountUser` on the existing Cloud Run service identity. Required role reference: https://docs.cloud.google.com/run/docs/deploying-source-code
+
+### Lowest-involvement recovery: authorized Cloud Shell one-time canary
+
+A Google Cloud project administrator who already has Cloud Run deployment permission may avoid changing any GitHub/CV-worker IAM by running the already-tested repository script directly in Cloud Shell:
+
+```sh
+git clone --branch release/taaza-stage5-canary-20261026 https://github.com/abhisheknair607-ux/automate_cv.git /tmp/garamaal-stage5
+bash /tmp/garamaal-stage5/standalone/deploy-stage5-canary.sh --plan
+bash /tmp/garamaal-stage5/standalone/deploy-stage5-canary.sh --deploy-canary
+```
+
+This builds the approved paired UI image and tests the `stage5qa` tag at **0%** normal traffic; it does not promote the revision or enable Gmail/Q writes. Read the inspection output first; if any account or production invariant differs, the script exits without deployment.
+
+Alternatively, set up a **dedicated** deployment service account and grant repo-scoped WIF impersonation plus Google's minimum source deployment roles, then set the repository Actions variable `STAGE5_CLOUD_RUN_DEPLOYER_SERVICE_ACCOUNT`. A fresh explicit deployment trigger would still be required.
+
+### Status
+
+- Existing `main` Stage 4 code remains merged.
+- Stage 5 PR #73 remains draft; canary deployment not verified.
+- Full tests, canary preflight and CV-worker protection passed.
+- No production promotion, Gmail import writes, Q status changes or historical row deletion.
