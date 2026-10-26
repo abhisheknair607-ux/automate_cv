@@ -101,6 +101,7 @@ class FakeSheets:
             li.LOG: [list(li.LOG_HEADERS)],
         }
         self.added = []
+        self.master_headers = ["Company Name", "Designation", "Link"]
 
     def spreadsheets(self): return self
 
@@ -112,6 +113,8 @@ class FakeSheets:
             val = self.tabs[li.INTAKE] if "A1:P1" in a1 else [[r[2]] for r in self.tabs[li.INTAKE][1:]]
         elif a1.startswith("'Email Import Log'!"):
             val = self.tabs[li.LOG] if "A1:K1" in a1 else [r[1:10] for r in self.tabs[li.LOG][1:]]
+        elif a1 == "'Jobs'!A1:C1":
+            val = [list(self.master_headers)] if self.master_headers else []
         elif a1.startswith("'Jobs'!C2:C"):
             val = [[url] for url in getattr(self, "master_urls", [])]
         else:
@@ -333,6 +336,25 @@ def test_importer_same_role_different_requisition_not_exact(monkeypatch):
     assert result["added"] == 1
     assert result["duplicates"] == 0
 
+
+
+
+@pytest.mark.parametrize("headers", [
+    [],
+    ["Employer", "Designation", "Link"],
+    ["Company Name", "Job Title", "Link"],
+    ["Company Name", "Designation", "Job Link"],
+])
+def test_importer_rejects_missing_or_shifted_master_headers(monkeypatch, headers):
+    """Never import if column C may no longer hold the vacancy URL."""
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    sheets.master_headers = headers
+    gmail = FakeGmail({"m": fake_digest()})
+    with pytest.raises(RuntimeError, match="master Jobs headers"):
+        li.run(gmail, sheets, preview=False)
+    assert sheets.added == []
+    assert gmail.last_query == ""
 
 def test_importer_missing_master_authorization_is_not_ignored(monkeypatch):
     with_fake_source_tabs(monkeypatch)
