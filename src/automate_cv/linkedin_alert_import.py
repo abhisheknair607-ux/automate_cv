@@ -350,7 +350,7 @@ def linked_job_ids(html_body: str, plain_body: str = "") -> set[str]:
     p = LinkTextParser()
     p.feed(html_body or "")
     found = {key for url, _ in p.links if (key := job_id(url))}
-    for url in re.findall(r"https?://[^\\s<>\\\"']+", plain_body or ""):
+    for url in re.findall(r"https?://[^\s<>\"']+", plain_body or ""):
         key = job_id(url.rstrip(").,;>"))
         if key:
             found.add(key)
