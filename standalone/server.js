@@ -163,23 +163,23 @@ app.get("/prototype",(req,res)=>{
   }
   // Use the same backend bridge and dashboard feature modules as GET /.
   html=html.replace("</head>",
-    '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-touch-scroll-10">'+
-    '<link rel="stylesheet" href="/prototype/hub.css?v=m26-touch-scroll-10">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-touch-scroll-10"></head>');
+    '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
+    '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-neon-held-12"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
   html=html.replace("</body>",
     '<script src="/dashboard-ranking.js"></script>'+
     '<script src="/dashboard-connections.js"></script>'+
-    '<script src="/prototype/mobile-shell.js?v=m26-touch-scroll-10"></script>'+
-    '<script src="/prototype/hub-jobs.js?v=m26-touch-scroll-10"></script>'+ 
-    '<script src="/prototype/hub-swipe.js?v=m26-touch-scroll-10"></script>'+
-    '<script src="/prototype/filters-stats.js?v=m26-touch-scroll-10"></script>'+
-     '<script src="/prototype/tactile-feedback.js?v=m26-touch-scroll-10"></script>'+
-     '<script src="/prototype/account-drawer.js?v=m26-touch-scroll-10"></script>'+
-     '<script src="/prototype/profile-editor.js?v=m26-touch-scroll-10"></script>'+
-    '<script src="/prototype/collage-intro.js?v=m26-touch-scroll-10"></script></body>');
+    '<script src="/prototype/mobile-shell.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/hub-jobs.js?v=m26-neon-held-12"></script>'+ 
+    '<script src="/prototype/hub-swipe.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/filters-stats.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/collage-intro.js?v=m26-neon-held-12"></script></body>');
   res.type("html").send(html);
 });
 
