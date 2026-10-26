@@ -973,11 +973,12 @@ if(!DEMO){
   if(!feedback||!actionHost())return;
   const button=mount.querySelector('[data-alert-run="'+kind+'"]');
   if(!button||button.disabled)return;
+  if(kind==='apply'&&!window.confirm('Import validated job alerts into Taaza Email Alerts and record the import in the log? Existing jobs will not be deleted, and duplicates will be skipped.'))return;
   button.disabled=true;
   feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
   try{
    const date=mount.querySelector('#alerts-on-date')?.value||(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'));
-   const result=await actionHost()('alerts/run',{kind,date});
+   const result=await actionHost()('alerts/run',{kind,date,confirm:kind==='apply'});
    if(mount?.contains(feedback))feedback.textContent=result.accepted
      ?'Requested · Check Actions for result'
      :'Dispatch not confirmed';
