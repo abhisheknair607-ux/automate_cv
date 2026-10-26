@@ -921,7 +921,7 @@ if(!DEMO){
    '<div class="alerts-shade" data-alert-dismiss="backdrop">'+
    '<section class="alerts-pop" role="dialog" aria-modal="true" aria-labelledby="alerts-title">'+
    '<div class="alerts-head"><div><strong id="alerts-title">Import Alerts</strong>'+
-   '<small  >GitHub Actions</small></div>'+
+   '<small>GitHub Actions</small></div>'+
    '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Import Alerts">×</button></div>'+
    '<div class="alerts-body">'+
    '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="'+(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'))+'" aria-label="Date of alert emails" />'+
@@ -957,8 +957,8 @@ if(!DEMO){
    }
    const run=data.runs?.dedupe||data.runs?.preview;
    feedback.textContent=run
-    ?'Last run: '+(run.conclusion||run.status||'Unknown')+'. '+(data.applyEnabled?'Import enabled':'Import locked')
-    :'No recent run · '+(data.applyEnabled?'Import approved.':'Import write approval is still locked.');
+    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+(data.applyEnabled?'Import enabled':'Import locked')
+     :'No recent run · '+(data.applyEnabled?'Import enabled':'Import locked');
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
