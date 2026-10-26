@@ -20,7 +20,7 @@ When the router and job context are not supplied, use only the Stage 2 draft and
 The first line MUST be exactly:
 STAGE2_HANDOFF
 
-Then provide YAML using this schema. Use [] or an empty value when the draft does not support a field; never invent missing information.
+Then provide YAML using this schema. Use [] or an empty value when neither the draft nor the explicitly supplied verified candidate router supports a field; never invent missing information.
 
 company:
 role_title:
