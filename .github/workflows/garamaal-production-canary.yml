@@ -20,6 +20,7 @@ jobs:
       SERVICE: automate-cv-dashboard
       SOCIAL: automate-cv-social
       EXPECTED_LIVE: automate-cv-dashboard-00030-tas
+      EXPECTED_CANARY: automate-cv-dashboard-00032-hol
       PINNED_MAIN_SHA: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
       PINNED_STAGING_RUN: "40268412983"
       TAG: gmv3-stage17
@@ -56,7 +57,7 @@ jobs:
           import json,os
           d=json.load(open('/tmp/garamaal-prod-before.json'))
           spec=d['spec']['template']['spec']
-          assert d['status']['latestReadyRevisionName']==os.environ['EXPECTED_LIVE'],'Live revision drifted'
+          assert d['status']['latestReadyRevisionName'] in (os.environ['EXPECTED_LIVE'],os.environ['EXPECTED_CANARY']),'Unknown live/canary revision'
           serving=[x for x in d['status'].get('traffic',[]) if x.get('percent',0)>0]
           assert len(serving)==1 and serving[0].get('revisionName')==os.environ['EXPECTED_LIVE'] and serving[0].get('percent')==100,'Live service traffic unexpectedly split'
           assert spec['serviceAccountName']=='automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com'
@@ -66,7 +67,13 @@ jobs:
                  'FRESHMAL_SPREADSHEET_ID':'1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc'}
           for k,v in gates.items(): assert env.get(k,{}).get('value')==v,'Live gate '+k+' differs'
           assert env.get('GITHUB_WORKFLOW_TOKEN',{}).get('valueFrom',{}).get('secretKeyRef'),'Secret attachment missing'
-          assert env.get('GARAMAAL_UI_V3',{}).get('value','false')!='true','Homepage switch is already enabled; refuse unexpected release state'
+          if d['status']['latestReadyRevisionName']==os.environ['EXPECTED_LIVE']:
+           assert env.get('GARAMAAL_UI_V3',{}).get('value','false')!='true','Homepage switch unexpectedly enabled'
+          else:
+           assert env.get('GARAMAAL_UI_V3',{}).get('value')=='true','Unexpected canary flag'
+           canary=[x for x in d['status'].get('traffic',[]) if x.get('tag')==os.environ['TAG']]
+           assert len(canary)==1 and canary[0].get('revisionName')==os.environ['EXPECTED_CANARY'] and canary[0].get('percent',0)==0,'Canary not at 0%'
+
           assert env.get('ALLOWED_EMAILS',{}).get('value',''),'Approved account restriction missing'
           print('LIVE_BASELINE_SAFE',d['status']['latestReadyRevisionName'])
           PY
@@ -76,8 +83,15 @@ jobs:
         run: |
           set -euo pipefail
           IMAGE="gcr.io/$PROJECT/garamaal-collage-release-preview:$PINNED_MAIN_SHA"
-          gcloud run deploy "$SERVICE" --region "$REGION" --image "$IMAGE" \
-            --no-traffic --tag "$TAG" --update-env-vars GARAMAAL_UI_V3=true --quiet
+          CURRENT="$(gcloud run services describe "$SERVICE" --region "$REGION" --format='value(status.latestReadyRevisionName)')"
+          if [[ "$CURRENT" == "$EXPECTED_CANARY" ]]; then
+            echo 'Using existing audited zero-traffic revision; no duplicate deployment.'
+          elif [[ "$CURRENT" == "$EXPECTED_LIVE" ]]; then
+            gcloud run deploy "$SERVICE" --region "$REGION" --image "$IMAGE" \
+              --no-traffic --tag "$TAG" --update-env-vars GARAMAAL_UI_V3=true --quiet
+          else
+            echo "Unknown revision. Aborting without changing traffic" >&2; exit 1
+          fi
       - name: Verify new revision, untouched production traffic, environment and tagged UI
         run: |
           set -euo pipefail
@@ -88,7 +102,7 @@ jobs:
           after=json.load(open('/tmp/garamaal-prod-after-canary.json'))
           old=os.environ['EXPECTED_LIVE']
           new=after['status']['latestReadyRevisionName']
-          assert new!=old,'No new release candidate revision'
+          assert new==os.environ['EXPECTED_CANARY'],'Tagged canary revision does not match authorized one'
           tr=after['status']['traffic']
           original=[x for x in tr if x.get('revisionName')==old]
           assert len(original)==1 and original[0].get('percent')==100,'Production traffic changed prematurely'
@@ -110,9 +124,17 @@ jobs:
           URL="$(cat /tmp/canary-url)"
           curl -fsSL --max-time 30 "$URL/health" |
             python3 -c 'import json,sys; d=json.load(sys.stdin); assert d.get("ok") and d.get("readOnly") is False'
-          curl -fsSL --max-time 30 "$URL/" | grep -q 'gmv3-landing'
-          curl -fsSL --max-time 30 "$URL/prototype" | grep -q 'garamaal-unified-header'
-          curl -fsSL --max-time 30 "$URL/legacy" | grep -q '<header class="topbar">'
+          # Read full response bodies: grep -q closes curl pipes prematurely (curl 23).
+          python3 - <<'PY'
+          import os,urllib.request
+          root=open('/tmp/canary-url').read().strip()
+          for endpoint,needle in [('/',b'gmv3-landing'),('/prototype',b'garamaal-unified-header'),
+                                  ('/legacy',b'<header class="topbar">')]:
+           with urllib.request.urlopen(root+endpoint,timeout=30) as response:
+            body=response.read()
+            assert response.status==200 and needle in body,'Canary UI endpoint failed: '+endpoint
+           print('CANARY_HTTP_OK',endpoint)
+          PY
           gcloud run services describe "$SOCIAL" --region "$REGION" --format=json >/tmp/garamaal-social-after.json
           python3 - <<'PY'
           import json
