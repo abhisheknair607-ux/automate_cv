@@ -157,7 +157,7 @@ def fake_digest(to="itsabhisheknnair@gmail.com", subject="Finance digest",
         "To": to,
         "Date": "Mon, 26 Oct 2026 09:00:00 +0000",
         "Subject": subject,
-    }, html_body if html_body is not None else job_html()),
+    }, html_body if html_body is not None else job_html(loc="Dublin, County Dublin, Ireland")),
         "threadId": "thread-1"}
 
 
@@ -272,9 +272,9 @@ def test_indeed_unwanted_mumbai_is_filtered_without_write(monkeypatch):
     msg = EmailMessage()
     msg["From"] = "Indeed <donotreply@jobalert.indeed.com>"
     msg["To"] = "itsabhisheknnair@gmail.com"
-    msg.set_content("Indeed Job Alert\\n\\nTax Manager - Associate\\n"
-                    "JPMorganChase - Mumbai (On-site)\\n"
-                    "Role information\\n3 days ago\\n"
+    msg.set_content("Indeed Job Alert\n\nTax Manager - Associate\n"
+                    "JPMorganChase - Mumbai (On-site)\n"
+                    "Role information\n3 days ago\n"
                     "https://ie.indeed.com/rc/clk/dl?jk=0536af9cba329ebb")
     gmail = FakeGmail({"m": {
         "raw": base64.urlsafe_b64encode(msg.as_bytes()).decode().rstrip("="),
