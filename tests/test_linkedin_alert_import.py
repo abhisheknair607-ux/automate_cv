@@ -127,14 +127,15 @@ class FakeSheets:
 class FakeGmail:
     def __init__(self, mails):
         self.mails = mails
+        self.last_query = ""
 
     def users(self): return self
 
     def messages(self): return self
 
-    def list(self, **_kwargs): return Exec({
-        "messages": [{"id": k} for k in self.mails]
-    })
+    def list(self, **kwargs):
+        self.last_query = kwargs["q"]
+        return Exec({"messages": [{"id": k} for k in self.mails]})
 
     def get(self, **kwargs):
         return Exec(self.mails[kwargs["id"]])
@@ -286,3 +287,19 @@ def test_indeed_unwanted_mumbai_is_filtered_without_write(monkeypatch):
     assert result["added"] == 0
     assert sheets.tabs[li.LOG][1][9] == "Filtered"
     assert len(sheets.tabs[li.INTAKE]) == 1
+
+
+def test_review_uses_exact_25_oct_dublin_local_window(monkeypatch):
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+    with_fake_source_tabs(monkeypatch)
+    gmail = FakeGmail({"m1": fake_digest()})
+    sheets = FakeSheets()
+    result = li.run(gmail, sheets, preview=True, on_date="2026-10-25")
+    start = datetime(2026, 10, 25, tzinfo=ZoneInfo("Europe/Dublin"))
+    end = datetime(2026, 10, 26, tzinfo=ZoneInfo("Europe/Dublin"))
+    assert int(end.timestamp()) - int(start.timestamp()) == 25 * 3600
+    assert f"after:{int(start.timestamp())}" in gmail.last_query
+    assert f"before:{int(end.timestamp())}" in gmail.last_query
+    assert result["preview"] is True
+    assert sheets.added == []
