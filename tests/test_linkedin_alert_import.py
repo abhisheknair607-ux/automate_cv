@@ -263,9 +263,10 @@ def test_unknown_owner_does_not_override_unverified_job_card(monkeypatch):
     )})
     result = li.run(gmail, sheets, preview=False)
     assert result["review"] == 1
-    assert result["added"] == 0
-    assert len(sheets.tabs[li.INTAKE]) == 1
-    assert sheets.tabs[li.LOG][1][9] == "Review"
+    assert result["added"] == 2
+    assert len(sheets.tabs[li.INTAKE]) == 3
+    assert sheets.tabs[li.LOG][1][9] == "Partial"
+    assert sheets.tabs[li.INTAKE][2][12].endswith("Needs Review")
 
 
 def test_confirmation_skip_and_spoofed_sender(monkeypatch):
@@ -326,7 +327,7 @@ def test_indeed_mail_imports_into_existing_sheet_without_linkedin_column(monkeyp
     assert li.run(gmail, sheets, preview=False)["added"] == 0
 
 
-def test_indeed_unwanted_mumbai_is_filtered_without_write(monkeypatch):
+def test_overseas_real_vacancy_is_preserved_for_discovery(monkeypatch):
     with_fake_source_tabs(monkeypatch)
     from email.message import EmailMessage
     import base64
@@ -344,10 +345,10 @@ def test_indeed_unwanted_mumbai_is_filtered_without_write(monkeypatch):
     }})
     sheets = FakeSheets()
     result = li.run(gmail, sheets, preview=False)
-    assert result["filtered"] == 1
-    assert result["added"] == 0
-    assert sheets.tabs[li.LOG][1][9] == "Filtered"
-    assert len(sheets.tabs[li.INTAKE]) == 1
+    assert result["filtered"] == 0
+    assert result["added"] == 1
+    assert sheets.tabs[li.LOG][1][9] == "Processed"
+    assert len(sheets.tabs[li.INTAKE]) == 2
 
 
 def test_review_uses_exact_25_oct_dublin_local_window(monkeypatch):
