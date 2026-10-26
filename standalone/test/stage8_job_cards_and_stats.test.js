@@ -109,11 +109,24 @@ test("Actual touch/pointer animation applies to both Jobs and dashboard stat til
  assert.match(js,/pointerdown",start/);
  assert.match(js,/pointermove",move/);
  assert.match(js,/pointercancel"/);
- assert.match(css,/@keyframes gmv3-tactile-lift/);
- assert.match(css,/\.gmv3-tactile-pulse/);
+ assert.match(js,/node\.classList\.add\("gmv3-tactile-held"\)/);
+ assert.match(js,/node\.classList\.remove\("gmv3-tactile-held"\)/);
+ assert.match(css,/\.gmv3-tactile-held/);
+ assert.doesNotMatch(css,/\.gmv3-tactile-pulse/);
  assert.match(css,/translateY\(-6px\) scale\(1\.024\)/);
  assert.match(server,/\/prototype\/tactile-feedback\.js/);
  assert.match(server,/Cache-Control","no-store, max-age=0/);
  assert.match(server,/\?v=m26-touch-scroll-10/);
  assert.match(read("standalone/mobile_jobs_filters_stats.js"),/setTimeout\(\(\)=>nav\(destination,status\),190\)/);
+});
+
+test("Laptop hides duplicate left rail but keeps interactive five-button tabbar and full-width Jobs",()=>{
+ const css=read("standalone/mobile_collage.css");
+ const hub=read("standalone/mobile_jobs_hub.js");
+ assert.match(css,/@media\(min-width:721px\)\{[\s\S]*?body\.gmv3-workspace\.gmv3-jobs-workspace \.shell > \.sidebar\{display:none!important\}/);
+ assert.match(css,/body\.gmv3-workspace\.gmv3-jobs-workspace \.shell > \.main\{[\s\S]*?width:100%!important/);
+ assert.match(css,/body\.gmv3-workspace\.gmv3-jobs-workspace \.shell > \.main \.container\{[\s\S]*?max-width:1720px!important/);
+ for(const title of ["Dashboard","Discovery","Swipe","Make CV","More"])assert.ok(hub.includes('"'+title+'"'));
+ assert.match(hub,/bar\.addEventListener\("click"/);
+ assert.doesNotMatch(css,/body\.gmv3-social-workspace \.sidebar\{display:none/);
 });
