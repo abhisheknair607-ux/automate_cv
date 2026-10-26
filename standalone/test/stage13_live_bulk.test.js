@@ -22,7 +22,7 @@ test("LIVE connection label only changes authenticated LIVE status, never DEMO/o
 test("original Jobs and CV functions remain untouched while only prototype injects UI",()=>{
  assert.match(server,/app\.get\("\/prototype\/ui-polish\.js"/);
  assert.match(server,/mobile_jobs_ui_polish\.js/);
- assert.match(server,/\/prototype\/ui-polish\.js\?v=m26-neon-held-13/);
+ assert.match(server,/\/prototype\/ui-polish\.js\?v=m26-icons-16/);
  assert.doesNotMatch(dashboard,/gmv3-bulk-tools/);
  assert.doesNotMatch(backend,/gmv3-bulk-tools/);
  assert.match(backend,/function bulkSetJobPreferences\(payload\)/);
