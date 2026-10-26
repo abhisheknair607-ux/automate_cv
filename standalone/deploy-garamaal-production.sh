@@ -57,7 +57,9 @@ for k,v in {
  "FRESHMAL_SPREADSHEET_ID":"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc",
 }.items():
  assert env.get(k)==v, k+" changed; do not deploy"
-for k in ("ALLOW_ALERT_WORKFLOW_DISPATCH","ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"):
+# Enable only read-only GitHub workflow dispatch in the new canary revision.
+# All Google Sheets write authorizations remain disabled.
+for k in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"):
  assert env.get(k)!="true", k+" must remain disabled"
 traffic=[(v.get("revisionName"),int(v.get("percent",0))) for v in srv.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0]
 assert traffic and sum(p for _,p in traffic)==100 and all(r for r,_ in traffic), "Unknown live Cloud Run traffic"
@@ -78,7 +80,7 @@ cp "$ROOT/package.json" "$TMP/build/package.json"
 cp -R "$ROOT/standalone" "$TMP/build/standalone"
 cp -R "$ROOT/garamaal-release-webapp" "$TMP/build/garamaal-release-webapp"
 gcloud run deploy "$SERVICE" --source "$TMP/build" --project "$PROJECT" --region "$REGION" \
-  --no-traffic --tag "$TAG" --quiet
+  --no-traffic --tag "$TAG" --update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true --quiet
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/canary.json"
 readarray -t TAG_DATA < <(python3 - "$TMP/before.json" "$TMP/canary.json" "$TAG" <<'PY'
 import json,sys
@@ -86,6 +88,21 @@ before,after=(json.load(open(f,encoding="utf-8")) for f in sys.argv[1:3])
 def active(s):
  return sorted((v.get("revisionName"),int(v.get("percent",0))) for v in s.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0)
 assert active(before)==active(after), "Canary unexpectedly changed live traffic"
+def config(s):
+ spec=s.get("spec",{}).get("template",{}).get("spec",{})
+ containers=spec.get("containers",[])
+ assert len(containers)==1, "Unexpected container count"
+ return spec, {e["name"]:e for e in containers[0].get("env",[])}
+old_spec,old_env=config(before)
+new_spec,new_env=config(after)
+assert old_spec.get("serviceAccountName")==new_spec.get("serviceAccountName"), "Runtime identity changed"
+assert new_env.get("ALLOW_ALERT_WORKFLOW_DISPATCH",{}).get("value")=="true", "Read-only dispatch not enabled"
+for key,value in old_env.items():
+ if key!="ALLOW_ALERT_WORKFLOW_DISPATCH":
+  assert new_env.get(key)==value, "Existing environment or secret changed: "+key
+assert set(new_env).difference(old_env) <= {"ALLOW_ALERT_WORKFLOW_DISPATCH"}, "Unexpected new runtime settings"
+for key in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"):
+ assert new_env.get(key,{}).get("value")!="true", "Unapproved write controls remain disabled"
 tags=[v for v in after.get("status",{}).get("traffic",[]) if v.get("tag")==sys.argv[3]]
 assert len(tags)==1 and int(tags[0].get("percent",0))==0, "Canary must stay at 0% traffic"
 print(tags[0].get("revisionName",""))
@@ -141,4 +158,5 @@ grep -Fq 'Live import authorisation off' "$TMP/live.html"
 PROMOTION_ATTEMPTED=0
 echo "PRODUCTION VERIFIED: https://garamaal.web.app/prototype"
 echo "Revision: $REV (100%); rollback baseline: $BASELINE"
-echo "Gmail writes, automatic Dup Q updates, and historical deletion remain disabled."
+echo "Preview Import and Check Duplicates dispatch are enabled (read-only)."
+echo "Run Import, automatic Dup Q writes, and historical deletion remain disabled."
