@@ -20,8 +20,15 @@
     catch(_){return "Abhishek";}
   }
   function syncAvatar(){initial.textContent="E";}
+  function syncInstall(){
+    const button=document.getElementById("gmv3-install-launcher");
+    if(!button)return;
+    const installed=window.matchMedia?.("(display-mode: standalone)")?.matches||
+      window.navigator.standalone===true;
+    button.hidden=!!installed;
+  }
   function showHome(){
-    syncAvatar();
+    syncAvatar();syncInstall();
     subview.hidden=true;
     document.body.classList.add("gmv3-landing");
     document.body.classList.remove("gmv3-workspace");
@@ -90,6 +97,11 @@
     const action=control.getAttribute("data-gmv3");
     if(action==="jobs"){enterJobs();return;}
     if(action==="more"){window.GaramaalDrawer?.open();return;}
+    if(action==="install"){
+      if(typeof window.__cvInstall==="function")window.__cvInstall();
+      else window.alert("In Chrome, open the menu (⋮) and select Install app or Add to Home screen.");
+      return;
+    }
     // Homepage Statistics routes to the original authenticated Jobs dashboard.
     // Never substitute browser-local example numbers for actual job statistics.
     if(action==="statistics"){enterJobs();return;}
@@ -124,6 +136,7 @@
     homeButton.addEventListener("click",showHome);
     bar.insertBefore(homeButton,bar.firstChild);
   }
-  syncAvatar();
+  syncAvatar();syncInstall();
+  window.addEventListener("appinstalled",syncInstall);
   window.GaramaalPrototypeHome=Object.freeze({showHome,enterJobs});
 })();
