@@ -84,6 +84,8 @@ test("feed respects candidate preferences, skips transfers and pages reliably",(
  assert.deepEqual(Array.from(a.rows,x=>x.url),["https://jobs.example/1","https://jobs.example/2","https://jobs.example/4"]);
  assert.deepEqual(Array.from(p.rows,x=>x.url),["https://jobs.example/2","https://jobs.example/4","https://jobs.example/3"]);
  assert.equal(a.rows[1].favorite,true);
+ assert.equal(a.rows[0].person,undefined,"never expose the other candidate's complete settings");
+ assert.equal(p.rows[0].person,undefined);
  assert.equal(a.rows.some(x=>x.url==="https://jobs.example/1"&&x.source==="taaza"),false);
  assert.equal(p.rows.some(x=>x.url==="https://jobs.example/1"),false);
  const paged=vm.runInContext('gmSwipeFeed({candidate:"Abhishek",page:2,pageSize:2})',ctx);
