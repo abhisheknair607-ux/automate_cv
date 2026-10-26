@@ -246,31 +246,58 @@
    if(card){card.style.transform="";delete card.dataset.swiping;}
   }
  }
+ function tierOptions(value){
+  const selected=["Economy","Balanced","Premium"].includes(value)?value:"Premium";
+  return ["Economy","Balanced","Premium"].map(t=>
+   '<option value="'+t+'"'+(t===selected?' selected':'')+'>'+t+'</option>').join("");
+ }
+ function cvControlPanel(job){
+  const fields=[["cv","Make CV"],["cl","Make cover letter"],["web","Web research"]];
+  const checks=fields.map(([field,label])=>
+    '<label class="gmv3-cv-checkbox"><input type="checkbox" data-swipe-field="'+field+'"'+
+    (job[field]?' checked':'')+'><span>'+label+'</span></label>').join("");
+  const currentTier=["Economy","Balanced","Premium"].includes(job.tier)?job.tier:"Premium";
+  const currentClTier=job.clTierExplicit&&["Economy","Balanced","Premium"].includes(job.clTier)
+     ?job.clTier:currentTier;
+  const applied=String(job.progress||job.status||"").toLowerCase().startsWith("applied");
+  const locked=!!job.cvLink||applied;
+  return '<fieldset class="gmv3-cv-settings"><legend>CV &amp; application controls</legend>'+
+    '<div class="gmv3-cv-checks">'+checks+'</div>'+
+    '<div class="gmv3-cv-tiers">'+
+    '<label>CV model<select data-swipe-field="tier" aria-label="CV model">'+tierOptions(currentTier)+'</select></label>'+
+    '<label>Cover letter model<select data-swipe-field="clTier" aria-label="Cover letter model">'+tierOptions(currentClTier)+'</select></label>'+
+    '</div><div class="gmv3-cv-commands">'+
+    '<button type="button" data-gs-option="save-settings">Save settings</button>'+
+    '<button type="button" data-gs-option="run-cv-now"'+(locked?' disabled':'')+
+    ' title="Launches one paid OpenAI API job only after explicit confirmation">Run CV Now</button></div>'+
+    (locked?'<p class="gmv3-choice-note">A generated CV or applied job cannot be run again here.</p>':'')+
+    '<p class="gmv3-choice-note">Economy, Balanced and Premium are saved separately for CV and cover letter. Run CV Now requires a separate paid-run confirmation.</p>'+
+    '</fieldset>';
+ }
  function openOptions(){
   if(!current||panelOpen||interactionBusy)return;
   panelOpen=true;
-  const job=current,d=choice(job),st=phase(job,d);
+  const job=current,st=phase(job,choice(job));
   const box=surface.querySelector("#gmv3-swipe-action-layer");
-  const links=job.cvLink?'<a href="'+clean(safeLink(job.cvLink))+'" rel="noopener noreferrer" target="_blank">Open generated CV ↗</a>':"";
-  let options="";
-  if(st==="discovery"){
+  const links=safeLink(job.cvLink)?'<a href="'+clean(safeLink(job.cvLink))+'" rel="noopener noreferrer" target="_blank">Open generated CV ↗</a>':"";
+  let options="",settings="";
+  if(job.source==="taaza"){
    options='<button data-gs-option="interest">★ Interested</button>'+
-    (job.jdReady?'<button data-gs-option="transfer">Prepare for CV</button>':'<button data-gs-option="jd">Review missing JD first</button>');
-  }else if(st==="interest"||st==="cv"){
+    (job.jdReady?'<button data-gs-option="transfer">Transfer to Make CV</button>':
+     '<button data-gs-option="jd">Review missing JD first</button>');
+  }else if(job.source==="fresh"){
+   settings=cvControlPanel(job);
    options=(st==="interest"?'<button data-gs-option="interest">★ Interested</button>':"")+
-    '<button data-gs-option="cv">Enable Make CV (no paid run)</button>';
-  }else if(st==="cv-pending"){
-   options='<button data-gs-option="cv">Enable Make CV</button><button data-gs-option="later">Check later</button>';
-  }else if(st==="apply"){
-   options='<button data-gs-option="applied">Mark applied</button><button data-gs-option="unapplied">Not applied yet</button>'+links;
-  }else if(st==="connect"){
-   options='<button data-gs-option="connected">Mark connected</button><button data-gs-option="not-connected">Not connected yet</button>'+links;
+    (st==="apply"?'<button data-gs-option="applied">Mark applied</button><button data-gs-option="unapplied">Not applied yet</button>':"")+
+    (st==="connect"?'<button data-gs-option="connected">Mark connected</button><button data-gs-option="not-connected">Not connected yet</button>':"")+
+    links;
   }
   box.innerHTML='<div class="gmv3-choice-shade" role="presentation"><section class="gmv3-choice-sheet" role="dialog" aria-modal="true" aria-label="Choose next action">'+
    '<div class="gmv3-choice-heading"><div><span>NEXT STEP</span><h3>'+clean(job.role||"Job")+'</h3></div><button type="button" data-gs-option="close" aria-label="Close options">×</button></div>'+
    '<p>'+clean(job.company||"")+' · '+clean(badge(job))+'</p>'+
-   '<div class="gmv3-choice-buttons">'+options+'</div>'+
-   '<p class="gmv3-choice-note">Your selected next step saves to Google Sheets. No paid CV run starts here.</p></section></div>';
+   settings+'<div class="gmv3-choice-buttons">'+options+'</div>'+
+   '<div class="gmv3-choice-live" role="status" aria-live="polite"></div>'+
+   '<p class="gmv3-choice-note">Changes are saved for '+clean(candidate)+' only.</p></section></div>';
   box.querySelector('[data-gs-option="close"]')?.focus();
  }
  function closeOptions(){panelOpen=false;const el=surface?.querySelector("#gmv3-swipe-action-layer");if(el)el.innerHTML="";card?.focus()}
