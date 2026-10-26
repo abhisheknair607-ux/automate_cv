@@ -44,7 +44,7 @@ test("icon-only selected job actions preserve native preference controls and do 
  assert.doesNotMatch(ui,/select-visible|Select visible|Select more/);
  assert.doesNotMatch(css,/gmv3-select-visible/);
  assert.doesNotMatch(ui,/gmv3-bulk-limit|Up to 20 jobs/);
- const executable=ui.replace(/\/\*[\s\S]*?\*\//g,"");
+ const executable=ui.replace(/\/\*[\s\S]*?\*\//g,"").replace(/^\s*\/\/.*$/gm,"");
  assert.doesNotMatch(executable,/bulkSetJobPreferences|setJobPreference|\.fetch\(/);
  assert.doesNotMatch(ui,/\.setValues?\(/);
 });
