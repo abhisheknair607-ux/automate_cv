@@ -57,23 +57,27 @@ jobs:
           profile=gmail.users().getProfile(userId="me").execute(num_retries=3)
           if str(profile.get("emailAddress","")).casefold()!=importer.INBOX.casefold():
               raise RuntimeError("Shared Gmail mailbox identity does not match")
-          errors=[]
-          for method,sheets in importer.sheet_service():
+          options=list(importer.sheet_service())
+          # Preview may try existing auth fallbacks; apply must use ONE
+          # explicitly validated identity and must never retry partial writes.
+          chosen=None
+          for method,sheets in options:
               try:
                   preview=importer.run(gmail,sheets,preview=True,on_date=day)
-                  if preview["review"] or preview["added"]!=13 or preview["messages"]!=16:
-                      raise RuntimeError("Preview results changed; do not import")
-                  print("PREVIEW_VERIFIED: 16 messages, 13 eligible jobs, 0 review")
-                  imported=importer.run(gmail,sheets,preview=False,on_date=day)
-                  report={k:imported[k] for k in ("messages","found","added","duplicates","review","filtered","skipped")}
-                  print("FIRST_IMPORT_RESULT="+json.dumps(report,sort_keys=True))
-                  print("FIRST_IMPORT_COMPLETE: imported validated jobs to Taaza Email Alerts only")
+                  chosen=(method,sheets,preview)
                   break
-              except Exception as exc:
-                  errors.append(method+":"+type(exc).__name__)
-                  # Partial write is possible: never retry with a different credentials
-                  # method once the import has started. Reconciliation is idempotent.
-                  if "imported" in locals(): raise
-          else:
-              raise RuntimeError("No working Taaza sheet authorization: "+",".join(errors))
+              except Exception:
+                  continue
+          if chosen is None:
+              raise RuntimeError("No authorized Taaza sheets connection for preview")
+          method,sheets,preview=chosen
+          if preview["review"] or preview["added"]!=13 or preview["messages"]!=16 or preview["duplicates"]:
+              raise RuntimeError("Preview changed; abort import without writing")
+          print("PREVIEW_VERIFIED: 16 messages, 13 eligible jobs, 0 review")
+          # Any write failure stops this workflow. Never retry a partial
+          # import with alternate auth, different dates or changed parsers.
+          imported=importer.run(gmail,sheets,preview=False,on_date=day)
+          report={k:imported[k] for k in ("messages","found","added","duplicates","review","filtered","skipped")}
+          print("FIRST_IMPORT_RESULT="+json.dumps(report,sort_keys=True))
+          print("FIRST_IMPORT_COMPLETE: reviewed jobs written to Email Alerts only")
           PY
