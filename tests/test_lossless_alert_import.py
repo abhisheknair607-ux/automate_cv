@@ -80,3 +80,17 @@ def test_import_distinguishes_exact_duplicates_from_different_requisitions(monke
                      sheets, preview=False)
     assert reports["added"] == 2
     assert reports["duplicates"] == 0
+
+def test_review_origin_survives_master_mirror_without_touching_existing_jobs():
+    from automate_cv.taaza_sync import candidates
+    normal = ["EY", "Analyst", "https://linkedin.com/jobs/view/4490000001/",
+              "", "Dublin", "", "", "", "", "", False, "", "LinkedIn Job Alert"]
+    review = ["Employer to verify", "Review LinkedIn vacancy #4490000002",
+              "https://linkedin.com/jobs/view/4490000002/",
+              "", "", "", "", "", "", "", False, "",
+              "LinkedIn Job Alert · Needs Review"]
+    additions,counts = candidates([], {"Email Alerts":[normal,review]})
+    assert counts["Email Alerts"] == 2
+    assert additions[0][12] == "Email Alerts"
+    assert additions[1][12] == "Email Alerts · Needs Review"
+    assert additions[1][10] is False
