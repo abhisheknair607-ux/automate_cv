@@ -52,7 +52,7 @@
   if(progress==="Applied")return "connect";
   if(job.cvLink)return "apply";
   if(job.source==="taaza")return "discovery";
-  if(local.cvDrafted)return "cv-pending";
+  if(local.cvDrafted||job.cv)return "cv-pending";
   return local.interested||job.favorite?"cv":"interest";
  }
  const helpers=Object.freeze({direction,phase,jobKey,workTerms,postponeGesture,HOLD_MS});
