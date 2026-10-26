@@ -105,9 +105,20 @@ for(const [route,[file,mime]] of Object.entries(PWA_ASSETS)) {
 }
 
 app.get("/",(req,res)=>{
+  // Reversible release gate: the original interface and CV backend remain.
+  if(process.env.GARAMAAL_UI_V3==="true")return res.redirect(302,"/prototype");
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   // Preserve existing authenticated dashboard; inject its Cloud Run transport.
   // Installable PWA assets never cache authenticated Google Sheets responses.
+  html=html.replace("<script>\n'use strict';",
+    "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
+  html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
+  res.type("html").send(html);
+});
+// Read-only UI fallback path for instant user-visible rollback, with normal
+// Firebase authentication and the exact original Jobs DOM.
+app.get("/legacy",(req,res)=>{
+  let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
