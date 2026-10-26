@@ -325,7 +325,8 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
     listing = gmail.users().messages().list(
         userId="me", q=search, maxResults=max_messages).execute(num_retries=3)
     counters = {"found": 0, "added": 0, "duplicates": 0, "review": 0, "skipped": 0,
-                "confirmation": 0, "messages": 0, "preview": preview}
+                "confirmation": 0, "messages": 0, "preview": preview,
+                "samples": [], "review_reasons": []}
     for item in listing.get("messages", []):
         id_ = item["id"]
         last = states.get(id_, "")
@@ -361,8 +362,16 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
                 result = "Processed"
         counters["messages"] += 1
         counters["found"] += len(parsed)
+        if len(counters["samples"]) < 12:
+            for job in parsed[:12 - len(counters["samples"])]:
+                counters["samples"].append({"owner": owner or "Unassigned",
+                                            "company": job.company, "title": job.title,
+                                            "location": job.location, "job_id": job.id,
+                                            "status": result})
         if result == "Review":
             counters["review"] += 1
+            if len(counters["review_reasons"]) < 8:
+                counters["review_reasons"].append(details)
         added = duplicates = 0
         # Only commit validated complete messages with confirmed candidate ownership.
         if result == "Processed":
