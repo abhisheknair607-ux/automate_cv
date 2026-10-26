@@ -927,8 +927,8 @@ if(!DEMO){
    '<div class="alerts-manual"><label for="alerts-on-date">Alert date</label><input id="alerts-on-date" type="date" value="'+(String(new Date().getFullYear())+'-'+String(new Date().getMonth()+1).padStart(2,'0')+'-'+String(new Date().getDate()).padStart(2,'0'))+'" aria-label="Date of alert emails" />'+
    '<div class="alerts-run-buttons">'+
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
-   '<button class="btn" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
+   '<button class="btn" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
    '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p></div>'+
    '<div class="alerts-foot">'+
    '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
@@ -957,8 +957,8 @@ if(!DEMO){
    }
    const run=data.runs?.dedupe||data.runs?.preview;
    feedback.textContent=run
-    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+(data.applyEnabled?'Import enabled':'Import locked')
-     :'No recent run · '+(data.applyEnabled?'Import enabled':'Import locked');
+    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+(data.applyEnabled?'Import enabled':'Import setup required')
+     :'No recent run · '+(data.applyEnabled?'Import enabled':'Import setup required');
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
