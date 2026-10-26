@@ -36,8 +36,10 @@
   const raw=jd.replace(/^(?:job description|about the role|the role)\s*[:.\-]?\s*/i,"");
   const sentence=raw.split(/(?<=[.!?])\s+/)[0]||"";
   if(sentence.length>=35)summary=sentence.slice(0,165)+(sentence.length>165?"…":"");
-  const moreSentences=raw.split(/(?<=[.!?])\s+/).slice(1,3).join(" ").trim();
-  const more=moreSentences.length>=20?moreSentences.slice(0,240)+(moreSentences.length>240?"…":""):"";
+  // Bounded additional excerpt: never expose the entire saved JD on the swipe card.
+  const remaining=raw.slice(Math.min(raw.length,Math.min(sentence.length,165))).trim();
+  const maxExtra=Math.min(760,Math.max(0,remaining.length-40));
+  const more=maxExtra>=20?remaining.slice(0,maxExtra).trim()+(remaining.length>maxExtra?"…":""):"";
   return {pay,visa,summary,more};
  }
  function phase(job,local){
@@ -105,14 +107,15 @@
   ].filter(Boolean).join("");
   return '<article class="gmv3-drag-card'+(expanded?' gmv3-card-expanded':'')+'" tabindex="0" aria-expanded="'+String(expanded)+'" aria-label="Tap to '+(expanded?'collapse':'expand')+' highlights, or swipe card left to reject, down to postpone, right for next step" data-gs="card">'+
    '<div class="gmv3-drag-flash gmv3-left" aria-hidden="true">PASS</div><div class="gmv3-drag-flash gmv3-right" aria-hidden="true">NEXT</div>'+
-   '<div class="gmv3-drag-flash gmv3-down" aria-hidden="true">LATER</div>'+
+   '<div class="gmv3-drag-flash gmv3-down" aria-hidden="true">LATER</div>'+ 
+   '<div class="gmv3-swipe-drag-grip" aria-hidden="true"><span class="gmv3-swipe-grip-mark">≡</span><span>Swipe from here</span><span class="gmv3-swipe-grip-mark">⇄</span></div>'+
    '<div class="gmv3-swipe-card-top"><span class="gmv3-swipe-source">'+company+'</span></div>'+
    '<h3>'+title+'</h3>'+
    (job.location?'<p class="gmv3-swipe-place">'+clean(job.location)+'</p>':"")+
    '<div class="gmv3-swipe-summary-area">'+summary+'</div>'+
    '<div class="gmv3-swipe-tags">'+metadataTags+'</div>'+ 
-   '<div class="gmv3-swipe-extra" id="gmv3-swipe-quick-details" '+(expanded?'':'hidden')+'><strong>More about this role</strong>'+moreItems+'</div>'+
-   '<div class="gmv3-swipe-card-foot"><span class="gmv3-expand-hint" aria-hidden="true">'+(expanded?'Tap to see less':'Tap for more')+'</span><button type="button" data-gs="jd" class="gmv3-jd-expand">Job description ↗</button></div>'+
+   '<div class="gmv3-swipe-extra" id="gmv3-swipe-quick-details" role="region" tabindex="0" aria-label="Scroll additional job highlights" '+(expanded?'':'hidden')+'><strong>More about this role · scroll for details</strong>'+moreItems+'</div>'+
+   '<div class="gmv3-swipe-card-foot"><button type="button" class="gmv3-expand-hint" data-gs="toggle" aria-controls="gmv3-swipe-quick-details" aria-expanded="'+String(expanded)+'">'+(expanded?'Show less':'Show more')+'</button><button type="button" data-gs="jd" class="gmv3-jd-expand">Job description ↗</button></div>'+
    '</article>';
  }
  async function readEvidence(job){
@@ -290,7 +293,10 @@
  function onPointerDown(e){
   const node=e.target.closest?.(".gmv3-drag-card");
   if(!node||!current||panelOpen||interactionBusy||e.isPrimary===false)return;
-  if(e.target.closest("button,a,summary,details,input,textarea,select"))return;
+  if(e.target.closest("button,a,summary,details,input,textarea,select,.gmv3-swipe-extra"))return;
+  // Expanded cards need native vertical scrolling. Only the top grip handles
+  // gestures then; the rest of the card is free for touch/trackpad scrolling.
+  if(expanded&&!e.target.closest(".gmv3-swipe-drag-grip"))return;
   pointer={id:e.pointerId,x:e.clientX,y:e.clientY,dx:0,dy:0};
   node.setPointerCapture?.(e.pointerId);
  }
@@ -324,6 +330,8 @@
  function onClick(e){
   if(!active)return;
   if(e.target.closest?.("a"))return; // Do not intercept employer/application hyperlinks.
+  // Interacting with scrollable information must never collapse the card.
+  if(e.target.closest?.(".gmv3-swipe-extra"))return;
   const el=e.target.closest?.("[data-gs],[data-gs-option]");
   if(!el){if(e.target.classList.contains("gmv3-choice-shade"))closeOptions();return}
   const action=el.getAttribute("data-gs-option");
@@ -333,6 +341,7 @@
     if(panelOpen||interactionBusy||Date.now()<suppressCardClickUntil)return;
     expanded=!expanded;render();card?.focus();return;
   }
+  if(command==="toggle"){expanded=!expanded;render();card?.focus();return}
   if(command==="jd"){showDetails();return}
   if(command==="refresh"){open(surface);return}
   if(command==="reset"){
