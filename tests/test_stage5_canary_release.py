@@ -63,6 +63,9 @@ def test_one_time_canary_workflow_requires_explicit_marker_commit():
     assert "APPROVED: 0% Cloud Run canary only; no production traffic, imports or Q writes" in action
     assert "id-token: write" in action
     assert "google-github-actions/auth@v3" in action
+    assert "vars.STAGE5_CLOUD_RUN_DEPLOYER_SERVICE_ACCOUNT" in action
+    assert "service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}" not in action
+    assert "dedicated deployer, not the shared CV worker" in action
     assert "bash standalone/deploy-stage5-canary.sh --deploy-canary" in action
     assert "workflow_dispatch:" not in action
     assert "schedule:" not in action
