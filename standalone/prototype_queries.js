@@ -118,7 +118,7 @@ function gmListJobsFaceted(options){
  // Existing listings are not deleted: confirmed duplicates are hidden by default,
  // and only displayed when the user deliberately chooses a duplicates filter.
  if(source==="taaza"){
-  if(status==="duplicates")rows=rows.filter(j=>["Dup","Possible"].includes(j.duplicateStatus));
+  if(status==="duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
   else if(status==="confirmed-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
   else if(status==="possible-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Possible");
   else if(status!=="all-including-duplicates")rows=rows.filter(j=>j.duplicateStatus!=="Dup");
