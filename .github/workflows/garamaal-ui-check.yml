@@ -19,42 +19,9 @@ jobs:
         run: |
           set -euo pipefail
           git diff --exit-code HEAD^ HEAD -- Dockerfile prompts requirements.txt webapp/Code.gs webapp/Index.html
-          # Stage 4 combines UI with a small, intentionally reviewed Taaza
-          # integration. All other Python source (especially CV generation)
-          # remains protected. The Taaza allowlist has its own integration CI.
-          unapproved="$(git diff --name-only HEAD^ HEAD -- src | grep -Ev '^src/automate_cv/(job_alert_providers|job_dedupe|linkedin_alert_import|taaza_dedupe_audit|taaza_duplicate_proposals|taaza_sync)\.py
-  standalone-ui:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-      - name: Test production UI webapp snapshot alongside standalone code
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/garamaal-ui-test
-          cp -R standalone /tmp/garamaal-ui-test/standalone
-          cp -R garamaal-release-webapp /tmp/garamaal-ui-test/webapp
-          cp package.json /tmp/garamaal-ui-test/package.json
-          cp Dockerfile.garamaal-ui /tmp/garamaal-ui-test/Dockerfile.standalone
-          cd /tmp/garamaal-ui-test
-          node --check standalone/server.js
-          node --check standalone/mobile_jobs_filters_stats.js
-          node --test \
-            standalone/test/parity.test.js \
-            standalone/test/stage3_candidate_progress.test.js \
-            standalone/test/stage3_ribbon_drawer.test.js \
-            standalone/test/stage13_live_bulk.test.js \
-            standalone/test/stage14_location_filters.test.js \
-            standalone/test/stage15_multifacet.test.js \
-            standalone/test/stage17_production_gate.test.js \
-            standalone/test/tactile_hold_state.test.js
-      - name: Verify production image can be assembled without modifying CV worker
-        run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
- || true)"
+          # Only the specifically reviewed Taaza integration modules may
+          # differ from main. Every other Python worker source stays protected.
+          unapproved="$(git diff --name-only HEAD^ HEAD -- src | grep -Ev '^src/automate_cv/(job_alert_providers|job_dedupe|linkedin_alert_import|taaza_dedupe_audit|taaza_duplicate_proposals|taaza_sync)\.py$' || true)"
           if [[ -n "$unapproved" ]]; then
             echo "Unexpected Python/CV source changes are not permitted:"
             printf '%s\n' "$unapproved"
