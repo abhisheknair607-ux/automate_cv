@@ -64,7 +64,10 @@ test("Swipe data actions are authenticated, candidate-scoped and have no paid CV
  assert.equal(SWIPE_METHODS.has("bulkTransfer"),false);
  assert.equal(SWIPE_METHODS.has("setJobPreference"),true);
  assert.equal(SWIPE_METHODS.has("updateApplicationProgress"),true);
- const source=fs.readFileSync(path.join(root,"garamaal-release-webapp/Code.gs"),"utf8");
+ const snapshot=fs.existsSync(path.join(root,"garamaal-release-webapp/Code.gs"))
+  ?path.join(root,"garamaal-release-webapp/Code.gs")
+  :path.join(root,"webapp/Code.gs");
+ const source=fs.readFileSync(snapshot,"utf8");
  const bound=sourceWithSheetIds({
   taaza:"MOCK_TAAZA_SHEET_ID_00123456789",
   fresh:"MOCK_FRESH_SHEET_ID_00123456789"
