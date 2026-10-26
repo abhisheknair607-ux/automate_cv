@@ -22,7 +22,7 @@
  const swipe=doc.createElement("section");
  swipe.className="gmv3-swipe-surface";
  swipe.id="gmv3-jobs-swipe";
- swipe.hidden=true;swipe.setAttribute("aria-label","Jobs swipe preview");
+ swipe.hidden=true;swipe.setAttribute("aria-label","Jobs live swipe");
  doc.body.append(bar,overlay,swipe);
  let mode="dashboard";
  const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -52,7 +52,7 @@
  function openSwipe(){
   hideOverlay();mode="swipe";sync();
   swipe.hidden=false;swipe.scrollTop=0;
-  // Real candidate-aware gesture feed. Browser-only QA never writes to Sheets.
+  // Candidate-aware live gesture feed; explicit Swipe actions save to Sheets.
   window.GaramaalSwipeDeck?.open(swipe);
  }
  function selectPage(id){
