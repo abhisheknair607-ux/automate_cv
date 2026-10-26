@@ -12,7 +12,9 @@ const {createSpreadsheetApp} = require("./sheets");
 const SCRIPT = fs.readFileSync(path.resolve(__dirname,"../webapp/Code.gs"),"utf8");
 // Scoped Swipe-only snapshot enables candidate preferences without altering
 // the existing Jobs/CV controller or its original Code.gs.
-const SWIPE_SCRIPT = fs.readFileSync(path.resolve(__dirname,"../garamaal-release-webapp/Code.gs"),"utf8");
+const SNAPSHOT=path.resolve(__dirname,"../garamaal-release-webapp/Code.gs");
+const SWIPE_SCRIPT=fs.readFileSync(fs.existsSync(SNAPSHOT)?
+  SNAPSHOT:path.resolve(__dirname,"../webapp/Code.gs"),"utf8");
 const SWIPE_METHODS = new Set(["listJobs","getJob","setJobPreference","transferJob",
   "updateFreshControl","updateApplicationProgress"]);
 // Keep Code.gs immutable while binding its two spreadsheet IDs to the
@@ -109,9 +111,12 @@ async function invoke(method,arg,options) {
   }
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
-  const source=scoped&&method!=="updateApplicationProgress"?SWIPE_SCRIPT:SCRIPT;
+  const source=scoped?SWIPE_SCRIPT:SCRIPT;
   vm.runInContext(sourceWithSheetIds(options?.ids,source),context,{
-    filename:scoped?"garamaal-release-webapp/Code.gs":"webapp/Code.gs",timeout:5000});
+    filename:scoped?"scoped-release/Code.gs":"webapp/Code.gs",timeout:5000});
+  if(scoped&&method==="updateApplicationProgress")
+    vm.runInContext(require("./swipe_progress").SOURCE,context,{
+      filename:"standalone/swipe_progress.js",timeout:5000});
   // Two opt-in UI projections only. These use the existing candidate-scoped read adapter.
   if(method==="gmPipelineStats"||method==="gmListJobsFaceted") {
     vm.runInContext(require("./prototype_queries").SOURCE,context,{filename:"standalone/prototype_queries.js",timeout:5000});
