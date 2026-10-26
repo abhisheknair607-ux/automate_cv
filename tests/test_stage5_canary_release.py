@@ -50,3 +50,20 @@ def test_cloud_run_metadata_is_never_sent_to_build():
 
 def test_release_is_pinned_to_approved_stage4_merge():
     assert "b1fe5fa01da67c3ad197769a6608ed9a204c47b2" in SRC
+
+
+def test_one_time_canary_workflow_requires_explicit_marker_commit():
+    action = (ROOT / ".github/workflows/taaza-stage5-approved-canary.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "name: garamaal-stage5-approved-zero-traffic-canary" in action
+    assert "release/taaza-stage5-canary-20261026" in action
+    assert "docs/taaza-stage5-canary-trigger-20261026.txt" in action
+    assert "git diff-tree --no-commit-id --name-only -r HEAD" in action
+    assert "APPROVED: 0% Cloud Run canary only; no production traffic, imports or Q writes" in action
+    assert "id-token: write" in action
+    assert "google-github-actions/auth@v3" in action
+    assert "bash standalone/deploy-stage5-canary.sh --deploy-canary" in action
+    assert "workflow_dispatch:" not in action
+    assert "schedule:" not in action
+    assert "branches: [main]" not in action
