@@ -14,7 +14,7 @@ def test_canary_bash_parses_without_execution():
 def test_plan_default_and_explicit_deploy_only():
     assert 'MODE="${1:---plan}"' in SRC
     assert '"$MODE" == "--plan"' in SRC
-    assert '"$MODE" == "--deploy-canary"' in SRC
+    assert '"$MODE" != "--deploy-canary"' in SRC
     assert SRC.index('if [[ "$MODE" == "--plan" ]]') < SRC.index('gcloud run deploy')
 
 
