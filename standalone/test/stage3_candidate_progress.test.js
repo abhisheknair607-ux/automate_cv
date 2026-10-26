@@ -73,6 +73,6 @@ test("candidate-specific faceted filters preserve Applied and Applied + Connecte
 test("invalid candidate is rejected; progress projection contains no Sheet writes",()=>{
  const x=fixture();
  assert.throws(()=>vm.runInContext('gmPipelineStats("Someone Else")',x.ctx),/Unknown candidate/);
- assert.doesNotMatch(SOURCE,/\\.setValues?\\s*\\(/);
- assert.doesNotMatch(SOURCE,/\\.clearContent\\s*\\(/);
+ assert.doesNotMatch(SOURCE,/\.setValues?\s*\(/);
+ assert.doesNotMatch(SOURCE,/\.clearContent\s*\(/);
 });
