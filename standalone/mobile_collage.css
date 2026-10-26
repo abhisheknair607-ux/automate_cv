@@ -1045,7 +1045,7 @@ body.gmv3-jobs-workspace .gmv3-followup-stats>div{
 }
 
 
-/* Stage 10: lift is a held visual STATE, never a short bounce-back animation.
+/* Stage 12: sustained neon halo + touch-held lift, never a short bounce-back animation.
    Pointerdown adds gmv3-tactile-held; pointerup/cancel/scroll removes it.
    Mouse users retain the raised card while hovering. */
 body.gmv3-jobs-workspace #content .jobs > .job,
@@ -1060,7 +1060,7 @@ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div{
  body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div:hover{
    transform:translateY(-6px) scale(1.024)!important;
    border-color:#dfff58!important;
-   box-shadow:0 0 0 1px #dfff5870,7px 12px 0 #09070b!important;
+   box-shadow:0 0 0 2px #dfff58,0 0 13px #dfff5880,0 0 23px #d493ef55,8px 14px 0 #09070b!important;
    filter:brightness(1.06);
  }
 }
@@ -1071,7 +1071,7 @@ body.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div{
    animation:none!important;
    transform:translateY(-6px) scale(1.024)!important;
    border-color:#dfff58!important;
-   box-shadow:0 0 0 1px #dfff5890,7px 12px 0 #09070b!important;
+   box-shadow:0 0 0 2px #dfff58,0 0 16px #dfff58b0,0 0 28px #d493ef77,8px 14px 0 #09070b!important;
    filter:brightness(1.06)!important;
  }
 }
