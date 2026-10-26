@@ -862,9 +862,9 @@ body.gmv3-jobs-workspace #content .jobs > .job{
 }
 @media(hover:hover) and (prefers-reduced-motion:no-preference){
   body.gmv3-jobs-workspace #content .jobs > .job:hover{
-    transform:translateY(-1px)!important;
-    border-color:#a991b5!important;
-    box-shadow:3px 5px 0 #09070b!important;
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
   }
 }
 @media(hover:none) and (prefers-reduced-motion:no-preference){
@@ -956,3 +956,57 @@ body.gmv3-jobs-workspace #content button.gmv3-pipeline-kpi small::after{
 #gmv3-jobs-swipe .gmv3-swipe-company-link{color:#18121b!important;text-decoration:none!important;display:inline}
 #gmv3-jobs-swipe .gmv3-swipe-company-link:hover{text-decoration:underline!important;text-underline-offset:3px}
 #gmv3-jobs-swipe .gmv3-swipe-company-link:focus-visible{outline:3px solid #ff4caa!important;outline-offset:3px}
+
+
+/* Stage 9 — expanded Swipe details scroll independently of the swipe grip.
+   Parent touch-action must allow pan-y; child touch-action alone cannot override
+   an ancestor set to none. Collapsed cards retain whole-card gestures. */
+#gmv3-jobs-swipe .gmv3-drag-card.gmv3-card-expanded{
+  touch-action:pan-y!important;
+  user-select:text!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip{
+  display:flex;justify-content:center;align-items:center;gap:8px;
+  min-height:34px;margin:-11px -10px 13px;padding:4px 10px;
+  border-bottom:1px dashed #65536e;color:#dfc1ef;
+  font:850 10px/1.3 "Bricolage Grotesque",system-ui;
+  letter-spacing:.035em;cursor:grab;
+  touch-action:none!important;user-select:none!important;
+}
+#gmv3-jobs-swipe .gmv3-swipe-drag-grip:active{cursor:grabbing}
+#gmv3-jobs-swipe .gmv3-swipe-grip-mark{font:950 18px/1 system-ui;color:#dfff58}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra{
+  display:block!important;
+  overflow-y:auto!important;overflow-x:hidden!important;
+  max-height:clamp(155px,34dvh,315px)!important;
+  min-height:110px;
+  scrollbar-width:thin;scrollbar-color:#b884d0 #32263c;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior-y:contain;
+  touch-action:pan-y!important;
+  user-select:text!important;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar{width:6px}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar-track{background:#32263c;border-radius:9px}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra::-webkit-scrollbar-thumb{background:#b884d0;border-radius:9px}
+#gmv3-jobs-swipe .gmv3-swipe-extra:focus-visible{outline:2px solid #dfff58!important;outline-offset:-3px}
+#gmv3-jobs-swipe button.gmv3-expand-hint{
+  color:#d7b4e4!important;background:transparent!important;
+  min-height:44px;touch-action:manipulation;
+  border:0!important;box-shadow:none!important;cursor:pointer;
+  padding:8px 6px 8px 0;text-decoration:none!important;
+}
+#gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-more-excerpt{
+  overflow-wrap:anywhere;white-space:normal;
+  line-height:1.65!important;
+}
+@media(hover:hover) and (prefers-reduced-motion:no-preference){
+  body.gmv3-jobs-workspace #content .jobs > .job:focus-within{
+    transform:translateY(-4px) scale(1.012)!important;
+    border-color:#d493ef!important;
+    box-shadow:5px 9px 0 #09070b!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  body.gmv3-jobs-workspace #content .jobs > .job{transform:none!important;transition:none!important}
+}
