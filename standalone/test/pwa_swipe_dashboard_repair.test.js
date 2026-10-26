@@ -91,3 +91,13 @@ test("feed respects candidate preferences, skips transfers and pages reliably",(
  assert.equal(paged.hasMore,false);
  assert.throws(()=>vm.runInContext('gmSwipeFeed({candidate:"Intruder"})',ctx),/unknown candidate/);
 });
+
+test("protected release probes installable PWA and live Swipe before promotion",()=>{
+ const script=read("standalone/deploy-garamaal-production.sh");
+ assert.match(script,/manifest\.webmanifest/);
+ assert.match(script,/garamaal-icon-\$size\.png/);
+ assert.match(script,/prototype\/hub-swipe\.js/);
+ assert.match(script,/gmSwipeFeed/);
+ assert.ok(script.indexOf("manifest.webmanifest")<script.indexOf("PROMOTION_ATTEMPTED=1"));
+ assert.ok(script.includes('--to-revisions="$BASELINE"'));
+});
