@@ -1,0 +1,42 @@
+name: Garamaal Stage 3 browser-only QA retest
+on:
+  push:
+    branches: [prototype/collage-frontend-integration-20261025]
+    paths: [.github/workflows/garamaal-stage3-browser-qa.yml]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  chrome-qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ee357ec98b9de8a73404b53f5035e76dbc006747
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install ephemeral Chrome driver
+        run: |
+          command -v google-chrome || command -v google-chrome-stable
+          npm install --no-fund --no-audit --prefix /tmp/gm-stage3-browser --no-save playwright-core@1.56.1
+          node --check standalone/test/stage3_browser_qa.cjs
+      - name: Verify the deployed candidate-specific prototype header exists
+        env:
+          QA_URL: https://garamaal--collage-release-qa-20261026-5znk5vwt.web.app/prototype
+        run: |
+          python3 - <<'PY'
+          import urllib.request,os
+          url=os.environ['QA_URL']
+          with urllib.request.urlopen(url,timeout=25) as f: body=f.read()
+          for needle in [b'garamaal-unified-header',b'garamaal-header-controls',b'id="socialHeaderLink"',b'/prototype/account-drawer.js']:
+              assert needle in body,needle
+          print('DEPLOYED_HEADER_CONTRACT_OK')
+          PY
+      - name: Run actual staging HTML in Chrome with zero-write simulated candidates
+        env:
+          PLAYWRIGHT_CORE_PATH: /tmp/gm-stage3-browser/node_modules/playwright-core
+          GARAMAAL_QA_URL: https://garamaal--collage-release-qa-20261026-5znk5vwt.web.app/prototype
+        run: |
+          timeout 160s node standalone/test/stage3_browser_qa.cjs
