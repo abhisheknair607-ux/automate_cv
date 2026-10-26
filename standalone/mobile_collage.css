@@ -1112,3 +1112,83 @@ body.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-card-expanded .gmv3-swipe-extra{
   overflow-y:auto!important;
   -webkit-overflow-scrolling:touch;
 }
+
+/* Stage 13: minimal LIVE connectivity pulse + reachable Discovery bulk actions.
+   All selectors apply to opt-in collage Jobs; original live UI is untouched. */
+body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge {
+  display:inline-flex!important;align-items:center!important;gap:7px!important;
+  width:auto!important;max-width:none!important;min-width:0!important;
+  font:900 10px/1 "Bricolage Grotesque",system-ui!important;
+  letter-spacing:.07em!important;padding:7px 11px!important;
+  color:#e3ff8a!important;background:#263625!important;border:1px solid #647c45!important;
+  border-radius:999px!important;white-space:nowrap!important
+}
+body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge::before {
+  content:"";display:block;flex:none;
+  width:7px;height:7px;margin:0!important;border-radius:50%;
+  background:#dfff58;box-shadow:0 0 0 1px #a0d24c,0 0 7px #dfff58b5;
+  animation:gmv3-live-pulse 1.8s ease-in-out infinite
+}
+@keyframes gmv3-live-pulse {
+  0%,100% {opacity:1;box-shadow:0 0 0 1px #a0d24c,0 0 5px #dfff5866}
+  50% {opacity:.38;box-shadow:0 0 0 4px #dfff5833,0 0 10px #dfff58bb}
+}
+body.gmv3-jobs-workspace .gmv3-bulk-tools {flex:none;display:flex;align-items:center}
+body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible {
+  min-height:43px!important;min-width:125px;border:1px solid #b890cb!important;
+  color:#f4e4ff!important;background:#33273d!important;
+  border-radius:10px!important;font:850 12px "Bricolage Grotesque",system-ui!important;
+  padding:9px 13px!important;white-space:nowrap;box-shadow:none!important
+}
+body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible:hover:not(:disabled) {
+  border-color:#dfff58!important;box-shadow:0 0 0 1px #dfff58!important
+}
+body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible:disabled {opacity:.5;cursor:default}
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
+  position:fixed!important;z-index:125;
+  bottom:clamp(87px,10vh,105px);left:50%;transform:translateX(-50%);
+  width:min(calc(100vw - 32px),980px);display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:8px;padding:12px 15px!important;
+  border:2px solid #d493ef!important;border-radius:16px!important;
+  background:#241d29!important;color:#fff7e9!important;
+  box-shadow:0 10px 0 #08070b,0 0 0 3px #08070b,0 0 22px #d493ef55!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar b{font:950 15px "Bricolage Grotesque",system-ui;color:#dfff58}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{display:flex;flex-wrap:wrap;gap:7px}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button {
+  min-height:40px!important;padding:9px 12px!important;white-space:nowrap;
+  border-radius:9px!important;background:#3c2e44!important;
+  color:#fff7e9!important;border:1px solid #70587d!important;
+  font:800 12px "Bricolage Grotesque",system-ui!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button[data-value="Favorite"] {
+  background:#dfff58!important;border-color:#dfff58!important;color:#171218!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button[data-value="Not Interested"] {
+  background:#47313d!important;border-color:#da8fa9!important
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button:disabled {opacity:.55;cursor:wait}
+body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {
+  font:650 10px "Bricolage Grotesque",system-ui;color:#c9b3d2;white-space:nowrap
+}
+@media(max-width:720px){
+ body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge {font-size:9px!important;padding:6px 8px!important}
+ body.gmv3-jobs-workspace #content .toolbar-main{gap:5px}
+ body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible {
+   min-width:90px!important;min-height:39px!important;font-size:10px!important;padding:6px 7px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
+   bottom:calc(89px + env(safe-area-inset-bottom));width:calc(100vw - 20px);
+   gap:6px;padding:10px!important;border-radius:12px!important
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar b{font-size:12px}
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions {flex:1;justify-content:space-between;gap:4px}
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button {
+   flex:1;min-width:0!important;padding:8px 6px!important;min-height:38px!important;
+   font-size:10px!important;gap:3px
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {font-size:9px}
+}
+@media(prefers-reduced-motion:reduce) {
+ body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge::before{animation:none!important;opacity:1}
+}
