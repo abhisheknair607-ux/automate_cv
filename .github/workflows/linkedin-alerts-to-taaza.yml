@@ -18,7 +18,7 @@ permissions:
   id-token: write
 
 concurrency:
-  group: linkedin-alerts-taaza
+  group: taaza-master-writers
   cancel-in-progress: false
 
 jobs:
