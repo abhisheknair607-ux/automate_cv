@@ -1,0 +1,41 @@
+name: taaza-stage4-integration-safety
+on:
+  push:
+    branches:
+      - feature/taaza-dedupe-stage4-candidate-20261026
+  pull_request:
+    paths:
+      - src/automate_cv/taaza_sync.py
+      - src/automate_cv/linkedin_alert_import.py
+      - standalone/alert_workflows.js
+      - standalone/server.js
+      - standalone/bridge.js
+      - standalone/duplicate_status.js
+      - standalone/prototype_queries.js
+      - garamaal-release-webapp/Index.html
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify backend module syntax
+        run: |
+          node --check standalone/server.js
+          node --check standalone/bridge.js
+          node --check standalone/alert_workflows.js
+          node --check standalone/duplicate_status.js
+          node -e 'new (require("node:vm").Script)(require("./standalone/prototype_queries").SOURCE)'
+      - name: Test secure dispatch, duplicate status and mobile facet regressions
+        run: node --test standalone/test/alert_workflows.test.js standalone/test/duplicate_status.test.js standalone/test/stage3_duplicate_projection.test.js standalone/test/stage15_multifacet.test.js
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install --quiet -r requirements.txt
+      - name: Test shared identity, safe importer and UI contracts
+        run: PYTHONPATH=src pytest -q tests/test_stage4_import_dedupe.py tests/test_linkedin_alert_import.py tests/test_job_alert_providers.py tests/test_job_dedupe.py tests/test_taaza_dedupe_audit.py tests/test_stage3_duplicates_ui.py tests/test_import_alerts_dashboard_popup.py
