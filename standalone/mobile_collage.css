@@ -1196,14 +1196,14 @@ body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {
 /* Stage 14 — compact Excel-style location picker; fully contained on phones.
  * No Android/Chrome native datalist; scrollable list remains within the viewport.
  */
-body.gmv3-jobs-workspace #gmv3-location-trigger {
+body.gmv3-jobs-workspace [data-gmf-loc="open"] {
  display:flex;align-items:center;justify-content:space-between;gap:10px;
  width:100%;min-height:46px;padding:10px 12px;border-radius:10px;
  background:#332b3b;color:#fff7e9;border:1px solid #80698c;
  text-align:left;cursor:pointer;font:750 12px "Bricolage Grotesque",system-ui;
 }
-body.gmv3-jobs-workspace #gmv3-location-trigger .gmv3-location-summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-body.gmv3-jobs-workspace #gmv3-location-trigger .gmv3-location-chevron{color:#dfff58;font-size:19px;flex:none}
+body.gmv3-jobs-workspace [data-gmf-loc="open"] .gmv3-location-summary{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.gmv3-jobs-workspace [data-gmf-loc="open"] .gmv3-location-chevron{color:#dfff58;font-size:19px;flex:none}
 body.gmv3-jobs-workspace .gmv3-location-field small{color:#bbaac3;font:600 10px system-ui}
 #gmv3-location-picker.gmv3-location-backdrop {
  position:fixed;inset:0;z-index:210;display:flex;align-items:center;justify-content:center;
@@ -1274,7 +1274,7 @@ body.gmv3-jobs-workspace .gmv3-location-field small{color:#bbaac3;font:600 10px 
  flex:1.6;color:#171218;background:#dfff58;border-color:#dfff58
 }
 #gmv3-location-picker button:focus-visible,
-body.gmv3-jobs-workspace #gmv3-location-trigger:focus-visible {
+body.gmv3-jobs-workspace [data-gmf-loc="open"]:focus-visible {
  outline:2px solid #ff4caa;outline-offset:2px
 }
 @media(max-width:600px){
@@ -1288,7 +1288,7 @@ body.gmv3-jobs-workspace #gmv3-location-trigger:focus-visible {
  #gmv3-filter-sheet .gmv3-field{gap:4px}
  #gmv3-filter-sheet .gmv3-field input,
  #gmv3-filter-sheet .gmv3-field select,
- body.gmv3-jobs-workspace #gmv3-location-trigger{
+ body.gmv3-jobs-workspace [data-gmf-loc="open"]{
   min-height:43px;padding:9px 10px;font-size:13px
  }
  #gmv3-filter-sheet .gmv3-filter-hint{font-size:10px;margin:10px 0}
@@ -1311,5 +1311,5 @@ body.gmv3-jobs-workspace #gmv3-location-trigger:focus-visible {
  #gmv3-location-picker .gmv3-location-panel{padding-left:9px;padding-right:9px}
 }
 @media(prefers-reduced-motion:reduce){
- #gmv3-location-picker *,body.gmv3-jobs-workspace #gmv3-location-trigger{animation:none!important;transition:none!important}
+ #gmv3-location-picker *,body.gmv3-jobs-workspace [data-gmf-loc="open"]{animation:none!important;transition:none!important}
 }
