@@ -44,7 +44,8 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C release-src rev-parse HEAD)" = "$RELEASE_SHA"
-          git -C release-src diff --exit-code 2fbc8433dc5205be2f14a2e15b2d73ad0e153c32 "$RELEASE_SHA" -- webapp/Index.html webapp/Code.gs src/
+          test "$(git -C release-src rev-parse HEAD:webapp)" = "60450ccb7ce301260a7f70d2ad096344e58440fb" || { echo "Production Jobs webapp changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:src)" = "75e2b3547210e9984adbf58118c787295c61aae7" || { echo "CV worker source changed, abort"; exit 1; }
           node --check release-src/standalone/server.js
           node --check release-src/standalone/runtime.js
           node --check release-src/standalone/mobile_jobs_swipe.js
