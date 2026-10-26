@@ -75,3 +75,20 @@ Alternatively, set up a **dedicated** deployment service account and grant repo-
 - Stage 5 PR #73 remains draft; canary deployment not verified.
 - Full tests, canary preflight and CV-worker protection passed.
 - No production promotion, Gmail import writes, Q status changes or historical row deletion.
+
+## Successful authorized Cloud Shell canary (26 October 2026)
+
+The user ran the Stage 5 release script from an authorized Cloud Shell session in Google Cloud project `abhishek-cv-automation`:
+
+- `--plan` verified the existing service account, candidate/CV controls, production Sheet IDs, and disabled new import/status-write gates.
+- The production revision before deployment was `automate-cv-dashboard-00032-hol` at **100%** traffic.
+- `--deploy-canary` built and created revision **`automate-cv-dashboard-00035-lig`**.
+- The tagged URL is **https://stage5qa---automate-cv-dashboard-vv25bizjcq-ew.a.run.app**.
+- The script verified **0% live traffic** for the new revision, unchanged baseline traffic, and a successful `/health` check.
+- Cloud Build ID: `564e1eaf-71d6-44bb-910c-1d2e5d9717d2` in `europe-west1`.
+
+**Scope of verification:** deployment, zero-traffic isolation and the unauthenticated health endpoint passed, as reported by the Cloud Shell output. Authenticated application feature parity, both candidates, Master Controls UI, and actual clickable Discovery filters have **not** yet been independently verified. External assistant web access to the tagged URL was unavailable; no browser/signed-in functional pass is claimed.
+
+### Next gate: signed-in QA before promotion
+
+On the tagged URL, verify Jobs Dashboard, Discovery (including `Dup` filters and action), Master Controls > Import Alerts (Preview and Apply safely disabled unless separately enabled), Swipe, Make CV and both candidates. The existing Social service/Firebase route must be independently checked on the current live website for unchanged behavior. Do not click a CV dispatch or any write action solely for QA. After screenshots/results, only a separate explicit user decision can authorize production traffic changes. Keep Gmail import, automatic Q status updates and historical cleanup locked.
