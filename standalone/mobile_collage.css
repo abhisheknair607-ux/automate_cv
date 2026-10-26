@@ -1133,17 +1133,6 @@ body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge::before {
   0%,100% {opacity:1;box-shadow:0 0 0 1px #a0d24c,0 0 5px #dfff5866}
   50% {opacity:.38;box-shadow:0 0 0 4px #dfff5833,0 0 10px #dfff58bb}
 }
-body.gmv3-jobs-workspace .gmv3-bulk-tools {flex:none;display:flex;align-items:center}
-body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible {
-  min-height:43px!important;min-width:125px;border:1px solid #b890cb!important;
-  color:#f4e4ff!important;background:#33273d!important;
-  border-radius:10px!important;font:850 12px "Bricolage Grotesque",system-ui!important;
-  padding:9px 13px!important;white-space:nowrap;box-shadow:none!important
-}
-body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible:hover:not(:disabled) {
-  border-color:#dfff58!important;box-shadow:0 0 0 1px #dfff58!important
-}
-body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible:disabled {opacity:.5;cursor:default}
 body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
   position:fixed!important;z-index:125;
   bottom:clamp(87px,10vh,105px);left:50%;transform:translateX(-50%);
@@ -1174,9 +1163,6 @@ body.gmv3-jobs-workspace #selectionBarMount .gmv3-bulk-limit {
 @media(max-width:720px){
  body.gmv3-jobs-workspace #modeBadge.gmv3-live-badge {font-size:9px!important;padding:6px 8px!important}
  body.gmv3-jobs-workspace #content .toolbar-main{gap:5px}
- body.gmv3-jobs-workspace .gmv3-bulk-tools .gmv3-select-visible {
-   min-width:90px!important;min-height:39px!important;font-size:10px!important;padding:6px 7px!important;
- }
  body.gmv3-jobs-workspace #selectionBarMount .selectionbar {
    bottom:calc(89px + env(safe-area-inset-bottom));width:calc(100vw - 20px);
    gap:6px;padding:10px!important;border-radius:12px!important
@@ -1312,4 +1298,45 @@ body.gmv3-jobs-workspace [data-gmf-loc="open"]:focus-visible {
 }
 @media(prefers-reduced-motion:reduce){
  #gmv3-location-picker *,body.gmv3-jobs-workspace [data-gmf-loc="open"]{animation:none!important;transition:none!important}
+}
+
+/* Stage 16: compact icon-only Discovery batch actions; no select-all shortcut. */
+body.gmv3-jobs-workspace #selectionBarMount .selectionbar{
+ width:max-content!important;max-width:calc(100vw - 20px)!important;
+ justify-content:center!important;flex-wrap:nowrap!important;
+ padding:8px 11px!important;gap:10px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{
+ flex:0 0 auto!important;justify-content:center!important;flex-wrap:nowrap!important;gap:7px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon{
+ display:inline-flex!important;align-items:center!important;justify-content:center!important;
+ flex:0 0 42px!important;width:42px!important;height:42px!important;min-width:42px!important;
+ min-height:42px!important;padding:8px!important;gap:0!important;border-radius:11px!important;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon svg{
+ width:21px!important;height:21px!important;max-width:100%;flex:none;
+}
+body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon:focus-visible{
+ outline:2px solid #ff4caa;outline-offset:2px;
+}
+body.gmv3-jobs-workspace #selectionBarMount .gmv3-clear-selected{
+ background:#362b3e!important;color:#fff7e9!important;
+}
+@media(max-width:720px){
+ body.gmv3-jobs-workspace #selectionBarMount .selectionbar{
+  width:max-content!important;max-width:calc(100vw - 14px)!important;
+  justify-content:center!important;flex-wrap:nowrap!important;
+  padding:7px 9px!important;gap:8px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions{
+  flex:0 0 auto!important;gap:5px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon{
+  flex:0 0 38px!important;width:38px!important;height:38px!important;
+  min-width:38px!important;min-height:38px!important;padding:7px!important;
+ }
+ body.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button.gmv3-bulk-icon svg{
+  width:19px!important;height:19px!important;
+ }
 }
