@@ -117,7 +117,7 @@ for size in 192 512; do
   curl -fsSL --max-time 30 "$URL/garamaal-icon-$size.png" -o "$TMP/icon-$size.png"
   python3 - "$TMP/icon-$size.png" <<'PY'
 import pathlib,sys
-assert pathlib.Path(sys.argv[1]).read_bytes().startswith(b"\\x89PNG\\r\\n\\x1a\\n")
+assert pathlib.Path(sys.argv[1]).read_bytes().startswith(bytes((137,80,78,71,13,10,26,10)))
 PY
 done
 curl -fsSL --max-time 30 "$URL/prototype/hub-swipe.js" -o "$TMP/swipe.js"
