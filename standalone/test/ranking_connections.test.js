@@ -43,6 +43,30 @@ test("three contact ranges, verified URLs only, brief humble messages",()=>{
  const p=connection.preview(j,"10-15",true);
  assert.equal(p.max,15);assert.ok(p.estimateUsd<=.20);
 });
+test("Personalised LinkedIn notes use 3 paragraphs, verified recipient detail and correct candidate qualifications",()=>{
+ const ab={candidate:"Abhishek",row:68,company:"BDO",role:"International Corporate Tax",web:true};
+ const msg=connection.note(ab,{name:"Kevin Doyle",team:"International Tax",title:"Partner"});
+ assert.match(msg,/^Hi Kevin,\n\n/);
+ assert.match(msg,/\n\nThank you — I'd be grateful to connect\.$/);
+ assert.equal(msg.split("\n\n").length,3);
+ for(const value of ["Abhishek Nair","ACCA member","EY","UCD","International Tax","BDO"]){
+   assert.ok(msg.includes(value),value);
+ }
+ assert.ok([...msg].length<300);
+ const long=connection.note({...ab,company:"Extraordinary International Financial Services Partnership and Management Company"},
+   {name:"Alexandrianna Reallylongsurname",team:"International Transfer Pricing and Financial Services Corporate Tax Advisory Strategy Team",title:"Director"});
+ assert.ok([...long].length<300);
+ assert.match(long,/^Hi Alexandrianna,\n\n/);
+ assert.match(long,/\n\nThank you/);
+ const pooja=connection.note({...ab,candidate:"Pooja"},{name:"Rachel Green",team:"Tax Advisory",title:"Director"});
+ assert.match(pooja,/^Hi Rachel,\n\nI'm Pooja Tirupati\./);
+ for(const unsupported of ["ACCA","EY experience","UCD MSc","Abhishek Nair"]){
+   assert.equal(pooja.includes(unsupported),false,unsupported);
+ }
+ assert.ok(pooja.includes("Tax Advisory"));
+ assert.match(frontend,/Exactly this readable format/);
+ assert.match(frontend,/EY experience, UCD MSc, ACCA member/);
+});
 test("missing API key cannot incur charge or trigger web call",async()=>{
  const j={candidate:"Abhishek",row:221,url:"https://example.org/x",company:"Big Company",role:"Financial Analyst",web:true};
  const result=await connection.research(j,"1-5","",()=>{throw Error("Should never call API")});
@@ -52,6 +76,22 @@ test("missing API key cannot incur charge or trigger web call",async()=>{
 test("Cloud Run installs authenticated research and formula routes; card actions are icons only",()=>{
  new vm.Script(ranking);new vm.Script(frontend);
  for(const word of ["/api/connections/preview","/api/connections/research","/api/repair-ranks","/api/clues/save","await authenticate(req)","dashboard-ranking.js","dashboard-connections.js"])assert.ok(server.includes(word),word);
- for(const word of ['data-action="copy-ranking"','data-action="repair-ranks"','data-action="connections"','data-action="jd-clues"','aria-label="Download CV"','aria-label="Copy post-CV prompt"','__cvConnectOnWebSaved'])assert.ok(html.includes(word),word);
+ for(const word of ['data-action="copy-ranking"','data-action="repair-ranks"','data-action="connections"','data-action="jd-clues"','aria-label="CV and cover letter files"','aria-label="Copy post-CV prompt"','__cvConnectOnWebSaved'])assert.ok(html.includes(word),word);
  assert.ok(!html.includes('Download CV</button>'));
+});
+
+test("JD opportunities eye routes are recognised by the authenticated Firebase transport",()=>{
+ const bridge=read("standalone/bridge.js");
+ // Evaluate the ACTUAL endpoint allowlist array rather than duplicating the
+ // permitted list in tests; prevent future 'Unsupported operation' regressions.
+ const whitelist=bridge.match(/if\(!(\[[^\]]+\])\.includes\(endpoint\)\)/);
+ assert.ok(whitelist,"No requestSpecial endpoint allowlist found");
+ const endpoints=JSON.parse(whitelist[1]);
+ for(const route of ["clues/preview","clues/save","connections/saved","connections/preview","connections/research","repair-ranks"]){
+   assert.ok(endpoints.includes(route),"Bridge disallows "+route);
+   assert.ok(server.includes('app.post("/api/'+route+'"'),"Cloud Run is missing /api/"+route);
+ }
+ assert.ok(!endpoints.includes("arbitrary/delete"),"Unexpected API operation allowed");
+ assert.match(frontend,/requestSpecial\("clues\/preview"/);
+ assert.match(frontend,/requestSpecial\("clues\/save"/);
 });

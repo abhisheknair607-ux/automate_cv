@@ -19,26 +19,45 @@ function suggestedSearches(results){
  return '<p class="connection-note">Free LinkedIn people searches:</p><div class="row">'+
  (results||[]).map(x=>link(x.url,x.label)).join("")+'</div>';
 }
+function savedPeopleMarkup(items){
+ const list=Array.isArray(items)?items:[];
+ if(!list.length)return '<p class="connection-note">No verified contacts are saved for this candidate and vacancy yet.</p>';
+ return list.map(c=>'<section class="connection-person"><strong>'+esc(c.name)+'</strong><small>'+esc(c.title)+'</small>'+
+   '<div class="row">'+(c.profileUrl?link(c.profileUrl,"Direct LinkedIn"):'<span class="meta">Direct LinkedIn unverified</span>')+
+   link(c.searchUrl,"LinkedIn people search")+'</div>'+
+   '<details><summary class="meta">Verification / evidence</summary><p class="connection-note">'+esc(c.evidence)+'</p></details>'+
+   '<div class="connection-message">'+esc(c.message)+'</div>'+
+   (c.message?'<button class="btn btn-xs" data-action="copy-message" data-message="'+esc(c.message)+'">Copy introduction</button>':'')+
+   '</section>').join("");
+}
 async function contacts(row,tier="1-5"){
  const j=currentJob(row);
- if(!j||!j.web){toast("Tick Web first to enable Connections.",true);return}
+ if(!j)return;
  activeJob={row,candidate:state.candidate};
- show("Connections · "+j.company,'<p class="connection-note">Checking cached research and budget…</p>');
- if(DEMO){show("Connections · "+j.company,rangeSelector(row,tier)+'<p class="connection-note">Demo: no API charges.</p>');return}
- try{
-  const p=await window.__cvStandalone.requestSpecial("connections/preview",{candidate:state.candidate,row,tier});
-  if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
-  const box='<p class="connection-note">'+esc(j.company)+' · '+esc(j.role)+'</p>'+rangeSelector(row,tier)+
-   '<p class="connection-note">Estimated research cost: <b>$'+Number(p.estimateUsd||0).toFixed(2)+'</b>. Target $0.15, maximum planned $0.20 per job. A provider-level hard spending cap cannot be guaranteed. Free when cached.</p>'+
-   '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+((p.configured&&p.permitted)||p.cached?'':'disabled')+'>'+(p.cached?"View cached research":p.configured&&p.permitted?"Research and confirm cost":"Research unavailable")+'</button>'+
-   '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT prompt (no API charge)</button></div>'+
-   '<p class="connection-note">'+esc(!p.configured?"Paid research is not configured; the free ChatGPT prompt and LinkedIn searches still work.":!p.permitted?"This tier exceeds the remaining planned $0.20 per-job budget; use a lower tier or free search.":"")+'</p>'+
-   '<p class="connection-note">'+esc(p.disclaimer)+'</p>'+
-   (p.existingContacts?.length?'<p class="connection-note"><strong>'+p.existingContacts.length+' existing contacts saved</strong> in Freshmaal.'+
-     (p.sheetUrl?' '+link(p.sheetUrl,"Open Connections sheet"):'')+'</p>':'')+
-   suggestedSearches(p.searches);
-  show("Connections · "+j.company,box);
- }catch(e){show("Connections · "+j.company,'<p class="connection-note">'+esc(e.message||"Could not load the preview.")+'</p>')}
+ show("Connections · "+j.company,'<p class="connection-note">Loading saved contacts for this vacancy…</p>');
+ if(DEMO){show("Connections · "+j.company,'<p class="connection-note">Preview: no live Sheets connection.</p>');return}
+ try {
+   // Always show existing ChatGPT or API research before offering any paid action.
+   const saved=await window.__cvStandalone.requestSpecial("connections/saved",{candidate:state.candidate,row});
+   if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
+   let body='<p class="connection-note">'+esc(j.role)+' · '+esc(state.candidate)+' · Freshmaal #'+row+'</p>'+
+     '<h4>'+saved.contacts.length+' saved contacts</h4>'+savedPeopleMarkup(saved.contacts)+
+     (saved.sheetUrl?'<div class="row">'+link(saved.sheetUrl,"View all contacts in Freshmaal")+'</div>':'');
+   if(j.web){
+     const p=await window.__cvStandalone.requestSpecial("connections/preview",{candidate:state.candidate,row,tier});
+     if(!activeJob||activeJob.row!==row||activeJob.candidate!==state.candidate)return;
+     body+='<hr class="divider"/><h4>Optional new research</h4>'+rangeSelector(row,tier)+
+       '<p class="connection-note">Estimated additional cost: $'+Number(p.estimateUsd||0).toFixed(2)+
+       '. Provider costs may vary. Existing saved contacts are free to view.</p>'+
+       '<div class="row"><button class="btn btn-primary" data-action="connect-research" data-row="'+row+'" '+
+       ((p.configured&&p.permitted)||p.cached?'':'disabled')+'>Research / view cached</button>'+
+       '<button class="btn" data-action="connect-copy-prompt" data-row="'+row+'">Copy ChatGPT research prompt</button></div>'+
+       suggestedSearches(p.searches);
+   }else{
+     body+='<p class="connection-note">Web is not checked. Saved contacts remain visible; tick Web only to request new research.</p>';
+   }
+   show("Connections · "+j.company,body);
+ }catch(e){show("Connections unavailable",'<p class="connection-note">'+esc(e.message||"Could not load saved contacts")+'</p>')}
 }
 function researchPrompt(job,tier){
  const c=window.__cvRanking?.configs?.[state.candidate];
@@ -49,7 +68,11 @@ function researchPrompt(job,tier){
  "Exact vacancy link: "+job.url,"Exact Freshmaal row: "+job.row,
  "Requested: "+tier+" contacts relevant to this job. Find managers, team leaders, department heads, recruiters, and 1–2 levels above; exclude unrelated executives.",
  "For each real person verify company, exact relevant team, up-to-date role, location and confidence. A direct LinkedIn profile only if the exact URL can be sourced and verified. Otherwise provide a LinkedIn people-search link with name, company and designation; label it unverified.",
- "Provide a personal, polite LinkedIn introduction under 300 characters based solely on the candidate's verified Summary Doc, including their name. Do not fabricate experience, claim someone is the hiring manager without evidence, or send messages.",
+ "Prepare a different warm, humble LinkedIn connection invitation for EACH verified person. Include one specific, verified detail about their team, function or current role. Do not invent their achievements, reporting lines or shared connections. Avoid overfamiliar praise.",
+ "Exactly this readable format, counting newlines within 300 characters: Hi FirstName, then TWO line breaks (one blank line); a single concise body paragraph about the candidate and recipient; TWO more line breaks; a short standalone closing such as Thank you — I'd be grateful to connect. Avoid subject headings, quotation marks, bullets and signatures.",
+ state.candidate==="Abhishek"?
+ "For Abhishek Nair's own introduction mention all three verified facts naturally: EY experience, UCD MSc, ACCA member. Humble tone: interested in connecting and learning from the recipient, never requesting a referral or claiming an application was submitted.":
+ "For Pooja, ONLY use qualifications and employers actually supported in Pooja's own Summary Doc; never copy Abhishek's EY/UCD/ACCA profile. Say you'd value connecting and learning from their experience.",
  "SAVE FINDINGS in Freshmaal spreadsheet https://docs.google.com/spreadsheets/d/1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc/edit, tab 'Connections', not Sheet1, with exact A:L headers: Company, Contact Name, Direct LinkedIn Profile, LinkedIn Search, Applied-for Role, Candidate, Freshmaal Row, Vacancy Link, Person's Position, Verification / Evidence, Outreach Message, Research Date (UTC). Create the tab only after verifying no conflicting tab exists. Save only verified direct links; leave blank when unknown. Include fallback search for every named person. De-duplicate by candidate + exact row + vacancy URL + name. Never overwrite existing CV data, scores, application status or another candidate's rows.",
  "If ChatGPT cannot edit the Google Sheet with its connected apps, clearly explain and provide an import-ready contacts table. Do not claim saved unless each write is verified. List public source URLs for all personnel claims."
  ].join("\n\n");
