@@ -14,6 +14,8 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+from .job_dedupe import identity
+
 SHEET_ID = os.getenv("TAAZA_SPREADSHEET_ID", "1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY")
 MASTER = "Jobs"
 SCOPES = ("https://www.googleapis.com/auth/spreadsheets",)
@@ -34,6 +36,19 @@ def canonical(value):
         return "https://" + domain + path + ("?" + urlencode(params) if params else "")
     except ValueError:
         return ""
+
+
+def exact_job_key(url):
+    """One exact vacancy identity across master, regional and alert tabs.
+
+    Verified LinkedIn/Indeed IDs survive cross-domain tracking links.
+    All other providers use full normalized URLs, *not* fuzzy titles,
+    ensuring distinct requisitions remain distinct.
+    """
+    kind, value = identity(url)
+    if value:
+        return kind + ":" + value
+    return canonical(url)
 
 
 def is_job_tab_header(row):
@@ -70,14 +85,15 @@ def discover_job_tabs(sheets, master=MASTER):
 
 def candidates(master_rows, regional_rows):
     """Build only genuinely new master records, with stable origin tracking."""
-    seen = {canonical(row[2]) for row in master_rows if len(row) > 2 and canonical(row[2])}
+    seen = {exact_job_key(row[2]) for row in master_rows
+            if len(row) > 2 and exact_job_key(row[2])}
     additions = []
     counts = {}
     for tab, rows in regional_rows.items():
         added = 0
         for values in rows:
             row = list(values) + [""] * max(0, 13 - len(values))
-            link = canonical(row[2])
+            link = exact_job_key(row[2])
             if not link or link in seen or not str(row[0]).strip() or not str(row[1]).strip():
                 continue
             seen.add(link)
