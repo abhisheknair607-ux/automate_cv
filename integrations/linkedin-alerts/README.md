@@ -1,39 +1,58 @@
-# LinkedIn job alerts -> Taaza -> Garamaal (staged)
+# LinkedIn job alerts -> Taaza -> Garamaal (Python integration)
 
-**Status (2026-10-26):** Code and live Taaza intake/log tabs created. **No Gmail importer trigger installed, no email imported, and no production web app or CV workflow code changed.** The source is intentionally isolated from `webapp/Code.gs`, Cloud Run, Fresh Maal, and the hourly CV worker.
+**Status:** The Python implementation is committed to the feature branch. It is NOT activated, not merged or deployed, and has not imported live mail.
 
-## Existing flow preserved
+- [Python importer](../../src/automate_cv/linkedin_alert_import.py)
+- [Python unit tests](../../tests/test_linkedin_alert_import.py)
+- [Manual GitHub Actions workflow](../../.github/workflows/linkedin-alerts-to-taaza.yml)
 
-- Previous working reference: Pooja's **Mass Apply** workbook, with `Jobs`, `Import Log`, `Config`, and `Digest Log`. The former trigger was removed; this integration does not reactivate or modify the Mass Apply workbook.
-- Existing Taaza `Jobs` regional master sync runs independently at minute 13/33/53 and picks up new source tabs by exact first three headers `Company Name`, `Designation`, `Link`.
-- Existing Garamaal Discovery reads Taaza `Jobs`. Its established manual Save JD -> Fresh Maal transfer is unchanged; nothing in this importer selects `Send to CV Sheet` or Make CV.
-- **Common Gmail mailbox:** `abhisheknair607@gmail.com`. Forward ONLY job-alert emails from `itsabhisheknnair@gmail.com` (Abhishek) and `poojaktirupati@gmail.com` (Pooja). Do not enable all-mail forwarding, and do not forward personal messages or notification emails unrelated to vacancies.
-- The 2 new live Taaza tabs are `Email Alerts` (A:P) and `Email Import Log` (A:K). They are additive and do not change the main Jobs columns.
+The original Code.gs and JavaScript parser tests in this directory are a superseded, unactivated prototype. **Do not install the Apps Script trigger.**
 
-## Setup — one-time Gmail authorisation required
+## Data flow
 
-1. In both personal Gmail accounts, verify that only mail from **jobalerts-noreply@linkedin.com** is forwarded to the common inbox, using Gmail's **Forward it to** filter for that sender. Turn off account-wide forwarding. The common mailbox must receive the original sender and ideally the original `To:` header; `To:` is used to distinguish Pooja from Abhishek, otherwise owner becomes `Unassigned`.
-2. Log into **the common mailbox** (`abhisheknair607@gmail.com`) and confirm it has **Editor** access to [Taaza Videsi Maal](https://docs.google.com/spreadsheets/d/1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY/edit). The importer's credentials must be authorised for Gmail and Google Sheets; they are **not** your GitHub CV worker OAuth credentials.
-3. From the common mailbox, open [script.google.com](https://script.google.com), create a **standalone** Apps Script project called `Garamaal LinkedIn Alerts`, and paste all of [Code.gs](Code.gs). Do not paste it into the existing Garamaal dashboard's `Code.gs`; that would mix unrelated permissions.
-4. Set project timezone to `Europe/Dublin`. Run `previewLinkedInJobAlerts` first (the two tabs have already been added to Taaza). Review **Executions > Logs** and the counts. This method does not write rows or change Gmail labels.
-5. After verifying at least one real LinkedIn digest with correct company, title, and location, run `installLinkedInAlertImporter`. Complete the Google consent flow using the **common mailbox** account. It installs only the `importLinkedInJobAlerts` 15-minute time trigger and creates `Job Alerts/Imported` / `Job Alerts/Error` labels if missing.
-6. Run `importLinkedInJobAlerts` once manually, then verify `Email Alerts!A:P` and `Email Import Log!A:K`. Each Gmail **message ID** is logged to prevent reprocessing. LinkedIn job IDs are deduplicated against existing Taaza job tabs.
-7. Verify the independent regional sync (GitHub Actions `taaza-regional-master-sync`), and check the imported job in Taaza `Jobs` and Garamaal **Discovery**. Full job descriptions remain **missing** until manually saved; new rows never trigger CV generation.
+LinkedIn job-alert digests -> Abhishek and Pooja Gmail **sender-filtered** forwarding -> shared inbox at abhisheknair607@gmail.com -> Python Gmail API (read-only) -> [Taaza Videsi Maal](https://docs.google.com/spreadsheets/d/1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY/edit), tabs **Email Alerts** and **Email Import Log** -> existing independent Taaza sync -> Garamaal Discovery.
 
-## QA and safety contract
+Existing destination tabs already exist. No importer code writes to master Jobs, Fresh Maal or the Garamaal website, fetches job descriptions, applies to jobs, generates CVs, or spends OpenAI API tokens. New intake rows have Send to CV Sheet = FALSE.
 
-- Only parse job links with `linkedin.com/(comm/)?jobs/view/<job-id>`. Ignore alerts-creation confirmations, company-logo-only links, links to generic LinkedIn searches, and unrelated senders.
-- Keep exactly one canonical URL `https://www.linkedin.com/jobs/view/<id>/` per distinct job ID. Do not append tracking tokens from email into the Sheet.
-- A: M matches existing Taaza source-tab schema; N:P stores candidate provenance, Gmail message ID, job ID. These provenance columns are **not** carried to the master by the existing sync.
-- `Email Import Log` stores one row per processed Gmail message. Partial malformed emails are tagged for review rather than inventing a role or company.
-- Importer does not enrich a full JD, scrape a protected LinkedIn page, rank roles, invoke the OpenAI API, mark any vacancy as Applied, or generate CVs.
-- Setup requires manually authorised Apps Script because the connected ChatGPT Gmail account is different from the common inbox. The file committed to GitHub is a **deployment source**, not an activated Apps Script project.
-- Disable/revert by removing only `importLinkedInJobAlerts` from **Apps Script > Triggers**. No existing Garamaal app change is involved.
+## One-time Gmail OAuth authorization
 
-## Testing
+1. Keep **general forwarding disabled** on Abhishek and Pooja mailboxes. Each personal mailbox must have a Gmail filter forwarding *only* jobalerts-noreply@linkedin.com to the shared inbox. Verify an actual new job digest reaches the shared inbox; confirmations that a job alert was *created* do not count.
+2. Enable the **Gmail API** in a Google Cloud project you control. Configure an OAuth client for the **personal shared Gmail account**. Gmail authorization requires that account's refresh token; an existing GitHub Workload Identity service account cannot read an ordinary personal @gmail.com inbox.
+3. To obtain a shared-inbox refresh token you can use [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/). Select *Use your own OAuth credentials* in the Playground settings, create a matching OAuth web client with redirect URI https://developers.google.com/oauthplayground, sign in as **abhisheknair607@gmail.com**, authorize **https://www.googleapis.com/auth/gmail.readonly** only, and exchange the code for a refresh token. Gmail readonly is a restricted scope; observe Google's consent and verification rules. External apps in *Testing* can issue refresh tokens that expire after seven days, so plan for a valid ongoing configuration before enabling automation.
+4. Add these as **new GitHub Actions Secrets** in repository Settings -> Secrets and variables -> Actions:
+   - LINKEDIN_GMAIL_CLIENT_ID
+   - LINKEDIN_GMAIL_CLIENT_SECRET
+   - LINKEDIN_GMAIL_REFRESH_TOKEN
 
-Run `node --test integrations/linkedin-alerts/parse.test.cjs` from the repository root. The tests cover job-anchor selection, normalization, malformed anchors, sender checks, and candidate attribution.
+   **Never** commit a token or share credentials in a message. Do **not** overwrite the CV worker's GOOGLE_OAUTH_* secrets. For Sheets writing, the importer reuses the existing Taaza-sync Workload Identity flow and its optional Sheets OAuth fallback. That credential must have Editor access to Taaza.
 
-## Initial rollout note
+## Running
 
-Some LinkedIn digest formats vary. A real incoming email with an uncommon HTML layout may end up in `Job Alerts/Error` with no job row, rather than being misparsed. Review these manually before widening parsing rules. Live end-to-end Gmail and Apps Script execution cannot be completed without authorising the common Gmail account.
+Before writing, run a **preview** and verify candidate ownership, especially on forwarded emails. From the repo root with the Google Python dependencies installed and credentials available:
+
+    python -m src.automate_cv.linkedin_alert_import
+
+Apply only after validating the preview and original candidate:
+
+    python -m src.automate_cv.linkedin_alert_import --apply
+
+Retry messages in Review after fixing classification:
+
+    python -m src.automate_cv.linkedin_alert_import --apply --retry-review
+
+Alternatively, **after the feature branch is reviewed and merged into main**, navigate to Actions -> linkedin-alerts-to-taaza -> Run workflow. The default is a read-only preview; tick **apply** to write. The GitHub workflow is **manual-only**: it does not automatically schedule jobs until a separate decision to enable one.
+
+After applying, inspect **Email Alerts!A:P** and **Email Import Log!A:K**. The existing regional sync mirrors new jobs to master Jobs independently (minute 13,33,53). The full JD remains unavailable until the normal JD save process.
+
+Run non-network tests:
+
+    PYTHONPATH=src pytest -q tests/test_linkedin_alert_import.py
+
+## Safety and limitations
+
+- Verify RFC822 sender exactly, and accept only proper LinkedIn /jobs/view/<numeric-id> URLs. Deduplicate against all source tabs in the Taaza workbook, including the master.
+- Candidate owner must be identified from original To, forwarding headers, or forwarded-message To; otherwise the message is logged for **Review** and **not imported**. Gmail forwarding often changes headers, so test a real forwarded Pooja and Abhishek digest before applying.
+- Messages with uncertain job links or no valid job cards are reviewed, not turned into fake rows. Created-alert confirmations are skipped even when they contain embedded example jobs.
+- The importer logs Gmail message IDs to prevent repeat processing; reviewed messages require explicit retry. Gmail access is **read-only**: no mail deletion, forwarding, labelling, or changes to the sender filters.
+- Taaza's master Jobs deduplicates by LinkedIn job URL, **not** by candidate. Although Email Alerts preserves Alert Owner, master Jobs does not currently carry this provenance. Do not assume the shared master has candidate-specific isolation.
+- A verified end-to-end Gmail read/write test remains necessary after the common inbox is authorized; synthetic tests alone do not prove every LinkedIn HTML template will parse.
