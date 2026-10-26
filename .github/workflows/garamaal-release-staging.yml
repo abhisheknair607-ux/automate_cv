@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: 6fb6752e3ba4f209ad8cb73df5a76dbef8dc2c4b
+      RELEASE_SHA: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: 6fb6752e3ba4f209ad8cb73df5a76dbef8dc2c4b
+          ref: 5dade3ec6bdbe12d37c889e00f3a775547ad8be6
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -44,14 +44,15 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git -C release-src rev-parse HEAD)" = "$RELEASE_SHA"
-          test "$(git -C release-src rev-parse HEAD:webapp)" = "60450ccb7ce301260a7f70d2ad096344e58440fb" || { echo "Production Jobs webapp changed, abort"; exit 1; }
-          test "$(git -C release-src rev-parse HEAD:src)" = "75e2b3547210e9984adbf58118c787295c61aae7" || { echo "CV worker source changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:garamaal-release-webapp)" = "60450ccb7ce301260a7f70d2ad096344e58440fb" || { echo "Tested standalone source snapshot changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:webapp)" = "c411474e8afc97eb5c254d2ca070c9ba04733bf2" || { echo "Existing main Jobs webapp changed, abort"; exit 1; }
+          test "$(git -C release-src rev-parse HEAD:src)" = "b9dc561b57da497ab9292974a3d1a1e61e6937c5" || { echo "CV worker source changed, abort"; exit 1; }
           node --check release-src/standalone/server.js
           node --check release-src/standalone/runtime.js
           node --check release-src/standalone/mobile_jobs_swipe.js
           node --check release-src/standalone/mobile_jobs_filters_stats.js
           cd release-src
-          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js standalone/test/stage13_live_bulk.test.js standalone/test/stage14_location_filters.test.js standalone/test/stage15_multifacet.test.js
+          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js standalone/test/stage13_live_bulk.test.js standalone/test/stage14_location_filters.test.js standalone/test/stage15_multifacet.test.js standalone/test/stage17_production_gate.test.js
           cd ..
           python3 - <<'PY'
           import json
@@ -133,7 +134,7 @@ jobs:
             'FIREBASE_WEB_API_KEY':cfg['apiKey'],'FIREBASE_AUTH_DOMAIN':cfg['authDomain'],'FIREBASE_WEB_APP_ID':cfg['appId'],
             'TAAZA_SPREADSHEET_ID':j.get('TAAZA_SPREADSHEET_ID',''),
             'FRESHMAL_SPREADSHEET_ID':j.get('FRESHMAL_SPREADSHEET_ID',''),
-            'APP_READ_ONLY':'true','APP_ALLOW_PRODUCTION_WRITES':'false','ALLOW_MANUAL_CV_DISPATCH':'false'}
+            'APP_READ_ONLY':'true','APP_ALLOW_PRODUCTION_WRITES':'false','ALLOW_MANUAL_CV_DISPATCH':'false','GARAMAAL_UI_V3':'true'}
           assert all(preview.values()),'Missing staging configuration; no fallback credentials'
           with open('/tmp/release-preview-env.json','w') as file:json.dump(preview,file)
           print('BASELINE_CAPTURED',baseline['productionJobs']['latestReadyRevisionName'],flush=True)
@@ -144,7 +145,7 @@ jobs:
           set -euo pipefail
           gcloud auth configure-docker gcr.io --quiet
           IMAGE="gcr.io/$PROJECT/$STAGING_JOBS:$RELEASE_SHA"
-          docker build -f release-src/Dockerfile.standalone -t "$IMAGE" release-src
+          docker build -f release-src/Dockerfile.garamaal-ui -t "$IMAGE" release-src
           docker push "$IMAGE"
       - name: Deploy separate Cloud Run service, read-only and min instances zero
         shell: bash
@@ -212,7 +213,7 @@ jobs:
               if err:raise SystemExit('RELEASE_QA_SMOKE_FAILED '+suffix+': '+str(err))
           with urllib.request.urlopen(root+'/',timeout=25) as response:
               html=response.read()
-              assert b'gmv3-launch' not in html,'Default home route unexpectedly replaced'
+              assert b'gmv3-launch' in html,'Enabled homepage did not show approved collage launcher'
           print('RELEASE_QA_URL: '+root+'/prototype',flush=True)
           open('release-audit/release-qa-url.txt','w').write(root+'/prototype\n')
           with open(os.environ['GITHUB_ENV'],'a') as f:f.write('GARAMAAL_QA_URL='+root+'/prototype\n')
