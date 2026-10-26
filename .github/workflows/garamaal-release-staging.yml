@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: 311c6a8c0f3ce3fc97450282a94636811bfc7a16
+      RELEASE_SHA: a6b07d731316e4231d7e946878989ecfc3acd272
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: 311c6a8c0f3ce3fc97450282a94636811bfc7a16
+          ref: a6b07d731316e4231d7e946878989ecfc3acd272
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -51,7 +51,7 @@ jobs:
           node --check release-src/standalone/mobile_jobs_swipe.js
           node --check release-src/standalone/mobile_jobs_filters_stats.js
           cd release-src
-          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js standalone/test/stage13_live_bulk.test.js
+          node --test standalone/test/parity.test.js standalone/test/tactile_hold_state.test.js standalone/test/stage3_candidate_progress.test.js standalone/test/stage3_ribbon_drawer.test.js standalone/test/stage13_live_bulk.test.js standalone/test/stage14_location_filters.test.js
           cd ..
           python3 - <<'PY'
           import json
@@ -183,6 +183,11 @@ jobs:
            ('/prototype',b'garamaal-header-controls'),
            ('/prototype',b'/prototype/ui-polish.js?v=m26-neon-held-13'),
            ('/prototype/ui-polish.js?v=m26-neon-held-13',b'Select visible'),
+           ('/prototype',b'/prototype/location-variants.js?v=m26-location-14'),
+           ('/prototype',b'gmv3-location-picker'),
+           ('/prototype/location-variants.js?v=m26-location-14',b'GaramaalLocationVariants'),
+           ('/prototype/filters-stats.js?v=m26-location-14',b'Choose locations'),
+           ('/prototype/collage.css?v=m26-location-14',b'Stage 14'),
            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 13: minimal LIVE'),
            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 12: sustained neon halo'),
            ('/prototype/tactile-feedback.js?v=m26-neon-held-12',b'gmv3-tactile-held'),
