@@ -1,0 +1,27 @@
+/* A six-item theme nav keeps the newer Verify Contacts route accessible. */
+body.gmv3-social-workspace #gmv3-social-tabs{
+  display:flex!important;align-items:center!important;
+  justify-content:space-around!important;gap:1px!important;
+  overflow-x:auto!important;overscroll-behavior-x:contain;
+  scrollbar-width:none;-webkit-overflow-scrolling:touch;
+}
+body.gmv3-social-workspace #gmv3-social-tabs::-webkit-scrollbar{display:none}
+body.gmv3-social-workspace #gmv3-social-tabs button{
+  min-width:49px!important;flex:1 0 49px!important;
+  padding-left:1px!important;padding-right:1px!important;
+  touch-action:manipulation;
+}
+body.gmv3-social-workspace #gmv3-social-tabs button[aria-label="Verify"] .gmv3-tabicon{
+  background-image:none!important;color:#dfff58!important;
+  font-size:26px!important;filter:none!important;
+}
+body.gmv3-social-workspace #gmv3-social-tabs button[aria-label="Verify"] .gmv3-tabicon::before{
+  content:"✓";color:#dfff58;font:900 25px/1 system-ui;
+}
+body.gmv3-social-workspace #gmv3-social-tabs button[aria-label="Verify"] .gmv3-tabicon{
+  font-size:0!important;display:grid!important;place-items:center!important;
+}
+body.gmv3-social-workspace :is(input,textarea,select){max-width:100%}
+@media(max-width:420px){
+ body.gmv3-social-workspace #gmv3-social-tabs button{min-width:47px!important}
+}
