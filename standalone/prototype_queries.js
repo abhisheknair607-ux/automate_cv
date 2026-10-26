@@ -19,15 +19,32 @@ function gmFacetFunction_(role){
  if(/account|bookkeep|financial control/.test(r))return "Accounting & Control";
  return "Other / Unclassified";
 }
+function gmProgressCells_(){
+ // Read the existing Freshmaal application-progress columns BE/BF.  This is
+ // a bounded, read-only 30-second projection shared across the candidate views.
+ return dashboardReadCache_('gm-application-progress-v1',()=>{
+  const sh=sheet_('fresh');
+  const count=Math.max(0,Math.min(sh.getMaxRows(),SETTINGS.maxFreshRow)-2);
+  return count?sh.getRange(3,57,count,2).getValues():[];
+ },30);
+}
+function gmProgressValue_(row,candidate,fallbackStatus,cells){
+ const column=candidate==='Pooja'?1:0;
+ const raw=String((cells[row-3]||[])[column]||'').trim();
+ if(['Unapplied','Applied','Applied + Connected'].includes(raw))return raw;
+ return String(fallbackStatus||'').trim().toLowerCase()==='applied'?'Applied':'Unapplied';
+}
 function gmCandidateRows_(source,candidate){
  const jobs=source==="fresh"?freshRows_():taazaRows_();
  if(source==="fresh"){
+  const progressCells=gmProgressCells_();
   const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
   return jobs.map(x=>{
    const item=x.person[candidate];
    const preference=effectivePreference_(item.preference,prefs.get(canonical_(x.url)));
    return {...x,...item,preference,favorite:preference==="Favorite",
-     notInterested:preference==="Not Interested",department:gmFacetFunction_(x.role)};
+     notInterested:preference==="Not Interested",department:gmFacetFunction_(x.role),
+     progress:gmProgressValue_(x.row,candidate,item.status,progressCells)};
   }).map(x=>{delete x.person;return x});
  }
  const other=freshRows_();
@@ -42,7 +59,9 @@ function gmCandidateRows_(source,candidate){
 }
 function gmPipelineStats(candidate){
  authorise_();candidate=String(candidate||"");person_(candidate);
- const taaza=taazaRows_(), fresh=freshRows_(),own=fresh.map(x=>x.person[candidate]);
+ const taaza=taazaRows_(), fresh=freshRows_(), cells=gmProgressCells_(),
+       own=fresh.map(x=>({...x.person[candidate],
+         progress:gmProgressValue_(x.row,candidate,x.person[candidate].status,cells)}));
  const prepared=own.filter(x=>!!String(x.cvLink||"").trim());
  const applied=own.filter(x=>["Applied","Applied + Connected"].includes(x.progress));
  return {
