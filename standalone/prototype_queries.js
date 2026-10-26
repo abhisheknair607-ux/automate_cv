@@ -119,9 +119,10 @@ function gmListJobsFaceted(options){
   else if(status==="possible-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Possible");
   else if(status!=="all-including-duplicates")rows=rows.filter(j=>j.duplicateStatus!=="Dup");
  }
+ const duplicateView=source==="taaza"&&["duplicates","possible-duplicates","confirmed-duplicates"].includes(status);
  if(status==="not-interested")rows=rows.filter(x=>x.notInterested);
  else if(status==="favorites")rows=rows.filter(x=>x.favorite);
- else rows=rows.filter(x=>!x.notInterested);
+ else if(!duplicateView&&status!=="all-including-duplicates")rows=rows.filter(x=>!x.notInterested);
  if(status==="missing"&&source==="taaza")rows=rows.filter(x=>!x.jdReady);
  if(status==="ready"&&source==="taaza")rows=rows.filter(x=>x.jdReady);
  if(status==="selected"&&source==="fresh")rows=rows.filter(x=>x.selected);
@@ -166,7 +167,7 @@ function gmListJobsFaceted(options){
   const old=text(short(facet[field]));
   if(old)rows=rows.filter(x=>text(x[key]).includes(old));
  }
- if(sort==="duplicate-group"&&source==="taaza")rows.sort((a,b)=>
+ if(source==="taaza"&&(sort==="duplicate-group"||(duplicateView&&sort==="newest")))rows.sort((a,b)=>
    String(a.company||"").localeCompare(String(b.company||""))||
    String(a.role||"").localeCompare(String(b.role||""))||a.row-b.row);
  else if(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
