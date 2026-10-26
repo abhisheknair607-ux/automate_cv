@@ -190,22 +190,38 @@
   loading=false;
   if(active&&ticket===epoch)render();
  }
- function finishSwipe(kind){
-  if(!current||interactionBusy)return;
+ async function finishSwipe(kind){
+  if(!current||interactionBusy||panelOpen)return;
+  const item=current,ticket=epoch;
   interactionBusy=true;
-  const item=current;
-  const node=card;
-  if(node){
-   node.classList.add("gmv3-dismiss-"+kind);
+  try{
+   if(kind==="left"){
+    // The existing sheet-backed candidate preference API verifies row identity
+    // and mirrors matching vacancy URLs across both candidate-specific tabs.
+    await liveRequest("setJobPreference",{
+      source:item.source,candidate,row:item.row,value:"Not Interested",expected:expected(item)
+    });
+    if(!active||ticket!==epoch||current!==item)return;
+    item.preference="Not Interested";item.notInterested=true;
+    save(item,{rejected:true});
+   } else if(kind==="down"){
+    // Later is queue rotation, not a destructive Sheet preference.
+    later.push(item);
+   } else return;
+   const node=card;
+   if(node)node.classList.add("gmv3-dismiss-"+kind);
+   const done=()=>{
+    if(!active||ticket!==epoch||current!==item)return;
+    current=null;interactionBusy=false;expanded=false;
+    render();
+   };
+   if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)done();
+   else setTimeout(done,180);
+  }catch(error){
+   interactionBusy=false;
+   showNotice(error.message||"Could not save this Swipe decision. Try again.");
+   if(card){card.style.transform="";delete card.dataset.swiping;}
   }
-  const done=()=>{
-   if(!active||current!==item)return;
-   if(kind==="left")save(item,{rejected:true});
-   else if(kind==="down")later.push(item);
-   current=null;interactionBusy=false;expanded=false;
-   render();
-  };
-  if(window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches)done();else setTimeout(done,180);
  }
  function openOptions(){
   if(!current||panelOpen||interactionBusy)return;
@@ -245,35 +261,52 @@
   const stage=surface?.querySelector("#gmv3-card-stage");
   if(stage)stage.insertAdjacentHTML("beforeend",'<p role="status" class="gmv3-swipe-toast">'+clean(message)+'</p>');
  }
- function act(action){
-  const job=current;if(!job)return;
+ async function act(action){
+  const job=current;
   if(action==="close"){closeOptions();return}
+  if(!job||interactionBusy)return;
   if(action==="jd"){closeOptions();showDetails();return}
   if(action==="later"){closeOptions();finishSwipe("down");return}
-  if(action==="interest"){
-   save(job,{interested:true});closeOptions();park(job);return
-  }
-  if(action==="transfer"){
-   save(job,{interested:true,transferDrafted:true});
-   closeOptions();park(job);return
-  }
-  if(action==="cv"){
-   if(job.cvLink){closeOptions();showNotice("Your CV is already saved. Swipe right to mark the application.");return}
-   save(job,{interested:true,cvDrafted:true});closeOptions();
-   park(job);return
-  }
-  if(action==="applied"){
-   save(job,{progress:"Applied"});closeOptions();park(job);return
-  }
-  if(action==="unapplied"){
-   save(job,{progress:"Unapplied"});closeOptions();park(job);return
-  }
-  if(action==="connected"){
-   save(job,{progress:"Applied + Connected",connected:true});closeOptions();
-   current=null;expanded=false;render();return
-  }
-  if(action==="not-connected"){
-   save(job,{progress:"Applied",connected:false});closeOptions();park(job);
+  if(!["interest","transfer","cv","applied","unapplied","connected","not-connected"].includes(action))return;
+  interactionBusy=true;
+  const ticket=epoch;
+  const actions=surface?.querySelectorAll("[data-gs-option]");
+  actions?.forEach(b=>b.disabled=true);
+  try{
+   const base={candidate,row:job.row,expected:expected(job)};
+   if(action==="interest"){
+    await liveRequest("setJobPreference",{...base,source:job.source,value:"Favorite"});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.favorite=true;job.notInterested=false;
+    save(job,{interested:true,rejected:false});
+   }else if(action==="transfer"){
+    if(job.source!=="taaza"||!job.jdReady)throw Error("Save the complete JD in Discovery before transferring.");
+    await liveRequest("transferJob",{row:job.row,expected:expected(job)});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.transferred=true;save(job,{interested:true});
+   }else if(action==="cv"){
+    if(job.source!=="fresh")throw Error("Prepare the complete JD in Discovery before making a CV.");
+    await liveRequest("updateFreshControl",{...base,field:"cv",value:true});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.cv=true;save(job,{interested:true,cvDrafted:true});
+   }else{
+    if(job.source!=="fresh")throw Error("Application progress is only available in Make CV.");
+    const progress=action==="connected"?"Applied + Connected":
+      action==="not-connected"||action==="applied"?"Applied":"Unapplied";
+    await liveRequest("updateApplicationProgress",{...base,progress});
+    if(ticket!==epoch||current!==job||!active)return;
+    job.progress=progress;save(job,{progress,connected:progress==="Applied + Connected"});
+   }
+   closeOptions();
+   if(action==="connected"){current=null;interactionBusy=false;expanded=false;render();}
+   else {interactionBusy=false;park(job);}
+  }catch(error){
+   interactionBusy=false;
+   actions?.forEach(b=>{if(b.isConnected)b.disabled=false});
+   const place=surface?.querySelector(".gmv3-choice-sheet");
+   if(place){const old=place.querySelector(".gmv3-choice-error");old?.remove();
+    place.insertAdjacentHTML("beforeend",'<p class="gmv3-choice-error" role="alert">'+clean(error.message||"Could not save. Please retry.")+'</p>');
+   }else showNotice(error.message||"Could not save. Please retry.");
   }
  }
  async function showDetails(){
@@ -366,6 +399,9 @@
   const action=el.getAttribute("data-gs-option");
   if(action){act(action);return}
   const command=el.getAttribute("data-gs");
+  if(command==="reject"){finishSwipe("left");return}
+  if(command==="later"){finishSwipe("down");return}
+  if(command==="next"){openOptions();return}
   if(command==="card"){
     if(panelOpen||interactionBusy||Date.now()<suppressCardClickUntil)return;
     expanded=!expanded;render();card?.focus();return;
@@ -373,11 +409,7 @@
   if(command==="toggle"){expanded=!expanded;render();card?.focus();return}
   if(command==="jd"){showDetails();return}
   if(command==="refresh"){open(surface);return}
-  if(command==="reset"){
-   if(!window.confirm("Clear "+candidate+"'s browser-only swipe test decisions? No Sheets data will change."))return;
-   try{localStorage.removeItem(storageKey(candidate))}catch(_){}
-   open(surface);
-  }
+  if(command==="reset"){open(surface);return;}
  }
  function open(target){
   surface=target||surface;if(!surface)return;
