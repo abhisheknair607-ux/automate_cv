@@ -133,6 +133,20 @@ def trim_location(value: str) -> str:
     return value[:180].strip()
 
 
+def plausible_title(title: str) -> bool:
+    """Reject email boilerplate mistakenly extracted as job titles."""
+    title = str(title or "").strip()
+    if len(title) < 3 or len(title) > 250:
+        return False
+    if re.fullmatch(r"[-–—_=*#•.\s]+", title):
+        return False
+    if re.search(r"^(?:\d+\s+)?(?:new\s+)?jobs?\s+matches?\b", title, re.I):
+        return False
+    if re.search(r"^(?:your\s+job\s+alert|view\s+job|see\s+(?:all\s+)?jobs)\b", title, re.I):
+        return False
+    return True
+
+
 def parse_job_text(id_: str, content: str) -> Job | None:
     lines = clean_lines(content)
     if len(lines) < 2:
@@ -144,9 +158,8 @@ def parse_job_text(id_: str, content: str) -> Job | None:
     title = lines[0].strip()
     company, location = (s.strip() for s in lines[detail].split("·", 1))
     location = trim_location(location)
-    if (not title or not company or title.casefold() == company.casefold()
-            or len(title) > 250 or len(company) > 200
-            or title.lower() in {"view job", "see jobs", "jobs"}):
+    if (not plausible_title(title) or not company or title.casefold() == company.casefold()
+            or len(company) > 200):
         return None
     return Job(id_, title, company, location)
 
@@ -200,8 +213,8 @@ def parse_jobs(html_body: str, plain_body: str = "") -> tuple[list[Job], bool]:
             if len(section) < 3:
                 continue
             title, company, location = section[:3]
-            if (title and company and title != company and len(title) <= 250
-                    and len(company) <= 200 and not title.lower().startswith("your job alert")):
+            if (plausible_title(title) and company and title != company
+                    and len(company) <= 200):
                 best[id_] = (0, Job(id_, title, company, trim_location(location)))
     suspicious = bool(seen_ids - best.keys())
     return [pair[1] for pair in best.values()], suspicious
