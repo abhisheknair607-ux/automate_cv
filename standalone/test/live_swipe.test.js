@@ -46,7 +46,7 @@ test("three formerly decorative directions are genuine accessible buttons",()=>{
  assert.doesNotMatch(swipe,/Browser-only QA|Preview only — choices|localStorage/);
 });
 
-test("Swipe data actions are authenticated, candidate-scoped and have no paid CV dispatch",()=>{
+test("Swipe actions remain candidate-scoped; paid dispatch uses the existing guarded controller",()=>{
  assert.match(server,/app\.post\("\/api\/swipe\/:method"/);
  assert.match(server,/await authenticate\(req\)/);
  assert.match(server,/SWIPE_METHODS\.has\(method\)/);
@@ -59,7 +59,9 @@ test("Swipe data actions are authenticated, candidate-scoped and have no paid CV
  assert.match(swipe,/field:"cv",value:true/);
  assert.match(swipe,/liveRequest\("updateApplicationProgress"/);
  assert.match(swipe,/expected:expected\(job\)/);
- assert.doesNotMatch(swipe,/runCvApiNow|paid.*dispatch/);
+ assert.match(swipe,/window\.confirm\(/);
+ assert.match(swipe,/run\("runCvApiNow",\{\.\.\.base,confirm:true\}\)/);
+ assert.doesNotMatch(swipe,/liveRequest\("runCvApiNow"/);
  assert.equal(SWIPE_METHODS.has("runCvApiNow"),false);
  assert.equal(SWIPE_METHODS.has("bulkTransfer"),false);
  assert.equal(SWIPE_METHODS.has("setJobPreference"),true);

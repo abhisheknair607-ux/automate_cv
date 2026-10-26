@@ -1347,3 +1347,32 @@ body.gmv3-jobs-workspace #selectionBarMount .gmv3-clear-selected{
   width:19px!important;height:19px!important;
  }
 }
+
+/* Jobs Swipe — complete, candidate-specific Make CV control sheet. */
+#gmv3-jobs-swipe .gmv3-cv-settings{min-width:0;margin:14px 0 12px;
+ padding:12px;border:1px solid #78648a;border-radius:13px;background:#312837}
+#gmv3-jobs-swipe .gmv3-cv-settings legend{font:900 13px "Bricolage Grotesque",system-ui;
+ color:#dfff58;padding:0 5px}
+#gmv3-jobs-swipe .gmv3-cv-checks{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));
+ gap:7px;margin:5px 0 13px}
+#gmv3-jobs-swipe .gmv3-cv-checkbox{display:flex;gap:7px;align-items:center;
+ min-width:0;cursor:pointer;background:#40364a;border:1px solid #796786;
+ color:#fff7e9;border-radius:9px;padding:10px 7px;font:750 11px/1.35 system-ui}
+#gmv3-jobs-swipe .gmv3-cv-checkbox input{flex:none;width:18px;height:18px;
+ accent-color:#dfff58;cursor:pointer}
+#gmv3-jobs-swipe .gmv3-cv-tiers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px}
+#gmv3-jobs-swipe .gmv3-cv-tiers label{min-width:0;color:#e9dfea;
+ font:800 12px/1.5 system-ui}
+#gmv3-jobs-swipe .gmv3-cv-tiers select{display:block;min-width:0;width:100%;
+ min-height:44px;margin-top:5px;padding:10px;border:1px solid #a88ab8;
+ border-radius:10px;background:#201a26;color:#fff7e9;font:750 13px system-ui}
+#gmv3-jobs-swipe .gmv3-cv-commands{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+#gmv3-jobs-swipe .gmv3-cv-commands button{min-height:46px;border-radius:10px;
+ border:1px solid #141017;background:#d493ef;color:#16121a;
+ font:900 12px "Bricolage Grotesque",system-ui}
+#gmv3-jobs-swipe .gmv3-cv-commands [data-gs-option="run-cv-now"]{background:#dfff58}
+#gmv3-jobs-swipe .gmv3-cv-commands button:disabled{opacity:.5;cursor:not-allowed}
+#gmv3-jobs-swipe .gmv3-choice-live{font:750 11px/1.5 system-ui;color:#dfff58;
+ padding:8px 2px;overflow-wrap:anywhere}
+@media(max-width:410px){#gmv3-jobs-swipe .gmv3-cv-checks{grid-template-columns:1fr}
+ #gmv3-jobs-swipe .gmv3-cv-checkbox{min-height:37px;padding:8px 10px}}
