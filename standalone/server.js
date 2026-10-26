@@ -159,6 +159,26 @@ app.get("/prototype",(req,res)=>{
      !html.includes("<script>\n'use strict';")){
     return res.status(500).type("text/plain").send("Prototype source marker missing");
   }
+  // Restore approved Stage 6 header only on the isolated /prototype page.
+  // The release baseline has an older header. Keep every native action ID and
+  // listener, along with the original GET / route, entirely unchanged.
+  const legacyHeader=html.match(/<header class="topbar">[^]*?<\/header>/g);
+  if(!legacyHeader||legacyHeader.length!==1||
+     !legacyHeader[0].includes('id="candidateToggle"')||
+     !legacyHeader[0].includes('id="modeBadge"')||
+     !legacyHeader[0].includes('id="expenseToggle"')){
+    return res.status(500).type("text/plain").send("Prototype header marker missing");
+  }
+  const modernHeader='<header class="topbar garamaal-unified-header">'+
+    '<div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div>'+
+    '<div class="top-actions garamaal-header-controls">'+
+    '<div id="candidateToggle" class="switch" aria-label="Candidate workspace"></div>'+
+    '<button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button>'+
+    '<a id="jobHeaderLink" class="btn garamaal-job-head-link active" href="/prototype" aria-current="page" title="Jobs">Job</a>'+
+    '<a id="socialHeaderLink" href="/social?gmv3=1" class="btn garamaal-social-head-link" aria-label="Open Social Networking Hub" title="Social Networking Hub">Social</a>'+
+    '<span id="modeBadge" class="demo garamaal-header-status" role="status" aria-live="polite" title="Google Sheets connection status">PREVIEW</span>'+
+    '<div id="avatar" class="avatar">A</div></div></header>';
+  html=html.replace(legacyHeader[0],modernHeader);
   // Use the same backend bridge and dashboard feature modules as GET /.
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
