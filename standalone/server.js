@@ -16,6 +16,8 @@ const {jdClues}=require("./job_clues");
 const clueStore=require("./clue_store");
 const contactsStore=require("./contacts_store");
 const {repairRankFormulas}=require("./rank_formulas");
+const duplicateStatus=require("./duplicate_status");
+const alertWorkflows=require("./alert_workflows");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -384,6 +386,73 @@ app.post("/api/connections/research",async(req,res)=>{
     saveWarning:persistenceError}});
  }catch(e){console.error("[connections]",String(e.message||"").slice(0,180));
    res.status(e.httpCode||500).json({error:String(e.message||"Connections search failed").slice(0,260)})}
+});
+// Only manual duplicate-status Q updates: disabled unless explicitly approved.
+// The existing CV / ranking / Social flows do not share this write gate.
+const dupInFlight=new Set();
+app.post("/api/duplicates/mark",async(req,res)=>{
+ let lock=null;
+ try{
+  await authenticate(req);
+  if(READ_ONLY||process.env.ALLOW_DUP_STATUS_WRITES!=="true")
+   throw Object.assign(Error("Duplicate marking is staged and not enabled."),{httpCode:403});
+  const prepared=duplicateStatus.validate(req.body||{});
+  lock=String(prepared.row);
+  if(dupInFlight.has(lock))throw Object.assign(Error("Duplicate status is being updated; retry."),{httpCode:409});
+  dupInFlight.add(lock);
+  const client=await auth.getClient();
+  const result=await client.getAccessToken();
+  const token=typeof result==="string"?result:result.token;
+  if(!token)throw Object.assign(Error("Google Sheets identity unavailable"),{httpCode:503});
+  const data=await duplicateStatus.markDuplicate({token,spreadsheetId:IDS.taaza,payload:req.body});
+  res.json({data});
+ }catch(error){
+  res.status(error.httpCode||500).json({error:String(error.message||"Duplicate status update failed").slice(0,240)});
+ }finally{
+  if(lock)dupInFlight.delete(lock);
+ }
+});
+// Manual Python workflows on GitHub, never paid OpenAI. Read-only is the
+// default; write operations are doubly protected by a server-side gate and
+// by GARAMAAL_ALERT_IMPORT_APPROVED in the Actions repository variables.
+const alertRequests=new Map();
+app.post("/api/alerts/run",async(req,res)=>{
+ let action="";
+ try{
+  await authenticate(req);
+  const kind=String(req.body?.kind||"");
+  if(!["preview","dedupe","apply"].includes(kind))
+   throw Object.assign(Error("Unsupported alert operation"),{httpCode:400});
+  const cooldown=alertRequests.get(kind)||0;
+  if(Date.now()-cooldown<60000)
+   throw Object.assign(Error("Workflow was recently started. Check Last Run Status."),{httpCode:409});
+  const flags={
+   dispatchAllowed:process.env.ALLOW_ALERT_WORKFLOW_DISPATCH==="true",
+   applyAllowed:process.env.GARAMAAL_ALERT_IMPORT_APPROVED==="true",
+   token:process.env.GITHUB_WORKFLOW_TOKEN||""
+  };
+  action=kind;
+  const data=await alertWorkflows.dispatch({kind,date:req.body?.date,token:flags.token,
+   dispatchAllowed:flags.dispatchAllowed,applyAllowed:flags.applyAllowed});
+  alertRequests.set(kind,Date.now());
+  res.json({data});
+ }catch(error){
+  res.status(error.httpCode||503).json({error:String(error.message||"Workflow failed").slice(0,240)});
+ }
+});
+app.post("/api/alerts/status",async(req,res)=>{
+ try{
+  await authenticate(req);
+  const token=process.env.GITHUB_WORKFLOW_TOKEN||"";
+  const flags=alertWorkflows.available({
+   token,dispatchAllowed:process.env.ALLOW_ALERT_WORKFLOW_DISPATCH==="true",
+   applyAllowed:process.env.GARAMAAL_ALERT_IMPORT_APPROVED==="true"
+  });
+  const runs=token?await alertWorkflows.latest({token}):{};
+  res.json({data:{...flags,runs}});
+ }catch(error){
+  res.status(error.httpCode||503).json({error:String(error.message||"Workflow status unavailable").slice(0,240)});
+ }
 });
 app.post("/api/:method",async (req,res)=>{
   try {

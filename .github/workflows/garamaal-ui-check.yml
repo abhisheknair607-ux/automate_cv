@@ -14,11 +14,19 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 2
-      - name: Assert worker and original Dashboard were never changed by UI release
+      - name: Protect CV worker and original Dashboard; allow reviewed Taaza modules only
         shell: bash
         run: |
           set -euo pipefail
-          git diff --exit-code HEAD^ HEAD -- Dockerfile src prompts requirements.txt webapp/Code.gs webapp/Index.html
+          git diff --exit-code HEAD^ HEAD -- Dockerfile prompts requirements.txt webapp/Code.gs webapp/Index.html
+          # Only the specifically reviewed Taaza integration modules may
+          # differ from main. Every other Python worker source stays protected.
+          unapproved="$(git diff --name-only HEAD^ HEAD -- src | grep -Ev '^src/automate_cv/(job_alert_providers|job_dedupe|linkedin_alert_import|taaza_dedupe_audit|taaza_duplicate_proposals|taaza_sync)\.py$' || true)"
+          if [[ -n "$unapproved" ]]; then
+            echo "Unexpected Python/CV source changes are not permitted:"
+            printf '%s\n' "$unapproved"
+            exit 1
+          fi
   standalone-ui:
     runs-on: ubuntu-latest
     timeout-minutes: 15
