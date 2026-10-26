@@ -98,7 +98,8 @@ URL="${TAG_DATA[1]:-}"
  { echo "Canary URL or revision missing" >&2; exit 2; }
 curl -fsSL --max-time 30 "$URL/health" | python3 -c \
   'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and x.get("readOnly") is False'
-curl -fsSL --max-time 30 "$URL/prototype" | grep -Fq 'Import setup required'
+curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
+grep -Fq 'Import setup required' "$TMP/canary.html"
 echo "CANARY HEALTHY: $REV, 0% production traffic"
 PROMOTION_ATTEMPTED=1
 gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
@@ -110,7 +111,8 @@ srv=json.load(open(sys.argv[1],encoding="utf-8"))
 active=[v for v in srv.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0]
 assert len(active)==1 and active[0].get("revisionName")==sys.argv[2] and int(active[0]["percent"])==100
 PY
-curl -fsSL --max-time 45 "https://garamaal.web.app/prototype?release=$SHA" | grep -Fq 'Import setup required'
+curl -fsSL --max-time 45 "https://garamaal.web.app/prototype?release=$SHA" -o "$TMP/live.html"
+grep -Fq 'Import setup required' "$TMP/live.html"
 PROMOTION_ATTEMPTED=0
 echo "PRODUCTION VERIFIED: https://garamaal.web.app/prototype"
 echo "Revision: $REV (100%); rollback baseline: $BASELINE"
