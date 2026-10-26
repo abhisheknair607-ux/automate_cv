@@ -38,4 +38,4 @@ jobs:
           python-version: '3.12'
       - run: pip install --quiet -r requirements.txt
       - name: Test shared identity, safe importer and UI contracts
-        run: PYTHONPATH=src pytest -q tests/test_stage4_import_dedupe.py tests/test_linkedin_alert_import.py tests/test_job_alert_providers.py tests/test_job_dedupe.py tests/test_taaza_dedupe_audit.py tests/test_stage3_duplicates_ui.py tests/test_import_alerts_dashboard_popup.py
+        run: PYTHONPATH=src pytest -q tests/test_stage4_import_dedupe.py tests/test_taaza_duplicate_proposals.py tests/test_linkedin_alert_import.py tests/test_job_alert_providers.py tests/test_job_dedupe.py tests/test_taaza_dedupe_audit.py tests/test_stage3_duplicates_ui.py tests/test_import_alerts_dashboard_popup.py
