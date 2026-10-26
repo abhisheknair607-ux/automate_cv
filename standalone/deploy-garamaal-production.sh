@@ -122,6 +122,9 @@ PY
 done
 curl -fsSL --max-time 30 "$URL/prototype/hub-swipe.js" -o "$TMP/swipe.js"
 grep -Fq 'gmSwipeFeed' "$TMP/swipe.js"
+grep -Fq 'data-swipe-field' "$TMP/swipe.js"
+grep -Fq 'Run CV Now' "$TMP/swipe.js"
+grep -Fq 'Transfer &amp; Save' "$TMP/swipe.js"
 echo "CANARY HEALTHY: $REV, 0% production traffic (PWA assets and Swipe feed checked)"
 PROMOTION_ATTEMPTED=1
 gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
