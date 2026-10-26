@@ -105,12 +105,116 @@ for(const [route,[file,mime]] of Object.entries(PWA_ASSETS)) {
 }
 
 app.get("/",(req,res)=>{
+  // Reversible release gate: the original interface and CV backend remain.
+  if(process.env.GARAMAAL_UI_V3==="true")return res.redirect(302,"/prototype");
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   // Preserve existing authenticated dashboard; inject its Cloud Run transport.
   // Installable PWA assets never cache authenticated Google Sheets responses.
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
+  res.type("html").send(html);
+});
+// Read-only UI fallback path for instant user-visible rollback, with normal
+// Firebase authentication and the exact original Jobs DOM.
+app.get("/legacy",(req,res)=>{
+  let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
+  html=html.replace("<script>\n'use strict';",
+    "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
+  html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
+  res.type("html").send(html);
+});
+
+// Feature-preserving MOBILE PROTOTYPE ROUTE.
+// Existing GET /, /social and all API endpoints remain byte-for-byte as above.
+// This route renders the exact original Jobs HTML/transport and adds a visual
+// launcher IN FRONT. It does not replace the Dashboard/Discovery/Make CV/Add Job
+// DOM or any of their event handlers.
+app.get("/prototype/mobile-shell.css",(_req,res)=>
+  res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
+app.get("/prototype/mobile-shell.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_home_shell.js")));
+app.get("/prototype/hub.css",(_req,res)=>
+  res.type("text/css").sendFile(path.join(__dirname,"mobile_hubs.css")));
+app.get("/prototype/hub-jobs.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_hub.js")));
+app.get("/prototype/hub-swipe.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_swipe.js")));
+app.get("/prototype/location-variants.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_location_variants.js")));
+app.get("/prototype/filters-stats.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_filters_stats.js")));
+app.get("/prototype/ui-polish.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_ui_polish.js")));
+app.get("/prototype/account-drawer.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_drawer.js")));
+app.get("/prototype/profile-editor.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
+app.get("/prototype/tactile-feedback.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_tactile_feedback.js")));
+// Allowlisted branch artwork and intro script; never publicize backend file paths.
+const COLLAGE_ART=new Set(["home-collage-strip.webp","nav-collage-states.webp","back-avatar-controls.webp","swipe-sticker.svg","back-sticker.svg"]);
+app.get("/prototype/assets/:file",(req,res)=>{
+ if(!COLLAGE_ART.has(req.params.file))return res.status(404).end();
+ res.type(req.params.file.endsWith(".svg")?"image/svg+xml":"image/webp").sendFile(path.join(__dirname,"assets",req.params.file));
+});
+// The authenticated preview consumes the approved video, not a separate mockup.
+app.get("/prototype/media/:file",(req,res)=>{
+ if(!["intro-mobile.mp4","intro-desktop.mp4"].includes(req.params.file))
+  return res.status(404).end();
+ res.type("video/mp4").sendFile(path.join(__dirname,"assets",req.params.file));
+});
+app.get("/prototype/collage.css",(_req,res)=>res.type("text/css").sendFile(path.join(__dirname,"mobile_collage.css")));
+app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
+app.get("/prototype",(req,res)=>{
+  if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
+  let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
+  const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
+  if(!html.includes("<body>")||!html.includes("</head>")||
+     !html.includes("<script>\n'use strict';")){
+    return res.status(500).type("text/plain").send("Prototype source marker missing");
+  }
+  // Restore approved Stage 6 header only on the isolated /prototype page.
+  // The release baseline has an older header. Keep every native action ID and
+  // listener, along with the original GET / route, entirely unchanged.
+  const legacyHeader=html.match(/<header class="topbar">[^]*?<\/header>/g);
+  if(!legacyHeader||legacyHeader.length!==1||
+     !legacyHeader[0].includes('id="candidateToggle"')||
+     !legacyHeader[0].includes('id="modeBadge"')||
+     !legacyHeader[0].includes('id="expenseToggle"')){
+    return res.status(500).type("text/plain").send("Prototype header marker missing");
+  }
+  const modernHeader='<header class="topbar garamaal-unified-header">'+
+    '<div class="crumb">Workspace / <strong id="crumbTitle">Overview</strong></div>'+
+    '<div class="top-actions garamaal-header-controls">'+
+    '<div id="candidateToggle" class="switch" aria-label="Candidate workspace"></div>'+
+    '<button id="expenseToggle" type="button" title="Recorded CV expenses" aria-label="Recorded CV expenses" data-action="expenses">$</button>'+
+    '<a id="jobHeaderLink" class="btn garamaal-job-head-link active" href="/prototype" aria-current="page" title="Jobs">Job</a>'+
+    '<a id="socialHeaderLink" href="/social?gmv3=1" class="btn garamaal-social-head-link" aria-label="Open Social Networking Hub" title="Social Networking Hub">Social</a>'+
+    '<span id="modeBadge" class="demo garamaal-header-status" role="status" aria-live="polite" title="Google Sheets connection status">PREVIEW</span>'+
+    '<div id="avatar" class="avatar">A</div></div></header>';
+  html=html.replace(legacyHeader[0],modernHeader);
+  // Use the same backend bridge and dashboard feature modules as GET /.
+  html=html.replace("</head>",
+    '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
+    '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-icons-16"></head>');
+  html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
+  html=html.replace("<script>\n'use strict';",
+    '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
+  html=html.replace("</body>",
+    '<script src="/dashboard-ranking.js"></script>'+
+    '<script src="/dashboard-connections.js"></script>'+
+    '<script src="/prototype/mobile-shell.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/hub-jobs.js?v=m26-neon-held-12"></script>'+ 
+    '<script src="/prototype/hub-swipe.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/location-variants.js?v=m26-location-14"></script>'+
+    '<script src="/prototype/filters-stats.js?v=m26-facets-15"></script>'+
+     '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
+     '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/collage-intro.js?v=m26-neon-held-12"></script></body>');
   res.type("html").send(html);
 });
 

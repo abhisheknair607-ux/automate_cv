@@ -16,8 +16,15 @@ test("legacy source unchanged and all exposed operations wrapped",()=>{
   const operations=["getBootstrap","listJobs","getJob","setNotInterested","addDiscovery",
     "saveDiscovery","transferJob","bulkTransfer","updateFreshJD","getCopyPrompt",
     "setJobPreference","bulkSetJobPreferences","migrateJobPreferences","updateFreshControl","getStats","getExpenses","runCvApiNow","syncDiscoveryMaster"];
-  assert.deepEqual([...METHODS].sort(),operations.sort());
-  for(const name of METHODS)assert.ok(names.includes(name),name+" missing");
+  // The legacy app method list is unchanged; the two optional preview projections
+  // are implemented in a separate virtual source module, not in Code.gs.
+  const previewMethods=["gmPipelineStats","gmListJobsFaceted"];
+  assert.deepEqual([...METHODS].filter(x=>!previewMethods.includes(x)).sort(),operations.sort());
+  for(const name of operations)assert.ok(names.includes(name),name+" missing");
+  for(const name of previewMethods){
+    assert.ok(METHODS.has(name),name+" preview adapter missing");
+    assert.ok(READ_ONLY_METHODS.has(name),name+" must be read-only");
+  }
   // The migration must not fork candidate-specific sheet mappings or logic.
   assert.match(source,/Abhishek:\s*\{cv:8/);
   assert.match(source,/Pooja:\s*\{cv:5/);
