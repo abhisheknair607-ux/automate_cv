@@ -930,7 +930,7 @@ if(!DEMO){
    '<div class="alerts-run-buttons">'+
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
-   '<button class="btn" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
+   '<button class="btn btn-primary" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
    '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p></div>'+
    '<div class="alerts-foot">'+
    '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
@@ -958,9 +958,12 @@ if(!DEMO){
     if(control)control.disabled=!enabled;
    }
    const run=data.runs?.dedupe||data.runs?.preview;
+   const readiness=data.applyEnabled?'Manual import authorised':
+    data.previewEnabled?'Preview ready · Live import authorisation off':
+    'GitHub workflow dispatch is not configured';
    feedback.textContent=run
-    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+(data.applyEnabled?'Import enabled':'Import setup required')
-     :'No recent run · '+(data.applyEnabled?'Import enabled':'Import setup required');
+    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+readiness
+    :'No recent run · '+readiness;
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }

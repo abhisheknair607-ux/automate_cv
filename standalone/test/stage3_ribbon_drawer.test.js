@@ -52,7 +52,7 @@ test("prototype header provides approved ribbon and drawer mounting contract",()
  assert.match(html,/id="jobHeaderLink"[^>]+href="\/prototype"/);
  assert.match(html,/id="socialHeaderLink"[^>]+href="\/social\?gmv3=1"/);
  assert.match(html,/\/prototype\/account-drawer\.js\?v=m26-neon-held-12/);
- assert.match(html,/\/prototype\/collage\.css\?v=m26-(?:neon-held-12|location-14|facets-15|icons-16|live-swipe-17)/);
+ assert.match(html,/\/prototype\/collage\.css\?v=m26-(?:neon-held-12|location-14|facets-15|icons-16|live-swipe-17|cv-controls-18)/);
  assert.ok(!html.includes('<header class="topbar">'),"Legacy topbar must be replaced only in prototype");
 });
 test("More calls the actual account drawer, not the old fallback panel",()=>{

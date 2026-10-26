@@ -44,7 +44,8 @@ test("Sequential UI shows Preview, Run Import, Check Duplicates and setup-requir
   const apply=page.indexOf('data-alert-run="apply" disabled');
   const dedupe=page.indexOf('data-alert-run="dedupe" disabled');
   assert.ok(preview>=0&&apply>preview&&dedupe>apply,"three controls must match user workflow order");
-  assert.match(page,/Import setup required/);
+  assert.match(page,/Live import authorisation off/);
+  assert.doesNotMatch(page,/Import setup required/);
   assert.doesNotMatch(page,/Import locked/);
   assert.match(page,/data\.previewEnabled/);
   assert.match(page,/data\.dedupeEnabled/);

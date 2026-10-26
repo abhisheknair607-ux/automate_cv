@@ -60,7 +60,7 @@ test("Swipe actions remain candidate-scoped; paid dispatch uses the existing gua
  assert.match(swipe,/liveRequest\("updateApplicationProgress"/);
  assert.match(swipe,/expected:expected\(job\)/);
  assert.match(swipe,/window\.confirm\(/);
- assert.match(swipe,/run\("runCvApiNow",\{\.\.\.base,confirm:true\}\)/);
+ assert.match(swipe,/run\("runCvApiNow",\{\.\.\.freshBase,confirm:true\}\)/);
  assert.doesNotMatch(swipe,/liveRequest\("runCvApiNow"/);
  assert.equal(SWIPE_METHODS.has("runCvApiNow"),false);
  assert.equal(SWIPE_METHODS.has("bulkTransfer"),false);
@@ -111,6 +111,6 @@ test("Swipe source, scoped progress overlay and browser entrypoints compile",()=
  assert.equal(phase({source:"fresh",cv:true,cvLink:""},{}),"cv-pending");
  assert.equal(phase({source:"taaza",notInterested:true},{}),"hidden");
  const page=server;
- assert.match(page,/\/prototype\/hub-swipe\.js\?v=m26-live-swipe-17/);
- assert.match(page,/\/prototype\/collage\.css\?v=m26-live-swipe-17/);
+ assert.match(page,/\/prototype\/hub-swipe\.js\?v=m26-cv-controls-18/);
+ assert.match(page,/\/prototype\/collage\.css\?v=m26-cv-controls-18/);
 });

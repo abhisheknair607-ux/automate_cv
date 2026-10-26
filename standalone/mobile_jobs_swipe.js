@@ -260,18 +260,24 @@
   const currentClTier=job.clTierExplicit&&["Economy","Balanced","Premium"].includes(job.clTier)
      ?job.clTier:currentTier;
   const applied=String(job.progress||job.status||"").toLowerCase().startsWith("applied");
-  const locked=!!job.cvLink||applied;
+  const needsJD=job.source==="taaza"&&!job.jdReady;
+  const locked=!!job.cvLink||applied||needsJD;
   return '<fieldset class="gmv3-cv-settings"><legend>CV &amp; application controls</legend>'+
     '<div class="gmv3-cv-checks">'+checks+'</div>'+
     '<div class="gmv3-cv-tiers">'+
     '<label>CV model<select data-swipe-field="tier" aria-label="CV model">'+tierOptions(currentTier)+'</select></label>'+
     '<label>Cover letter model<select data-swipe-field="clTier" aria-label="Cover letter model">'+tierOptions(currentClTier)+'</select></label>'+
     '</div><div class="gmv3-cv-commands">'+
-    '<button type="button" data-gs-option="save-settings">Save settings</button>'+
+    '<button type="button" data-gs-option="save-settings"'+(needsJD?' disabled':'')+'>'+
+      (job.source==="taaza"?'Transfer &amp; Save':'Save settings')+'</button>'+
     '<button type="button" data-gs-option="run-cv-now"'+(locked?' disabled':'')+
     ' title="Launches one paid OpenAI API job only after explicit confirmation">Run CV Now</button></div>'+
-    (locked?'<p class="gmv3-choice-note">A generated CV or applied job cannot be run again here.</p>':'')+
-    '<p class="gmv3-choice-note">Economy, Balanced and Premium are saved separately for CV and cover letter. Run CV Now requires a separate paid-run confirmation.</p>'+
+    (needsJD?'<p class="gmv3-choice-note">Paste the complete job description in Discovery before these controls can be saved.</p>':
+      locked?'<p class="gmv3-choice-note">A generated CV or applied job cannot be run again here.</p>':'')+
+    '<p class="gmv3-choice-note">'+
+    (job.source==="taaza"?'Saving transfers this vacancy into Make CV and writes the selected settings to Freshmaal. ':
+     'These settings are shared with Make CV and Freshmaal. ')+
+    'Economy, Balanced and Premium apply separately to CV and cover letter. Run CV Now requires paid-run confirmation.</p>'+
     '</fieldset>';
  }
  function openOptions(){
@@ -282,6 +288,7 @@
   const links=safeLink(job.cvLink)?'<a href="'+clean(safeLink(job.cvLink))+'" rel="noopener noreferrer" target="_blank">Open generated CV ↗</a>':"";
   let options="",settings="";
   if(job.source==="taaza"){
+   settings=cvControlPanel(job);
    options='<button data-gs-option="interest">★ Interested</button>'+
     (job.jdReady?'<button data-gs-option="transfer">Transfer to Make CV</button>':
      '<button data-gs-option="jd">Review missing JD first</button>');
@@ -325,51 +332,87 @@
   try{
    const base={candidate,row:job.row,expected:expected(job)};
    if(action==="save-settings"||action==="run-cv-now"){
-    if(job.source!=="fresh")throw Error("Transfer this job to Make CV first.");
+    if(job.source!=="fresh"&&job.source!=="taaza")throw Error("Unknown job source.");
+    if(job.source==="taaza"&&!job.jdReady)
+      throw Error("Save the complete job description in Discovery before preparing a CV.");
     const sheet=surface?.querySelector(".gmv3-choice-sheet");
     const inputs=[...(sheet?.querySelectorAll("[data-swipe-field]")||[])];
-    const updates=inputs.map(el=>({
-      field:el.dataset.swipeField,
-      value:el.type==="checkbox"?!!el.checked:el.value
-    })).filter(({field,value})=>{
-      const stored=field==="tier"?job.tier||"Premium":
-        field==="clTier"?(job.clTierExplicit?job.clTier:(job.tier||"Premium")):!!job[field];
-      return stored!==value;
-    });
     const next=Object.fromEntries(inputs.map(el=>[el.dataset.swipeField,
       el.type==="checkbox"?!!el.checked:el.value]));
+    if(!["Economy","Balanced","Premium"].includes(next.tier)||
+       !["Economy","Balanced","Premium"].includes(next.clTier))
+      throw Error("Choose a valid CV and cover letter model.");
     if(action==="run-cv-now"){
-      if(!next.cv)throw Error("Tick Make CV and save before running.");
+      if(!next.cv)throw Error("Tick Make CV to run the CV workflow.");
       if(job.cvLink||String(job.workflow||"").toUpperCase()==="COMPLETE")
-        throw Error("This CV has already been generated.");
+        throw Error("A CV has already been generated for this job.");
       if(String(job.progress||job.status||"").toLowerCase().startsWith("applied"))
         throw Error("Applied jobs cannot be regenerated.");
+      // Explicit approval happens BEFORE any transfer, Sheet edits, or paid dispatch.
       const confirmRun=window.confirm(
         "Start a PAID OpenAI API CV run for "+candidate+" at "+job.company+
         " — "+job.role+" (CV: "+next.tier+", CL: "+(next.cl?next.clTier:"off")+
-        ", Web: "+(next.web?"on":"off")+")? Only this one job will be queued.");
-      if(!confirmRun){interactionBusy=false;actions?.forEach(b=>{if(b.isConnected)b.disabled=false});return}
+        ", Web: "+(next.web?"on":"off")+")? This will save your settings in Make CV first.");
+      if(!confirmRun){
+       interactionBusy=false;
+       actions?.forEach(b=>{if(b.isConnected&&b.dataset.gsOption!=="run-cv-now")b.disabled=false});
+       return;
+      }
     }
-    for(const change of updates){
-      await liveRequest("updateFreshControl",{...base,...change});
+    let target=job;
+    if(job.source==="taaza"){
+      const transferred=await liveRequest("transferJob",{
+       row:job.row,expected:expected(job)
+      });
       if(ticket!==epoch||current!==job||!active)return;
-      job[change.field]=change.value;
-      if(change.field==="clTier")job.clTierExplicit=true;
+      const freshRow=Number(transferred?.freshRow);
+      if(!Number.isInteger(freshRow)||freshRow<3)
+        throw Error("The transfer did not return a verified Make CV row. Please check Make CV.");
+      const ready=await read("getJob",{source:"fresh",candidate,row:freshRow});
+      if(ticket!==epoch||current!==job||!active)return;
+      if(!ready||safeLink(ready.url)!==safeLink(job.url))
+        throw Error("The job transferred, but its Make CV identity could not be verified. Open Make CV to review.");
+      target={...ready,source:"fresh"};
     }
-    save(job,{interested:true,cvDrafted:!!job.cv});
-    const status=sheet?.querySelector(".gmv3-choice-live");
+    const freshBase={candidate,row:target.row,expected:expected(target)};
+    // Freshmaal is the only source of truth. Each candidate-specific field is
+    // saved via the SAME verified updateFreshControl used by Make CV.
+    const updates=Object.entries(next).filter(([field,value])=>{
+      const stored=field==="tier"?target.tier||"Premium":
+        field==="clTier"?(target.clTierExplicit?target.clTier:(target.tier||"Premium")):
+        !!target[field];
+      return stored!==value;
+    });
+    for(const [field,value] of updates){
+      await liveRequest("updateFreshControl",{...freshBase,field,value});
+      if(ticket!==epoch||current!==job||!active)return;
+      target[field]=value;
+      if(field==="clTier")target.clTierExplicit=true;
+    }
     if(action==="run-cv-now"){
-      if(typeof run!=="function")throw Error("The normal Make CV service is unavailable. Open Make CV and try there.");
-      const result=await run("runCvApiNow",{...base,confirm:true});
+      if(typeof run!=="function")
+        throw Error("The usual Make CV dispatcher is unavailable. Open Make CV to run it.");
+      const result=await run("runCvApiNow",{...freshBase,confirm:true});
       if(ticket!==epoch||current!==job||!active)return;
-      job.workflow="Queued";
-      if(status)status.textContent=result.message||"CV run was queued in GitHub Actions.";
-      showNotice(result.message||"Paid CV job accepted by GitHub.");
-      const button=sheet?.querySelector('[data-gs-option="run-cv-now"]');
-      if(button)button.disabled=true;
-    }else if(status)status.textContent="Settings saved for "+candidate+".";
+      target.workflow="Queued";
+      showNotice(result.message||"CV run accepted by GitHub Actions.");
+    }
+    if(target!==job){
+      deck=deck.filter(x=>!(x.source==="fresh"&&safeLink(x.url)===safeLink(target.url)));
+      current=target;
+      seen.add(jobKey(target));
+    }
+    save(target,{interested:true,cvDrafted:!!target.cv});
     interactionBusy=false;
-    actions?.forEach(b=>{if(b.isConnected&&b.dataset.gsOption!=="run-cv-now")b.disabled=false});
+    closeOptions();expanded=false;render();openOptions();
+    const status=surface?.querySelector(".gmv3-choice-live");
+    if(status)status.textContent=action==="run-cv-now"
+      ?"CV workflow queued. Saved settings are visible in Make CV and Freshmaal."
+      :"Saved in Make CV and Freshmaal for "+candidate+".";
+    if(action==="run-cv-now"){
+      const button=surface?.querySelector('[data-gs-option="run-cv-now"]');
+      if(button)button.disabled=true;
+    }
     return;
    }
    if(action==="interest"){
