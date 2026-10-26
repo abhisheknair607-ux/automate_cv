@@ -169,7 +169,7 @@ function gmListJobsFaceted(options){
  if(sort==="duplicate-group"&&source==="taaza")rows.sort((a,b)=>
    String(a.company||"").localeCompare(String(b.company||""))||
    String(a.role||"").localeCompare(String(b.role||""))||a.row-b.row);
- elseif(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
+ else if(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
  else if(sort==="company")rows.sort((a,b)=>a.company.localeCompare(b.company));
  else if(sort==="designation")rows.sort((a,b)=>a.role.localeCompare(b.role));
  else if(sort==="location")rows.sort((a,b)=>a.location.localeCompare(b.location));
