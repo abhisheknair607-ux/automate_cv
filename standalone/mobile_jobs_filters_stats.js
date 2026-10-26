@@ -12,7 +12,7 @@ const sect=()=>state.section==="discovery"?"discovery":state.section==="fresh"?"
 const baseRun=run,baseRender=render;
 const filters=new Map(),facets=new Map(),pipeline=new Map(),inflight=new Set();
 const statuses={
- discovery:[["all","Active jobs"],["missing","Seems Kacha"],["ready","Seems Taaza"],["favorites","Favourites"],["not-interested","Not interested"],["duplicates","Duplicates (all flagged)"],["possible-duplicates","Possible duplicates"],["confirmed-duplicates","Confirmed duplicates"],["all-including-duplicates","All including duplicates"]],
+ discovery:[["all","Active jobs"],["missing","Seems Kacha"],["ready","Seems Taaza"],["favorites","Favourites"],["not-interested","Not interested"],["duplicates","Duplicates"],["possible-duplicates","Possible duplicates"],["confirmed-duplicates","Confirmed duplicates"],["all-including-duplicates","All including duplicates"]],
  fresh:[["all","All jobs"],["unapplied","CV ready, not applied"],["selected","Shortlisted"],["cv","CV requested"],["prepared","CV prepared"],["applied","Applied"],["connected","Applied + Connected"],["unscored","Unscored"],["favorites","Favourites"],["not-interested","Not interested"]]
 };
 const key=(c,t)=>"gmv3-preview-"+c+"-"+t;
