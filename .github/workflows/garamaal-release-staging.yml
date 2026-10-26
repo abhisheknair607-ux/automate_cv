@@ -24,7 +24,7 @@ jobs:
       LIVE_JOBS: automate-cv-dashboard
       LIVE_SOCIAL: automate-cv-social
       STAGING_JOBS: garamaal-collage-release-preview
-      RELEASE_SHA: 741faaa1bbc22fb9b5deaa5b5904b83e5736b03a
+      RELEASE_SHA: 6fb6752e3ba4f209ad8cb73df5a76dbef8dc2c4b
       PREVIEW_WIF_PROVIDER: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
       PREVIEW_WIF_SA: ${{ vars.GARAMAAL_PREVIEW_DEPLOY_SA }}
       ALLOWED_EMAILS_OVERRIDE: ${{ secrets.GARAMAAL_PREVIEW_ALLOWED_EMAILS }}
@@ -34,7 +34,7 @@ jobs:
       - name: Check out pinned PR 64 code
         uses: actions/checkout@v4
         with:
-          ref: 741faaa1bbc22fb9b5deaa5b5904b83e5736b03a
+          ref: 6fb6752e3ba4f209ad8cb73df5a76dbef8dc2c4b
           path: release-src
       - uses: actions/setup-node@v4
         with:
@@ -181,13 +181,13 @@ jobs:
           paths=[
            ('/prototype',b'gmv3-launch'),
            ('/prototype',b'garamaal-header-controls'),
-           ('/prototype',b'/prototype/ui-polish.js?v=m26-neon-held-13'),
-           ('/prototype/ui-polish.js?v=m26-neon-held-13',b'Select visible'),
+           ('/prototype',b'/prototype/ui-polish.js?v=m26-icons-16'),
+           ('/prototype/ui-polish.js?v=m26-icons-16',b'gmv3-clear-selected'),
            ('/prototype',b'/prototype/location-variants.js?v=m26-location-14'),
            ('/prototype/location-variants.js?v=m26-location-14',b'GaramaalLocationVariants'),
            ('/prototype',b'/prototype/filters-stats.js?v=m26-facets-15'),
            ('/prototype/filters-stats.js?v=m26-facets-15',b'locationField("company")'),
-           ('/prototype/collage.css?v=m26-facets-15',b'Stage 14'),
+           ('/prototype/collage.css?v=m26-icons-16',b'Stage 16: compact icon-only'),
            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 13: minimal LIVE'),
            ('/prototype/collage.css?v=m26-neon-held-12',b'Stage 12: sustained neon halo'),
            ('/prototype/tactile-feedback.js?v=m26-neon-held-12',b'gmv3-tactile-held'),
