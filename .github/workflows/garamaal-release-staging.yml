@@ -51,6 +51,7 @@ jobs:
           # This changes only the ephemeral CI checkout, never GitHub main.
           rm -rf release-src/webapp
           cp -R release-src/garamaal-release-webapp release-src/webapp
+          cp release-src/Dockerfile.garamaal-ui release-src/Dockerfile.standalone
           node --check release-src/standalone/server.js
           node --check release-src/standalone/runtime.js
           node --check release-src/standalone/mobile_jobs_swipe.js
