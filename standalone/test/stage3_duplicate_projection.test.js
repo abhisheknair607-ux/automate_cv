@@ -51,7 +51,7 @@ test("duplicate presets group candidates, including not-interested rows",()=>{
  assert.deepEqual(Array.from(f.list("duplicates").rows,x=>x.row),[2,3]);
  assert.deepEqual(Array.from(f.list("confirmed-duplicates").rows,x=>x.row),[3]);
  assert.deepEqual(Array.from(f.list("possible-duplicates").rows,x=>x.row),[2]);
- assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,x=>x.row),[5,3,2]);
+ assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,x=>x.row),[5,4,3,2]);
  assert.equal(f.list().rows[0].duplicateSchemaReady,true);
 });
 test("duplicate grouping sort is applied before pagination",()=>{
