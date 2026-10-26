@@ -38,3 +38,17 @@ test("only approved sprite routes and static theme files are exposed",()=>{
  assert.match(server,/SOCIAL_READ_ONLY/);
  assert.doesNotMatch(server,/runCvApiNow|\/api\/swipe\/|GITHUB_WORKFLOW_TOKEN/);
 });
+
+test("Social deployment uses zero-traffic canary, rollback and Jobs isolation",()=>{
+ const {execFileSync}=require("node:child_process");
+ const release=path.join(dir,"deploy-social-theme-restore.sh");
+ execFileSync("bash",["-n",release]);
+ const code=read("deploy-social-theme-restore.sh");
+ assert.match(code,/--no-traffic --tag/);
+ assert.match(code,/update-traffic/);
+ assert.match(code,/--to-revisions="\$BASELINE"/);
+ assert.match(code,/SOCIAL PRODUCTION VERIFIED/);
+ assert.match(code,/Jobs traffic changed/);
+ assert.match(code,/env\(a\)==env\(b\)/);
+ assert.doesNotMatch(code,/--update-env-vars|--set-env-vars|firebase deploy/);
+});
