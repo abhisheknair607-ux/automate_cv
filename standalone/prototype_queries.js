@@ -126,9 +126,22 @@ function gmListJobsFaceted(options){
  if(locMode!=="all"){
   rows=rows.filter(x=>locMode==="except"?!picked.has(short(x.location)):picked.has(short(x.location)));
  }
+ // Excel-style multi-value search selections for company, role and
+ // inferred department. Values are exact labels from the existing sheets;
+ // candidate and status scoping are applied before these filters.
+ const multi=options.facetSelections&&typeof options.facetSelections==="object"
+   ?options.facetSelections:{};
  for(const [field,key] of [["company","company"],["designation","role"],["department","department"]]){
-  const value=text(short(facet[field]));
-  if(value)rows=rows.filter(x=>text(x[key]).includes(value));
+  const r=multi[field]&&typeof multi[field]==="object"?multi[field]:{};
+  const mode=String(r.mode||"all");
+  if(!["all","only","except"].includes(mode))throw new Error("Invalid "+field+" selection mode");
+  const values=r.values==null?[]:r.values;
+  if(!Array.isArray(values)||values.length>750)throw new Error("Too many "+field+" selections");
+  const choices=new Set(values.map(v=>short(v)).filter(Boolean));
+  if(mode!=="all")rows=rows.filter(x=>mode==="except"
+    ?!choices.has(short(x[key])):choices.has(short(x[key])));
+  const old=text(short(facet[field]));
+  if(old)rows=rows.filter(x=>text(x[key]).includes(old));
  }
  if(sort==="oldest")rows.sort((a,b)=>a.row-b.row);
  else if(sort==="company")rows.sort((a,b)=>a.company.localeCompare(b.company));
