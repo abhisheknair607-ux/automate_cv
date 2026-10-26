@@ -32,7 +32,7 @@ function summarizeLog(rows){
   const key=String(row[1]||"");
   if(key)latestStates.set(key,String(row[9]||""));
   if(processed && (!lastRunAt||processed>lastRunAt))lastRunAt=processed;
-  if(Number(row[7]||0)>0&&/^\\d{4}-\\d{2}-\\d{2}$/.test(received)&&
+  if(Number(row[7]||0)>0&&/^\d{4}-\d{2}-\d{2}$/.test(received)&&
      (!lastImportedDate||received>lastImportedDate))lastImportedDate=received;
  }
  return {lastImportedDate,lastRunAt,pendingReview:[...latestStates.values()]
