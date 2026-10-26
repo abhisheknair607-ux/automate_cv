@@ -435,7 +435,8 @@ app.post("/api/alerts/run",async(req,res)=>{
    token:process.env.GITHUB_WORKFLOW_TOKEN||""
   };
   action=kind;
-  const data=await alertWorkflows.dispatch({kind,date:req.body?.date,token:flags.token,
+  const data=await alertWorkflows.dispatch({kind,date:req.body?.date,
+   startDate:req.body?.startDate,endDate:req.body?.endDate,token:flags.token,
    dispatchAllowed:flags.dispatchAllowed,applyAllowed:flags.applyAllowed,
     confirmed:req.body?.confirm===true});
   alertRequests.set(kind,Date.now());
@@ -453,7 +454,18 @@ app.post("/api/alerts/status",async(req,res)=>{
    applyAllowed:process.env.GARAMAAL_ALERT_IMPORT_APPROVED==="true"
   });
   const runs=token?await alertWorkflows.latest({token}):{};
-  res.json({data:{...flags,runs}});
+  let history=null;
+  try {
+   const access=await (await auth.getClient()).getAccessToken();
+   const sheetToken=typeof access==="string"?access:access.token;
+   history=await alertWorkflows.loadHistory({
+    token:sheetToken,spreadsheetId:IDS.taaza
+   });
+  }catch(error){
+   console.warn("[alert-history] optional log summary unavailable:",
+    String(error.message||"error").slice(0,120));
+  }
+  res.json({data:{...flags,runs,history}});
  }catch(error){
   res.status(error.httpCode||503).json({error:String(error.message||"Workflow status unavailable").slice(0,240)});
  }
