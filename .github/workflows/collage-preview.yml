@@ -158,7 +158,14 @@ jobs:
           # Verify that the published URL serves the real routed prototype and sprite asset.
           import time,urllib.request
           root=urls[0].rstrip('/')
-          paths=[('/prototype',b'gmv3-launch'),('/prototype/assets/home-collage-strip.webp',b'WEBP'),('/social?gmv3=1',b'')]
+          paths=[
+            ('/prototype',b'gmv3-launch'),
+            ('/prototype/assets/home-collage-strip.webp',b'WEBP'),
+            ('/prototype/collage.css?v=m26-touch-scroll-10',b'Stage 10: real touchscreen feedback'),
+            ('/prototype/tactile-feedback.js?v=m26-touch-scroll-10',b'gmv3-tactile-pulse'),
+            ('/prototype/hub-swipe.js?v=m26-touch-scroll-10',b'pointer.scrolling=true'),
+            ('/social?gmv3=1',b'')
+          ]
           for suffix,needle in paths:
               error=None
               for _ in range(6):
