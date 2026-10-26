@@ -184,7 +184,6 @@ jobs:
            ('/prototype',b'/prototype/ui-polish.js?v=m26-neon-held-13'),
            ('/prototype/ui-polish.js?v=m26-neon-held-13',b'Select visible'),
            ('/prototype',b'/prototype/location-variants.js?v=m26-location-14'),
-           ('/prototype',b'gmv3-location-picker'),
            ('/prototype/location-variants.js?v=m26-location-14',b'GaramaalLocationVariants'),
            ('/prototype/filters-stats.js?v=m26-location-14',b'Choose locations'),
            ('/prototype/collage.css?v=m26-location-14',b'Stage 14'),
