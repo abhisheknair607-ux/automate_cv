@@ -122,15 +122,28 @@ def title_key(value: str) -> str:
 
 
 def level(value: str) -> str:
-    text = " " + title_key(value) + " "
-    for rank, phrase in (
-        ("partner", " partner "), ("senior director", " senior director "),
-        ("director", " director "), ("senior manager", " senior manager "),
-        ("assistant manager", " assistant manager "), ("manager", " manager "),
-        ("senior", " senior "), ("graduate", " graduate "), ("intern", " intern "),
-    ):
-        if phrase in text:
-            return rank
+    """Different management grades must not be fuzzy-merged.
+
+    Words like 'Finance' can appear between 'Senior' and 'Manager',
+    so checking for the literal phrase 'senior manager' is not sufficient.
+    """
+    words = set(title_key(value).split())
+    if "partner" in words:
+        return "partner"
+    if "director" in words:
+        return "senior director" if "senior" in words else "director"
+    if "manager" in words:
+        if "assistant" in words:
+            return "assistant manager"
+        if "senior" in words:
+            return "senior manager"
+        return "manager"
+    if "intern" in words:
+        return "intern"
+    if "graduate" in words:
+        return "graduate"
+    if "senior" in words:
+        return "senior"
     return ""
 
 
