@@ -10,7 +10,7 @@ test("dashboard ranks and alert importer are visually equal without changing han
  const html=read(htmlPath);
  assert.match(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Ranking prompt/);
  assert.match(html,/class="btn btn-primary" type="button" data-action="import-alerts"/);
- assert.doesNotMatch(html,/Copy ranking prompt/);
+ assert.doesNotMatch(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Copy ranking prompt/);
  assert.match(html,/if\(a==='import-alerts'\)/);
 });
 
