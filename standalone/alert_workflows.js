@@ -47,7 +47,7 @@ async function github(token,path,{method="GET",body,fetcher=fetch}={}){
 async function dispatch({kind,date,token,dispatchAllowed,applyAllowed,confirmed=false,fetcher}){
  if(!Object.hasOwn(WORKFLOWS,kind))throw error("Unknown workflow request",400);
  if(!dispatchAllowed)throw error("GitHub workflow control is not activated",403);
- if(kind==="apply"&&!applyAllowed)throw error("Manual import has not been activated",403);
+ if(kind==="apply"&&!applyAllowed)throw error("Manual import approval has not been activated",403);
  if(kind==="apply"&&!confirmed)throw error("Confirm the import before writing validated jobs",400);
  const inputs=kind==="dedupe"?{}:{apply:String(kind==="apply"),on_date:validateDate(date),
   ...(kind==="apply"?{approval:"IMPORT_VALIDATED_JOBS"}:{})};
