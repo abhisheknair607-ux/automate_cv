@@ -102,6 +102,10 @@ async function check(viewport){
  await page.waitForFunction(()=>!!window.GaramaalPrototypeHome && !!window.GaramaalJobsHub && !!window.GaramaalSwipeDeck,{timeout:20000});
  await page.evaluate(()=>window.GaramaalPrototypeHome.enterJobs());
  await wait(page,"#content .gmv3-pipeline-kpi");
+ await page.waitForFunction(()=>document.querySelector("#modeBadge")?.textContent?.trim()==="LIVE",{timeout:10000});
+ assert.equal(await page.locator("#modeBadge").innerText(),"LIVE","Header must say LIVE, not GOOGLE SHEETS LIVE");
+ assert.equal(await page.locator("#modeBadge").getAttribute("aria-label"),"Live Google Sheets connection");
+ assert.equal(await page.locator("#modeBadge").evaluate(n=>getComputedStyle(n,"::before").animationName),"gmv3-live-pulse","Subtle status dot animation");
  assert.equal(await page.locator("#content .gmv3-pipeline-kpi").count(),5,"Dashboard five KPI tiles");
  await page.waitForFunction(()=>document.querySelector('[data-gm-metric="fresh:connected"] strong')?.textContent==="1");
  let candidates=await page.locator('#content [data-gm-metric="fresh:connected"] strong').innerText();
@@ -113,6 +117,20 @@ async function check(viewport){
  await page.locator('#gmv3-jobs-tabbar [data-g3-jobs="discovery"]').click();
  await wait(page,"#content .jobs > .job");
  assert.ok(await page.locator("#content .jobs > .job").count()>=2,"Discovery job listing visible");
+ await wait(page,'#gmv3-bulk-tools [data-gmv3-bulk="select-visible"]');
+ await page.locator('#gmv3-bulk-tools [data-gmv3-bulk="select-visible"]').click();
+ await wait(page,'#selectionBarMount .selectionbar');
+ assert.equal(await page.locator('#content .jobs .job [data-action="bulk-select"]:checked').count(),3,
+   "Select visible checks all three available example listings");
+ assert.match(await page.locator('#selectionBarMount .selectionbar').innerText(),/3 selected/);
+ assert.equal(await page.locator('#selectionBarMount [data-action="bulk-preference"]').count(),2,
+   "Original Favorites and Not Interested bulk actions retained");
+ const barPos=await page.locator('#selectionBarMount .selectionbar').evaluate(el=>getComputedStyle(el).position);
+ assert.equal(barPos,"fixed","Selected action bar must remain visible on phone and desktop");
+ await page.locator('#selectionBarMount [data-gmv3-bulk="clear"]').click();
+ assert.equal(await page.locator('#selectionBarMount .selectionbar').count(),0,"Clear selection dismisses bulk action bar");
+ assert.equal(await page.locator('#content .jobs .job [data-action="bulk-select"]:checked').count(),0,
+   "Clear selection does not edit job preferences");
  await page.locator("#gmv3-filter-button").click();
  await wait(page,"#gmv3-filter-form");
  await page.locator('[data-gmf-field="company"]').fill("Sample Partner B");
