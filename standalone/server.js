@@ -436,7 +436,8 @@ app.post("/api/alerts/run",async(req,res)=>{
   };
   action=kind;
   const data=await alertWorkflows.dispatch({kind,date:req.body?.date,token:flags.token,
-   dispatchAllowed:flags.dispatchAllowed,applyAllowed:flags.applyAllowed});
+   dispatchAllowed:flags.dispatchAllowed,applyAllowed:flags.applyAllowed,
+    confirmed:req.body?.confirm===true});
   alertRequests.set(kind,Date.now());
   res.json({data});
  }catch(error){
