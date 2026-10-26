@@ -1,58 +1,73 @@
-# LinkedIn job alerts -> Taaza -> Garamaal (Python integration)
+# Garamaal — Multi-provider job alert importer (Python)
 
-**Status:** The Python implementation is committed to the feature branch. It is NOT activated, not merged or deployed, and has not imported live mail.
+**Staged only.** The importer is committed on branch feature/linkedin-alerts-taaza-20261026. No parser has been approved for live import, Gmail is not authorized for the shared mailbox, **no spreadsheet rows have been written**, and no scheduled job is enabled or deployed.
 
-- [Python importer](../../src/automate_cv/linkedin_alert_import.py)
-- [Python unit tests](../../tests/test_linkedin_alert_import.py)
-- [Manual GitHub Actions workflow](../../.github/workflows/linkedin-alerts-to-taaza.yml)
+## Code
 
-The original Code.gs and JavaScript parser tests in this directory are a superseded, unactivated prototype. **Do not install the Apps Script trigger.**
+- [Python Gmail-to-Taaza importer](../../src/automate_cv/linkedin_alert_import.py)
+- [Per-provider parsing and location rules](../../src/automate_cv/job_alert_providers.py)
+- [Parser tests from 25 October samples](../../tests/test_job_alert_providers.py)
+- [End-to-end synthetic importer tests](../../tests/test_linkedin_alert_import.py)
+- [Manual GitHub Actions preview](../../.github/workflows/linkedin-alerts-to-taaza.yml)
 
-## Data flow
+## Sources and verification
 
-LinkedIn job-alert digests -> Abhishek and Pooja Gmail **sender-filtered** forwarding -> shared inbox at abhisheknair607@gmail.com -> Python Gmail API (read-only) -> [Taaza Videsi Maal](https://docs.google.com/spreadsheets/d/1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY/edit), tabs **Email Alerts** and **Email Import Log** -> existing independent Taaza sync -> Garamaal Discovery.
+| Source | Current status | What the importer does |
+| --- | --- | --- |
+| LinkedIn | Implemented and tested on synthetic fixtures | Exact sender; job-view links; validates role/company/location; ignores alert-created notifications |
+| Indeed | Implemented against observed 25 October 2026 email format | Exact confirmed sender donotreply@jobalert.indeed.com; extracts title, company, location, explicit salary, canonical viewjob link; strips email tracking |
+| IrishJobs | Discovery/manual review only | Registered domain; unknown HTML/email template is flagged Review, not inserted |
+| Jobs.ie | Discovery/manual review only | Registered domain; unknown HTML/email template is flagged Review, not inserted |
+| Other alert sites | Not enabled | Add one exact sender + verified parser + test fixtures before permitting any import |
 
-Existing destination tabs already exist. No importer code writes to master Jobs, Fresh Maal or the Garamaal website, fetches job descriptions, applies to jobs, generates CVs, or spends OpenAI API tokens. New intake rows have Send to CV Sheet = FALSE.
+**Why IrishJobs and Jobs.ie do not automatically import yet:** No genuine email from either service was present in the inspected Abhishek mailbox on 25 October 2026. Guessing their templates would risk writing incorrect jobs. Provide real mail samples for a future non-writing QA review, then enable each provider separately.
 
-## One-time Gmail OAuth authorization
+### Strict extraction rules
 
-1. Keep **general forwarding disabled** on Abhishek and Pooja mailboxes. Each personal mailbox must have a Gmail filter forwarding *only* jobalerts-noreply@linkedin.com to the shared inbox. Verify an actual new job digest reaches the shared inbox; confirmations that a job alert was *created* do not count.
-2. Enable the **Gmail API** in a Google Cloud project you control. Configure an OAuth client for the **personal shared Gmail account**. Gmail authorization requires that account's refresh token; an existing GitHub Workload Identity service account cannot read an ordinary personal @gmail.com inbox.
-3. To obtain a shared-inbox refresh token you can use [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/). Select *Use your own OAuth credentials* in the Playground settings, create a matching OAuth web client with redirect URI https://developers.google.com/oauthplayground, sign in as **abhisheknair607@gmail.com**, authorize **https://www.googleapis.com/auth/gmail.readonly** only, and exchange the code for a refresh token. Gmail readonly is a restricted scope; observe Google's consent and verification rules. External apps in *Testing* can issue refresh tokens that expire after seven days, so plan for a valid ongoing configuration before enabling automation.
-4. Add these as **new GitHub Actions Secrets** in repository Settings -> Secrets and variables -> Actions:
+1. Only actual alert digests, never newsletters, alert-created confirmations, navigation links, logos or notifications.
+2. Each vacancy must have a real company, title, explicit location and a canonical verified job URL. Deduplicate by source and stable job identifier across every Taaza job tab.
+3. **Ireland and UK only** by default. Mumbai/India and other explicit overseas locations are rejected; unknown geographies are excluded for review.
+4. Indeed sponsored **pagead** links without a real stable job key are excluded because a safe canonical link cannot be verified from the 25 October emails. Such excluded links never become vacancy rows.
+5. Salary is recorded only when explicitly present. Job Description, Posted Date, deadline, start date and visa fields are empty unless verified, never invented. Date Added is the date of actual import; Send to CV Sheet is always FALSE.
+6. Candidate ownership comes from original email address or safely identifiable forwarding headers. Unassigned/ambiguous emails remain in Review, not in job intake.
+7. Email Import Log stores message ID and review decision; it is not part of the main Jobs tab. LinkedIn Job ID column remains blank for Indeed.
+8. Gmail API permission is read-only; the existing Garamaal Taaza sync handles the master mirror. No edits to master Jobs, Fresh Maal, Make CV, Cloud Run, Firebase or webapp interface.
+
+## What the 25 October 2026 samples show
+
+Two Indeed messages were read from Abhishek's connected mailbox on **25 October**:
+- 00:07 UTC — 16 advertised jobs in Dublin/Meath.
+- 21:01 UTC — 14 advertised jobs in Dublin.
+
+Of 30 advertised slots, the observed format shows 20 direct Indeed links with stable job IDs (11 distinct after deduplication) and 10 sponsored pagead links lacking stable job IDs (five listings repeated). The importer conservatively selects verified direct links only. **No real Gmail API import has been executed.** The automated tests reproduce safely minimal job-card lines from these messages, not private raw MIME or tracking URLs.
+
+## Gmail and Google authorization — required before any use
+
+1. Both personal Gmail accounts should forward only job-alert messages to the common mailbox at abhisheknair607@gmail.com. For additional providers, create provider-specific sender filters separately. Do not enable all-mail forwarding.
+2. Enable Gmail API in your Google Cloud project. Authorize the **common mailbox user**, not the GitHub service account, to read Gmail using the Gmail readonly scope. OAuth refresh tokens belong in GitHub Actions secrets and must never be committed or pasted in chat.
+3. Add three NEW repository Actions secrets:
    - LINKEDIN_GMAIL_CLIENT_ID
    - LINKEDIN_GMAIL_CLIENT_SECRET
    - LINKEDIN_GMAIL_REFRESH_TOKEN
 
-   **Never** commit a token or share credentials in a message. Do **not** overwrite the CV worker's GOOGLE_OAUTH_* secrets. For Sheets writing, the importer reuses the existing Taaza-sync Workload Identity flow and its optional Sheets OAuth fallback. That credential must have Editor access to Taaza.
+   These names are retained from the original LinkedIn prototype but now authorize the same shared inbox for all whitelisted sources. Never overwrite the existing CV automation's GOOGLE_OAUTH_* secrets. Sheets access uses the existing Taaza Workload Identity/service account configuration, or its existing OAuth fallback.
+4. Run a dry preview on exactly 25 October first; this uses **Europe/Dublin** midnight boundaries across the DST change:
 
-## Running
+       python -m src.automate_cv.linkedin_alert_import --on-date 2026-10-25
 
-Before writing, run a **preview** and verify candidate ownership, especially on forwarded emails. From the repo root with the Google Python dependencies installed and credentials available:
+   The preview reads the sheet headers and previous IDs but does not append any rows or alter Gmail. Review all examples, candidates, excluded ads, and error reasons.
+5. The GitHub Action has **manual dispatch only**, defaults to the 25 October date, and defaults to **apply=false**. After parser approval and Gmail authorization, you may choose a deliberate first live write with:
 
-    python -m src.automate_cv.linkedin_alert_import
+       python -m src.automate_cv.linkedin_alert_import --on-date 2026-10-25 --apply
 
-Apply only after validating the preview and original candidate:
+   Do not run the apply command or tick the apply checkbox until the user explicitly approves the parser. There is **no schedule**; adding recurring runs is a separate decision.
 
-    python -m src.automate_cv.linkedin_alert_import --apply
+## QA
 
-Retry messages in Review after fixing classification:
+Run from repo root:
 
-    python -m src.automate_cv.linkedin_alert_import --apply --retry-review
+    PYTHONPATH=src pytest -q tests/test_job_alert_providers.py tests/test_linkedin_alert_import.py
 
-Alternatively, **after the feature branch is reviewed and merged into main**, navigate to Actions -> linkedin-alerts-to-taaza -> Run workflow. The default is a read-only preview; tick **apply** to write. The GitHub workflow is **manual-only**: it does not automatically schedule jobs until a separate decision to enable one.
+The existing GitHub tests workflow runs automatically on the feature branch. Preview and synthetics do NOT substitute for a live read-only Gmail preview on the common account.
 
-After applying, inspect **Email Alerts!A:P** and **Email Import Log!A:K**. The existing regional sync mirrors new jobs to master Jobs independently (minute 13,33,53). The full JD remains unavailable until the normal JD save process.
-
-Run non-network tests:
-
-    PYTHONPATH=src pytest -q tests/test_linkedin_alert_import.py
-
-## Safety and limitations
-
-- Verify RFC822 sender exactly, and accept only proper LinkedIn /jobs/view/<numeric-id> URLs. Deduplicate against all source tabs in the Taaza workbook, including the master.
-- Candidate owner must be identified from original To, forwarding headers, or forwarded-message To; otherwise the message is logged for **Review** and **not imported**. Gmail forwarding often changes headers, so test a real forwarded Pooja and Abhishek digest before applying.
-- Messages with uncertain job links or no valid job cards are reviewed, not turned into fake rows. Created-alert confirmations are skipped even when they contain embedded example jobs.
-- The importer logs Gmail message IDs to prevent repeat processing; reviewed messages require explicit retry. Gmail access is **read-only**: no mail deletion, forwarding, labelling, or changes to the sender filters.
-- Taaza's master Jobs deduplicates by LinkedIn job URL, **not** by candidate. Although Email Alerts preserves Alert Owner, master Jobs does not currently carry this provenance. Do not assume the shared master has candidate-specific isolation.
-- A verified end-to-end Gmail read/write test remains necessary after the common inbox is authorized; synthetic tests alone do not prove every LinkedIn HTML template will parse.
+The pre-existing standalone Code.gs in this directory is a **superseded and unactivated prototype**. Do not install or activate its Apps Script trigger.
