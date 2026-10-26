@@ -1,0 +1,37 @@
+name: Restore Social theme safely
+on:
+  pull_request:
+    paths:
+      - "standalone/social_server.js"
+      - "standalone/mobile_social_hub.js"
+      - "standalone/social_theme_*.css"
+      - "standalone/test/social_theme_restoration.test.js"
+      - "Dockerfile.social"
+      - ".github/workflows/social-theme-restore-check.yml"
+  push:
+    branches: ["fix/social-funky-theme-restore-20261026"]
+permissions:
+  contents: read
+jobs:
+  social-ui-compatibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify existing Social backend and unchanged native HTML
+        run: |
+          set -euo pipefail
+          node --check standalone/social_server.js
+          node --check standalone/mobile_social_hub.js
+          node --test \
+            standalone/test/social_theme_restoration.test.js \
+            standalone/test/social_isolation.test.js \
+            standalone/test/social_ui_runtime.test.js \
+            standalone/test/social_review_queue_workflow.test.js \
+            standalone/test/social_research_scroll_layout.test.js \
+            standalone/test/social_swipe_template_count_layout.test.js
+      - name: Build Social-only Cloud Run container
+        run: docker build -f Dockerfile.social -t garamaal-social-theme:ci .
