@@ -1,0 +1,27 @@
+name: stage3-duplicate-backend-safety
+on:
+  push:
+    branches:
+      - feature/taaza-dedupe-stage3-backend-20261026
+  pull_request:
+    paths:
+      - standalone/duplicate_status.js
+      - standalone/prototype_queries.js
+      - standalone/server.js
+      - standalone/bridge.js
+      - standalone/test/duplicate_status.test.js
+permissions:
+  contents: read
+jobs:
+  node-safety:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check standalone/duplicate_status.js
+      - run: node --check standalone/server.js
+      - run: node --check standalone/bridge.js
+      - run: node -e 'new (require("node:vm").Script)(require("./standalone/prototype_queries").SOURCE)'
+      - run: node --test standalone/test/duplicate_status.test.js
