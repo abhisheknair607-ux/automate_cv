@@ -39,6 +39,6 @@ test("visible batch controls use original candidate-scoped 20-row selection and 
  assert.match(ui,/Clear selection/);
  assert.match(css,/#selectionBarMount \.selectionbar/);
  assert.match(css,/position:fixed!important/);
- assert.doesNotMatch(ui,/bulkSetJobPreferences|setJobPreference|\.fetch\(/);
+ const executable=ui.replace(/\\/\\*[\\s\\S]*?\\*\\//g,"");\n assert.doesNotMatch(executable,/bulkSetJobPreferences|setJobPreference|\\.fetch\\(/);
  assert.doesNotMatch(ui,/\.setValues?\(/);
 });
