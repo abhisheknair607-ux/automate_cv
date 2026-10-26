@@ -317,13 +317,61 @@
   if(!job||interactionBusy)return;
   if(action==="jd"){closeOptions();showDetails();return}
   if(action==="later"){closeOptions();finishSwipe("down");return}
-  if(!["interest","transfer","cv","applied","unapplied","connected","not-connected"].includes(action))return;
+  if(!["interest","transfer","cv","applied","unapplied","connected","not-connected","save-settings","run-cv-now"].includes(action))return;
   interactionBusy=true;
   const ticket=epoch;
   const actions=surface?.querySelectorAll("[data-gs-option]");
   actions?.forEach(b=>b.disabled=true);
   try{
    const base={candidate,row:job.row,expected:expected(job)};
+   if(action==="save-settings"||action==="run-cv-now"){
+    if(job.source!=="fresh")throw Error("Transfer this job to Make CV first.");
+    const sheet=surface?.querySelector(".gmv3-choice-sheet");
+    const inputs=[...(sheet?.querySelectorAll("[data-swipe-field]")||[])];
+    const updates=inputs.map(el=>({
+      field:el.dataset.swipeField,
+      value:el.type==="checkbox"?!!el.checked:el.value
+    })).filter(({field,value})=>{
+      const stored=field==="tier"?job.tier||"Premium":
+        field==="clTier"?(job.clTierExplicit?job.clTier:(job.tier||"Premium")):!!job[field];
+      return stored!==value;
+    });
+    const next=Object.fromEntries(inputs.map(el=>[el.dataset.swipeField,
+      el.type==="checkbox"?!!el.checked:el.value]));
+    if(action==="run-cv-now"){
+      if(!next.cv)throw Error("Tick Make CV and save before running.");
+      if(job.cvLink||String(job.workflow||"").toUpperCase()==="COMPLETE")
+        throw Error("This CV has already been generated.");
+      if(String(job.progress||job.status||"").toLowerCase().startsWith("applied"))
+        throw Error("Applied jobs cannot be regenerated.");
+      const confirmRun=window.confirm(
+        "Start a PAID OpenAI API CV run for "+candidate+" at "+job.company+
+        " — "+job.role+" (CV: "+next.tier+", CL: "+(next.cl?next.clTier:"off")+
+        ", Web: "+(next.web?"on":"off")+")? Only this one job will be queued.");
+      if(!confirmRun){interactionBusy=false;actions?.forEach(b=>{if(b.isConnected)b.disabled=false});return}
+    }
+    for(const change of updates){
+      await liveRequest("updateFreshControl",{...base,...change});
+      if(ticket!==epoch||current!==job||!active)return;
+      job[change.field]=change.value;
+      if(change.field==="clTier")job.clTierExplicit=true;
+    }
+    save(job,{interested:true,cvDrafted:!!job.cv});
+    const status=sheet?.querySelector(".gmv3-choice-live");
+    if(action==="run-cv-now"){
+      if(typeof run!=="function")throw Error("The normal Make CV service is unavailable. Open Make CV and try there.");
+      const result=await run("runCvApiNow",{...base,confirm:true});
+      if(ticket!==epoch||current!==job||!active)return;
+      job.workflow="Queued";
+      if(status)status.textContent=result.message||"CV run was queued in GitHub Actions.";
+      showNotice(result.message||"Paid CV job accepted by GitHub.");
+      const button=sheet?.querySelector('[data-gs-option="run-cv-now"]');
+      if(button)button.disabled=true;
+    }else if(status)status.textContent="Settings saved for "+candidate+".";
+    interactionBusy=false;
+    actions?.forEach(b=>{if(b.isConnected&&b.dataset.gsOption!=="run-cv-now")b.disabled=false});
+    return;
+   }
    if(action==="interest"){
     await liveRequest("setJobPreference",{...base,source:job.source,value:"Favorite"});
     if(ticket!==epoch||current!==job||!active)return;
@@ -331,9 +379,20 @@
     save(job,{interested:true,rejected:false});
    }else if(action==="transfer"){
     if(job.source!=="taaza"||!job.jdReady)throw Error("Save the complete JD in Discovery before transferring.");
-    await liveRequest("transferJob",{row:job.row,expected:expected(job)});
+    const transferred=await liveRequest("transferJob",{row:job.row,expected:expected(job)});
     if(ticket!==epoch||current!==job||!active)return;
     job.transferred=true;save(job,{interested:true});
+    // The existing transfer action returns its verified Freshmaal row.
+    // Re-open this exact vacancy as a Make CV card without a second search.
+    if(Number.isInteger(Number(transferred.freshRow))&&Number(transferred.freshRow)>=3){
+      const ready=await read("getJob",{source:"fresh",candidate,row:Number(transferred.freshRow)});
+      if(ticket!==epoch||current!==job||!active)return;
+      if(ready&&ready.url&&safeLink(ready.url)===safeLink(job.url)){
+       deck=deck.filter(x=>!(x.source==="fresh"&&safeLink(x.url)===safeLink(job.url)));
+       current={...ready,source:"fresh"};
+       interactionBusy=false;closeOptions();expanded=false;render();openOptions();return;
+      }
+    }
    }else if(action==="cv"){
     if(job.source!=="fresh")throw Error("Prepare the complete JD in Discovery before making a CV.");
     await liveRequest("updateFreshControl",{...base,field:"cv",value:true});
