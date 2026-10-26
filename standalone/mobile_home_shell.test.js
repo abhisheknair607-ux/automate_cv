@@ -42,7 +42,7 @@ test("Standalone /prototype route composes the original bridge and unchanged fea
   '<body class="gmv3-landing">','What do','Update profile','Apply jobs','Network','Statistics',
   'id="deskNav"','id="mobileNav"','function nav(','function render(){',
   'src="/bridge.js"','src="/dashboard-ranking.js"','src="/dashboard-connections.js"',
-  'src="/prototype/mobile-shell.js"','href="/prototype/mobile-shell.css"'
+  'src="/prototype/mobile-shell.js?v=m26-touch-scroll-10"','href="/prototype/mobile-shell.css?v=m26-touch-scroll-10"'
  ])assert.ok(served.includes(fragment),"Missing output "+fragment);
  assert.equal((served.match(/id="gmv3-launch"/g)||[]).length,1);
  assert.equal((served.match(/id="deskNav"/g)||[]).length,1);
