@@ -100,7 +100,29 @@ curl -fsSL --max-time 30 "$URL/health" | python3 -c \
   'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and x.get("readOnly") is False'
 curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
 grep -Fq 'Import setup required' "$TMP/canary.html"
-echo "CANARY HEALTHY: $REV, 0% production traffic"
+grep -Fq 'Ranking prompt' "$TMP/canary.html"
+curl -fsSL --max-time 30 "$URL/manifest.webmanifest" -o "$TMP/manifest.json"
+python3 - "$TMP/manifest.json" <<'PY'
+import json,sys
+m=json.load(open(sys.argv[1],encoding="utf-8"))
+assert m["id"]=="/" and m["start_url"]=="/prototype" and m["scope"]=="/"
+assert m["display"]=="standalone"
+icons=m.get("icons",[])
+assert any("192x192"==x.get("sizes") for x in icons)
+assert any("512x512"==x.get("sizes") for x in icons)
+PY
+curl -fsSL --max-time 30 "$URL/sw.js" -o "$TMP/sw.js"
+grep -Fq 'addEventListener("fetch"' "$TMP/sw.js"
+for size in 192 512; do
+  curl -fsSL --max-time 30 "$URL/garamaal-icon-$size.png" -o "$TMP/icon-$size.png"
+  python3 - "$TMP/icon-$size.png" <<'PY'
+import pathlib,sys
+assert pathlib.Path(sys.argv[1]).read_bytes().startswith(bytes((137,80,78,71,13,10,26,10)))
+PY
+done
+curl -fsSL --max-time 30 "$URL/prototype/hub-swipe.js" -o "$TMP/swipe.js"
+grep -Fq 'gmSwipeFeed' "$TMP/swipe.js"
+echo "CANARY HEALTHY: $REV, 0% production traffic (PWA assets and Swipe feed checked)"
 PROMOTION_ATTEMPTED=1
 gcloud run services update-traffic "$SERVICE" --project "$PROJECT" --region "$REGION" \
   --to-revisions="$REV=100" --quiet

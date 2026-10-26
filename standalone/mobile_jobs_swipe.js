@@ -60,7 +60,7 @@
  if(typeof document==="undefined"||typeof window==="undefined")return;
  const doc=document;
  let surface=null,active=false,candidate="",epoch=0,loading=false,deck=[],later=[],seen=new Set(),current=null,details=null,panelOpen=false;
- const cursors={fresh:{page:1,done:false},taaza:{page:1,done:false}};
+ const feedCursor={page:1,done:false};
  let decisions={},pointer=null,card=null,interactionBusy=false,metadata=new Map(),expanded=false,suppressCardClickUntil=0;
  function person(){try{return typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek"}catch(_){return "Abhishek"}}
  function choice(job){return decisions[jobKey(job)]||{}}
@@ -76,10 +76,23 @@
      liveRequest(method,arg):run(method,arg);
  }
  function eligible(job){return phase(job,choice(job))!=="hidden"}
+ async function feedRead(page){
+  // Never strand the user on the original loading state when authentication,
+  // Sheets or network requests stall. Read-only request can finish later.
+  let timer;
+  try{
+   return await Promise.race([
+    read("gmSwipeFeed",{candidate,page,pageSize:15}),
+    new Promise((_,reject)=>{
+     timer=setTimeout(()=>reject(Error("Jobs took too long to load. Check your sign-in and tap Retry.")),40000);
+    })
+   ]);
+  }finally{clearTimeout(timer)}
+ }
  function resetState(name){
   endHold(pointer);pointer=null;
   candidate=name;epoch++;deck=[];later=[];seen.clear();current=null;details=null;panelOpen=false;interactionBusy=false;expanded=false;suppressCardClickUntil=0;
-  for(const src of ["fresh","taaza"]){cursors[src].page=1;cursors[src].done=false}
+  feedCursor.page=1;feedCursor.done=false;
   decisions={};metadata.clear();
  }
  function activeJob(){return current||deck[0]||null}
@@ -162,30 +175,39 @@
   if(current&&!eligible(current)){current=null;render();return}
   if(current){shell(cardHtml(current));readEvidence(current);return}
   if(loading){shell('<div class="gmv3-swipe-empty" role="status"><strong>Finding your next job…</strong><p>Checking candidate-specific Discovery and Make CV records.</p></div>');return}
-  if(!cursors.fresh.done||!cursors.taaza.done){shell('<div class="gmv3-swipe-empty" role="status">Loading more vacancies…</div>');refill();return}
+  if(!feedCursor.done){shell('<div class="gmv3-swipe-empty" role="status">Loading more vacancies…</div>');refill();return}
   if(later.length){deck.push(...later.splice(0));current=null;render();return}
   shell('<div class="gmv3-swipe-empty"><strong>You’re caught up.</strong><p>No more jobs to review in this feed. Reopen Swipe to refresh the source records.</p><button type="button" data-gs="refresh">Refresh feed</button></div>');
  }
  async function refill(){
-  if(loading||!active)return;
-  loading=true;const ticket=epoch;
+  if(loading||!active||feedCursor.done)return;
+  loading=true;
+  const ticket=epoch;
+  const stage=surface?.querySelector("#gmv3-card-stage");
+  if(stage&&!deck.length&&!current){
+   stage.innerHTML='<div class="gmv3-swipe-empty" role="status"><strong>Loading your jobs…</strong><p>Reading both Discovery and Make CV for '+clean(candidate)+'.</p><button type="button" data-gs="refresh">Retry</button></div>';
+  }
   try{
-   for(const src of ["fresh","taaza"]){
-    const cursor=cursors[src];if(cursor.done)continue;
-    // Existing server-side candidate-aware listJobs is the only source.
-    const result=await read("listJobs",{source:src,candidate,tabId:"all",filter:"all",sort:src==="fresh"?"score":"newest",page:cursor.page,pageSize:15,query:""});
-    if(!active||ticket!==epoch)return;
-    const rows=Array.isArray(result.rows)?result.rows:[];
-    for(const entry of rows){
-     const job=Object.assign({},entry,{source:src});
-     const key=jobKey(job);if(seen.has(key)||!eligible(job))continue;
-     seen.add(key);deck.push(job);
-    }
-    cursor.done=cursor.page>=Number(result.pages||1)||rows.length===0;
-    cursor.page++;
+   // One scoped backend read replaces two expensive sequential full-list
+   // calls and avoids the per-job validation metadata read on every page.
+   const result=await feedRead(feedCursor.page);
+   if(!active||ticket!==epoch)return;
+   if(!result||!Array.isArray(result.rows))throw Error("Swipe received an invalid jobs response.");
+   for(const entry of result.rows){
+    if(!entry||!["fresh","taaza"].includes(entry.source))continue;
+    const key=jobKey(entry);
+    if(seen.has(key)||!eligible(entry))continue;
+    seen.add(key);deck.push(entry);
    }
+   feedCursor.done=!result.hasMore||!result.rows.length||
+     feedCursor.page>=Number(result.pages||1);
+   feedCursor.page++;
   }catch(error){
-   if(active&&ticket===epoch){const el=surface?.querySelector("#gmv3-card-stage");if(el&&!deck.length)el.innerHTML='<div class="gmv3-swipe-empty"><strong>Couldn’t load the feed.</strong><p>'+clean(error.message||"Please try again.")+'</p><button type="button" data-gs="refresh">Retry</button></div>';}
+   if(active&&ticket===epoch){
+    const target=surface?.querySelector("#gmv3-card-stage");
+    if(target&&!deck.length&&!current)
+     target.innerHTML='<div class="gmv3-swipe-empty" role="alert"><strong>Could not load Swipe jobs.</strong><p>'+clean(error.message||"Please try again.")+'</p><button type="button" data-gs="refresh">Retry</button></div>';
+   }
    loading=false;return;
   }
   loading=false;
@@ -256,7 +278,7 @@
   current=null;interactionBusy=false;panelOpen=false;expanded=false;
   later.push(item);
   render();
-  if(deck.length<3 && (!cursors.fresh.done||!cursors.taaza.done))refill();
+  if(deck.length<3 && !feedCursor.done)refill();
  }
  function showNotice(message){
   const stage=surface?.querySelector("#gmv3-card-stage");
@@ -433,7 +455,7 @@
  function open(target){
   surface=target||surface;if(!surface)return;
   active=true;resetState(person());surface.hidden=false;
-  shell('<div class="gmv3-swipe-empty" role="status"><strong>Loading your career deck…</strong><p>Personalised jobs from your existing candidate profile.</p></div>');
+  shell('<div class="gmv3-swipe-empty" role="status"><strong>Loading your career deck…</strong><p>Connecting to your saved jobs. You can retry if the connection is slow.</p><button type="button" data-gs="refresh">Retry</button></div>');
   refill();
  }
  function close(){active=false;epoch++;panelOpen=false;current=null;endHold(pointer);pointer=null;expanded=false}

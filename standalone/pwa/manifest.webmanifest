@@ -3,7 +3,7 @@
   "name": "Garamaal — Job Control Centre",
   "short_name": "Garamaal",
   "description": "Manage job applications, tailored CVs and cover letters from your phone or desktop.",
-  "start_url": "/",
+  "start_url": "/prototype",
   "scope": "/",
   "display": "standalone",
   "orientation": "any",
