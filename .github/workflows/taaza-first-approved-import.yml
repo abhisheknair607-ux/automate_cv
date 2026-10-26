@@ -1,0 +1,79 @@
+name: taaza-approved-first-import-20261025
+on:
+  push:
+    branches:
+      - release/taaza-first-import-20261026
+    paths:
+      - docs/first-import-authorized-20261026.txt
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: taaza-master-writers
+  cancel-in-progress: false
+
+jobs:
+  approved-first-import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - name: Verify single-purpose approval commit
+        run: |
+          set -euo pipefail
+          test "$(git diff-tree --no-commit-id --name-only -r HEAD)" = "docs/first-import-authorized-20261026.txt"
+          grep -Fxq "Approved first Taaza import for 2026-10-25 only; no CV changes" docs/first-import-authorized-20261026.txt
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+          create_credentials_file: true
+          export_environment_variables: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Google API clients
+        run: python -m pip install --quiet google-api-python-client google-auth google-auth-httplib2
+      - name: Preview and perform explicitly approved first import
+        env:
+          LINKEDIN_GMAIL_CLIENT_ID: ${{ secrets.LINKEDIN_GMAIL_CLIENT_ID }}
+          LINKEDIN_GMAIL_CLIENT_SECRET: ${{ secrets.LINKEDIN_GMAIL_CLIENT_SECRET }}
+          LINKEDIN_GMAIL_REFRESH_TOKEN: ${{ secrets.LINKEDIN_GMAIL_REFRESH_TOKEN }}
+          GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
+          GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
+          GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
+          TAAZA_SPREADSHEET_ID: 1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY
+          GARAMAAL_ALERT_IMPORT_APPROVED: "true"
+        run: |
+          python - <<'PY'
+          import io,json,contextlib
+          from src.automate_cv import linkedin_alert_import as importer
+          day="2026-10-25"
+          gmail=importer.gmail_service()
+          profile=gmail.users().getProfile(userId="me").execute(num_retries=3)
+          if str(profile.get("emailAddress","")).casefold()!=importer.INBOX.casefold():
+              raise RuntimeError("Shared Gmail mailbox identity does not match")
+          errors=[]
+          for method,sheets in importer.sheet_service():
+              try:
+                  preview=importer.run(gmail,sheets,preview=True,on_date=day)
+                  if preview["review"] or preview["added"]!=13 or preview["messages"]!=16:
+                      raise RuntimeError("Preview results changed; do not import")
+                  print("PREVIEW_VERIFIED: 16 messages, 13 eligible jobs, 0 review")
+                  imported=importer.run(gmail,sheets,preview=False,on_date=day)
+                  report={k:imported[k] for k in ("messages","found","added","duplicates","review","filtered","skipped")}
+                  print("FIRST_IMPORT_RESULT="+json.dumps(report,sort_keys=True))
+                  print("FIRST_IMPORT_COMPLETE: imported validated jobs to Taaza Email Alerts only")
+                  break
+              except Exception as exc:
+                  errors.append(method+":"+type(exc).__name__)
+                  # Partial write is possible: never retry with a different credentials
+                  # method once the import has started. Reconciliation is idempotent.
+                  if "imported" in locals(): raise
+          else:
+              raise RuntimeError("No working Taaza sheet authorization: "+",".join(errors))
+          PY
