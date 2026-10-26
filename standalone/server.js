@@ -129,6 +129,8 @@ app.get("/prototype/hub-jobs.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_hub.js")));
 app.get("/prototype/hub-swipe.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_swipe.js")));
+app.get("/prototype/location-variants.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"mobile_location_variants.js")));
 app.get("/prototype/filters-stats.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_jobs_filters_stats.js")));
 app.get("/prototype/ui-polish.js",(_req,res)=>
@@ -185,7 +187,7 @@ app.get("/prototype",(req,res)=>{
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-neon-held-12"></head>');
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-location-14"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -195,7 +197,8 @@ app.get("/prototype",(req,res)=>{
     '<script src="/prototype/mobile-shell.js?v=m26-neon-held-12"></script>'+
     '<script src="/prototype/hub-jobs.js?v=m26-neon-held-12"></script>'+ 
     '<script src="/prototype/hub-swipe.js?v=m26-neon-held-12"></script>'+
-    '<script src="/prototype/filters-stats.js?v=m26-neon-held-12"></script>'+
+    '<script src="/prototype/location-variants.js?v=m26-location-14"></script>'+
+    '<script src="/prototype/filters-stats.js?v=m26-location-14"></script>'+
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/ui-polish.js?v=m26-neon-held-13"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
