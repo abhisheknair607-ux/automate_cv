@@ -18,6 +18,7 @@ const contactsStore=require("./contacts_store");
 const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
+const jdRecoveryWorkflows=require("./jd_recovery_workflows");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -468,6 +469,33 @@ app.post("/api/alerts/status",async(req,res)=>{
   res.json({data:{...flags,runs,history}});
  }catch(error){
   res.status(error.httpCode||503).json({error:String(error.message||"Workflow status unavailable").slice(0,240)});
+ }
+});
+// JD recovery is ONLY user-triggered. Read GitHub state on demand; no timer or schedule
+// starts a run. Guard both the dispatch permission and the actual Sheets write gate.
+const jdRecoveryFlags=()=>({
+ token:process.env.GITHUB_WORKFLOW_TOKEN||"",
+ dispatchAllowed:process.env.ALLOW_JD_RECOVERY_DISPATCH==="true",
+ applyAllowed:process.env.GARAMAAL_JD_RECOVERY_APPROVED==="true",
+ readOnly:READ_ONLY
+});
+app.post("/api/jd-recovery/status",async(req,res)=>{
+ try{
+  await authenticate(req);
+  res.json({data:await jdRecoveryWorkflows.status(jdRecoveryFlags())});
+ }catch(error){
+  res.status(error.httpCode||503).json({error:String(error.message||"JD recovery status unavailable").slice(0,240)});
+ }
+});
+app.post("/api/jd-recovery/run",async(req,res)=>{
+ try{
+  await authenticate(req);
+  // One click is affirmative consent for this one 25-vacancy batch.
+  // Do not accept client-selected ref, workflow, CSV, job URLs or token.
+  const result=await jdRecoveryWorkflows.dispatch(jdRecoveryFlags());
+  res.json({data:result});
+ }catch(error){
+  res.status(error.httpCode||503).json({error:String(error.message||"JD recovery could not start").slice(0,240)});
  }
 });
 // Swipe uses a candidate-specific release controller with strict method allowlist.
