@@ -40,7 +40,7 @@ function fixture(){
  });
  vm.runInContext(SOURCE,ctx,{timeout:3000});
  function list(source,candidate,facetSelections={},locationSelection={mode:"all",values:[]}){
-  const opts={source,candidate,facetSelections,locationSelection,pageSize:50};
+  const opts={source,candidate,facetSelections,locationSelection,pageSize:50,sort:"newest"}; // Filter tests assert prior newest ordering; Smart Sort is tested separately.
   return vm.runInContext("gmListJobsFaceted("+JSON.stringify(opts)+")",ctx,{timeout:3000});
  }
  return {list};
