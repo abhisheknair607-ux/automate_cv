@@ -10,6 +10,7 @@ const DISPATCH_PATH="actions/workflows/"+WORKFLOW+"/dispatches";
 const STATUS_PATH="actions/workflows/"+WORKFLOW+"/runs?event=workflow_dispatch&branch=main&per_page=5";
 const RECENT_WINDOW_MS=90_000;
 let pendingSince=0;
+let dispatchInFlight=false;
 function fail(message,httpCode){return Object.assign(new Error(message),{httpCode})}
 function available({token,dispatchAllowed,applyAllowed,readOnly}){
  return Boolean(token&&dispatchAllowed&&applyAllowed&&!readOnly);
@@ -79,16 +80,20 @@ async function status({token,dispatchAllowed,applyAllowed,readOnly,fetcher}){
 async function dispatch({token,dispatchAllowed,applyAllowed,readOnly,fetcher}){
  if(!available({token,dispatchAllowed,applyAllowed,readOnly}))
   throw fail("JD recovery is not approved for manual execution in this environment.",403);
- const current=await latest({token,fetcher});
- if(current.active)throw fail("JD recovery is already queued or running. Check its status.",409);
- if(current.startedAt&&Date.now()-Date.parse(current.startedAt)<60_000)
-  throw fail("JD recovery was recently started. Check its result before another run.",409);
- await githubRequest(token,DISPATCH_PATH,{
-  method:"POST",body:{ref:REF,inputs:{apply:"true",limit:"25"}},fetcher
- });
- pendingSince=Date.now();
- return {accepted:true,enabled:true,state:"queued",active:true,runId:null,url:WORKFLOW_URL,
-  startedAt:new Date(pendingSince).toISOString(),finishedAt:null,
-  message:"JD recovery queued on GitHub. No CV or cover letter generation is started."};
+ if(dispatchInFlight)throw fail("JD recovery is already being requested. Check its status.",409);
+ dispatchInFlight=true;
+ try{
+  const current=await latest({token,fetcher});
+  if(current.active)throw fail("JD recovery is already queued or running. Check its status.",409);
+  if(current.startedAt&&Date.now()-Date.parse(current.startedAt)<60_000)
+   throw fail("JD recovery was recently started. Check its result before another run.",409);
+  await githubRequest(token,DISPATCH_PATH,{
+   method:"POST",body:{ref:REF,inputs:{apply:"true",limit:"25"}},fetcher
+  });
+  pendingSince=Date.now();
+  return {accepted:true,enabled:true,state:"queued",active:true,runId:null,url:WORKFLOW_URL,
+   startedAt:new Date(pendingSince).toISOString(),finishedAt:null,
+   message:"JD recovery queued on GitHub. No CV or cover letter generation is started."};
+ }finally{dispatchInFlight=false}
 }
 module.exports={available,normalize,latest,status,dispatch,WORKFLOW_URL,STATUS_PATH,DISPATCH_PATH};
