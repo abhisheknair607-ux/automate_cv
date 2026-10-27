@@ -43,7 +43,13 @@ function gmSmartScore_(job,candidate){
  const geography=/ireland|dublin|cork|galway|limerick|maynooth|letterkenny|donegal|sligo/.test(location)?15:
   /london|united kingdom|\buk\b|england|wales|scotland|manchester|birmingham|leeds|belfast/.test(location)?12:
   (!location||/remote|multiple location/.test(location))?6:0;
- return Math.max(0,Math.min(100,fit+seniority+geography+(job.favorite?8:0)+(job.jdReady?5:0)-(job.notInterested?60:0)));
+ const snippet=String(job.jdSnippet||"").toLowerCase();
+ // Use available partial/summary evidence conservatively, never as a complete JD.
+ const matches=candidate==="Pooja"
+   ?[/financial planning|client portfolio|financial advice|investment planning|qfa|financial adviser/,/risk appetite|financial needs|mortgage/]
+   :[/oecd|transfer pricing|functional analysis|benchmarking|financial modelling|forecasting/,/acca|financial analysis|corporate finance|transaction services|scenario analysis/];
+ const evidence=matches.reduce((n,re)=>n+Number(re.test(snippet)),0)*3;
+ return Math.max(0,Math.min(100,fit+seniority+geography+evidence+(job.favorite?8:0)+(job.jdReady?5:0)-(job.notInterested?60:0)));
 }
 function gmProgressCells_(){
  // Read the existing Freshmaal application-progress columns BE/BF.  This is
