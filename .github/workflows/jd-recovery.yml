@@ -1,5 +1,6 @@
-name: JD recovery (gated)
-# On this feature branch no scheduled workflow can run on production.
+name: JD recovery (manual only)
+run-name: "JD Recovery · manual · up to ${{ inputs.limit }} jobs"
+# The Discovery button is the only automatic entry point. Never schedule runs.
 on:
   workflow_dispatch:
     inputs:
@@ -10,10 +11,8 @@ on:
       limit:
         description: "Maximum shortlist per run"
         type: choice
-        options: ["10", "20", "50"]
-        default: "20"
-  schedule:
-    - cron: "24 2 * * *"
+        options: ["10", "25", "50"]
+        default: "25"
 
 permissions:
   contents: read
@@ -25,7 +24,7 @@ concurrency:
 
 jobs:
   recover:
-    if: github.event_name == 'workflow_dispatch' || vars.GARAMAAL_JD_RECOVERY_APPROVED == 'true'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -55,14 +54,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ARGS=(--limit "20")
+          ARGS=(--limit "25")
           if [[ "$EVENT_KIND" == "workflow_dispatch" && -n "$REQUEST_LIMIT" ]]; then
             ARGS=(--limit "$REQUEST_LIMIT")
           fi
-          if [[ "$GARAMAAL_JD_RECOVERY_APPROVED" == "true" ]]; then
-            if [[ "$EVENT_KIND" == "schedule" || "$REQUEST_APPLY" == "true" ]]; then
-              ARGS+=(--apply)
-            fi
+          if [[ "$GARAMAAL_JD_RECOVERY_APPROVED" == "true" && "$REQUEST_APPLY" == "true" ]]; then
+            ARGS+=(--apply)
           elif [[ "$REQUEST_APPLY" == "true" ]]; then
             echo "::error::Live-write approval is not enabled. No Sheets modifications."
             exit 1
