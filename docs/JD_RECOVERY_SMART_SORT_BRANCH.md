@@ -6,7 +6,7 @@ Branch: `feature/jd-recovery-smart-sort-20261027`
 
 ## User-visible contract
 
-- Discovery retains *all* distinct records, including those already transferred to Make CV, and remains the JD editor.
+- **Manual transfers disappear from Discovery**, retaining the previous workflow. Only **verified Automatic JD** transfers stay visible and editable in Discovery while also appearing in Make CV.
 - Candidate-specific **Smart Sort** is selected whenever Discovery is entered, including after switching away and back. Other sorts may be chosen during that visit. Existing filters, user preferences and duplicate review remain in place.
 - Verified complete JDs received through the recovery process are represented as **Automatic JD** in Discovery and Make CV.
 - Partial/summary/unknown postings remain Discovery **Needs JD**, without new panels.
