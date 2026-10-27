@@ -16,9 +16,19 @@ Branch: `feature/jd-recovery-smart-sort-20261027`
 ## Recovery approach
 
 - `src/automate_cv/jd_recovery.py` is a **read-only-by-default** worker; prioritizes candidate-related finance, transfer pricing and wealth roles. Uses public Greenhouse/Lever/Ashby/SmartRecruiters endpoints, and eligible employer JobPosting JSON-LD. Requires a matching vacancy title plus substantial responsibilities and qualification sections, not an SEO snippet.
+
+### Manual JD recovery in Discovery (no scheduler)
+
+- The existing Discovery refresh toolbar gains one **small download/recover icon**. Clicking it once triggers GitHub Actions to process a batch of up to **25** JD-less jobs.
+- An adjacent live status reads **Queued**, **Running**, **Completed**, **Failed** or **Cancelled** from GitHub Actions. A status link opens the actual run. Active jobs are polled every 14 seconds; merely opening Discovery never starts a run.
+- This status is read again after browser reloads, and the workflow continues on GitHub if the user leaves the page.
+- Manual runs use `/api/jd-recovery/run` and `/api/jd-recovery/status` with verified Firebase authentication. The browser never receives the GitHub token.
+- Live execution requires *both* `ALLOW_JD_RECOVERY_DISPATCH=true` and `GARAMAAL_JD_RECOVERY_APPROVED=true` on Cloud Run, `APP_READ_ONLY=false` and the separate GitHub Actions repository variable `GARAMAAL_JD_RECOVERY_APPROVED=true`. The workflow and manual controls must first exist on `main`. Do not enable these flags until explicitly approving production writes.
+- No `schedule` event exists in `.github/workflows/jd-recovery.yml`. No independent cron/automation will run JD recovery.
+- The existing CV workflow is unaffected and never triggered by JD recovery. Retrieving a full JD does not mean generating a CV.
 - LinkedIn-only or inaccessible pages return **Needs JD**. A full employer-matched alternative source discovery/search module is not yet included; this is a staged enhancement rather than permission to mislabel short summaries as full descriptions.
 - Matching Make CV rows are reused and protected; no duplicate CV output generation.
-- The scheduler's live write needs `GARAMAAL_JD_RECOVERY_APPROVED=true`; branch is not activated by GitHub Actions schedules. To test without Sheet writes, use a manual preview or the automated Python/Node tests.
+- The GitHub **manual dispatch** is separately gated against Sheet writes. To test without Sheet writes, use a manual preview or the automated Python/Node tests.
 
 ## Before future publication
 
@@ -26,7 +36,7 @@ Branch: `feature/jd-recovery-smart-sort-20261027`
 2. Test recovery against *copied* Taaza and Freshmaal Sheets with `--apply`; verify no duplicate records, lock violations, or status changes. The current tests use synthetic inputs and do not prove live provider extraction rates.
 3. Review the existing UI protection check. It intentionally forbids changes to the legacy `webapp/` controller and unreviewed Python modules. Do **not** relax this safety gate silently or merge this branch until reviewed and validated.
 4. Confirm no whole-JD previews or worker log text disclose confidential data. Verify GitHub Actions service permissions.
-5. Merge only after approval; run a separate gated canary, then publish Cloud Run/Firebase in a separate release. Keep a known-good rollback revision. Enable scheduled live writes only with a second explicit sign-off.
+5. Merge only after approval; run a separate gated canary, then publish Cloud Run/Firebase in a separate release. Keep a known-good rollback revision. Enable **manual dispatch and live writes** only with a second explicit sign-off. There is no scheduled JD-recovery workflow.
 
 ## Notes
 
