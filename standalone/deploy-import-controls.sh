@@ -80,7 +80,7 @@ cp "$ROOT/package.json" "$TMP/build/package.json"
 cp -R "$ROOT/standalone" "$TMP/build/standalone"
 cp -R "$ROOT/garamaal-release-webapp" "$TMP/build/garamaal-release-webapp"
 gcloud run deploy "$SERVICE" --source "$TMP/build" --project "$PROJECT" --region "$REGION" \
-  --no-traffic --tag "$TAG" --update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true,ALLOW_DUP_STATUS_WRITES=true,GARAMAAL_ALERT_IMPORT_APPROVED=true --quiet
+  --no-traffic --tag "$TAG" --update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true,ALLOW_DUP_STATUS_WRITES=true,GARAMAAL_ALERT_IMPORT_APPROVED=true,ALLOW_JD_RECOVERY_DISPATCH=true,GARAMAAL_JD_RECOVERY_APPROVED=true --quiet
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/canary.json"
 readarray -t TAG_DATA < <(python3 - "$TMP/before.json" "$TMP/canary.json" "$TAG" <<'PY'
 import json,sys
@@ -96,7 +96,7 @@ def config(s):
 old_spec,old_env=config(before)
 new_spec,new_env=config(after)
 assert old_spec.get("serviceAccountName")==new_spec.get("serviceAccountName"), "Runtime identity changed"
-approved={"ALLOW_ALERT_WORKFLOW_DISPATCH","ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"}
+approved={"ALLOW_ALERT_WORKFLOW_DISPATCH","ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED","ALLOW_JD_RECOVERY_DISPATCH","GARAMAAL_JD_RECOVERY_APPROVED"}
 for key in approved:
  assert new_env.get(key,{}).get("value")=="true", "Approved manual control disabled: "+key
 for key,value in old_env.items():
@@ -118,6 +118,15 @@ curl -fsSL --max-time 30 "$URL/health" | python3 -c \
 curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
 grep -Fq 'Live import authorisation off' "$TMP/canary.html"
 grep -Fq 'Ranking prompt' "$TMP/canary.html"
+grep -Fq 'data-action="jd-recovery-run"' "$TMP/canary.html"
+grep -Fq 'JD recovery running' "$TMP/canary.html"
+# No run is dispatched as part of canary / production verification.
+curl -fsSL --max-time 30 "$URL/health" | python3 -c 'import sys,json; d=json.load(sys.stdin); assert d["ok"] is True'
+# Verify manual JD recovery dispatch/status require authentication.
+for endpoint in jd-recovery/status jd-recovery/run; do
+  code="$(curl -s -o /dev/null -w '%{http_code}' --max-time 25 -X POST "$URL/api/$endpoint" -H 'Content-Type: application/json' --data '{}')"
+  [[ "$code" == "401" ]] || { echo "Manual JD endpoint $endpoint was not protected (HTTP $code)" >&2; exit 2; }
+done
 curl -fsSL --max-time 30 "$URL/manifest.webmanifest" -o "$TMP/manifest.json"
 python3 - "$TMP/manifest.json" <<'PY'
 import json,sys
@@ -159,5 +168,5 @@ PROMOTION_ATTEMPTED=0
 echo "PRODUCTION VERIFIED: https://garamaal.web.app/prototype"
 echo "Revision: $REV (100%); rollback baseline: $BASELINE"
 echo "Preview Import and Check Duplicates dispatch enabled (read-only)."
-echo "Authenticated manual Run Import and individual Dup marking enabled."
+echo "Authenticated manual Run Import, Dup marking and JD recovery trigger are enabled."
 echo "Automated duplicate-status writes and historical deletion remain disabled."
