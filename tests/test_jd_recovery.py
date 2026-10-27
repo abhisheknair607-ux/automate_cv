@@ -77,7 +77,7 @@ def test_greenhouse_vendor_checks_title_and_structural_content(monkeypatch):
         calls.append(url)
         return SimpleNamespace(json=lambda: {
             "title": "Senior FP&A Analyst", "content": sample_description()
-        })
+        }, text="", url=url)
     monkeypatch.setattr(jd, "get_public", fake_get)
     recovered = jd.fetch_jd(None, "https://job-boards.greenhouse.io/acme/jobs/8239518", "Senior FP&A Analyst")
     assert recovered and jd.is_full_jd(recovered.text)
