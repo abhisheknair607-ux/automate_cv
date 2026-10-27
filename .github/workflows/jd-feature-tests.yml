@@ -36,6 +36,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+      - name: Stage the actual Cloud Run release controller for UI tests
+        run: |
+          # Production Dockerfile copies garamaal-release-webapp into webapp.
+          # Replicate the real deployed layout in this throwaway CI checkout.
+          cp garamaal-release-webapp/Code.gs webapp/Code.gs
+          cp garamaal-release-webapp/Index.html webapp/Index.html
       - name: Check JS syntax and candidate-specific Smart Sort
         run: |
           node --check standalone/prototype_queries.js
