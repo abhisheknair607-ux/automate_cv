@@ -63,8 +63,11 @@ test("Bulk preferences are bounded, validated and return independent job results
   assert.throws(()=>c.bulkSetJobPreferences({source:"fresh",candidate:"Abhishek",value:"Favorite",jobs:[one(3)]}),/Discovery/);
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Abhishek",value:"Deleted",jobs:[one(3)]}),/Not Interested or Favorite/);
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Abhishek",value:"Favorite",jobs:[one(3),one(3)]}),/unique valid/);
+  const allowed=c.bulkSetJobPreferences({source:"taaza",candidate:"Pooja",value:"Favorite",
+    jobs:Array.from({length:25},(_,i)=>one(i+3))});
+  assert.equal(allowed.results.length,25,"25 jobs should be accepted as one bounded batch");
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Pooja",value:"Favorite",
-    jobs:Array.from({length:21},(_,i)=>one(i+3))}),/1–20/);
+    jobs:Array.from({length:26},(_,i)=>one(i+3))}),/1–25/);
 });
 
 test("Individual preferences preserve loaded pages and scroll; only touched card is changed",async()=>{
