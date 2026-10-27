@@ -248,7 +248,7 @@ def safe_fresh_row(fresh_rows: list[list]) -> int:
         v = list(values) + [""] * (58 - len(values))
         # Match legacy openSlot_: no vacancy in A:D and no workflow M:AF.
         # Reject residual CV/CL/selection controls in E:L to prevent reuse of active records.
-        if not any(str(x).strip() for x in v[:12]) and not any(str(x).strip() for x in v[12:32]):
+        if not any(str(x).strip() for x in v[:4]) and not any(str(x).strip().lower() not in ("", "false", "none") for x in v[4:12]) and not any(str(x).strip() for x in v[12:32]):
             return index
     raise RuntimeError("No unused Freshmaal row available; no changes written")
 
@@ -300,7 +300,9 @@ def apply_recovered(service, idx: int, old: list, recovered: Recovered, fresh_sn
     else:
         row_num = safe_fresh_row(fresh_snapshot)
         latest = sheet_values(service, FRESH_ID, f"'Sheet1'!A{row_num}:AF{row_num}")
-        if latest and any(str(x).strip() for x in latest[0][:32]):
+        if latest and (any(str(x).strip() for x in latest[0][:4]) or
+                       any(str(x).strip().lower() not in ("", "false", "none") for x in latest[0][4:12]) or
+                       any(str(x).strip() for x in latest[0][12:32])):
             raise RuntimeError("Free Make CV row became occupied")
         put(service, FRESH_ID, [
             {"range": f"'Sheet1'!A{row_num}:D{row_num}",
