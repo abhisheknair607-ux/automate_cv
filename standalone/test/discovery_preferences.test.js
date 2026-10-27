@@ -15,7 +15,7 @@ function backendContext(){
   return ctx;
 }
 
-test("Discovery retains transferred vacancies, including favourite and transferred views",()=>{
+test("Manually transferred jobs leave Discovery while all other jobs remain candidate-specific",()=>{
   const c=backendContext();
   const taaza=[
     {row:2,company:"Alpha",role:"Transfer Pricing",url:"https://example.org/alpha",jdReady:true,
@@ -32,12 +32,12 @@ test("Discovery retains transferred vacancies, including favourite and transferr
   c.taazaCategoryTabs_=()=>[];
   for(const candidate of ["Abhishek","Pooja"]){
     const all=c.listJobs({source:"taaza",candidate,filter:"all"});
-    assert.equal(all.total,candidate==="Abhishek"?2:3);
-    assert.ok(all.rows.some(x=>x.company==="Alpha"),"Transferred job must remain editable in Discovery");
-    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,1,
-      "Transferred filter must show the existing Discovery job");
+    assert.equal(all.total,candidate==="Abhishek"?1:2);
+    assert.ok(all.rows.every(x=>x.company!=="Alpha"),"Manual transfer must disappear from Discovery");
+    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,0,
+      "Manually transferred jobs must not reappear in Discovery filters");
     const favorites=c.listJobs({source:"taaza",candidate,filter:"favorites"});
-    assert.deepEqual(Array.from(favorites.rows,x=>x.company),candidate==="Abhishek"?["Gamma","Alpha"]:["Gamma"]);
+    assert.deepEqual(Array.from(favorites.rows,x=>x.company),["Gamma"]);
     const excluded=c.listJobs({source:"taaza",candidate,filter:"not-interested"});
     assert.ok(excluded.rows.every(x=>x.company!=="Alpha"));
     assert.equal(excluded.total,candidate==="Abhishek"?1:0);
