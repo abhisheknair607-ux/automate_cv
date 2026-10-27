@@ -32,8 +32,7 @@ SECTIONS = (
     r"\b(?:requirements|qualifications|what we(?:'|’)re looking for|you will bring|"
     r"what you bring|skills and experience|essential criteria|candidate profile)\b",
 )
-ROLE_WORDS = {"senior", "junior", "associate", "analyst", "the", "and", "for", "of", "a",
-              "in", "to", "executive", "consultant", "specialist"}
+ROLE_WORDS = {"senior", "junior", "the", "and", "for", "of", "a", "in", "to"}
 MAX_BODY = 1_000_000
 
 
@@ -87,7 +86,7 @@ def is_full_jd(value: str) -> bool:
 def title_match(wanted: str, found: str) -> bool:
     def words(s):
         return {x for x in re.findall(r"[a-z0-9]+", str(s).lower())
-                if len(x) >= 3 and x not in ROLE_WORDS}
+                if len(x) >= 2 and x not in ROLE_WORDS}
     a, b = words(wanted), words(found)
     return bool(a and b and len(a & b) / len(a) >= .7)
 
