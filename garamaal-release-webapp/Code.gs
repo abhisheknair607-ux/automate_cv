@@ -285,7 +285,9 @@ function taazaRows_() {
     // check so the cache never retains large job descriptions.
     const rows=sh.getRange(2,1,count,16).getValues();
     return rows.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
-      url:String(a[2]||''),jdReady:jdReady_(a[3]),location:String(a[4]||''),
+      url:String(a[2]||''),jdReady:jdReady_(a[3]),
+       jdSnippet:/^open original job description$/i.test(String(a[3]||'').trim())?'':String(a[3]||'').slice(0,1000),
+       location:String(a[4]||''),
       posted:String(a[5]||''),deadline:String(a[6]||''),start:String(a[7]||''),
       added:String(a[8]||''),salary:String(a[9]||''),
       sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
@@ -430,20 +432,22 @@ function listJobs(options) {
     const prefs=new Map(other.filter(x=>x.url).map(x=>[canonical_(x.url),x.person[candidate].preference]));
     jobs=jobs.map(x=>{
       const preference=effectivePreference_(x.preferences[candidate],prefs.get(canonical_(x.url)));
-      return {...x,transferred:transferred.has(canonical_(x.url)),preference,
+      return {...x,transferred:transferred.has(canonical_(x.url)),automaticJD:String(x.transferStatus||'').startsWith('Automatic JD'),preference,
         favorite:preference==='Favorite',notInterested:preference==='Not Interested'};
     });
     // Discovery is an intake queue, not a duplicate of Make CV. Match by
     // canonical vacancy URL, regardless of which candidate transferred it.
-    jobs=jobs.filter(x=>!x.transferred);
+    // Discovery remains the permanent JD editor, including transferred vacancies.
     jobs.forEach(x=>{delete x.categories;delete x.preferences;});
   } else {
-    const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
+    const taaza=taazaRows_().filter(x=>x.url);
+     const prefs=new Map(taaza.map(x=>[canonical_(x.url),x.preferences[candidate]]));
+     const automatic=new Set(taaza.filter(x=>String(x.transferStatus||'').startsWith('Automatic JD')).map(x=>canonical_(x.url)));
     jobs=jobs.map(x=>{
       const item=x.person[candidate];
       const preference=effectivePreference_(item.preference,prefs.get(canonical_(x.url)));
       return {...x,...item,preference,favorite:preference==='Favorite',
-        notInterested:preference==='Not Interested'};
+        notInterested:preference==='Not Interested',automaticJD:automatic.has(canonical_(x.url))};
     });
     jobs.forEach(x=>delete x.person);
   }
@@ -452,7 +456,7 @@ function listJobs(options) {
   else jobs=jobs.filter(x=>!x.notInterested);
   if(query)jobs=jobs.filter(x=>[x.company,x.role,x.location,x.url].some(z=>String(z||'').toLowerCase().includes(query)));
   if(filter==='missing'&&source==='taaza')jobs=jobs.filter(x=>!x.jdReady);
-  if(filter==='ready'&&source==='taaza')jobs=jobs.filter(x=>x.jdReady&&!x.transferred);
+  if(filter==='ready'&&source==='taaza')jobs=jobs.filter(x=>x.jdReady);
   if(filter==='transferred'&&source==='taaza')jobs=jobs.filter(x=>x.transferred);
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
