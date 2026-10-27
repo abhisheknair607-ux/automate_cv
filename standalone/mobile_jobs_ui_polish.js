@@ -51,6 +51,17 @@
    button.title=label;
    button.querySelector("svg")?.setAttribute("aria-hidden","true");
   }
+  // The newly requested Select All stays beside the preference and clear icons.
+  const selectAll=actions.querySelector('[data-action="bulk-select-all"]');
+  if(selectAll){
+   for(const node of Array.from(selectAll.childNodes)){
+    if(node.nodeType===3)node.remove();
+   }
+   selectAll.classList.add("gmv3-bulk-icon");
+   selectAll.setAttribute("aria-label","Select all matching Discovery jobs, up to 25");
+   selectAll.title="Select all (up to 25)";
+   selectAll.querySelector("svg")?.setAttribute("aria-hidden","true");
+  }
   if(!actions.querySelector('[data-gmv3-bulk="clear"]')){
    const button=doc.createElement("button");
    button.type="button";
