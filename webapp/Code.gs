@@ -252,7 +252,10 @@ function taazaRows_() {
     // check so the cache never retains large job descriptions.
     const rows=sh.getRange(2,1,count,16).getValues();
     return rows.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
-      url:String(a[2]||''),jdReady:jdReady_(a[3]),location:String(a[4]||''),
+      url:String(a[2]||''),jdReady:jdReady_(a[3]),
+       // Bounded verified text only; internal sort evidence, never a fabricated JD.
+       jdSnippet:/^open original job description$/i.test(String(a[3]||'').trim())?'':String(a[3]||'').slice(0,1000),
+       location:String(a[4]||''),
       posted:String(a[5]||''),deadline:String(a[6]||''),start:String(a[7]||''),
       added:String(a[8]||''),salary:String(a[9]||''),
       sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
