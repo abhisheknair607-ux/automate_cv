@@ -121,7 +121,7 @@
     return json.data;
   }
   async function requestSpecial(endpoint,body){
-    if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status",
+    if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status","jd-recovery/run","jd-recovery/status",
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
        "swipe/updateFreshControl","swipe/updateApplicationProgress"].includes(endpoint))
       throw Error("Unsupported operation.");
