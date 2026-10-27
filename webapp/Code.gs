@@ -365,6 +365,8 @@ function listJobs(options) {
       transferred:transferred.has(canonical_(x.url)),jdReady:x.jdReady,
       notInterested:!!x.notInterested[candidate]||hidden.has(canonical_(x.url))
     }));
+    // Hide manual transfers while retaining verified Automatic JD records for editing.
+    jobs=jobs.filter(x=>!x.transferred||String(x.transferStatus||'').startsWith('Automatic JD'));
     jobs.forEach(x=>delete x.categories);
   } else {
     const hidden=new Set(taazaRows_().filter(x=>x.notInterested[candidate])
