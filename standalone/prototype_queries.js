@@ -90,7 +90,7 @@ function gmCandidateRows_(source,candidate){
    automaticJD:String(x.transferStatus||"").startsWith("Automatic JD"),preference,
    favorite:preference==="Favorite",notInterested:preference==="Not Interested",
    department:gmFacetFunction_(x.role)};
- }).map(x=>{delete x.preferences;return x;});
+ }).filter(x=>!x.transferred||x.automaticJD).map(x=>{delete x.preferences;return x;});
 }
 function gmPipelineStats(candidate){
  authorise_();candidate=String(candidate||"");person_(candidate);
