@@ -655,7 +655,7 @@ function card(job){const discovery=state.section==='discovery';const cvReady=!!j
 function pagination(){if(!state.data)return'';const d=state.data;const remaining=Math.max(0,d.total-d.rows.length);return `<div class="pagination"><span class="meta" aria-live="polite"><b>${d.rows.length}</b> of <b>${d.total}</b> jobs shown</span>${remaining?`<button class="btn btn-primary" data-action="load-more" ${state.loadingMore?'disabled':''}>${state.loadingMore?'Loading…':'Next · Load '+Math.min(remaining,state.pageSize)+' more'} ${icon('down')}</button>`:'<span class="tag tag-ok">All jobs loaded</span>'}</div>`}
 function selectionBar(){
  const count=state.bulk.size;
- return !count?'':`<div class="selectionbar" role="group" aria-label="Selected vacancy preferences"><b>${count} selected</b><div class="row bulk-preference-actions"><button type="button" class="btn" data-action="bulk-preference" data-value="Not Interested">${icon('trash')} Not Interested</button><button type="button" class="btn" data-action="bulk-preference" data-value="Favorite">${icon('heart')} Favourite</button></div></div>`;
+ return !count?'':`<div class="selectionbar" role="group" aria-label="Selected vacancy preferences"><b>${count} selected</b><div class="row bulk-preference-actions"><button type="button" class="btn" data-action="bulk-select-all" title="Select up to 25 matching jobs" aria-label="Select all matching jobs, maximum 25">${icon('check')} Select all</button><button type="button" class="btn" data-action="bulk-preference" data-value="Not Interested">${icon('trash')} Not Interested</button><button type="button" class="btn" data-action="bulk-preference" data-value="Favorite">${icon('heart')} Favourite</button></div></div>`;
 }
 function syncSelectionBar(){const mount=document.getElementById('selectionBarMount');if(mount)mount.innerHTML=selectionBar();}
 function listView(){const discovery=state.section==='discovery';const head=discovery?'Taaza · Discovery':'Garamaal · Make CV';const desc='';return title(head,desc,discovery?`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`:`<button class="btn" data-action="nav" data-value="discovery">${icon('discover')} Discovery</button>`)+(discovery?'':tierBanner()+queueOverview())+filters()+(state.initError?`<div class="app-error">${h(state.initError)}</div>`:'')+(state.data&&state.data.rows.length?`<div class="jobs">${state.data.rows.map(card).join('')}</div>${pagination()}`:state.data?`<div class="empty">${icon('discover')}No jobs match these filters. Try a different search or filter.</div>`:`<div class="empty">${icon('refresh')}Loading job list...</div>`)+(discovery?`<div id="selectionBarMount">${selectionBar()}</div>`:'')}
@@ -756,10 +756,47 @@ async function setPreference(row,value,element){
  }catch(e){toast(e.message||'Could not save preference.',true)}
  finally{preferencePending.delete(key);if(element&&element.isConnected)element.disabled=false;}
 }
+const MAX_DISCOVERY_SELECTION=25;
+async function selectAllMatchingJobs(){
+  if(state.section!=='discovery'||!state.data||!state.bulk.size)return;
+  if(state.bulk.size>=MAX_DISCOVERY_SELECTION){
+    toast('Maximum 25 jobs selected.');return;
+  }
+  const candidate=state.candidate,request=state.listRequest;
+  const filters={source:'taaza',candidate,tabId:state.tabId,query:state.query,
+    filter:state.filter,sort:state.sort,page:1,offset:0,pageSize:MAX_DISCOVERY_SELECTION};
+  const action=document.querySelector('[data-action="bulk-select-all"]');
+  if(action)action.disabled=true;
+  try{
+    // Fetch the first 25 *filtered and sorted* jobs, not only the mobile page of 10.
+    // This remains read-only, preserves previously selected rows and uses the
+    // existing candidate-scoped faceted list endpoint (no extra Sheet writes).
+    const page=state.data.total>state.data.rows.length
+      ?await run('listJobs',filters,{quiet:true})
+      :{rows:state.data.rows};
+    if(state.section!=='discovery'||candidate!==state.candidate||
+       request!==state.listRequest||state.filter!==filters.filter||
+       state.tabId!==filters.tabId||state.sort!==filters.sort||
+       state.query!==filters.query)return;
+    const matched=Array.isArray(page.rows)?page.rows:[];
+    for(const job of matched){
+      if(state.bulk.size>=MAX_DISCOVERY_SELECTION)break;
+      if(!Number.isInteger(Number(job.row))||Number(job.row)<2||
+         !job.company||!job.role||!job.url)continue;
+      if(!state.bulk.has(Number(job.row)))state.bulk.set(Number(job.row),job);
+    }
+    document.querySelectorAll('.job[data-job-row] input[data-action="bulk-select"]').forEach(cb=>{
+      cb.checked=state.bulk.has(Number(cb.dataset.row));
+    });
+    syncSelectionBar();
+    toast(state.bulk.size+' jobs selected. You can select a maximum of 25.');
+  }catch(error){toast(error.message||'Could not select matching jobs.',true)}
+  finally{if(action&&action.isConnected)action.disabled=false}
+}
 async function bulkSetPreferences(value){
  if(state.section!=='discovery'||!['Not Interested','Favorite'].includes(value)||!state.bulk.size)return;
  const section=state.section,candidate=state.candidate,selected=[...state.bulk.values()];
- if(selected.length>20){toast('Select at most 20 vacancies at a time.',true);return}
+ if(selected.length>MAX_DISCOVERY_SELECTION){toast('Select at most 25 vacancies at a time.',true);return}
  if(selected.some(j=>preferencePending.has('taaza|'+candidate+'|'+j.row))){
    toast('Wait for the current job update to finish.',true);return
  }
@@ -810,9 +847,9 @@ async function saveAdd(mode){const get=id=>document.getElementById(id).value.tri
 
 let debounce;document.addEventListener('input',e=>{if(e.target.id==='search'){clearTimeout(debounce);debounce=setTimeout(()=>{const next=e.target.value;if(next===state.query)return;state.query=next;state.page=1;fetchList()},650)}});
 document.addEventListener('change',e=>{const a=e.target.dataset.action;if(a==='job-preference'){setPreference(Number(e.target.dataset.row),e.target.value,e.target);return}if(a==='tier-mode'||a==='cl-tier-mode'){changePreviewTier(Number(e.target.dataset.row),e.target.value,a==='cl-tier-mode'?'clTier':'tier');return}if(a==='inline-status'){control(Number(e.target.dataset.row),'status',e.target.value,e.target);return}if(e.target.id==='sort'){state.sort=e.target.value;state.page=1;fetchList();return}if(e.target.id==='fresh-status'){const d=state.detail;if(d)control(d.row,'status',e.target.value,e.target);return}if(a==='bulk-select'){const row=Number(e.target.dataset.row),job=state.data?.rows.find(x=>x.row===row);
- if(e.target.checked&&job){if(state.bulk.size>=20){e.target.checked=false;toast('Select at most 20 vacancies at a time.',true);return}state.bulk.set(row,job)}else state.bulk.delete(row);
+ if(e.target.checked&&job){if(state.bulk.size>=MAX_DISCOVERY_SELECTION){e.target.checked=false;toast('Select at most 25 vacancies at a time.',true);return}state.bulk.set(row,job)}else state.bulk.delete(row);
  syncSelectionBar();return}if(a==='inline-control'||a==='detail-control'){const row=a==='detail-control'?state.detail?.row:Number(e.target.dataset.row),field=e.target.dataset.field;control(row,field,e.target.checked,e.target)}});
-document.addEventListener('click',async e=>{if(e.target.classList.contains('modal-back')){if(e.target.id==='garamaal-install-help'){e.target.remove();return}closeDetail();return}const x=e.target.closest('[data-action]');if(!x)return;const a=x.dataset.action,value=x.dataset.value,row=Number(x.dataset.row);if(a==='migrate-preferences'){if(!confirm('Convert existing Not Interested checkboxes into Blank / Not Interested / Favorite dropdowns in both Taaza and Freshmaal? Existing choices will be preserved.'))return;try{const r=await run('migrateJobPreferences',{confirm:true});toast(r.message);fetchStats()}catch(e){}return}if(a==='expense-close'||a==='expense-backdrop'){expenseClose();return}if(a==='expenses'){showExpenses();return}if(a==='cost-source'){showCostSource(x.dataset.candidate||state.candidate,row);return}if(a==='preference-toggle'){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);if(job)setPreference(row,nextPreferenceValue(job.preference||'',value),x);return}if(a==='duplicate-toggle'){toggleDuplicate(row);return}if(a==='install-app'){if(DEMO){toast('Install is available on the live Garamaal website.',true)}else window.__cvInstall?.();return}if(a==='nav'){nav(value);return}if(a==='candidate'){switchCandidate(value);return}if(a==='quick'){nav(value==='missing'||value==='ready'?'discovery':'fresh',value);return}if(a==='filter'){state.filter=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='sort-jobs'){state.sort=value;state.page=1;fetchList();return}if(a==='category'){state.tabId=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='load-more'){loadMore();return}if(a==='view-not-interested'){nav(x.dataset.source==='fresh'?'fresh':'discovery','not-interested');return}if(a==='refresh'){fetchList();return}if(a==='open-link'){openLink(x.dataset.url);return}if(a==='detail'){details(row);return}if(a==='close'){closeDetail();return}if(a==='transfer'){transfer(row);return}if(a==='run-cv-now'){runCvNow(row);return}if(a==='download-cv'){downloadCv(row);return}if(a==='download-cl'){downloadCl(row);return}if(a==='copy-prompt'){copyCvPrompt(row);return}if(a==='bulk-preference'){bulkSetPreferences(value);return}if(a==='save-jd'){saveJD();return}if(a==='save-fields'){saveFields();return}if(a==='sync-jd'){syncJD();return}});
+document.addEventListener('click',async e=>{if(e.target.classList.contains('modal-back')){if(e.target.id==='garamaal-install-help'){e.target.remove();return}closeDetail();return}const x=e.target.closest('[data-action]');if(!x)return;const a=x.dataset.action,value=x.dataset.value,row=Number(x.dataset.row);if(a==='migrate-preferences'){if(!confirm('Convert existing Not Interested checkboxes into Blank / Not Interested / Favorite dropdowns in both Taaza and Freshmaal? Existing choices will be preserved.'))return;try{const r=await run('migrateJobPreferences',{confirm:true});toast(r.message);fetchStats()}catch(e){}return}if(a==='expense-close'||a==='expense-backdrop'){expenseClose();return}if(a==='expenses'){showExpenses();return}if(a==='cost-source'){showCostSource(x.dataset.candidate||state.candidate,row);return}if(a==='preference-toggle'){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);if(job)setPreference(row,nextPreferenceValue(job.preference||'',value),x);return}if(a==='duplicate-toggle'){toggleDuplicate(row);return}if(a==='install-app'){if(DEMO){toast('Install is available on the live Garamaal website.',true)}else window.__cvInstall?.();return}if(a==='nav'){nav(value);return}if(a==='candidate'){switchCandidate(value);return}if(a==='quick'){nav(value==='missing'||value==='ready'?'discovery':'fresh',value);return}if(a==='filter'){state.filter=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='sort-jobs'){state.sort=value;state.page=1;fetchList();return}if(a==='category'){state.tabId=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='load-more'){loadMore();return}if(a==='view-not-interested'){nav(x.dataset.source==='fresh'?'fresh':'discovery','not-interested');return}if(a==='refresh'){fetchList();return}if(a==='open-link'){openLink(x.dataset.url);return}if(a==='detail'){details(row);return}if(a==='close'){closeDetail();return}if(a==='transfer'){transfer(row);return}if(a==='run-cv-now'){runCvNow(row);return}if(a==='download-cv'){downloadCv(row);return}if(a==='download-cl'){downloadCl(row);return}if(a==='copy-prompt'){copyCvPrompt(row);return}if(a==='bulk-select-all'){selectAllMatchingJobs();return}if(a==='bulk-preference'){bulkSetPreferences(value);return}if(a==='save-jd'){saveJD();return}if(a==='save-fields'){saveFields();return}if(a==='sync-jd'){syncJD();return}});
 document.addEventListener('submit',e=>{if(e.target.id==='addForm'){e.preventDefault();const mode=e.submitter?.dataset.mode||'save';saveAdd(mode)}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.expense-pop'))expenseClose();else if(state.detail)closeDetail()}});
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
