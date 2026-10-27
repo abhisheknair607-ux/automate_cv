@@ -308,6 +308,9 @@ def apply_recovered(service, idx: int, old: list, recovered: Recovered, fresh_sn
              "values": [[old[0], old[1], old[2], recovered.text]]},
             {"range": f"'Sheet1'!AG{row_num}",
              "values": [[old[4]]]},
+            # Carry both candidates' existing Discovery choices, never change CV toggles.
+            {"range": f"'Sheet1'!AT{row_num}:AU{row_num}",
+             "values": [[old[13], old[14]]]},
         ])
         verification = sheet_values(service, FRESH_ID, f"'Sheet1'!A{row_num}:D{row_num}")
         if not verification or verification[0][:4] != [old[0], old[1], old[2], recovered.text]:
