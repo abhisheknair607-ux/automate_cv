@@ -41,7 +41,7 @@ test("Only a deliberate click dispatches bounded 25-job workflow; subsequent cli
  assert.equal(result.accepted,true);
  assert.equal(result.active,true);
  assert.equal(result.state,"queued");
- assert.deepEqual(posted,{ref:"main",inputs:{apply:"true",limit:"25"}});
+ assert.deepEqual(posted,{ref:"main",inputs:{apply:"true",limit:"25",approval:"RECOVER_VERIFIED_JD"}});
  assert.deepEqual(paths.map(p=>p.startsWith("https://api.github.com/repos/abhisheknair607-ux/automate_cv/")), [true,true]);
  assert.equal(paths.length,2);
  await assert.rejects(dispatch({...flags,fetcher}),/already queued or running/);
