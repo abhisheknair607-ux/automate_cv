@@ -15,7 +15,7 @@ function backendContext(){
   return ctx;
 }
 
-test("Discovery hides all transferred vacancies, including in favorite and rejected views",()=>{
+test("Discovery retains transferred vacancies, including favourite and transferred views",()=>{
   const c=backendContext();
   const taaza=[
     {row:2,company:"Alpha",role:"Transfer Pricing",url:"https://example.org/alpha",jdReady:true,
@@ -32,14 +32,15 @@ test("Discovery hides all transferred vacancies, including in favorite and rejec
   c.taazaCategoryTabs_=()=>[];
   for(const candidate of ["Abhishek","Pooja"]){
     const all=c.listJobs({source:"taaza",candidate,filter:"all"});
-    assert.equal(all.total,candidate==="Abhishek"?1:2);
-    assert.ok(all.rows.every(x=>x.company!=="Alpha"));
-    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,0,
-      "Legacy transferred filter cannot expose jobs managed in Freshmaal");
+    assert.equal(all.total,candidate==="Abhishek"?2:3);
+    assert.ok(all.rows.some(x=>x.company==="Alpha"),"Transferred job must remain editable in Discovery");
+    assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,1,
+      "Transferred filter must show the existing Discovery job");
     const favorites=c.listJobs({source:"taaza",candidate,filter:"favorites"});
-    assert.deepEqual(Array.from(favorites.rows,x=>x.company),["Gamma"]);
+    assert.deepEqual(Array.from(favorites.rows,x=>x.company),candidate==="Abhishek"?["Gamma","Alpha"]:["Gamma"]);
     const excluded=c.listJobs({source:"taaza",candidate,filter:"not-interested"});
     assert.ok(excluded.rows.every(x=>x.company!=="Alpha"));
+    assert.equal(excluded.total,candidate==="Abhishek"?1:0);
   }
 });
 
