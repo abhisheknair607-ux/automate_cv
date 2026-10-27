@@ -12,7 +12,7 @@ const SETTINGS = Object.freeze({
   taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
   freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc',
   taazaTab: 'Jobs', freshTab: 'Sheet1',
-  maxPageSize: 50, maxBulk: 25, maxJD: 49000,
+  maxPageSize: 50, maxBulk: 20, maxJD: 49000,
   maxFreshRow: 1000
 });
 // Persistent per-candidate rejection flags in the existing sheet tabs.
@@ -252,10 +252,7 @@ function taazaRows_() {
     // check so the cache never retains large job descriptions.
     const rows=sh.getRange(2,1,count,16).getValues();
     return rows.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
-      url:String(a[2]||''),jdReady:jdReady_(a[3]),
-       // Bounded verified text only; internal sort evidence, never a fabricated JD.
-       jdSnippet:/^open original job description$/i.test(String(a[3]||'').trim())?'':String(a[3]||'').slice(0,1000),
-       location:String(a[4]||''),
+      url:String(a[2]||''),jdReady:jdReady_(a[3]),location:String(a[4]||''),
       posted:String(a[5]||''),deadline:String(a[6]||''),start:String(a[7]||''),
       added:String(a[8]||''),salary:String(a[9]||''),
       sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
@@ -365,8 +362,6 @@ function listJobs(options) {
       transferred:transferred.has(canonical_(x.url)),jdReady:x.jdReady,
       notInterested:!!x.notInterested[candidate]||hidden.has(canonical_(x.url))
     }));
-    // Hide manual transfers while retaining verified Automatic JD records for editing.
-    jobs=jobs.filter(x=>!x.transferred||String(x.transferStatus||'').startsWith('Automatic JD'));
     jobs.forEach(x=>delete x.categories);
   } else {
     const hidden=new Set(taazaRows_().filter(x=>x.notInterested[candidate])
@@ -421,7 +416,7 @@ function getJob(options) {
     return {source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
       jd:String(a[3]||''),location:String(a[4]||''),posted:String(a[5]||''),deadline:String(a[6]||''),
       start:String(a[7]||''),added:String(a[8]||''),salary:String(a[9]||''),
-      transferStatus:String(a[11]||''),automaticJD:String(a[11]||'').startsWith('Automatic JD'),jdReady:jdReady_(a[3]),
+      transferStatus:String(a[11]||''),jdReady:jdReady_(a[3]),
       notInterested:truthy_(a[TAAZA_INTEREST[candidate]-1])||
         freshRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.person[candidate].notInterested)};
   }
@@ -522,27 +517,6 @@ function saveDiscovery(payload) {
     if(Object.prototype.hasOwnProperty.call(updates,'jd') &&
        String(sh.getRange(row,4).getValue()||'')!==String(payload.expectedJD||''))
       throw new Error('The JD was edited elsewhere. Reload this job before replacing Column D.');
-    const autoJD=String(sh.getRange(row,12).getValue()||'').startsWith('Automatic JD');
-    let sync=null;
-    if(autoJD&&Object.prototype.hasOwnProperty.call(updates,'jd')){
-      const before=String(sh.getRange(row,4).getValue()||'');
-      const next=clean_(updates.jd,SETTINGS.maxJD);
-      if(!jdReady_(next))throw new Error('An automatically transferred JD must remain complete.');
-      const identity=sh.getRange(row,1,1,3).getValues()[0];
-      const match=findFresh_(String(identity[2]||''),String(identity[0]||''),String(identity[1]||''));
-      if(!match)throw new Error('Automatic JD does not have a matching Make CV row. Refresh before editing.');
-      const fresh=sheet_('fresh'),live=fresh.getRange(match.row,1,1,4).getValues()[0];
-      if(canonical_(live[2])!==canonical_(identity[2])||
-         String(live[0]||'')!==String(identity[0]||'')||
-         String(live[1]||'')!==String(identity[1]||''))
-        throw new Error('Make CV job identity changed. JD was not saved.');
-      if(String(live[3]||'')!==before)
-        throw new Error('Make CV JD was edited separately. No changes were saved.');
-      const locks=fresh.getRange(match.row,16,1,11).getValues()[0];
-      if(String(locks[0]||'').trim()||String(locks[10]||'').trim())
-        throw new Error('A CV workflow is processing this job; JD changes are temporarily blocked.');
-      sync={fresh,row:match.row,jd:next};
-    }
     const keys=Object.keys(updates);
     if(!keys.length)throw new Error('No changes to save.');
     keys.forEach(key=>{
@@ -552,15 +526,7 @@ function saveDiscovery(payload) {
       sh.getRange(row,fields[key]).setValue(value);
     });
     SpreadsheetApp.flush();
-    if(sync){
-      sync.fresh.getRange(sync.row,4).setValue(sync.jd);
-      SpreadsheetApp.flush();
-      if(String(sync.fresh.getRange(sync.row,4).getValue()||'')!==sync.jd)
-        throw new Error('Discovery saved but Make CV JD verification failed. Review Make CV.');
-    }
-    return {saved:true,row,syncedJD:!!sync,message:sync?
-      'JD saved in Discovery and synced to Make CV. Existing CVs were not regenerated.':
-      'Saved to Taaza. Manual transfers still require explicit JD sync.'};
+    return {saved:true,row,message:'Saved to Taaza. Freshmaal was not automatically modified.'};
   });
 }
 function findFresh_(url,company,role) {
@@ -601,7 +567,7 @@ function transferJob(payload) {
 function bulkTransfer(payload) {
   authorise_();payload=payload||{};
   const rows=Array.isArray(payload.jobs)?payload.jobs:[];
-  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–25 vacancies to transfer.');
+  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–20 vacancies to transfer.');
   const results=[];
   // transferJob uses a lock individually. Do not nest locks.
   rows.forEach(x=>{try{results.push({row:x.row,ok:true,...transferJob(x)});}
