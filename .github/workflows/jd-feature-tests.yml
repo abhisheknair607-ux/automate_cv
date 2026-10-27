@@ -12,6 +12,11 @@ on:
       - "standalone/mobile_jobs_filters_stats.js"
       - "standalone/test/jd_recovery_smart_sort.test.js"
       - "standalone/test/bulk_select_25.test.js"
+      - "standalone/test/jd_recovery_manual_control.test.js"
+      - "standalone/jd_recovery_workflows.js"
+      - ".github/workflows/jd-recovery.yml"
+      - "standalone/bridge.js"
+      - "standalone/server.js"
       - "tests/test_jd_recovery.py"
       - ".github/workflows/jd-feature-tests.yml"
   pull_request:
@@ -26,6 +31,11 @@ on:
       - "standalone/mobile_jobs_filters_stats.js"
       - "standalone/test/jd_recovery_smart_sort.test.js"
       - "standalone/test/bulk_select_25.test.js"
+      - "standalone/test/jd_recovery_manual_control.test.js"
+      - "standalone/jd_recovery_workflows.js"
+      - ".github/workflows/jd-recovery.yml"
+      - "standalone/bridge.js"
+      - "standalone/server.js"
       - "tests/test_jd_recovery.py"
       - ".github/workflows/jd-feature-tests.yml"
 permissions:
@@ -52,7 +62,7 @@ jobs:
         run: |
           node --check standalone/prototype_queries.js
           node --check standalone/mobile_jobs_filters_stats.js
-          node --test standalone/test/jd_recovery_smart_sort.test.js standalone/test/bulk_select_25.test.js standalone/test/discovery_preferences.test.js standalone/test/stage3_duplicate_projection.test.js standalone/test/stage13_live_bulk.test.js
+          node --test standalone/test/jd_recovery_smart_sort.test.js standalone/test/bulk_select_25.test.js standalone/test/jd_recovery_manual_control.test.js standalone/test/discovery_preferences.test.js standalone/test/stage3_duplicate_projection.test.js standalone/test/stage13_live_bulk.test.js
       - name: Run read-only JD recovery safety tests
         run: |
           pip install --quiet httpx google-api-python-client google-auth google-auth-httplib2 pytest
