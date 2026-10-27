@@ -171,6 +171,9 @@ app.get("/prototype/media/:file",(req,res)=>{
 app.get("/prototype/collage.css",(_req,res)=>
   res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
     .sendFile(path.join(__dirname,"mobile_collage.css")));
+app.get("/prototype/copper-porcelain.css",(_req,res)=>
+  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+    .sendFile(path.join(__dirname,"copper_porcelain.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
 app.get("/prototype",(req,res)=>{
   if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
@@ -204,7 +207,8 @@ app.get("/prototype",(req,res)=>{
   html=html.replace("</head>",
     '<link rel="stylesheet" href="/prototype/mobile-shell.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
-    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-cv-controls-18"></head>');
+    '<link rel="stylesheet" href="/prototype/collage.css?v=m26-cv-controls-18">'+
+    '<link rel="stylesheet" href="/prototype/copper-porcelain.css?v=1"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
