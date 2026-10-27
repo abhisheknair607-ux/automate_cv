@@ -416,7 +416,7 @@ function getJob(options) {
     return {source,row,company:String(a[0]||''),role:String(a[1]||''),url:String(a[2]||''),
       jd:String(a[3]||''),location:String(a[4]||''),posted:String(a[5]||''),deadline:String(a[6]||''),
       start:String(a[7]||''),added:String(a[8]||''),salary:String(a[9]||''),
-      transferStatus:String(a[11]||''),jdReady:jdReady_(a[3]),
+      transferStatus:String(a[11]||''),automaticJD:String(a[11]||'').startsWith('Automatic JD'),jdReady:jdReady_(a[3]),
       notInterested:truthy_(a[TAAZA_INTEREST[candidate]-1])||
         freshRows_().some(x=>canonical_(x.url)===canonical_(a[2])&&x.person[candidate].notInterested)};
   }
@@ -517,6 +517,27 @@ function saveDiscovery(payload) {
     if(Object.prototype.hasOwnProperty.call(updates,'jd') &&
        String(sh.getRange(row,4).getValue()||'')!==String(payload.expectedJD||''))
       throw new Error('The JD was edited elsewhere. Reload this job before replacing Column D.');
+    const autoJD=String(sh.getRange(row,12).getValue()||'').startsWith('Automatic JD');
+    let sync=null;
+    if(autoJD&&Object.prototype.hasOwnProperty.call(updates,'jd')){
+      const before=String(sh.getRange(row,4).getValue()||'');
+      const next=clean_(updates.jd,SETTINGS.maxJD);
+      if(!jdReady_(next))throw new Error('An automatically transferred JD must remain complete.');
+      const identity=sh.getRange(row,1,1,3).getValues()[0];
+      const match=findFresh_(String(identity[2]||''),String(identity[0]||''),String(identity[1]||''));
+      if(!match)throw new Error('Automatic JD does not have a matching Make CV row. Refresh before editing.');
+      const fresh=sheet_('fresh'),live=fresh.getRange(match.row,1,1,4).getValues()[0];
+      if(canonical_(live[2])!==canonical_(identity[2])||
+         String(live[0]||'')!==String(identity[0]||'')||
+         String(live[1]||'')!==String(identity[1]||''))
+        throw new Error('Make CV job identity changed. JD was not saved.');
+      if(String(live[3]||'')!==before)
+        throw new Error('Make CV JD was edited separately. No changes were saved.');
+      const locks=fresh.getRange(match.row,16,1,11).getValues()[0];
+      if(String(locks[0]||'').trim()||String(locks[10]||'').trim())
+        throw new Error('A CV workflow is processing this job; JD changes are temporarily blocked.');
+      sync={fresh,row:match.row,jd:next};
+    }
     const keys=Object.keys(updates);
     if(!keys.length)throw new Error('No changes to save.');
     keys.forEach(key=>{
@@ -526,7 +547,15 @@ function saveDiscovery(payload) {
       sh.getRange(row,fields[key]).setValue(value);
     });
     SpreadsheetApp.flush();
-    return {saved:true,row,message:'Saved to Taaza. Freshmaal was not automatically modified.'};
+    if(sync){
+      sync.fresh.getRange(sync.row,4).setValue(sync.jd);
+      SpreadsheetApp.flush();
+      if(String(sync.fresh.getRange(sync.row,4).getValue()||'')!==sync.jd)
+        throw new Error('Discovery saved but Make CV JD verification failed. Review Make CV.');
+    }
+    return {saved:true,row,syncedJD:!!sync,message:sync?
+      'JD saved in Discovery and synced to Make CV. Existing CVs were not regenerated.':
+      'Saved to Taaza. Manual transfers still require explicit JD sync.'};
   });
 }
 function findFresh_(url,company,role) {
