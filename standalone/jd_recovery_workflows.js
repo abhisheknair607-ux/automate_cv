@@ -73,7 +73,7 @@ async function latest({token,fetcher}){
 }
 async function status({token,dispatchAllowed,applyAllowed,readOnly,fetcher}){
  const enabled=available({token,dispatchAllowed,applyAllowed,readOnly});
- if(!token)return {enabled:false,state:"unavailable",active:false,runId:null,url:WORKFLOW_URL};
+ if(!enabled)return {enabled:false,state:"disabled",active:false,runId:null,url:WORKFLOW_URL};
  return {enabled,...await latest({token,fetcher})};
 }
 async function dispatch({token,dispatchAllowed,applyAllowed,readOnly,fetcher}){
