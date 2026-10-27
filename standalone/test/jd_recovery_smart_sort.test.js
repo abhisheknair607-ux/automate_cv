@@ -90,6 +90,6 @@ test("Smart Sort is declared the Discovery default in both mobile and base UI",(
  assert.match(mobile,/sort:"smart"/);
  assert.match(mobile,/if\(destination==="discovery"\)f\.sort="smart"/);
  assert.match(mobile,/Smart Sort · Best matches first/);
- assert.match(ui,/value="smart"/);
+ assert.match(ui,/\[\[\x27smart\x27,\x27Smart Sort\x27\]\]/);
  assert.match(ui,/Automatic JD/);
 });
