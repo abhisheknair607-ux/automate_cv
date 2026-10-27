@@ -296,6 +296,24 @@ def apply_recovered(service, idx: int, old: list, recovered: Recovered, fresh_sn
         existing_jd = str(existing[3] if len(existing) > 3 else "")
         if existing_jd and existing_jd != recovered.text:
             raise RuntimeError("Existing Make CV JD differs; do not overwrite")
+        if not existing_jd:
+            # Recovery may fill a previously empty matching Make CV JD, but
+            # only if its exact company/title/link remain unchanged and no CV
+            # or CL workflow has started. Never alter an existing full JD.
+            current_fresh = sheet_values(service, FRESH_ID, f"'Sheet1'!A{row_num}:AF{row_num}")
+            if not current_fresh:
+                raise RuntimeError("Existing Make CV row disappeared")
+            live_fresh = current_fresh[0] + [""] * (32 - len(current_fresh[0]))
+            if live_fresh[:3] != old[:3] or str(live_fresh[3]).strip():
+                raise RuntimeError("Make CV identity/JD changed; no overwrite")
+            if any(str(v).strip().lower() not in ("", "false", "none") for v in live_fresh[4:32]):
+                raise RuntimeError("Existing Make CV controls or workflow started; manual JD review required")
+            put(service, FRESH_ID, [{"range": f"'Sheet1'!D{row_num}",
+                                     "values": [[recovered.text]]}])
+            check = sheet_values(service, FRESH_ID, f"'Sheet1'!D{row_num}")
+            if not check or check[0][0] != recovered.text:
+                raise RuntimeError("Make CV JD verification failed; Discovery unchanged")
+            fresh_snapshot[row_num - 3] = [*old[:3], recovered.text]
     else:
         row_num = safe_fresh_row(fresh_snapshot)
         latest = sheet_values(service, FRESH_ID, f"'Sheet1'!A{row_num}:AF{row_num}")
