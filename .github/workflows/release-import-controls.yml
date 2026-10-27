@@ -26,6 +26,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
+      - name: Stage actual production release controller in temporary CI checkout
+        run: |
+          cp garamaal-release-webapp/Code.gs webapp/Code.gs
+          cp garamaal-release-webapp/Index.html webapp/Index.html
       - name: Check new manual JD recovery integration before any deployment
         shell: bash
         run: |
