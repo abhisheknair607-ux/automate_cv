@@ -19,6 +19,38 @@ function gmFacetFunction_(role){
  if(/account|bookkeep|financial control/.test(r))return "Accounting & Control";
  return "Other / Unclassified";
 }
+function gmSmartScore_(job,candidate){
+ // Candidate-scoped heuristic from actual job fields; never an ATS or full-JD match score.
+ const title=String(job.role||"").toLowerCase(),location=String(job.location||"").toLowerCase();
+ const rules=candidate==="Pooja"?[
+  [/private wealth|wealth management|financial plan|financial advis|paraplann|investment advis|mortgage advis|financial consult/,60],
+  [/portfolio|investment analy|investment associate|asset manage|private bank|relationship manager/,48],
+  [/corporate finance|transaction|valuation|fp&a|commercial finance/,27]
+ ]:[
+  [/transfer pricing|intercompany|international tax/,62],
+  [/corporate finance|transaction services|financial due diligence|valuation|m&a|deals|investment banking/,60],
+  [/fp&a|financial planning & analysis|commercial finance|financial analy|finance analy|finance business partner|financial modelling|financial modeling/,53],
+  [/investment analy|private credit|credit analy|fund account|portfolio analy|wealth management/,35]
+ ];
+ let fit=12;
+ for(const [pattern,weight] of rules)if(pattern.test(title))fit=Math.max(fit,weight);
+ if(/cyber|software engineer|data scientist|recruiter|human resources|marketing|nurs|doctor|legal counsel|sales manager/.test(title))fit=Math.min(fit,5);
+ let seniority=12;
+ if(/chief |\bceo\b|\bcfo\b|\bcto\b|director|head of |managing director|\bvp\b|vice president|partner\b/.test(title))seniority=0;
+ else if(/intern|summer analyst|graduate program|graduate scheme|apprentice|trainee/.test(title))seniority=5;
+ else if(/senior manager|principal|lead\b/.test(title))seniority=5;
+ else if(/analyst|associate|consultant|executive|assistant manager|adviser|advisor|paraplanner/.test(title))seniority=15;
+ const geography=/ireland|dublin|cork|galway|limerick|maynooth|letterkenny|donegal|sligo/.test(location)?15:
+  /london|united kingdom|\buk\b|england|wales|scotland|manchester|birmingham|leeds|belfast/.test(location)?12:
+  (!location||/remote|multiple location/.test(location))?6:0;
+ const snippet=String(job.jdSnippet||"").toLowerCase();
+ // Use available partial/summary evidence conservatively, never as a complete JD.
+ const matches=candidate==="Pooja"
+   ?[/financial planning|client portfolio|financial advice|investment planning|qfa|financial adviser/,/risk appetite|financial needs|mortgage/]
+   :[/oecd|transfer pricing|functional analysis|benchmarking|financial modelling|forecasting/,/acca|financial analysis|corporate finance|transaction services|scenario analysis/];
+ const evidence=matches.reduce((n,re)=>n+Number(re.test(snippet)),0)*3;
+ return Math.max(0,Math.min(100,fit+seniority+geography+evidence+(job.favorite?8:0)+(job.jdReady?5:0)-(job.notInterested?60:0)));
+}
 function gmProgressCells_(){
  // Read the existing Freshmaal application-progress columns BE/BF.  This is
  // a bounded, read-only 30-second projection shared across the candidate views.
@@ -38,13 +70,15 @@ function gmCandidateRows_(source,candidate){
  const jobs=source==="fresh"?freshRows_():taazaRows_();
  if(source==="fresh"){
   const progressCells=gmProgressCells_();
-  const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
+  const taaza=taazaRows_().filter(x=>x.url);
+  const prefs=new Map(taaza.map(x=>[canonical_(x.url),x.preferences[candidate]]));
+  const automatic=new Set(taaza.filter(x=>String(x.transferStatus||"").startsWith("Automatic JD")).map(x=>canonical_(x.url)));
   return jobs.map(x=>{
    const item=x.person[candidate];
    const preference=effectivePreference_(item.preference,prefs.get(canonical_(x.url)));
    return {...x,...item,preference,favorite:preference==="Favorite",
      notInterested:preference==="Not Interested",department:gmFacetFunction_(x.role),
-     progress:gmProgressValue_(x.row,candidate,item.status,progressCells)};
+     progress:gmProgressValue_(x.row,candidate,item.status,progressCells),automaticJD:automatic.has(canonical_(x.url))};
   }).map(x=>{delete x.person;return x});
  }
  const other=freshRows_();
@@ -52,10 +86,11 @@ function gmCandidateRows_(source,candidate){
  const prefs=new Map(other.filter(x=>x.url).map(x=>[canonical_(x.url),x.person[candidate].preference]));
  return jobs.map(x=>{
   const preference=effectivePreference_(x.preferences[candidate],prefs.get(canonical_(x.url)));
-  return {...x,transferred:transferred.has(canonical_(x.url)),preference,
+  return {...x,transferred:transferred.has(canonical_(x.url)),
+   automaticJD:String(x.transferStatus||"").startsWith("Automatic JD"),preference,
    favorite:preference==="Favorite",notInterested:preference==="Not Interested",
    department:gmFacetFunction_(x.role)};
- }).filter(x=>!x.transferred).map(x=>{delete x.preferences;return x;});
+ }).filter(x=>!x.transferred||x.automaticJD).map(x=>{delete x.preferences;return x;});
 }
 function gmPipelineStats(candidate){
  authorise_();candidate=String(candidate||"");person_(candidate);
@@ -98,7 +133,7 @@ function gmListJobsFaceted(options){
  const query=text(short(options.query));
  const status=short(options.filter||"all");
  const tabId=short(options.tabId||"all");
- const sort=short(options.sort||"newest");
+ const sort=short(options.sort||(source==="taaza"?"smart":"newest"));
  let rows=gmCandidateRows_(source,candidate);
  if(source==="taaza"){
   const dup=gmDuplicateStatuses_();
@@ -172,7 +207,9 @@ function gmListJobsFaceted(options){
   const old=text(short(facet[field]));
   if(old)rows=rows.filter(x=>text(x[key]).includes(old));
  }
- if(source==="taaza"&&(sort==="duplicate-group"||(duplicateView&&sort==="newest")))rows.sort((a,b)=>
+ if(source==="taaza"&&sort==="smart")rows.sort((a,b)=>
+  gmSmartScore_(b,candidate)-gmSmartScore_(a,candidate)||b.row-a.row);
+ else if(source==="taaza"&&(sort==="duplicate-group"||(duplicateView&&sort==="newest")))rows.sort((a,b)=>
    String(a.company||"").localeCompare(String(b.company||""))||
    String(a.role||"").localeCompare(String(b.role||""))||a.row-b.row);
  else if(sort==="oldest")rows.sort((a,b)=>a.row-b.row);

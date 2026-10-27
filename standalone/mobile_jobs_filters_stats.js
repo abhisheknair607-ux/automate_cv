@@ -21,16 +21,25 @@ const FIELDS=Object.keys(FIELD_LABELS);
 const defaultFilters=()=>({company:"",designation:"",department:"",
  companySelection:{mode:"all",values:[]},locationSelection:{mode:"all",values:[]},
  departmentSelection:{mode:"all",values:[]},designationSelection:{mode:"all",values:[]},
- status:"all",sort:"newest",category:"all"});
+ status:"all",sort:"smart",category:"all"});
 const loc=window.GaramaalLocationVariants;
 if(!loc)throw Error("Location filter helpers were not loaded");
 const defaultGoals=()=>({daily:3,weekly:15,apply:true,connect:true,alerts:false});
 function load(c,t,d){try{const x=JSON.parse(localStorage.getItem(key(c,t))||"null");return x&&typeof x==="object"&&!Array.isArray(x)?Object.assign({},d,x):{...d}}catch(_){return {...d}}}
 function save(c,t,x){try{localStorage.setItem(key(c,t),JSON.stringify(x))}catch(_){}}
-function preference(c,s){const k=c+"|"+s;if(!filters.has(k))filters.set(k,load(c,"filter-"+s,defaultFilters()));return filters.get(k)}
+function preference(c,s){
+ const k=c+"|"+s;
+ if(!filters.has(k)){
+  const f=load(c,"filter-"+s,defaultFilters());
+  // Legacy saved sorts must not override the candidate's default Smart Sort.
+  f.sort=s==="discovery"?"smart":(f.sort==="smart"?"newest":f.sort);
+  filters.set(k,f);
+ }
+ return filters.get(k);
+}
 function count(v){return FIELDS.filter(k=>loc.rule(v[k+"Selection"]).mode!=="all"||
   (k!=="location"&&v[k])).length+Number(v.status!=="all")+
-  Number(v.sort!=="newest")+Number(v.category!=="all")}
+  Number(v.sort!=="smart"&&v.sort!=="newest")+Number(v.category!=="all")}
 function notSwipe(){return doc.getElementById("gmv3-jobs-swipe")?.hidden!==false}
 function activeList(arg){return sect()&&notSwipe()&&((sect()==="discovery"?"taaza":"fresh")===arg.source)&&arg.candidate===cand()}
 run=async function(method,arg,opts){
@@ -202,7 +211,7 @@ function openFilter(){
  }));
  sheet=doc.createElement("div");sheet.id="gmv3-filter-sheet";sheet.className="gmv3-filter-backdrop";
  const statusOpts=(statuses[s]||[]).map(([v,t])=>'<option value="'+v+'"'+(v===f.status?' selected':'')+'>'+esc(t)+'</option>').join("");
- const sorts=[["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["department","Function A–Z"],["location","Location A–Z"],...(s==="discovery"?[["duplicate-group","Group duplicates"]]:[]),...(s==="fresh"?[["score","Highest fit score"]]:[])];
+ const sorts=[...(s==="discovery"?[["smart","Smart Sort · Best matches first"]]:[]),["newest","Newest first"],["oldest","Oldest first"],["company","Company A–Z"],["designation","Designation A–Z"],["department","Function A–Z"],["location","Location A–Z"],...(s==="discovery"?[["duplicate-group","Group duplicates"]]:[]),...(s==="fresh"?[["score","Highest fit score"]]:[])];
  const sortOpts=sorts.map(([v,t])=>'<option value="'+v+'"'+(v===f.sort?' selected':'')+'>'+esc(t)+'</option>').join("");
  const tabs=[{id:"all",name:"All departments / sources"},{id:"common",name:"Common jobs"},...(lookup.tabs||[])].filter((x,i)=>s==="discovery"||i===0);
  const tabsHtml=s==="discovery"?'<label class="gmv3-field"><span>Discovery category</span><select data-gmf-field="category">'+tabs.map(t=>'<option value="'+esc(t.id)+'"'+(f.category===t.id?' selected':'')+'>'+esc(t.name)+'</option>').join("")+'</select></label>':"";
@@ -333,6 +342,7 @@ nav=function(destination,initial){
  // Explicit routing from status shortcuts takes precedence over saved filters.
  if(destination==="discovery"||destination==="fresh"){
   const f=preference(cand(),destination);
+   if(destination==="discovery")f.sort="smart"; // Reset on each entry, retain other filters.
   if(!initial||initial==="all"){if(initial==="all")refreshOnNav();}
   else{f.status=initial;filters.set(cand()+"|"+destination,f)}
  }

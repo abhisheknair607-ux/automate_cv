@@ -11,7 +11,10 @@ def test_manual_release_is_guarded_and_candidate_safe():
     assert 'MODE="${1:---plan}"' in S
     assert '--update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true,ALLOW_DUP_STATUS_WRITES=true,GARAMAAL_ALERT_IMPORT_APPROVED=true' in S
     assert S.count("--update-env-vars=") == 1
-    assert 'approved={"ALLOW_ALERT_WORKFLOW_DISPATCH","ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"}' in S
+    assert 'approved={"ALLOW_ALERT_WORKFLOW_DISPATCH","ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED","ALLOW_JD_RECOVERY_DISPATCH","GARAMAAL_JD_RECOVERY_APPROVED"}' in S
+    assert 'for endpoint in jd-recovery/status jd-recovery/run' in S
+    assert '[[ "$code" == "401" ]]' in S
+    assert 'JD recovery running' in S
     assert 'if key not in approved:' in S
     assert 'Existing environment or secret changed' in S
     assert '"GITHUB_WORKFLOW_TOKEN"' in S

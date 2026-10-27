@@ -12,7 +12,7 @@ const SETTINGS = Object.freeze({
   taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
   freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc',
   taazaTab: 'Jobs', freshTab: 'Sheet1',
-  maxPageSize: 50, maxBulk: 20, maxJD: 49000,
+  maxPageSize: 50, maxBulk: 25, maxJD: 49000,
   maxFreshRow: 1000
 });
 // Persistent per-candidate rejection flags in the existing sheet tabs.
@@ -285,7 +285,9 @@ function taazaRows_() {
     // check so the cache never retains large job descriptions.
     const rows=sh.getRange(2,1,count,16).getValues();
     return rows.map((a,i)=>({row:i+2,company:String(a[0]||''),role:String(a[1]||''),
-      url:String(a[2]||''),jdReady:jdReady_(a[3]),location:String(a[4]||''),
+      url:String(a[2]||''),jdReady:jdReady_(a[3]),
+       jdSnippet:/^open original job description$/i.test(String(a[3]||'').trim())?'':String(a[3]||'').slice(0,1000),
+       location:String(a[4]||''),
       posted:String(a[5]||''),deadline:String(a[6]||''),start:String(a[7]||''),
       added:String(a[8]||''),salary:String(a[9]||''),
       sendFlag:truthy_(a[10]),transferStatus:String(a[11]||''),
@@ -380,6 +382,32 @@ function statusOptions_(validation, current) {
   return choices;
 }
 
+function garamaalSmartScore_(job,candidate) {
+  const title=String(job.role||'').toLowerCase(),loc=String(job.location||'').toLowerCase(),
+    jd=String(job.jdSnippet||'').toLowerCase();
+  const targets=candidate==='Pooja'?[
+    [/wealth|financial advis|financial plan|paraplann|investment advis|mortgage advis/,62],
+    [/investment|portfolio|asset manag|private bank/,48],
+    [/corporate finance|fp&a|valuation/,25]
+  ]:[
+    [/transfer pricing|intercompany/,62],
+    [/corporate finance|valuation|transaction|m&a|deals|financial due diligence/,60],
+    [/fp&a|financial analys|finance analys|commercial finance|financial model|finance business partner/,53],
+    [/investment analys|credit analys|fund account/,35]
+  ];
+  let fit=10;
+  targets.forEach(([p,n])=>{if(p.test(title))fit=Math.max(fit,n)});
+  if(/software develop|cyber|marketing|medical|nurs|recruitment|sales manager/.test(title))fit=Math.min(fit,5);
+  const seniority=/director|head of |chief |vice president|senior manager/.test(title)?0:
+    /intern|apprentice|trainee/.test(title)?5:
+    /analyst|associate|consultant|adviser|advisor|assistant manager|paraplann/.test(title)?15:10;
+  const location=/ireland|dublin|cork|galway|limerick|maynooth/.test(loc)?15:
+    /london|united kingdom|england|wales|scotland|manchester|birmingham/.test(loc)?12:5;
+  const evidence=candidate==='Pooja'
+    ?/qfa|wealth management|investment advice|financial planning/.test(jd)?5:0
+    :/oecd|acca|financial modelling|benchmarking|financial due diligence/.test(jd)?5:0;
+  return Math.max(0,Math.min(100,fit+seniority+location+evidence+(job.favorite?8:0)+(job.jdReady?5:0)-(job.notInterested?60:0)));
+}
 function listJobs(options) {
   authorise_(); options=options||{};
   const source=options.source==='fresh'?'fresh':'taaza';
@@ -430,20 +458,23 @@ function listJobs(options) {
     const prefs=new Map(other.filter(x=>x.url).map(x=>[canonical_(x.url),x.person[candidate].preference]));
     jobs=jobs.map(x=>{
       const preference=effectivePreference_(x.preferences[candidate],prefs.get(canonical_(x.url)));
-      return {...x,transferred:transferred.has(canonical_(x.url)),preference,
+      return {...x,transferred:transferred.has(canonical_(x.url)),automaticJD:String(x.transferStatus||'').startsWith('Automatic JD'),preference,
         favorite:preference==='Favorite',notInterested:preference==='Not Interested'};
     });
     // Discovery is an intake queue, not a duplicate of Make CV. Match by
     // canonical vacancy URL, regardless of which candidate transferred it.
-    jobs=jobs.filter(x=>!x.transferred);
+    // Manual transfers leave Discovery; auto-recovered JDs remain editable here.
+    jobs=jobs.filter(x=>!x.transferred||x.automaticJD);
     jobs.forEach(x=>{delete x.categories;delete x.preferences;});
   } else {
-    const prefs=new Map(taazaRows_().filter(x=>x.url).map(x=>[canonical_(x.url),x.preferences[candidate]]));
+    const taaza=taazaRows_().filter(x=>x.url);
+     const prefs=new Map(taaza.map(x=>[canonical_(x.url),x.preferences[candidate]]));
+     const automatic=new Set(taaza.filter(x=>String(x.transferStatus||'').startsWith('Automatic JD')).map(x=>canonical_(x.url)));
     jobs=jobs.map(x=>{
       const item=x.person[candidate];
       const preference=effectivePreference_(item.preference,prefs.get(canonical_(x.url)));
       return {...x,...item,preference,favorite:preference==='Favorite',
-        notInterested:preference==='Not Interested'};
+        notInterested:preference==='Not Interested',automaticJD:automatic.has(canonical_(x.url))};
     });
     jobs.forEach(x=>delete x.person);
   }
@@ -452,15 +483,17 @@ function listJobs(options) {
   else jobs=jobs.filter(x=>!x.notInterested);
   if(query)jobs=jobs.filter(x=>[x.company,x.role,x.location,x.url].some(z=>String(z||'').toLowerCase().includes(query)));
   if(filter==='missing'&&source==='taaza')jobs=jobs.filter(x=>!x.jdReady);
-  if(filter==='ready'&&source==='taaza')jobs=jobs.filter(x=>x.jdReady&&!x.transferred);
+  if(filter==='ready'&&source==='taaza')jobs=jobs.filter(x=>x.jdReady);
   if(filter==='transferred'&&source==='taaza')jobs=jobs.filter(x=>x.transferred);
   if(filter==='selected'&&source==='fresh')jobs=jobs.filter(x=>x.selected);
   if(filter==='cv'&&source==='fresh')jobs=jobs.filter(x=>x.cv);
   if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
   if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&String(x.status||'').trim().toLowerCase()!=='applied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
-  const sort=String(options.sort||'newest');
-  if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
+  const sort=String(options.sort||(source==='taaza'?'smart':'newest'));
+  if(source==='taaza'&&sort==='smart')jobs.sort((a,b)=>
+    garamaalSmartScore_(b,candidate)-garamaalSmartScore_(a,candidate)||b.row-a.row);
+  else if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
   else if(sort==='score'&&source==='fresh')jobs.sort((a,b)=>(Number(b.score)||-1)-(Number(a.score)||-1));
   else jobs.sort((a,b)=>b.row-a.row);
   const total=jobs.length, pages=Math.max(1,Math.ceil(total/pageSize));
@@ -573,8 +606,8 @@ function bulkSetJobPreferences(payload){
   if(!['Not Interested','Favorite'].includes(value))throw new Error('Choose Not Interested or Favorite.');
   if(payload.source!=='taaza')throw new Error('Bulk preferences are only available in Discovery.');
   const jobs=payload.jobs;
-  if(!Array.isArray(jobs)||jobs.length<1||jobs.length>20)
-    throw new Error('Select 1–20 discovery jobs.');
+  if(!Array.isArray(jobs)||jobs.length<1||jobs.length>SETTINGS.maxBulk)
+    throw new Error('Select 1–25 discovery jobs.');
   const seen=new Set();
   const validated=jobs.map(item=>{
     const row=Number(item&&item.row);
@@ -745,7 +778,7 @@ function transferJob(payload){
 function bulkTransfer(payload) {
   authorise_();payload=payload||{};
   const rows=Array.isArray(payload.jobs)?payload.jobs:[];
-  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–20 vacancies to transfer.');
+  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–25 vacancies to transfer.');
   const results=[];
   // transferJob uses a lock individually. Do not nest locks.
   rows.forEach(x=>{try{results.push({row:x.row,ok:true,...transferJob(x)});}

@@ -111,7 +111,9 @@ async function invoke(method,arg,options) {
   }
   const sandbox=constructServices(options);
   const context=vm.createContext(sandbox,{name:"legacy-cv-controller"});
-  const source=scoped?SWIPE_SCRIPT:SCRIPT;
+  // Faceted Discovery reads require the release controller's candidate preferences.
+   // Other existing endpoints retain their established legacy controller.
+   const source=(scoped||method==="gmListJobsFaceted"||method==="gmPipelineStats")?SWIPE_SCRIPT:SCRIPT;
   vm.runInContext(sourceWithSheetIds(options?.ids,source),context,{
     filename:scoped?"scoped-release/Code.gs":"webapp/Code.gs",timeout:5000});
   if(scoped&&method==="gmSwipeFeed")

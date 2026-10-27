@@ -15,7 +15,7 @@ function backendContext(){
   return ctx;
 }
 
-test("Discovery hides all transferred vacancies, including in favorite and rejected views",()=>{
+test("Manually transferred jobs leave Discovery while all other jobs remain candidate-specific",()=>{
   const c=backendContext();
   const taaza=[
     {row:2,company:"Alpha",role:"Transfer Pricing",url:"https://example.org/alpha",jdReady:true,
@@ -33,13 +33,14 @@ test("Discovery hides all transferred vacancies, including in favorite and rejec
   for(const candidate of ["Abhishek","Pooja"]){
     const all=c.listJobs({source:"taaza",candidate,filter:"all"});
     assert.equal(all.total,candidate==="Abhishek"?1:2);
-    assert.ok(all.rows.every(x=>x.company!=="Alpha"));
+    assert.ok(all.rows.every(x=>x.company!=="Alpha"),"Manual transfer must disappear from Discovery");
     assert.equal(c.listJobs({source:"taaza",candidate,filter:"transferred"}).total,0,
-      "Legacy transferred filter cannot expose jobs managed in Freshmaal");
+      "Manually transferred jobs must not reappear in Discovery filters");
     const favorites=c.listJobs({source:"taaza",candidate,filter:"favorites"});
     assert.deepEqual(Array.from(favorites.rows,x=>x.company),["Gamma"]);
     const excluded=c.listJobs({source:"taaza",candidate,filter:"not-interested"});
     assert.ok(excluded.rows.every(x=>x.company!=="Alpha"));
+    assert.equal(excluded.total,candidate==="Abhishek"?1:0);
   }
 });
 
@@ -63,8 +64,11 @@ test("Bulk preferences are bounded, validated and return independent job results
   assert.throws(()=>c.bulkSetJobPreferences({source:"fresh",candidate:"Abhishek",value:"Favorite",jobs:[one(3)]}),/Discovery/);
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Abhishek",value:"Deleted",jobs:[one(3)]}),/Not Interested or Favorite/);
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Abhishek",value:"Favorite",jobs:[one(3),one(3)]}),/unique valid/);
+  const allowed=c.bulkSetJobPreferences({source:"taaza",candidate:"Pooja",value:"Favorite",
+    jobs:Array.from({length:25},(_,i)=>one(i+3))});
+  assert.equal(allowed.results.length,25,"25 jobs should be accepted as one bounded batch");
   assert.throws(()=>c.bulkSetJobPreferences({source:"taaza",candidate:"Pooja",value:"Favorite",
-    jobs:Array.from({length:21},(_,i)=>one(i+3))}),/1–20/);
+    jobs:Array.from({length:26},(_,i)=>one(i+3))}),/1–25/);
 });
 
 test("Individual preferences preserve loaded pages and scroll; only touched card is changed",async()=>{

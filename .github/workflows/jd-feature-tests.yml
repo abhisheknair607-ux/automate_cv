@@ -1,0 +1,69 @@
+name: JD recovery and Smart Sort regression tests
+on:
+  push:
+    paths:
+      - "src/automate_cv/jd_recovery.py"
+      - "webapp/Code.gs"
+      - "webapp/Index.html"
+      - "garamaal-release-webapp/Code.gs"
+      - "garamaal-release-webapp/Index.html"
+      - "standalone/mobile_jobs_ui_polish.js"
+      - "standalone/prototype_queries.js"
+      - "standalone/mobile_jobs_filters_stats.js"
+      - "standalone/test/jd_recovery_smart_sort.test.js"
+      - "standalone/test/bulk_select_25.test.js"
+      - "standalone/test/jd_recovery_manual_control.test.js"
+      - "standalone/jd_recovery_workflows.js"
+      - ".github/workflows/jd-recovery.yml"
+      - "standalone/bridge.js"
+      - "standalone/server.js"
+      - "tests/test_jd_recovery.py"
+      - ".github/workflows/jd-feature-tests.yml"
+  pull_request:
+    paths:
+      - "src/automate_cv/jd_recovery.py"
+      - "webapp/Code.gs"
+      - "webapp/Index.html"
+      - "garamaal-release-webapp/Code.gs"
+      - "garamaal-release-webapp/Index.html"
+      - "standalone/mobile_jobs_ui_polish.js"
+      - "standalone/prototype_queries.js"
+      - "standalone/mobile_jobs_filters_stats.js"
+      - "standalone/test/jd_recovery_smart_sort.test.js"
+      - "standalone/test/bulk_select_25.test.js"
+      - "standalone/test/jd_recovery_manual_control.test.js"
+      - "standalone/jd_recovery_workflows.js"
+      - ".github/workflows/jd-recovery.yml"
+      - "standalone/bridge.js"
+      - "standalone/server.js"
+      - "tests/test_jd_recovery.py"
+      - ".github/workflows/jd-feature-tests.yml"
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Stage the actual Cloud Run release controller for UI tests
+        run: |
+          # Production Dockerfile copies garamaal-release-webapp into webapp.
+          # Replicate the real deployed layout in this throwaway CI checkout.
+          cp garamaal-release-webapp/Code.gs webapp/Code.gs
+          cp garamaal-release-webapp/Index.html webapp/Index.html
+      - name: Check JS syntax and candidate-specific Smart Sort
+        run: |
+          node --check standalone/prototype_queries.js
+          node --check standalone/mobile_jobs_filters_stats.js
+          node --test standalone/test/jd_recovery_smart_sort.test.js standalone/test/bulk_select_25.test.js standalone/test/jd_recovery_manual_control.test.js standalone/test/discovery_preferences.test.js standalone/test/stage3_duplicate_projection.test.js standalone/test/stage13_live_bulk.test.js
+      - name: Run read-only JD recovery safety tests
+        run: |
+          pip install --quiet httpx google-api-python-client google-auth google-auth-httplib2 pytest
+          PYTHONPATH=src pytest -q tests/test_jd_recovery.py
