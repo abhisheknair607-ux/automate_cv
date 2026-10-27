@@ -49,18 +49,18 @@ const js=v=>JSON.parse(JSON.stringify(v));
 function list(source,candidate='Abhishek',filter='all',args={}){return js(run(`listJobs(${JSON.stringify({source,candidate,filter,sort:'newest',pageSize:3,...args})})`))}
 function interest(source,candidate,row,value,company,url){return js(run(`setNotInterested(${JSON.stringify({source,candidate,row,value,expected:{company,role:`${company} Role`,url}})})`))}
 function rows(q){return q.rows.map(j=>j.row)}
-assert.equal(list('taaza').total,25);
+assert.equal(list('taaza').total,22); // Three canonical manual transfers are hidden.
 assert.ok(rows(list('taaza','Abhishek','all',{sort:'company'})).length===3);
 // Both links with only tracking differences should be rejected together.
 let out=interest('taaza','Abhishek',2,true,'Alpha','https://jobs.test/open/1?utm_source=social');
 assert.equal(out.updatedRows,3);
 assert.equal(taaza.get(2,14),true);assert.equal(taaza.get(5,14),true);assert.equal(fresh.get(3,46),true);
 assert.equal(taaza.get(2,15),'');assert.equal(fresh.get(3,47),'');
-assert.equal(list('taaza','Abhishek').total,23);
-assert.equal(list('taaza','Pooja').total,25);
+assert.equal(list('taaza','Abhishek').total,22);
+assert.equal(list('taaza','Pooja').total,22);
 assert.equal(list('fresh','Abhishek').total,2);
 assert.equal(list('fresh','Pooja').total,3);
-assert.deepEqual(rows(list('taaza','Abhishek','not-interested')),[5,2]);
+assert.deepEqual(rows(list('taaza','Abhishek','not-interested')),[]); // Manual transfers remain hidden.
 assert.deepEqual(rows(list('fresh','Abhishek','not-interested')),[3]);
 assert.equal(list('fresh','Pooja','not-interested').total,0);
 // Restore from Freshmaal must clear matching Taaza duplicates.
@@ -72,8 +72,8 @@ assert.equal(list('taaza','Abhishek','not-interested').total,0);
 out=interest('fresh','Pooja',4,true,'Beta','https://jobs.test/open/2?utm_campaign=promo');
 assert.equal(taaza.get(3,15),true);assert.equal(fresh.get(4,47),true);
 assert.equal(taaza.get(3,14),'');assert.equal(fresh.get(4,46),'');
-assert.equal(list('taaza','Pooja').total,24);
-assert.equal(list('taaza','Abhishek').total,25);
+assert.equal(list('taaza','Pooja').total,22);
+assert.equal(list('taaza','Abhishek').total,22);
 assert.equal(list('fresh','Pooja').total,2);
 assert.equal(list('fresh','Abhishek').total,3);
 // A direct edit in Freshmaal should also remove the same vacancy from Taaza web view.
@@ -120,7 +120,7 @@ assert.equal(tp.get(2,11),true); // Specialist source unchanged.
 const tabs=list('taaza','Abhishek','all',{pageSize:80}).tabs;
 const tpID=tabs.find(t=>t.name==='TP Europe').id;
 const poojaID=tabs.find(t=>t.name==='Pooja Europe').id;
-assert.deepEqual(rows(list('taaza','Abhishek','all',{tabId:tpID,pageSize:80})),[27,5,2]);
+assert.deepEqual(rows(list('taaza','Abhishek','all',{tabId:tpID,pageSize:80})),[27]);
 assert.deepEqual(rows(list('taaza','Abhishek','all',{tabId:poojaID,pageSize:80})),[28]);
 assert.ok(rows(list('taaza','Abhishek','all',{tabId:'common',pageSize:80})).includes(26));
 assert.ok(!rows(list('taaza','Abhishek','all',{tabId:'common',pageSize:80})).includes(27));
@@ -128,7 +128,7 @@ const renamed=regions['TP Europe'];delete regions['TP Europe'];renamed.name='TP 
 const renamedTabs=list('taaza','Abhishek','all',{tabId:tpID,pageSize:80});
 assert.equal(renamedTabs.tabId,tpID);
 assert.equal(renamedTabs.tabs.find(t=>t.id===tpID).name,'TP UK & Europe');
-assert.deepEqual(rows(renamedTabs),[27,5,2]);
+assert.deepEqual(rows(renamedTabs),[27]);
 const other=new MockSheet('Corporate Finance Europe',80,13);
 other.set(1,1,'Company Name');other.set(1,2,'Designation');other.set(1,3,'Link');
 other.set(2,1,'ValCo');other.set(2,2,'Valuations Analyst');other.set(2,3,'https://eu.test/valuation');
