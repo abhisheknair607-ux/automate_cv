@@ -310,6 +310,15 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .preference-icon.dup{min-width:38px;width:auto;padding:0 7px;font-size:11px;font-weight:800;letter-spacing:.01em}
 .preference-icon.dup[aria-pressed="true"]{background:#f1e9ff;border-color:#bda0e3;color:#68429e}
 .preference-icon.dup:disabled{cursor:not-allowed;opacity:.48}
+.jd-recovery-trigger{display:inline-flex;align-items:center;justify-content:center;min-width:36px;width:36px;height:36px;padding:7px;position:relative;flex:none}
+.jd-recovery-trigger svg{width:18px;height:18px}
+.jd-recovery-trigger[disabled]{opacity:.55;cursor:not-allowed}
+.jd-recovery-trigger[aria-busy="true"]{opacity:1}
+.jd-recovery-status{font-size:11px;color:var(--muted);display:inline-flex;align-items:center;gap:5px;white-space:nowrap;max-width:100%}
+.jd-recovery-status[data-state="running"],.jd-recovery-status[data-state="queued"]{color:var(--blue);font-weight:750}
+.jd-recovery-status[data-state="failed"]{color:var(--rose)}
+.jd-recovery-status a{color:inherit;text-decoration:underline;text-underline-offset:2px}
+@media(max-width:720px){.jd-recovery-trigger{width:34px;min-width:34px;height:34px}.jd-recovery-status{font-size:10px;white-space:normal}}
 </style>
 </head>
 <body>
@@ -386,6 +395,88 @@ function storedCandidate(){try{return localStorage.getItem('freshmaal-candidate'
 function storeCandidate(name){try{localStorage.setItem('freshmaal-candidate',name)}catch(e){}}
 function applyCandidateTheme(){document.body.dataset.candidate=state.candidate;const m=document.querySelector('meta[name="theme-color"]');if(m)m.content=state.candidate==='Pooja'?'#292049':'#132a49';}
 const state={cvQueue:null,pendingCv:{},candidate:storedCandidate()==='Pooja'?'Pooja':'Abhishek',section:'dashboard',filter:'all',tabId:'all',query:'',sort:'smart',page:1,pageSize:innerWidth<721?10:25,data:null,detail:null,stats:null,busy:false,loadingMore:false,listRequest:0,bulk:new Map(),demo:DEMO,lastY:0,bootstrap:null,initError:null};
+// The background job belongs to GitHub Actions, never to this browser tab.
+const jdRecovery={state:'unknown',active:false,enabled:false,checked:false,url:null,runId:null};
+let jdRecoveryPoll=null,jdRecoveryChecking=false;
+function jdRecoveryText(){
+ if(jdRecovery.state==='queued')return 'JD recovery queued';
+ if(jdRecovery.state==='running')return 'JD recovery running';
+ if(jdRecovery.state==='completed')return 'JD recovery completed';
+ if(jdRecovery.state==='failed')return 'JD recovery failed';
+ if(jdRecovery.state==='cancelled')return 'JD recovery cancelled';
+ if(jdRecovery.checked&&!jdRecovery.enabled)return 'JD recovery not enabled';
+ return '';
+}
+function jdRecoveryStatusHTML(){
+ const label=jdRecoveryText();
+ if(!label||state.section!=='discovery')return '';
+ const link=jdRecovery.url&&safeUrl(jdRecovery.url);
+ return '<span id="jdRecoveryStatus" class="jd-recovery-status" data-state="'+h(jdRecovery.state)+'" role="status" aria-live="polite">'+
+  (jdRecovery.active?'<span class="small-spin" aria-hidden="true">'+icon('refresh')+'</span>':'')+
+  (link?'<a href="'+h(link)+'" target="_blank" rel="noopener noreferrer">'+h(label)+'</a>':h(label))+
+  '</span>';
+}
+function jdRecoveryButtonHTML(){
+ if(state.section!=='discovery')return '';
+ const busy=jdRecovery.active,enabled=jdRecovery.enabled&&!busy;
+ const label=busy?'JD recovery '+(jdRecovery.state==='queued'?'queued':'running'):
+  jdRecovery.enabled?'Recover full job descriptions (up to 25 jobs)':
+  'JD recovery not enabled yet';
+ return '<button type="button" class="btn jd-recovery-trigger" data-action="jd-recovery-run" '+
+  'title="'+h(label)+'" aria-label="'+h(label)+'" aria-busy="'+String(busy)+'" '+
+  (enabled?'':'disabled')+'>'+
+  (busy?'<span class="small-spin">'+icon('refresh')+'</span>':icon('download'))+'</button>';
+}
+function syncJDRecoveryUI(){
+ const button=document.querySelector('[data-action="jd-recovery-run"]');
+ if(button){
+  const shell=document.createElement('div');shell.innerHTML=jdRecoveryButtonHTML();
+  if(shell.firstElementChild)button.replaceWith(shell.firstElementChild);
+ }
+ const status=document.getElementById('jdRecoveryStatusMount');
+ if(status)status.innerHTML=jdRecoveryStatusHTML();
+}
+function scheduleJDRecoveryPoll(){
+ if(jdRecoveryPoll){clearTimeout(jdRecoveryPoll);jdRecoveryPoll=null}
+ if(jdRecovery.active&&jdRecovery.enabled){
+  jdRecoveryPoll=setTimeout(()=>{void refreshJDRecoveryStatus()},14000);
+ }
+}
+async function refreshJDRecoveryStatus(){
+ if(DEMO||!window.__cvStandalone?.requestSpecial||jdRecoveryChecking)return;
+ jdRecoveryChecking=true;
+ const previouslyActive=jdRecovery.active,previousRun=jdRecovery.runId;
+ try{
+  const data=await window.__cvStandalone.requestSpecial('jd-recovery/status',{});
+  jdRecovery.checked=true;
+  Object.assign(jdRecovery,data);
+  syncJDRecoveryUI();
+  if(previouslyActive&&!jdRecovery.active&&jdRecovery.state==='completed'&&state.section==='discovery'){
+   // Read new JDs only after GitHub verifies successful completion.
+   void fetchList();
+  }
+ }catch(error){
+  jdRecovery.checked=true;
+  // Retain last known run state when GitHub is temporarily unreachable.
+  if(!jdRecovery.active){jdRecovery.state='unavailable';jdRecovery.enabled=false}
+  syncJDRecoveryUI();
+ }finally{jdRecoveryChecking=false;scheduleJDRecoveryPoll()}
+}
+async function triggerJDRecovery(){
+ if(DEMO){toast('JD recovery can only run on an approved connected deployment.',true);return}
+ if(!jdRecovery.enabled||jdRecovery.active)return;
+ jdRecovery.active=true;jdRecovery.state='queued';syncJDRecoveryUI();
+ try{
+  const accepted=await window.__cvStandalone.requestSpecial('jd-recovery/run',{});
+  Object.assign(jdRecovery,accepted,{checked:true});
+  toast('JD recovery queued: checking up to 25 jobs. You can leave Discovery.');
+  syncJDRecoveryUI();scheduleJDRecoveryPoll();
+ }catch(error){
+  jdRecovery.active=false;jdRecovery.state='unavailable';
+  syncJDRecoveryUI();toast(error.message||'JD recovery could not start.',true);
+  void refreshJDRecoveryStatus();
+ }
+}
 const demoJobs=Array.from({length:168},(_,i)=>({row:i+2,company:['Sample Advisory','Demo Finance Group','Example Partners','Illustration Bank','Placeholder Consulting'][i%5],role:['Corporate Finance Analyst','Transfer Pricing Senior Associate','Private Wealth Associate','Valuations Analyst','Financial Planning Associate','Finance Business Partner','Investment Analyst'][i%7],url:'https://example.com/jobs/demo-'+(i+1),location:i%4===0?'London':'Dublin',jd:i%3?'Full demonstration job description. The person will support investment analysis, commercial and financial modelling, relationships and related client projects. Duties include preparing written reports and financial schedules.':'Open original job description',jdReady:i%3!==0,transferred:i%4===0,score:65+(i*7)%32,rank:i+1,selected:i%5===0,cv:i%11===0,cl:i%13===0,web:false,status:i%9===0?'Applied':'NA',workflow:i%11===0?'Complete':'',cvLink:'',clLink:'',folder:'',error:'',transferStatus:i%4===0?'Sent to Freshmaal':'',deadline:'',source:'Demo'}));
 function expected(job){return {company:job.company,role:job.role,url:job.url}}
 function toast(text,error=false){const m=document.getElementById('toastMount');m.innerHTML=`<div class="toast ${error?'error':''}">${h(text)}</div>`;clearTimeout(toast.timer);toast.timer=setTimeout(()=>m.innerHTML='',4400)}
@@ -504,7 +595,7 @@ function discoveryTabs(){
    all.map(x=>'<button class="chip '+(state.tabId===x.id?'active':'')+'" data-action="category" data-value="'+h(x.id)+'" aria-pressed="'+(state.tabId===x.id)+'" title="'+h(x.name)+'">'+h(x.name)+'</button>').join('')+
    '</div>';
 }
-function filters(){return (state.section==='discovery'?'<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn btn-xs" type="button" data-action="review-alert-emails" title="Review alert emails where a job could not be fully parsed">Review alert emails</button></div>':'')+`<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button></div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[...(state.section==='discovery'?[['smart','Smart Sort']]:[]),['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span></div>${discoveryTabs()}</div>`}
+function filters(){return (state.section==='discovery'?'<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn btn-xs" type="button" data-action="review-alert-emails" title="Review alert emails where a job could not be fully parsed">Review alert emails</button></div>':'')+`<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button>${jdRecoveryButtonHTML()}</div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[...(state.section==='discovery'?[['smart','Smart Sort']]:[]),['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span><span id="jdRecoveryStatusMount">${jdRecoveryStatusHTML()}</span></div>${discoveryTabs()}</div>`}
 function identity(job){return encodeURIComponent(JSON.stringify(expected(job)))}
 
 function activityFor(job){
@@ -849,12 +940,12 @@ let debounce;document.addEventListener('input',e=>{if(e.target.id==='search'){cl
 document.addEventListener('change',e=>{const a=e.target.dataset.action;if(a==='job-preference'){setPreference(Number(e.target.dataset.row),e.target.value,e.target);return}if(a==='tier-mode'||a==='cl-tier-mode'){changePreviewTier(Number(e.target.dataset.row),e.target.value,a==='cl-tier-mode'?'clTier':'tier');return}if(a==='inline-status'){control(Number(e.target.dataset.row),'status',e.target.value,e.target);return}if(e.target.id==='sort'){state.sort=e.target.value;state.page=1;fetchList();return}if(e.target.id==='fresh-status'){const d=state.detail;if(d)control(d.row,'status',e.target.value,e.target);return}if(a==='bulk-select'){const row=Number(e.target.dataset.row),job=state.data?.rows.find(x=>x.row===row);
  if(e.target.checked&&job){if(state.bulk.size>=MAX_DISCOVERY_SELECTION){e.target.checked=false;toast('Select at most 25 vacancies at a time.',true);return}state.bulk.set(row,job)}else state.bulk.delete(row);
  syncSelectionBar();return}if(a==='inline-control'||a==='detail-control'){const row=a==='detail-control'?state.detail?.row:Number(e.target.dataset.row),field=e.target.dataset.field;control(row,field,e.target.checked,e.target)}});
-document.addEventListener('click',async e=>{if(e.target.classList.contains('modal-back')){if(e.target.id==='garamaal-install-help'){e.target.remove();return}closeDetail();return}const x=e.target.closest('[data-action]');if(!x)return;const a=x.dataset.action,value=x.dataset.value,row=Number(x.dataset.row);if(a==='migrate-preferences'){if(!confirm('Convert existing Not Interested checkboxes into Blank / Not Interested / Favorite dropdowns in both Taaza and Freshmaal? Existing choices will be preserved.'))return;try{const r=await run('migrateJobPreferences',{confirm:true});toast(r.message);fetchStats()}catch(e){}return}if(a==='expense-close'||a==='expense-backdrop'){expenseClose();return}if(a==='expenses'){showExpenses();return}if(a==='cost-source'){showCostSource(x.dataset.candidate||state.candidate,row);return}if(a==='preference-toggle'){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);if(job)setPreference(row,nextPreferenceValue(job.preference||'',value),x);return}if(a==='duplicate-toggle'){toggleDuplicate(row);return}if(a==='install-app'){if(DEMO){toast('Install is available on the live Garamaal website.',true)}else window.__cvInstall?.();return}if(a==='nav'){nav(value);return}if(a==='candidate'){switchCandidate(value);return}if(a==='quick'){nav(value==='missing'||value==='ready'?'discovery':'fresh',value);return}if(a==='filter'){state.filter=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='sort-jobs'){state.sort=value;state.page=1;fetchList();return}if(a==='category'){state.tabId=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='load-more'){loadMore();return}if(a==='view-not-interested'){nav(x.dataset.source==='fresh'?'fresh':'discovery','not-interested');return}if(a==='refresh'){fetchList();return}if(a==='open-link'){openLink(x.dataset.url);return}if(a==='detail'){details(row);return}if(a==='close'){closeDetail();return}if(a==='transfer'){transfer(row);return}if(a==='run-cv-now'){runCvNow(row);return}if(a==='download-cv'){downloadCv(row);return}if(a==='download-cl'){downloadCl(row);return}if(a==='copy-prompt'){copyCvPrompt(row);return}if(a==='bulk-select-all'){selectAllMatchingJobs();return}if(a==='bulk-preference'){bulkSetPreferences(value);return}if(a==='save-jd'){saveJD();return}if(a==='save-fields'){saveFields();return}if(a==='sync-jd'){syncJD();return}});
+document.addEventListener('click',async e=>{if(e.target.classList.contains('modal-back')){if(e.target.id==='garamaal-install-help'){e.target.remove();return}closeDetail();return}const x=e.target.closest('[data-action]');if(!x)return;const a=x.dataset.action,value=x.dataset.value,row=Number(x.dataset.row);if(a==='migrate-preferences'){if(!confirm('Convert existing Not Interested checkboxes into Blank / Not Interested / Favorite dropdowns in both Taaza and Freshmaal? Existing choices will be preserved.'))return;try{const r=await run('migrateJobPreferences',{confirm:true});toast(r.message);fetchStats()}catch(e){}return}if(a==='expense-close'||a==='expense-backdrop'){expenseClose();return}if(a==='expenses'){showExpenses();return}if(a==='cost-source'){showCostSource(x.dataset.candidate||state.candidate,row);return}if(a==='preference-toggle'){const job=state.detail?.row===row?state.detail:state.data?.rows?.find(j=>j.row===row);if(job)setPreference(row,nextPreferenceValue(job.preference||'',value),x);return}if(a==='duplicate-toggle'){toggleDuplicate(row);return}if(a==='install-app'){if(DEMO){toast('Install is available on the live Garamaal website.',true)}else window.__cvInstall?.();return}if(a==='nav'){nav(value);return}if(a==='candidate'){switchCandidate(value);return}if(a==='quick'){nav(value==='missing'||value==='ready'?'discovery':'fresh',value);return}if(a==='filter'){state.filter=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='sort-jobs'){state.sort=value;state.page=1;fetchList();return}if(a==='category'){state.tabId=value;state.page=1;state.bulk.clear();fetchList();return}if(a==='load-more'){loadMore();return}if(a==='view-not-interested'){nav(x.dataset.source==='fresh'?'fresh':'discovery','not-interested');return}if(a==='refresh'){fetchList();if(state.section==='discovery')void refreshJDRecoveryStatus();return}if(a==='jd-recovery-run'){triggerJDRecovery();return}if(a==='open-link'){openLink(x.dataset.url);return}if(a==='detail'){details(row);return}if(a==='close'){closeDetail();return}if(a==='transfer'){transfer(row);return}if(a==='run-cv-now'){runCvNow(row);return}if(a==='download-cv'){downloadCv(row);return}if(a==='download-cl'){downloadCl(row);return}if(a==='copy-prompt'){copyCvPrompt(row);return}if(a==='bulk-select-all'){selectAllMatchingJobs();return}if(a==='bulk-preference'){bulkSetPreferences(value);return}if(a==='save-jd'){saveJD();return}if(a==='save-fields'){saveFields();return}if(a==='sync-jd'){syncJD();return}});
 document.addEventListener('submit',e=>{if(e.target.id==='addForm'){e.preventDefault();const mode=e.submitter?.dataset.mode||'save';saveAdd(mode)}});
 window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySelector('.expense-pop'))expenseClose();else if(state.detail)closeDetail()}});
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
-init();
+init().then(()=>{if(!DEMO)void refreshJDRecoveryStatus()});
 if(!DEMO){
   if('serviceWorker' in navigator && location.protocol==='https:'){
     navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
