@@ -382,6 +382,32 @@ function statusOptions_(validation, current) {
   return choices;
 }
 
+function garamaalSmartScore_(job,candidate) {
+  const title=String(job.role||'').toLowerCase(),loc=String(job.location||'').toLowerCase(),
+    jd=String(job.jdSnippet||'').toLowerCase();
+  const targets=candidate==='Pooja'?[
+    [/wealth|financial advis|financial plan|paraplann|investment advis|mortgage advis/,62],
+    [/investment|portfolio|asset manag|private bank/,48],
+    [/corporate finance|fp&a|valuation/,25]
+  ]:[
+    [/transfer pricing|intercompany/,62],
+    [/corporate finance|valuation|transaction|m&a|deals|financial due diligence/,60],
+    [/fp&a|financial analys|finance analys|commercial finance|financial model|finance business partner/,53],
+    [/investment analys|credit analys|fund account/,35]
+  ];
+  let fit=10;
+  targets.forEach(([p,n])=>{if(p.test(title))fit=Math.max(fit,n)});
+  if(/software develop|cyber|marketing|medical|nurs|recruitment|sales manager/.test(title))fit=Math.min(fit,5);
+  const seniority=/director|head of |chief |vice president|senior manager/.test(title)?0:
+    /intern|apprentice|trainee/.test(title)?5:
+    /analyst|associate|consultant|adviser|advisor|assistant manager|paraplann/.test(title)?15:10;
+  const location=/ireland|dublin|cork|galway|limerick|maynooth/.test(loc)?15:
+    /london|united kingdom|england|wales|scotland|manchester|birmingham/.test(loc)?12:5;
+  const evidence=candidate==='Pooja'
+    ?/qfa|wealth management|investment advice|financial planning/.test(jd)?5:0
+    :/oecd|acca|financial modelling|benchmarking|financial due diligence/.test(jd)?5:0;
+  return Math.max(0,Math.min(100,fit+seniority+location+evidence+(job.favorite?8:0)+(job.jdReady?5:0)-(job.notInterested?60:0)));
+}
 function listJobs(options) {
   authorise_(); options=options||{};
   const source=options.source==='fresh'?'fresh':'taaza';
@@ -464,8 +490,10 @@ function listJobs(options) {
   if(filter==='applied'&&source==='fresh')jobs=jobs.filter(x=>String(x.status||'').trim().toLowerCase()==='applied');
   if(filter==='unapplied'&&source==='fresh')jobs=jobs.filter(x=>!!String(x.cvLink||'').trim()&&String(x.status||'').trim().toLowerCase()!=='applied');
   if(filter==='unscored'&&source==='fresh')jobs=jobs.filter(x=>x.score===''||x.score==null);
-  const sort=String(options.sort||'newest');
-  if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
+  const sort=String(options.sort||(source==='taaza'?'smart':'newest'));
+  if(source==='taaza'&&sort==='smart')jobs.sort((a,b)=>
+    garamaalSmartScore_(b,candidate)-garamaalSmartScore_(a,candidate)||b.row-a.row);
+  else if (sort==='company')jobs.sort((a,b)=>a.company.localeCompare(b.company));
   else if(sort==='score'&&source==='fresh')jobs.sort((a,b)=>(Number(b.score)||-1)-(Number(a.score)||-1));
   else jobs.sort((a,b)=>b.row-a.row);
   const total=jobs.length, pages=Math.max(1,Math.ceil(total/pageSize));
