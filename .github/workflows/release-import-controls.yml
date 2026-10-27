@@ -1,4 +1,4 @@
-name: Activate Garamaal manual alert controls
+name: Release Garamaal manual controls
 on:
   push:
     branches: [main]
@@ -17,7 +17,30 @@ concurrency:
   group: garamaal-production-jobs-release
   cancel-in-progress: false
 jobs:
+  preflight:
+    if: ${{ github.event_name == 'push' || inputs.confirm == 'ACTIVATE_MANUAL_CONTROLS' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Check new manual JD recovery integration before any deployment
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --check standalone/server.js
+          node --check standalone/bridge.js
+          node --check standalone/jd_recovery_workflows.js
+          node --test standalone/test/jd_recovery_manual_control.test.js standalone/test/jd_recovery_smart_sort.test.js standalone/test/bulk_select_25.test.js
+          grep -Fq 'data-action="jd-recovery-run"' garamaal-release-webapp/Index.html
+          if grep -Eq '^[[:space:]]+schedule:' .github/workflows/jd-recovery.yml; then
+            echo "JD recovery must never run from a scheduler" >&2
+            exit 1
+          fi
   deploy:
+    needs: preflight
     if: ${{ github.event_name == 'push' || inputs.confirm == 'ACTIVATE_MANUAL_CONTROLS' }}
     runs-on: ubuntu-latest
     timeout-minutes: 40
