@@ -17,13 +17,23 @@ function context(){
    transferStatus:"",preferences:{Abhishek:"",Pooja:""},categories:"Common"},
   {row:4,company:"Acme",role:"Head of Cyber Security",
    url:"https://example.com/cyber",location:"Dublin, Ireland",jdReady:false,
-   transferStatus:"",preferences:{Abhishek:"",Pooja:""},categories:"Common"}
+   transferStatus:"",preferences:{Abhishek:"",Pooja:""},categories:"Common"},
+  {row:5,company:"Manual Firm",role:"Corporate Finance Analyst",
+   url:"https://example.com/manual",location:"Dublin, Ireland",jdReady:true,
+   transferStatus:"Sent to Freshmaal — row 7",
+   preferences:{Abhishek:"",Pooja:""},categories:"Common"}
  ];
  const fresh=[{row:3,company:"TPI Search",role:"Transfer Pricing Senior Associate",
   url:"https://example.com/tp",person:{
    Abhishek:{preference:"",status:"Not started",cv:false},
    Pooja:{preference:"",status:"Not started",cv:false}
-  }}];
+  }},
+  {row:7,company:"Manual Firm",role:"Corporate Finance Analyst",
+   url:"https://example.com/manual",person:{
+    Abhishek:{preference:"",status:"Not started",cv:false},
+    Pooja:{preference:"",status:"Not started",cv:false}
+   }}
+ ];
  const ctx=vm.createContext({
   authorise_:()=>true,
   person_:name=>{if(!["Abhishek","Pooja"].includes(name))throw Error("candidate");return {status:11}},
@@ -44,12 +54,14 @@ function context(){
  return {list};
 }
 
-test("Discovery keeps transferred jobs editable and marked Automatic JD",()=>{
+test("Automatic JD stays editable in Discovery while manual transfers disappear",()=>{
  const x=context().list("Abhishek");
  assert.equal(x.total,3);
  assert.deepEqual(Array.from(x.rows,j=>j.row),[2,3,4]);
  assert.equal(x.rows[0].transferred,true);
  assert.equal(x.rows[0].automaticJD,true);
+ assert.ok(x.rows.every(x=>x.company!=="Manual Firm"));
+ assert.equal(x.rows[0].role,"Transfer Pricing Senior Associate");
 });
 
 test("Smart Sort is candidate-specific and does not hide unavailable JDs",()=>{
@@ -63,9 +75,12 @@ test("Smart Sort is candidate-specific and does not hide unavailable JDs",()=>{
 test("Automatic JD appears on matching Make CV cards without changing CV switches",()=>{
  const f=context();
  const jobs=f.list("Abhishek","fresh","newest").rows;
- assert.equal(jobs.length,1);
- assert.equal(jobs[0].automaticJD,true);
- assert.equal(jobs[0].cv,false);
+ assert.equal(jobs.length,2);
+ const automatic=jobs.find(x=>x.company==="TPI Search");
+ const manual=jobs.find(x=>x.company==="Manual Firm");
+ assert.equal(automatic.automaticJD,true);
+ assert.equal(automatic.cv,false);
+ assert.equal(manual.automaticJD,false);
 });
 
 test("Smart Sort is declared the Discovery default in both mobile and base UI",()=>{
