@@ -12,7 +12,7 @@ const SETTINGS = Object.freeze({
   taazaId: '1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY',
   freshId: '1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc',
   taazaTab: 'Jobs', freshTab: 'Sheet1',
-  maxPageSize: 50, maxBulk: 20, maxJD: 49000,
+  maxPageSize: 50, maxBulk: 25, maxJD: 49000,
   maxFreshRow: 1000
 });
 // Persistent per-candidate rejection flags in the existing sheet tabs.
@@ -577,8 +577,8 @@ function bulkSetJobPreferences(payload){
   if(!['Not Interested','Favorite'].includes(value))throw new Error('Choose Not Interested or Favorite.');
   if(payload.source!=='taaza')throw new Error('Bulk preferences are only available in Discovery.');
   const jobs=payload.jobs;
-  if(!Array.isArray(jobs)||jobs.length<1||jobs.length>20)
-    throw new Error('Select 1–20 discovery jobs.');
+  if(!Array.isArray(jobs)||jobs.length<1||jobs.length>SETTINGS.maxBulk)
+    throw new Error('Select 1–25 discovery jobs.');
   const seen=new Set();
   const validated=jobs.map(item=>{
     const row=Number(item&&item.row);
@@ -749,7 +749,7 @@ function transferJob(payload){
 function bulkTransfer(payload) {
   authorise_();payload=payload||{};
   const rows=Array.isArray(payload.jobs)?payload.jobs:[];
-  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–20 vacancies to transfer.');
+  if(!rows.length||rows.length>SETTINGS.maxBulk)throw new Error('Select 1–25 vacancies to transfer.');
   const results=[];
   // transferJob uses a lock individually. Do not nest locks.
   rows.forEach(x=>{try{results.push({row:x.row,ok:true,...transferJob(x)});}
