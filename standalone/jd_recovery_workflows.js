@@ -88,7 +88,7 @@ async function dispatch({token,dispatchAllowed,applyAllowed,readOnly,fetcher}){
   if(current.startedAt&&Date.now()-Date.parse(current.startedAt)<60_000)
    throw fail("JD recovery was recently started. Check its result before another run.",409);
   await githubRequest(token,DISPATCH_PATH,{
-   method:"POST",body:{ref:REF,inputs:{apply:"true",limit:"25"}},fetcher
+   method:"POST",body:{ref:REF,inputs:{apply:"true",limit:"25",approval:"RECOVER_VERIFIED_JD"}},fetcher
   });
   pendingSince=Date.now();
   return {accepted:true,enabled:true,state:"queued",active:true,runId:null,url:WORKFLOW_URL,
