@@ -437,7 +437,8 @@ function listJobs(options) {
     });
     // Discovery is an intake queue, not a duplicate of Make CV. Match by
     // canonical vacancy URL, regardless of which candidate transferred it.
-    // Discovery remains the permanent JD editor, including transferred vacancies.
+    // Manual transfers leave Discovery; auto-recovered JDs remain editable here.
+    jobs=jobs.filter(x=>!x.transferred||x.automaticJD);
     jobs.forEach(x=>{delete x.categories;delete x.preferences;});
   } else {
     const taaza=taazaRows_().filter(x=>x.url);
