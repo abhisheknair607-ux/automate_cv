@@ -8,6 +8,10 @@ on:
         description: "Write verified full JDs (requires separate live approval)"
         type: boolean
         default: false
+      approval:
+        description: "Explicit manual write confirmation"
+        required: false
+        type: string
       limit:
         description: "Maximum shortlist per run"
         type: choice
@@ -42,7 +46,7 @@ jobs:
         run: python -m pip install --disable-pip-version-check --quiet httpx google-api-python-client google-auth google-auth-httplib2
       - name: Preview or separately approved transfer
         env:
-          GARAMAAL_JD_RECOVERY_APPROVED: ${{ vars.GARAMAAL_JD_RECOVERY_APPROVED }}
+          REQUEST_APPROVAL: ${{ inputs.approval }}
           GOOGLE_OAUTH_CLIENT_ID: ${{ secrets.GOOGLE_OAUTH_CLIENT_ID }}
           GOOGLE_OAUTH_CLIENT_SECRET: ${{ secrets.GOOGLE_OAUTH_CLIENT_SECRET }}
           GOOGLE_OAUTH_REFRESH_TOKEN: ${{ secrets.GOOGLE_OAUTH_REFRESH_TOKEN }}
@@ -58,10 +62,13 @@ jobs:
           if [[ "$EVENT_KIND" == "workflow_dispatch" && -n "$REQUEST_LIMIT" ]]; then
             ARGS=(--limit "$REQUEST_LIMIT")
           fi
-          if [[ "$GARAMAAL_JD_RECOVERY_APPROVED" == "true" && "$REQUEST_APPLY" == "true" ]]; then
+          if [[ "$REQUEST_APPLY" == "true" ]]; then
+            if [[ "$REQUEST_APPROVAL" != "RECOVER_VERIFIED_JD" ]]; then
+              echo "::error::Manual write confirmation is required. No Sheets modifications."
+              exit 1
+            fi
+            # The control server requires its OWN authenticated and enabled gates.
+            export GARAMAAL_JD_RECOVERY_APPROVED=true
             ARGS+=(--apply)
-          elif [[ "$REQUEST_APPLY" == "true" ]]; then
-            echo "::error::Live-write approval is not enabled. No Sheets modifications."
-            exit 1
           fi
           PYTHONPATH=src python -m automate_cv.jd_recovery "${ARGS[@]}"
