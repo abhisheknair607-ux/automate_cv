@@ -64,4 +64,4 @@ jobs:
             echo "::error::Live-write approval is not enabled. No Sheets modifications."
             exit 1
           fi
-          python -m src.automate_cv.jd_recovery "${ARGS[@]}"
+          PYTHONPATH=src python -m automate_cv.jd_recovery "${ARGS[@]}"
