@@ -49,7 +49,7 @@ body.gmv3-workspace {
   --text:var(--gm-text);--muted:var(--gm-text-muted);--line:var(--gm-border);
   --blue:var(--gm-brand);--navy:var(--gm-brand);--navy2:var(--gm-brand-hover);
   --gm-copper:var(--gm-brand);--gm-paper:var(--gm-surface);
-  --gm-border:var(--gm-border);--gm-ink:var(--gm-text);
+  --gm-ink:var(--gm-text);
   background:var(--gm-bg)!important;color:var(--gm-text)!important;
 }
 /* Body/page, all five Jobs sections: original widths, padding and positioning retained. */
