@@ -1,0 +1,231 @@
+/* Garamaal Stage 2 | Royal Espresso & Copper — visual-only internal workspace.
+ * Applied LAST, after legacy collage / porcelain / royal nav styles.
+ * No dimensions, position, display, layout, state, event handlers or content changed.
+ * Homepage journey's separate iframe is explicitly out of Stage 2 scope.
+ */
+:root[data-garamaal-theme="light"] {
+  color-scheme:light;
+  --gm-brand:#A76543;--gm-brand-hover:#965638;--gm-brand-pressed:#8C492F;--gm-brand-on:#FFFFFF;
+  --gm-champagne:#D2AD95;--gm-sparkle:#E2B08B;--gm-sparkle-highlight:#FFF3E7;
+  --gm-bg:#EDE2D5;--gm-bg-secondary:#F5EDE5;--gm-surface:#FFFDF9;--gm-surface-raised:#FFFFFF;
+  --gm-surface-hover:#F0DED2;--gm-surface-selected:#F0DED2;--gm-input-bg:#FFFDF9;
+  --gm-text:#30231E;--gm-text-muted:#654536;--gm-border:#DCC8B8;--gm-border-strong:#C8A48D;
+  --gm-icon:#654536;--gm-focus:#965638;--gm-overlay:rgba(33,26,22,.42);
+  --gm-shadow-card:0 6px 20px rgba(86,51,31,.09);
+  --gm-shadow-raised:0 12px 30px rgba(86,51,31,.16);
+  --gm-shadow-hover:0 10px 24px rgba(86,51,31,.17),0 0 12px rgba(167,101,67,.12);
+  --gm-success-text:#2F6B57;--gm-success-bg:#E3F2E9;
+  --gm-warning-text:#8B5B18;--gm-warning-bg:#FBEDCB;
+  --gm-danger-text:#A3423D;--gm-danger-bg:#F9E3DF;
+  --gm-info-text:#654536;--gm-info-bg:#F0DED2;
+}
+:root[data-garamaal-theme="dark"] {
+  color-scheme:dark;
+  --gm-brand:#A76543;--gm-brand-hover:#965638;--gm-brand-pressed:#8C492F;--gm-brand-on:#FFFFFF;
+  --gm-champagne:#D2AD95;--gm-sparkle:#E2B08B;--gm-sparkle-highlight:#FFF3E7;
+  --gm-bg:#211A16;--gm-bg-secondary:#271E19;--gm-surface:#30231E;--gm-surface-raised:#3B2A23;
+  --gm-surface-hover:#49342A;--gm-surface-selected:#49342A;--gm-input-bg:#362720;
+  --gm-text:#FFFDF9;--gm-text-muted:#E7D3C4;--gm-border:#5B4032;--gm-border-strong:#71503C;
+  --gm-icon:#D2AD95;--gm-focus:#E2B08B;--gm-overlay:rgba(13,10,8,.72);
+  --gm-shadow-card:0 6px 22px rgba(0,0,0,.18);
+  --gm-shadow-raised:0 12px 30px rgba(0,0,0,.31);
+  --gm-shadow-hover:0 10px 24px rgba(0,0,0,.32),0 0 14px rgba(226,176,139,.14);
+  --gm-success-text:#98D4B7;--gm-success-bg:#24352B;
+  --gm-warning-text:#F2CC8A;--gm-warning-bg:#46331D;
+  --gm-danger-text:#F2A7A0;--gm-danger-bg:#432523;
+  --gm-info-text:#E7D3C4;--gm-info-bg:#49342A;
+}
+/* Semantic aliases: legacy components keep their original DOM and stylesheets. */
+body.gmv3-workspace {
+  --gm9-bg:var(--gm-bg);--gm9-paper:var(--gm-surface);--gm9-card:var(--gm-surface-raised);
+  --gm9-ink:var(--gm-text);--gm9-muted:var(--gm-text-muted);--gm9-border:var(--gm-border);
+  --gm9-accent:var(--gm-brand);--gm9-active:var(--gm-surface-selected);--gm9-ring:var(--gm-focus);
+  --cp-ivory:var(--gm-bg);--cp-paper:var(--gm-bg-secondary);--cp-white:var(--gm-surface);
+  --cp-ink:var(--gm-text);--cp-body:var(--gm-text-muted);--cp-edge:var(--gm-border);
+  --cp-blush:var(--gm-surface-selected);--cp-peach:var(--gm-champagne);
+  --cp-copper:var(--gm-brand);--cp-copper-deep:var(--gm-brand-hover);
+  --cp-shadow:var(--gm-shadow-card);
+  --bg:var(--gm-bg);--white:var(--gm-surface);--ink:var(--gm-text);
+  --text:var(--gm-text);--muted:var(--gm-text-muted);--line:var(--gm-border);
+  --blue:var(--gm-brand);--navy:var(--gm-brand);--navy2:var(--gm-brand-hover);
+  --gm-copper:var(--gm-brand);--gm-paper:var(--gm-surface);
+  --gm-border:var(--gm-border);--gm-ink:var(--gm-text);
+  background:var(--gm-bg)!important;color:var(--gm-text)!important;
+}
+/* Body/page, all five Jobs sections: original widths, padding and positioning retained. */
+body.gmv3-workspace :is(.shell,.main,.container,#content,.gmv3-swipe-surface){
+ background:var(--gm-bg)!important;color:var(--gm-text)!important
+}
+body.gmv3-workspace :is(.topbar,.garamaal-unified-header,.sidebar){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.panel,.kpi,.job,.callout,.toolbar,.card,.empty,
+ .tier-banner,.tier-detail,.tier-cell,.cv-queue-overview,.selection-summary,
+ .gmv3-stat,.gmv3-panel,.gmv3-preview,.gmv3-filter-card,
+ .gmv3-swipe-body .gmv3-job,.gmv3-drag-card,.gmv3-swipe-card-top,
+ .gmv3-swipe-card-foot,.gmv3-cv-settings,.gmv3-cv-checkbox){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace :is(.tier-cell,.gmv3-cv-settings,.gmv3-cv-checkbox,
+ .gmv3-stat,.gmv3-preview,.job-settings,.job-setting){
+ background:var(--gm-bg-secondary)!important
+}
+/* Normal typography: explicit semantic contrast, never overwrite status chips. */
+body.gmv3-workspace :is(h1,h2,h3,h4,h5,h6,.subhead,.flow-title,.job h3,.step strong,
+ .heading h1,.crumb strong,.kpi strong,.tier-cell strong,
+ .drawer h2,.drawer h3,.gmv3-panel h2,.gmv3-panel h3,
+ .gmv3-swipe-heading h2,.gmv3-swipe-card-top h3,
+ .gmv3-pf-dialog h1,.gmv3-pf-section-title strong,
+ .gmv3-account-drawer h2,.gmv3-account-drawer strong){
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace :is(p,.meta,.muted,.subtle,.eyebrow,.job .company,
+ .kpi label,.kpi small,.field small,.tier-note,.tier-cell span,
+ .gmv3-swipe-small,.gmv3-swipe-summary,.gmv3-panel .gmv3-subtle,
+ .gmv3-account-person small,.gmv3-account-action small,
+ .gmv3-pf-footnote,.gmv3-pf-section-title small){
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace :is(.field label,.checks label,.check-label,
+ .job-setting label,.tier-inline label,.gmv3-cv-tiers label,
+ .gmv3-pf-field label,.gmv3-account-switch legend){
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace :is(.jobcontrols,.form-footer,.drawer-head,.drawer-footer,
+ .divider,.gmv3-swipe-card-foot,.gmv3-pf-footer){
+ border-color:var(--gm-border)!important
+}
+/* Listing states use shadow, border and colour only — never move/resize a job card. */
+body.gmv3-workspace .job{transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease!important}
+body.gmv3-workspace .job:hover,
+body.gmv3-workspace .job:focus-within{
+ background:var(--gm-surface-raised)!important;
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-hover)!important
+}
+body.gmv3-workspace .job:active{box-shadow:var(--gm-shadow-card)!important}
+body.gmv3-workspace :is(.kpi i,.stepnum,.score,.tier-pill,.tag:not(.tag-ok):not(.tag-warn):not(.tag-red):not(.tag-blue)){
+ background:var(--gm-surface-selected)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+/* Do not remove the status meanings; always pair text with its correct background. */
+body.gmv3-workspace :is(.tag-ok,.tag.accepted,.tag.replied){
+ background:var(--gm-success-bg)!important;color:var(--gm-success-text)!important
+}
+body.gmv3-workspace :is(.tag-warn,.warning,.gmv3-swipe-readonly){
+ background:var(--gm-warning-bg)!important;color:var(--gm-warning-text)!important;
+ border-color:var(--gm-border-strong)!important
+}
+body.gmv3-workspace :is(.tag-red,.tag.error,.toast.error,.gmv3-choice-error){
+ background:var(--gm-danger-bg)!important;color:var(--gm-danger-text)!important
+}
+body.gmv3-workspace :is(.tag-blue,.notice,.gmv3-swipe-evidence){
+ background:var(--gm-info-bg)!important;color:var(--gm-info-text)!important
+}
+/* Inputs, selects, textareas, list filters and modal form fields. */
+body.gmv3-workspace :is(input:not([type="checkbox"]):not([type="radio"]),
+ textarea,select){
+ background:var(--gm-input-bg)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;caret-color:var(--gm-brand)!important
+}
+body.gmv3-workspace :is(input,textarea)::placeholder{color:var(--gm-text-muted)!important;opacity:.9}
+body.gmv3-workspace :is(input[type="radio"],input[type="checkbox"]){accent-color:var(--gm-brand)!important}
+body.gmv3-workspace :is(input,textarea,select):focus-visible{
+ outline:2px solid var(--gm-focus)!important;outline-offset:2px!important;
+ border-color:var(--gm-brand)!important
+}
+/* Secondary/primary controls; existing semantics, state and sizes unchanged. */
+body.gmv3-workspace :is(.btn,.chip,.switch button,.close,.tier-pill,
+ .gmv3-panel .gmv3-options button,.gmv3-pf-reset,.gmv3-pf-add,
+ .gmv3-account-action,.gmv3-account-switch button){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.btn,.chip,.switch button,.gmv3-account-action,
+ .gmv3-panel .gmv3-options button):hover:not(:disabled){
+ background:var(--gm-surface-hover)!important;border-color:var(--gm-border-strong)!important;
+ box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace :is(.chip.active,.switch button.active,
+ .gmv3-account-switch button[aria-pressed="true"],.gmv3-pf-source-switch button[aria-pressed="true"]){
+ background:var(--gm-surface-selected)!important;
+ color:var(--gm-text)!important;border-color:var(--gm-brand)!important
+}
+body.gmv3-workspace :is(.btn-primary,.btn-navy,.gmv3-pf-save,
+ #gmv3-jobs-swipe [data-gs-option="run-cv-now"]){
+ background:var(--gm-brand)!important;color:var(--gm-brand-on)!important;
+ border-color:var(--gm-brand)!important
+}
+body.gmv3-workspace :is(.btn-primary,.btn-navy,.gmv3-pf-save,
+ #gmv3-jobs-swipe [data-gs-option="run-cv-now"]):hover:not(:disabled){
+ background:var(--gm-brand-hover)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand-hover)!important
+}
+body.gmv3-workspace :is(button,a,summary,select,input,textarea):focus-visible{
+ outline:2px solid var(--gm-focus)!important;outline-offset:2px!important
+}
+/* Side sheets, dropdowns, modal backdrops, dialogs and overlays (including dynamically added ones). */
+body.gmv3-workspace :is(.modal-back,.gmv3-panelmask,.gmv3-account-veil,.gmv3-pf-backdrop,
+ .gmv3-filter-backdrop){background:var(--gm-overlay)!important}
+body.gmv3-workspace :is(.drawer,.gmv3-account-drawer,.gmv3-pf-dialog,
+ .gmv3-filter-panel,.gmv3-panel,.gmv3-choice-sheet,
+ .gmv3-location-panel,.gmv3-swipe-action-layer > *,
+ .modal-content){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-raised)!important
+}
+body.gmv3-workspace :is(.drawer-head,.drawer-body,.drawer-footer,
+ .gmv3-account-top,.gmv3-account-person,.gmv3-account-install,.gmv3-account-options,
+ .gmv3-pf-top,.gmv3-pf-scroll,.gmv3-pf-footer,.gmv3-filter-head,.gmv3-filter-form){
+ color:var(--gm-text)!important;border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.gmv3-account-person,.gmv3-account-install,
+ .gmv3-pf-progress,.gmv3-pf-source,.gmv3-pf-entry,.gmv3-pf-section,
+ .gmv3-pf-section-fields,.gmv3-account-switch,.gm9-appearance,
+ .gmv3-filter-hint,.gmv3-choice-sheet fieldset,.gmv3-location-option){
+ background:var(--gm-bg-secondary)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.gmv3-pf-section summary,.gmv3-pf-field,
+ .gmv3-pf-entry-head,.gmv3-account-top button,.gmv3-account-install button,
+ .gmv3-filter-head button,.gmv3-account-action small,.gmv3-pf-progress strong){
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace :is(.gmv3-pf-track,.gmv3-pf-dot,.gmv3-pf-number,
+ .gmv3-account-avatar,.gmv3-account-ico){
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.gmv3-pf-track span,.gmv3-pf-dot.is-filled){
+ background:var(--gm-brand)!important
+}
+body.gmv3-workspace .gm9-appearance button[aria-pressed="true"]{
+ background:var(--gm-surface-selected)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-brand)!important
+}
+/* Filter sheets, detail drawers, progress sections and local notices */
+body.gmv3-workspace :is(.gmv3-filter-sheet,.gmv3-location-picker,
+ .gmv3-filter-panel,.gmv3-location-option,
+ .gmv3-pf-source-switch,.gmv3-filter-button,.gmv3-swipe-extra,
+ .gmv3-swipe-quick-details,.gmv3-cv-tiers,.gmv3-choice-sheet){
+ color:var(--gm-text)!important;border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.gmv3-filter-button,.gmv3-location-option):hover{
+ background:var(--gm-surface-hover)!important
+}
+body.gmv3-workspace :is(.gmv3-swipe-title-link,.gmv3-swipe-company-link,
+ .external,.linkrow a){color:var(--gm-brand)!important}
+body.gmv3-workspace :is(.gmv3-swipe-title-link,.gmv3-swipe-company-link,
+ .external,.linkrow a):hover{color:var(--gm-brand-hover)!important}
+body.gmv3-workspace :is(.toast,.gmv3-swipe-toast,.selectionbar){
+ background:var(--gm-surface-raised)!important;color:var(--gm-text)!important;
+ border:1px solid var(--gm-border)!important;box-shadow:var(--gm-shadow-raised)!important
+}
+/* Errors must remain distinguishable even when toast is nested in overlays. */
+body.gmv3-workspace :is(.toast.error,.gmv3-swipe-toast.error){
+ background:var(--gm-danger-bg)!important;color:var(--gm-danger-text)!important
+}
+/* Leave native bottom dock and Back button entirely to Stage 1. */
+@media (prefers-reduced-motion:reduce){
+ body.gmv3-workspace .job{transition:none!important}
+}
