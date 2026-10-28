@@ -379,3 +379,10 @@ body.gmv3-jobs-workspace .drawer :is(h2,h3),body.gmv3-social-workspace dialog :i
  animation:none!important;transition:none!important;scroll-behavior:auto!important
  }
 }
+
+/* Consistent icon geometry across the dashboard and mobile launcher. */
+#gmv3-launch .gmv3-side-link>svg{width:20px;height:20px;flex:none;color:var(--cp-copper);stroke-width:1.8}
+#gmv3-launch .gmv3-symbol>svg{width:24px;height:24px;stroke-width:1.85}
+#gmv3-launch .gmv3-pill-icon{display:grid;place-items:center;flex:0 0 21px}
+#gmv3-launch .gmv3-pill-icon>svg{width:18px;height:18px}
+#gmv3-launch .gmv3-flow-icon>svg{width:21px;height:21px}
