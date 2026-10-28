@@ -29,6 +29,14 @@ function syncSubview(){
  frame.hidden=!!(subview&&!subview.hidden);
 }
 if(subview&&typeof MutationObserver!=="undefined")new MutationObserver(syncSubview).observe(subview,{attributes:true,attributeFilter:["hidden"]});
+let wasLanding=document.body.classList.contains("gmv3-landing");
+if(typeof MutationObserver!=="undefined"){
+ new MutationObserver(()=>{
+  const isLanding=document.body.classList.contains("gmv3-landing");
+  if(isLanding&&!wasLanding)frame.contentWindow?.postMessage({type:"garamaal-return-home"},location.origin);
+  wasLanding=isLanding;
+ }).observe(document.body,{attributes:true,attributeFilter:["class"]});
+}
 syncSubview();
 function enterJobs(){window.GaramaalPrototypeHome?.enterJobs()}
 function handle(action){
