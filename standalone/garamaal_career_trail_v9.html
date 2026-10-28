@@ -512,6 +512,23 @@ html[data-theme="dark"] .gm8-footer{background:linear-gradient(120deg,#2a211c,#1
 .gm8-page{transition:opacity .52s ease,transform .65s cubic-bezier(.18,.75,.2,1)!important}
 @media(max-width:650px){.gm8-raised.on{transform:translateY(-10px) scale(1.085)!important}}
 @media(prefers-reduced-motion:reduce){.gm8-raised,.gm8-dim,.gm8-portal *{animation:none!important;transition:none!important}}
+</style><style id="gm9-seamless-artwork">
+/* Retain the photograph and interactive picture geometry; soften only its edges. */
+.story .visual{background:transparent!important;border:0!important;box-shadow:none!important}
+.story .visual img.art{
+ filter:saturate(.92) contrast(.97) drop-shadow(0 10px 23px #9d543912)!important;
+ -webkit-mask-image:radial-gradient(ellipse 88% 86% at 51% 50%,#000 42%,rgba(0,0,0,.98) 61%,rgba(0,0,0,.50) 83%,transparent 100%)!important;
+ mask-image:radial-gradient(ellipse 88% 86% at 51% 50%,#000 42%,rgba(0,0,0,.98) 61%,rgba(0,0,0,.50) 83%,transparent 100%)!important;
+}
+/* The foreground card lift remains a crisp reproduction of the original hotspot. */
+.gm8-raised .gm8-crop{filter:none!important}
+.gm8-portal.gm9-routing .gm8-page{display:none!important}
+.gm8-portal.gm9-routing.entering .gm8-shutter{animation-duration:.92s!important}
+html[data-theme="dark"] .story .visual img.art{filter:saturate(.88) brightness(.83) contrast(.98)!important}
+@media(max-width:850px){.story .visual img.art{
+ -webkit-mask-image:radial-gradient(ellipse 99% 99% at 50% 50%,#000 54%,rgba(0,0,0,.75) 81%,transparent 100%)!important;
+ mask-image:radial-gradient(ellipse 99% 99% at 50% 50%,#000 54%,rgba(0,0,0,.75) 81%,transparent 100%)!important;
+}}
 </style></head>
 <body>
 <div class="scroll-progress" id="progress"></div>
@@ -768,7 +785,26 @@ function positionRaised(a){
 function show(a){if(transitioning||portal.classList.contains('active'))return;hovered=a;positionRaised(a);dim.classList.add('on');raised.classList.add('on')}
 function hide(force=false){if(!force&&transitioning)return;hovered=null;dim.classList.remove('on');raised.classList.remove('on')}
 function setPortalOrigin(a){let b=a.el.getBoundingClientRect();portal.style.setProperty('--origin-x',(b.left+b.width*.5).toFixed(2)+'px');portal.style.setProperty('--origin-y',(b.top+b.height*.5).toFixed(2)+'px')}
-function openPage(a){if(transitioning||portal.classList.contains('active'))return;show(a);transitioning=true;lastFocus=a.el;setPortalOrigin(a);const data=content[a.rect.name];openName=a.rect.name;
+function openPage(a){if(transitioning||portal.classList.contains('active'))return;
+ // The standalone HTML retains its visual preview. When embedded in Garamaal,
+ // the same picture opens the REAL existing destination after the card reveal.
+ if(window.parent!==window && location.pathname==='/prototype/career-trail'){
+  show(a);transitioning=true;lastFocus=a.el;setPortalOrigin(a);openName=a.rect.name;
+  portal.className='gm8-portal active entering gm9-routing';
+  portal.setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+  const destination=a.rect.name;
+  clearTimeout(enterTimer);
+  enterTimer=setTimeout(()=>{
+   parent.postMessage({type:'garamaal-career-action',action:destination},location.origin);
+   // If the parent cannot route, restore the journey instead of trapping the user.
+   setTimeout(()=>{if(portal.classList.contains('gm9-routing')){
+    portal.className='gm8-portal';portal.setAttribute('aria-hidden','true');
+    document.body.style.overflow='';transitioning=false;openName=null;hide(true);
+   }},1800);
+  },reduce.matches?60:920);
+  return;
+ }
+ show(a);transitioning=true;lastFocus=a.el;setPortalOrigin(a);const data=content[a.rect.name];openName=a.rect.name;
  document.getElementById('gm8-title').textContent=data.title;
  document.getElementById('gm8-description').textContent=data.description;
  document.getElementById('gm8-number').textContent=data.chapter;
@@ -835,14 +871,22 @@ window.addEventListener('message',event=>{if(event.origin!==location.origin||eve
   try{localStorage.setItem('garamaal-demo-theme',next)}catch(_){}
   const word=document.getElementById('theme-word'),icon=document.getElementById('theme-icon');if(word)word.textContent=next==='dark'?'Light mode':'Dark mode';if(icon)icon.textContent=next==='dark'?'☀':'☾';
  }
- if(event.data?.type==='garamaal-return-home'){document.getElementById('overview')?.scrollIntoView({behavior:'instant'});}
+ if(event.data?.type==='garamaal-return-home'){
+  document.getElementById('overview')?.scrollIntoView({behavior:'instant'});
+  const portal=document.getElementById('gm8-portal'),dim=document.getElementById('gm8-dim'),raised=document.getElementById('gm8-raised');
+  if(portal){portal.className='gm8-portal';portal.setAttribute('aria-hidden','true')}
+  dim?.classList.remove('on');raised?.classList.remove('on');document.body.style.overflow='';
+ }
 });
 document.addEventListener('click',event=>{
  const button=event.target.closest?.('[data-entry]');if(!button)return;
+ // Picture hotspots are dispatched once by openPage after their reveal.
+ if(button.classList.contains('hotspot')||button.classList.contains('chapter-picture-card'))return;
  const action=button.dataset.entry;if(!allowed.has(action))return;
- const now=Date.now();if(now-last<650)return;last=now;
- const delay=(action==='profile'||action==='jobs'||action==='network'||action==='stats')?1380:160;
- window.setTimeout(()=>send(action),delay);
+ if(window.parent===window)return;
+ event.preventDefault();event.stopImmediatePropagation();
+ const now=Date.now();if(now-last<400)return;last=now;
+ window.setTimeout(()=>send(action),140);
 },true);
 document.getElementById('theme-toggle')?.addEventListener('click',()=>{
  window.setTimeout(()=>{const theme=document.documentElement.dataset.theme;

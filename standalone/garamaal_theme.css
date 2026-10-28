@@ -26,3 +26,141 @@ body.gmv3-workspace .gmv3-account-action,body.gmv3-workspace .gmv3-account-switc
 .gm9-appearance button{border:1px solid var(--gm9-border,#e9d9cd);border-radius:11px;background:var(--gm9-card,#fff);color:var(--gm9-ink,#302822);padding:11px 8px;font-size:12px;font-weight:750;min-height:43px}
 .gm9-appearance button[aria-pressed="true"]{border-color:var(--gm9-accent,#a94f34);background:var(--gm9-active,#f4dfd0);color:var(--gm9-accent,#a94f34)}
 html[data-garamaal-theme="dark"] body.gmv3-workspace .gmv3-account-veil{background:#0d0a08ad!important}
+
+/* V10 Readability pass: five real Jobs pages (Dashboard / Discovery / Swipe / Make CV / More).
+   VISUAL CSS ONLY. Existing node IDs, navigation, event handlers and state stay unchanged. */
+:root[data-garamaal-theme="light"]{
+ --gm9-bg:#f7f1e9;--gm9-paper:#fffaf5;--gm9-card:#fffcf9;--gm9-ink:#2c221d;
+ --gm9-muted:#64544c;--gm9-border:#d9bfae;--gm9-accent:#984027;
+ --gm9-active:#f4e0d1;--gm9-ring:#a94f34;
+ --cp-ivory:#f7f1e9;--cp-paper:#fffaf5;--cp-white:#fffcf9;
+ --cp-ink:#2c221d;--cp-body:#64544c;--cp-edge:#d9bfae;
+ --cp-blush:#f4e0d1;--cp-peach:#d58b67;--cp-orange:#ad5638;
+ --cp-copper:#984027;--cp-copper-deep:#78311e;
+ --cp-shadow:0 8px 20px #6f3e2714;--g3-ink:#30231b;--g3-lime:#f4e0d1;--g3-purple:#e7b498;
+ color-scheme:light
+}
+:root[data-garamaal-theme="dark"]{
+ --gm9-bg:#211915;--gm9-paper:#30231e;--gm9-card:#3b2a23;--gm9-ink:#fff3ea;
+ --gm9-muted:#e4c9b7;--gm9-border:#775748;--gm9-accent:#f2b38d;
+ --gm9-active:#5a3829;--gm9-ring:#eeba97;
+ --cp-ivory:#211915;--cp-paper:#30231e;--cp-white:#3b2a23;
+ --cp-ink:#fff3ea;--cp-body:#e4c9b7;--cp-edge:#775748;
+ --cp-blush:#5a3829;--cp-peach:#d38c66;--cp-orange:#f2b38d;
+ --cp-copper:#f2b38d;--cp-copper-deep:#ffd7b9;
+ --cp-shadow:0 8px 22px #0d080659;--g3-ink:#fff3ea;--g3-lime:#5a3829;--g3-purple:#694230;
+ color-scheme:dark
+}
+body.gmv3-workspace{background:var(--gm9-bg)!important;color:var(--gm9-ink)!important}
+body.gmv3-workspace :is(.shell,.main,#content,.container,.gmv3-swipe-surface){
+ background:var(--gm9-bg)!important;color:var(--gm9-ink)!important
+}
+body.gmv3-workspace :is(.topbar,.sidebar,.panel,.job,.kpi,.toolbar,.card,.callout,.drawer,
+ .gmv3-panel,.gmv3-account-drawer,.gmv3-job,.gmv3-jobdetails,.gmv3-cv-settings,
+ .gmv3-swipe-body .gmv3-job,.gmv3-swipe-body .gmv3-jobdetails,
+ .gmv3-pf-section,.gmv3-pf-progress,.tier-banner,.tier-detail,.tier-cell,.cv-queue-overview){
+ background:var(--gm9-card)!important;color:var(--gm9-ink)!important;
+ border-color:var(--gm9-border)!important
+}
+body.gmv3-workspace :is(.heading,.heading h1,.flow-title,.panel h2,.panel h3,.job h3,
+ .job strong,.kpi strong,.gmv3-panel h2,.gmv3-panel h3,.gmv3-job h3,
+ .gmv3-swipe-body h2,.gmv3-swipe-body h3,.gmv3-cv-settings legend,
+ .gmv3-account-drawer h2,.gmv3-account-drawer h3,.gmv3-pf-section h2,
+ .gmv3-jobheader h3,.sidebar .brand strong){color:var(--gm9-ink)!important}
+body.gmv3-workspace :is(.heading p,.meta,.muted,.subhead,.job .company,.field small,
+ .kpi label,.kpi small,.tier-note,.flow-note,.gmv3-subtle,.gmv3-jobdetails p,
+ .gmv3-swipe-body .gmv3-jobdetails p,.gmv3-account-drawer small,
+ .gmv3-panel .gmv3-subtle,.gmv3-pf-section small){color:var(--gm9-muted)!important}
+body.gmv3-workspace :is(.gmv3-panel .gmv3-options button,.gmv3-preview,
+ .gmv3-cv-checkbox,.gmv3-cv-tiers select,.gmv3-pf-progress,
+ .gmv3-stat,.gmv3-jobdetails details,.gmv3-panel button){
+ border-color:var(--gm9-border)!important;color:var(--gm9-ink)!important
+}
+body.gmv3-workspace :is(.gmv3-panel .gmv3-options button,.gmv3-preview,.gmv3-stat,
+ .gmv3-cv-checkbox,.gmv3-cv-tiers select){
+ background:var(--gm9-paper)!important
+}
+body.gmv3-workspace :is(input:not([type="radio"]):not([type="checkbox"]),textarea,select){
+ background:var(--gm9-paper)!important;color:var(--gm9-ink)!important;
+ border:1px solid var(--gm9-border)!important;caret-color:var(--gm9-accent)!important
+}
+body.gmv3-workspace :is(input,textarea)::placeholder{color:var(--gm9-muted)!important;opacity:.95}
+body.gmv3-workspace :is(input[type="radio"],input[type="checkbox"]){accent-color:var(--gm9-accent)!important}
+body.gmv3-workspace :is(.gmv3-panelmask,.gmv3-account-veil){color:var(--gm9-ink)!important}
+body.gmv3-workspace :is(.nav-btn,.sidebar .nav-btn,.gmv3-panel .gmv3-close,.gmv3-account-action,
+ .gmv3-account-switch button,.gmv3-swipe-body summary,.gmv3-jobdetails summary){
+ color:var(--gm9-ink)!important
+}
+body.gmv3-workspace :is(.nav-btn.active,.nav-btn:hover,.chip.active,.switch button.active,
+ .gmv3-options button:focus-visible){background:var(--gm9-active)!important;color:var(--gm9-accent)!important}
+body.gmv3-workspace :is(.btn-primary,.btn-navy,#gmv3-jobs-swipe [data-gs-option="run-cv-now"]){
+ background:var(--gm9-accent)!important;
+ color:var(--gm9-bg)!important;border-color:var(--gm9-accent)!important
+}
+:root[data-garamaal-theme="light"] body.gmv3-workspace :is(.btn-primary,.btn-navy,#gmv3-jobs-swipe [data-gs-option="run-cv-now"]){color:#fffdf9!important}
+:root[data-garamaal-theme="dark"] body.gmv3-workspace .gmv3-swipe-body .gmv3-jobheader{
+ background:#573728!important;color:#fff3ea!important
+}
+body.gmv3-workspace .gmv3-swipe-body .gmv3-jobheader :is(h2,h3,p,span,small){color:#fff3ea!important}
+/* Respect warning, destructive, success, selected and disabled component semantics;
+   recolour only the baseline surfaces and readable ordinary labels. */
+body.gmv3-workspace :is(button,a,input,textarea,select,summary):focus-visible{
+ outline:3px solid var(--gm9-ring)!important;outline-offset:2px
+}
+/* The existing five native tab buttons are NOT replaced or reordered. */
+body.gmv3-jobs-workspace .gmv3-tabbar{
+ background:var(--gm9-paper)!important;color:var(--gm9-ink)!important;
+ border-top:1px solid var(--gm9-border)!important;
+ box-shadow:0 -8px 26px #2c19151f!important;
+ min-height:76px!important;gap:4px!important;padding:8px 6px calc(7px + env(safe-area-inset-bottom))!important
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button{
+ background:transparent!important;color:var(--gm9-muted)!important;
+ border:1px solid transparent!important;border-radius:13px!important;
+ min-height:53px!important;gap:2px!important;
+ font-size:11px!important;font-weight:800!important;
+ transition:background .16s ease,color .16s ease,transform .16s ease
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button::after{
+ content:attr(aria-label);display:block;
+ font-size:10px;line-height:1.1;white-space:nowrap;letter-spacing:.005em
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button:hover{
+ background:var(--gm9-active)!important;color:var(--gm9-ink)!important
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button[aria-current="page"]{
+ background:var(--gm9-active)!important;color:var(--gm9-accent)!important;
+ border:1px solid var(--gm9-border)!important
+}
+body.gmv3-jobs-workspace .gmv3-tabbar .gmv3-tabicon{
+ font-size:22px!important;height:26px!important;line-height:26px!important;color:inherit!important
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button.gmv3-swipe-tab .gmv3-tabicon{
+ width:36px!important;height:36px!important;margin-top:-10px!important;
+ margin-bottom:0!important;background:var(--gm9-active)!important;
+ color:var(--gm9-accent)!important;border:2px solid var(--gm9-border)!important;
+ box-shadow:0 3px 11px #1f100b19!important
+}
+body.gmv3-jobs-workspace .gmv3-tabbar button[disabled]{
+ opacity:.56!important;cursor:not-allowed!important
+}
+body.gmv3-jobs-workspace .gmv3-panelmask .gmv3-panel{
+ background:var(--gm9-card)!important;border:1px solid var(--gm9-border)!important
+}
+body.gmv3-jobs-workspace .gmv3-panelmask{background:#1b100f8a!important}
+:root[data-garamaal-theme="light"] body.gmv3-jobs-workspace .gm9-appearance button[aria-pressed="true"]{
+ color:#873921!important;background:#f4dfd0!important
+}
+:root[data-garamaal-theme="dark"] body.gmv3-jobs-workspace .gm9-appearance button[aria-pressed="true"]{
+ color:#ffe0cb!important;background:#624030!important
+}
+@media(max-width:365px){
+ body.gmv3-jobs-workspace .gmv3-tabbar button::after{font-size:9px}
+ body.gmv3-jobs-workspace .gmv3-tabbar{gap:1px!important;padding-left:3px!important;padding-right:3px!important}
+}
+@media(prefers-reduced-motion:reduce){
+ body.gmv3-jobs-workspace .gmv3-tabbar button{transition:none!important}
+}
+
+/* Keep native five-tab navigation inside the real app, not over the cinematic home. */
+body.gmv3-landing .gmv3-tabbar{display:none!important}
