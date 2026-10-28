@@ -41,7 +41,7 @@ def test_separate_real_stock_photos_not_cropped_hotspots():
     assert ART.count("https://unsplash.com/photos/")>=8
     assert 'section.prepend(edge)' in JS
     assert 'section.append(panel)' in JS
-    assert "data-entry" in JS
+    assert "button.dataset.entry=action" in JS
     assert 'actions=id===\'overview\'?[' in JS
     assert 'visual.append(panel)' not in JS
 
