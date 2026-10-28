@@ -174,7 +174,7 @@ body.gmv3-landing .gmv3-tabbar{display:none!important}
  --gm9-muted:#E7D3C4;--gm9-border:#5B4032;--gm9-accent:#A76543;
  --gm9-active:#49342A;--gm9-ring:#E2B08B;
  --royal-bg:#211A16;--royal-dock:#30231E;--royal-border:#5B4032;
- --royal-active:#A76543;--royal-on-active:#FFFFFF;
+ --royal-active:#A76543;--royal-active-hover:#965638;--royal-on-active:#FFFFFF;
  --royal-icon:#D2AD95;--royal-idle:#E7D3C4;--royal-hover:#49342A;
  --royal-back:#362720;--royal-back-icon:#E2B08B;
  --royal-spark:#E2B08B;--royal-glow:#FFF3E7;
@@ -188,7 +188,7 @@ body.gmv3-landing .gmv3-tabbar{display:none!important}
  --gm9-muted:#654536;--gm9-border:#DCC8B8;--gm9-accent:#A76543;
  --gm9-active:#F0DED2;--gm9-ring:#A76543;
  --royal-bg:#EDE2D5;--royal-dock:#FFFDF9;--royal-border:#DCC8B8;
- --royal-active:#A76543;--royal-on-active:#FFFFFF;
+ --royal-active:#A76543;--royal-active-hover:#965638;--royal-on-active:#FFFFFF;
  --royal-icon:#654536;--royal-idle:#654536;--royal-hover:#F0DED2;
  --royal-back:#FFFDF9;--royal-back-icon:#965638;
  --royal-spark:#E2B08B;--royal-glow:#FFF3E7;
@@ -215,7 +215,8 @@ body.gmv3-workspace.gmv3-jobs-workspace nav#gmv3-jobs-tabbar.gmv3-tabbar{
 body.gmv3-landing nav#gmv3-jobs-tabbar.gmv3-tabbar,
 nav#gmv3-jobs-tabbar.gmv3-tabbar[hidden]{display:none!important}
 body.gmv3-workspace.gmv3-jobs-workspace nav#gmv3-jobs-tabbar.gmv3-tabbar button{
- position:relative!important;isolation:isolate!important;overflow:visible!important;
+ position:relative!important;isolation:isolate!important;overflow:hidden!important;
+ /* Clip the moving inner reflection to the actual rounded button; never clip the button's outer shadow. */
  appearance:none!important;box-sizing:border-box!important;
  display:flex!important;flex:1 1 0!important;align-items:center!important;
  justify-content:center!important;flex-direction:column!important;gap:2px!important;
@@ -255,7 +256,7 @@ body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-tabicon::before{
  -webkit-mask-size:contain!important;mask-size:contain!important
 }
 body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-tabicon::after{
- content:"✦"!important;position:absolute!important;top:-5px!important;right:-8px!important;
+ content:"✦"!important;position:absolute!important;top:-2px!important;right:-8px!important;
  font:700 7px/1 system-ui,sans-serif!important;color:var(--royal-spark)!important;
  opacity:0!important;transform:scale(.5) rotate(-20deg)!important;
  pointer-events:none!important
@@ -263,7 +264,8 @@ body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-tabicon::after{
 /* Metal polish: a single passing reflection, idle = completely still. */
 body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button::before{
  content:""!important;position:absolute!important;inset:0!important;
- z-index:-1!important;border-radius:inherit!important;pointer-events:none!important;
+ z-index:0!important;border-radius:inherit!important;pointer-events:none!important;
+ /* A pseudo-element clip-path moves with its transform; the button itself clips the sheen. */
  background:linear-gradient(105deg,transparent 21%,rgba(255,243,231,.22) 46%,rgba(226,176,139,.13) 53%,transparent 76%)!important;
  transform:translateX(-155%) skewX(-18deg)!important;opacity:0!important
 }
@@ -300,11 +302,12 @@ body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button[disabled]{
   box-shadow:var(--royal-elevate)!important
  }
  body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button:not([disabled]):hover .gmv3-tabicon{
-  color:var(--royal-spark)!important;transform:none!important
+  color:var(--royal-back-icon)!important;transform:none!important
  }
  body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button[aria-current="page"]:hover{
-  transform:translateY(-3px) scale(1.035)!important;background:var(--royal-active)!important;
-  color:#FFFFFF!important;filter:brightness(1.065)!important;box-shadow:var(--royal-elevate)!important
+  transform:translateY(-3px) scale(1.035)!important;background:var(--royal-active-hover)!important;
+  border-color:var(--royal-active-hover)!important;color:#FFFFFF!important;
+  filter:none!important;box-shadow:var(--royal-elevate)!important
  }
  body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button[aria-current="page"]:hover .gmv3-tabicon{color:#FFFFFF!important}
  body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button:not([disabled]):hover::before{
@@ -342,7 +345,8 @@ body.gmv3-social-workspace #gmv3-social-back{
  padding:0!important;margin:0!important;font-size:0!important;
  border:1px solid var(--royal-border)!important;border-radius:50%!important;
  background:var(--royal-back)!important;background-image:none!important;
- background-size:auto!important;color:var(--royal-back-icon)!important;
+ background-size:auto!important;background-position:center!important;overflow:hidden!important;
+ color:var(--royal-back-icon)!important;
  box-shadow:var(--royal-rest-shadow)!important;
  transform:translateY(0) scale(1)!important;cursor:pointer!important;
  transition:transform .22s cubic-bezier(.22,.8,.24,1),box-shadow .22s ease,border-color .22s ease,background-color .22s ease!important
@@ -366,6 +370,7 @@ body.gmv3-social-workspace #gmv3-social-back::after{
  body.gmv3-jobs-workspace #gmv3-home-button:hover,
  body.gmv3-social-workspace #gmv3-social-back:hover{
   transform:translateY(-3px) scale(1.055)!important;
+  background:var(--royal-hover)!important;color:var(--royal-back-icon)!important;
   border-color:var(--royal-active)!important;box-shadow:var(--royal-elevate)!important
  }
  body.gmv3-jobs-workspace #gmv3-home-button:hover::after,
@@ -416,13 +421,21 @@ body.gmv3-jobs-workspace #content{padding-bottom:calc(121px + env(safe-area-inse
 body.gmv3-jobs-workspace #gmv3-home-button,body.gmv3-social-workspace #gmv3-social-back{--royal-back-glyph:url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2224%22%20height%3D%2224%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22black%22%20stroke-width%3D%221.9%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%3E%3Cpath%20d%3D%22m12%2019-7-7%207-7%22%2F%3E%3Cpath%20d%3D%22M19%2012H5%22%2F%3E%3C%2Fsvg%3E")}
 
 /* Confine the one-pass polished reflection; keep labels and icons above it. */
-body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button::before{z-index:0!important;clip-path:inset(0 round 15px)!important}
-body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-tabicon{z-index:1!important}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button::before{
+ z-index:0!important;clip-path:none!important;
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar .gmv3-tabicon{
+ z-index:1!important;pointer-events:none!important
+}
 body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button::after{position:relative!important;z-index:1!important}
 body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button:not([disabled]):focus-visible{
  box-shadow:var(--royal-elevate)!important
 }
+/* The deck scrolls normally; reduced motion keeps only visual state changes. */
 @media(prefers-reduced-motion:reduce){
+ body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button:not([disabled]):active,
+ body.gmv3-jobs-workspace #gmv3-home-button:active,
+ body.gmv3-social-workspace #gmv3-social-back:active{transform:none!important}
  body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-tabbar button:not([disabled]):hover{
   transform:none!important
  }
