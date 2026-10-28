@@ -210,6 +210,10 @@ app.get("/prototype/career-theme.css",(_req,res)=>
 app.get("/prototype/royal-pages.css",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
  .sendFile(path.join(__dirname,"garamaal_royal_pages.css")));
+/* Highest-priority UI-only corrective layer for legacy collage specificity. */
+app.get("/prototype/royal-repair.css",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+ .sendFile(path.join(__dirname,"garamaal_royal_repair.css")));
 app.get("/prototype/career-bridge.js",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
  .sendFile(path.join(__dirname,"garamaal_theme_bridge.js")));
@@ -252,7 +256,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/copper-porcelain.css?v=1">'+
     '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
     '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
-    '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1"></head>');
+    '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
+     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
