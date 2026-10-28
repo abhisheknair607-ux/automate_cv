@@ -229,3 +229,169 @@ body.gmv3-workspace :is(.toast.error,.gmv3-swipe-toast.error){
 @media (prefers-reduced-motion:reduce){
  body.gmv3-workspace .job{transition:none!important}
 }
+
+/* Dashboard momentum and application pipeline. Preserve card arrangements and stage meaning. */
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;border-top-color:var(--gm-brand)!important;
+ box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+2){
+ border-top-color:var(--gm-champagne)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+3){
+ border-top-color:var(--gm-brand-hover)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+4){
+ border-top-color:var(--gm-border-strong)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi:nth-child(5n+5){
+ border-top-color:var(--gm-brand)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi :is(span,strong){
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-pipeline-kpi small{
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-goal-alerts{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-goal-heading :is(h2,small,span),
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-goal-grid label,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-choices label{
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-goal-grid>div,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-followup-stats>div{
+ background:var(--gm-bg-secondary)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-goal-step output,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-followup-stats strong{
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-followup-stats span,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-line p,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-foot{
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-goal-step button,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-line button{
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-goal-step button:hover,
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-line button:hover{
+ background:var(--gm-brand-hover)!important;color:#FFFFFF!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-alert-choices input{
+ accent-color:var(--gm-brand)!important
+}
+/* Profile editor and the More & Me drawer, including badges, icons and secondary controls. */
+body.gmv3-workspace #gmv3-account-drawer-button{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace #gmv3-account-drawer-button .gmv3-account-menu-bars{
+ color:var(--gm-brand)!important
+}
+body.gmv3-workspace #gmv3-account-veil{
+ background:var(--gm-overlay)!important
+}
+body.gmv3-workspace #gmv3-account-veil .gmv3-account-drawer,
+body.gmv3-workspace #gmv3-profile-modal .gmv3-pf-dialog{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-raised)!important
+}
+body.gmv3-workspace .gmv3-account-top :is(small,h2 span),
+body.gmv3-workspace .gmv3-account-footer{
+ color:var(--gm-text-muted)!important;border-color:var(--gm-border)!important
+}
+body.gmv3-workspace .gmv3-account-avatar,
+body.gmv3-workspace .gmv3-account-action .gmv3-account-ico,
+body.gmv3-workspace .gmv3-account-action:nth-child(3n) .gmv3-account-ico{
+ background:var(--gm-brand)!important;color:#FFFFFF!important
+}
+body.gmv3-workspace .gmv3-account-switch button.active{
+ background:var(--gm-surface-selected)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace .gmv3-account-top button,
+body.gmv3-workspace .gmv3-pf-top button{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace .gmv3-account-action>span:last-child{
+ color:var(--gm-brand)!important
+}
+body.gmv3-workspace .gmv3-pf-top,
+body.gmv3-workspace .gmv3-pf-footer{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace .gmv3-pf-number,
+body.gmv3-workspace .gmv3-pf-track{
+ background:var(--gm-bg-secondary)!important;color:var(--gm-brand)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace .gmv3-pf-save{
+ background:var(--gm-brand)!important;color:#FFFFFF!important
+}
+/* High-specificity Excel-style location picker, search, bulk actions and footer popup.
+   The popup remains above Jobs exactly as before; only its surfaces and text are recoloured. */
+body.gmv3-workspace #gmv3-location-picker.gmv3-location-backdrop{
+ background:var(--gm-overlay)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-panel,
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-list{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-raised)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-head :is(h2,small,p),
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-matches,
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-option :is(strong,small),
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-empty{
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace #gmv3-location-picker :is(.gmv3-location-head button,
+ .gmv3-location-search button,.gmv3-location-batch button,
+ .gmv3-location-foot button){
+ background:var(--gm-bg-secondary)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:none!important
+}
+body.gmv3-workspace #gmv3-location-picker :is(.gmv3-location-batch [data-gmf-loc="only"],
+ .gmv3-location-foot [data-gmf-loc="done"]){
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand)!important
+}
+body.gmv3-workspace #gmv3-location-picker #gmv3-location-search{
+ background:var(--gm-input-bg)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace #gmv3-location-picker #gmv3-location-search::placeholder{
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-option{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-option:hover{
+ background:var(--gm-surface-hover)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-option input{
+ accent-color:var(--gm-brand)!important
+}
+body.gmv3-workspace #gmv3-location-picker .gmv3-location-foot,
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-actions{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace #gmv3-location-picker :is(button,input):focus-visible{
+ outline-color:var(--gm-focus)!important
+}
+/* Keep semantic notifications readable even when they contain nested text. */
+body.gmv3-workspace :is(.warning,.notice,.toast.error,.gmv3-choice-error,.gmv3-swipe-readonly) :is(p,span,small,strong){
+ color:inherit!important
+}
