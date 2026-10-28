@@ -94,6 +94,11 @@
    mode="dashboard";swipe.hidden=true;window.GaramaalSwipeDeck?.close();hideOverlay();sync();
   }
  });
+ // Keep the native dock visible on entry from the V9 iframe and hidden on Home.
+ // Presentation state only: all original navigation functions remain unchanged.
+ if(typeof MutationObserver!=="undefined"){
+  new MutationObserver(sync).observe(doc.body,{attributes:true,attributeFilter:["class"]});
+ }
  window.addEventListener("pageshow",sync);
  sync();
  window.GaramaalJobsHub=Object.freeze({selectPage,openSwipe,closeMore:hideOverlay});
