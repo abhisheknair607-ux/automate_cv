@@ -11,7 +11,7 @@ Serve `index.html` from any static HTTP server (for example `python3 -m http.ser
 ## Behaviour
 
 - 01 Trigger — copper ball rolls along a real 3D tube/ramp and drops.
-- 02 Engage — 25 raised cylindrical 3D pegs; precomputed deterministic gravity/collision trajectory (same ball bouncing as you scroll).
+- 02 Engage — 22 raised cylindrical 3D pegs; precomputed deterministic gravity/collision trajectory (same ball bouncing as you scroll).
 - 03 Guide — real 3D continuous spiral mesh; ball travels down the tube.
 - Scrolling controls the ball's position and blends between chapters; no embedded MP4 or video scrubbing.
 - The words Trigger, Engage and Guide (and their CTAs) navigate to real `?view=trigger`, `?view=engage` and `?view=guide` pages with back navigation.
