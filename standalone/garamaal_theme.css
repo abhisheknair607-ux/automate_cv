@@ -161,3 +161,6 @@ body.gmv3-jobs-workspace .gmv3-panelmask{background:#1b100f8a!important}
 @media(prefers-reduced-motion:reduce){
  body.gmv3-jobs-workspace .gmv3-tabbar button{transition:none!important}
 }
+
+/* Keep native five-tab navigation inside the real app, not over the cinematic home. */
+body.gmv3-landing .gmv3-tabbar{display:none!important}
