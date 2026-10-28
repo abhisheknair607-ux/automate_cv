@@ -395,3 +395,74 @@ body.gmv3-workspace #gmv3-location-picker :is(button,input):focus-visible{
 body.gmv3-workspace :is(.warning,.notice,.toast.error,.gmv3-choice-error,.gmv3-swipe-readonly) :is(p,span,small,strong){
  color:inherit!important
 }
+
+/* Discovery advanced filters and modal controls: exact old ID selectors need local paint. */
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-filter-button{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace .gmv3-filter-button:hover{
+ background:var(--gm-surface-hover)!important;color:var(--gm-text)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet{
+ background:var(--gm-overlay)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-panel{
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-raised)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-head :is(h2,p,small),
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-field,
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-hint{
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-head button,
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-actions button{
+ background:var(--gm-bg-secondary)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-field :is(input,select){
+ background:var(--gm-input-bg)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet input::placeholder{
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-actions button[type=submit]{
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-actions button[type=submit]:hover{
+ background:var(--gm-brand-hover)!important
+}
+/* Swipe and CV action panels: no change to the live gesture, option lists or action order. */
+body.gmv3-workspace :is(.gmv3-drag-card,.gmv3-swipe-summary-area,
+ .gmv3-swipe-extra,.gmv3-swipe-quick-details,.gmv3-choice-sheet,
+ .gmv3-cv-settings,.gmv3-cv-checks,.gmv3-cv-tiers){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important
+}
+body.gmv3-workspace :is(.gmv3-swipe-reset,.gmv3-cv-commands button,
+ .gmv3-swipe-drag-grip,.gmv3-swipe-card-foot button){
+ background:var(--gm-bg-secondary)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace :is(.gmv3-swipe-reset,.gmv3-cv-commands button,
+ .gmv3-swipe-card-foot button):hover:not(:disabled){
+ background:var(--gm-surface-hover)!important
+}
+body.gmv3-workspace :is(.gmv3-swipe-kicker,.gmv3-swipe-readonly,
+ .gmv3-swipe-place,.gmv3-swipe-source,.gmv3-swipe-tags,.gmv3-choice-live){
+ color:var(--gm-text-muted)!important
+}
+body.gmv3-workspace :is(.gmv3-swipe-heading h2,.gmv3-swipe-card-top strong,
+ .gmv3-swipe-card-top h3,.gmv3-swipe-card-foot label){
+ color:var(--gm-text)!important
+}
+body.gmv3-workspace #gmv3-jobs-swipe [data-gs-option="run-cv-now"]{
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand)!important
+}
+body.gmv3-workspace #gmv3-jobs-swipe [data-gs-option="run-cv-now"]:hover{
+ background:var(--gm-brand-hover)!important
+}
