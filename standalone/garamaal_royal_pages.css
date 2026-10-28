@@ -129,7 +129,7 @@ body.gmv3-workspace :is(input:not([type="checkbox"]):not([type="radio"]),
  background:var(--gm-input-bg)!important;color:var(--gm-text)!important;
  border-color:var(--gm-border)!important;caret-color:var(--gm-brand)!important
 }
-body.gmv3-workspace :is(input,textarea)::placeholder{color:var(--gm-text-muted)!important;opacity:.9}
+body.gmv3-workspace :is(input,textarea)::placeholder{color:var(--gm-text-muted)!important}
 body.gmv3-workspace :is(input[type="radio"],input[type="checkbox"]){accent-color:var(--gm-brand)!important}
 body.gmv3-workspace :is(input,textarea,select):focus-visible{
  outline:2px solid var(--gm-focus)!important;outline-offset:2px!important;
