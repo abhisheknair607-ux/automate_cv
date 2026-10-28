@@ -137,7 +137,7 @@ grep -Fq -- '--gm-brand:#A76543' "$TMP/royal-pages.css"
 python3 - "$TMP/career-photos.js" <<'PY'
 import re,sys
 s=open(sys.argv[1],encoding="utf-8").read()
-assert len(set(re.findall(r'https://images\\.unsplash\\.com/photo-[^"\\s]+',s)))==8, "Expected eight real stock photos"
+assert len(set(re.findall(r'https://images\.unsplash\.com/photo-[^"\s]+',s)))==8, "Expected eight real stock photos"
 PY
 echo "STAGE 4 CANARY UI VERIFIED: original V9 orb/curve, 4 independent cards, stock registry, royal colour tokens"
 curl -fsSL --max-time 30 "$URL/manifest.webmanifest" -o "$TMP/manifest.json"
