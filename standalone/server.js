@@ -178,13 +178,38 @@ app.get("/prototype/copper-porcelain-fidelity.css",(_req,res)=>
   res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
     .sendFile(path.join(__dirname,"copper_porcelain_fidelity.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
-// V9 replaces only the visible launcher; underlying authenticated Jobs remains intact.
+// Approved Stage 3B launcher retains V9's byte-identical sphere and curve.
+// Only the card and photographic visual layers are added; original V9 remains a rollback route.
 app.get("/prototype/career-trail",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html")));
+app.get("/prototype/career-trail-v9",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_v9.html")));
+/* Stage 3 REVIEW only; the existing /prototype launcher continues using V9. */
+app.get("/prototype/career-trail-v10-review",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_v10_review.html")));
+/* Stage 3B visual source: exact V9 roller/track, separate stock photography. */
+app.get("/prototype/career-curve-review",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html")));
+app.get("/prototype/curve-art-review.js",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+ .sendFile(path.join(__dirname,"garamaal_curve_art_review.js")));
+app.get("/prototype/curve-overlay-review.js",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+ .sendFile(path.join(__dirname,"garamaal_curve_overlay_review.js")));
+app.get("/prototype/curve-overlay-review.css",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+ .sendFile(path.join(__dirname,"garamaal_curve_overlay_review.css")));
 app.get("/prototype/career-theme.css",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
  .sendFile(path.join(__dirname,"garamaal_theme.css")));
+/* Isolated Stage 2 colour-only layer, loaded after historic CSS on /prototype only. */
+app.get("/prototype/royal-pages.css",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+ .sendFile(path.join(__dirname,"garamaal_royal_pages.css")));
 app.get("/prototype/career-bridge.js",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
  .sendFile(path.join(__dirname,"garamaal_theme_bridge.js")));
@@ -226,7 +251,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/collage.css?v=m26-cv-controls-18">'+
     '<link rel="stylesheet" href="/prototype/copper-porcelain.css?v=1">'+
     '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
-    '<link rel="stylesheet" href="/prototype/career-theme.css?v=9"></head>');
+    '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
+    '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');

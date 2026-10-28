@@ -116,6 +116,30 @@ curl -fsSL --max-time 30 "$URL/health" | python3 -c \
 curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
 grep -Fq 'Live import authorisation off' "$TMP/canary.html"
 grep -Fq 'Ranking prompt' "$TMP/canary.html"
+# Stage 4 0%-traffic canary: verify approved V9 sphere/curve, image cards,
+# stock registry and UI theme are SERVED before promoting any live traffic.
+grep -Fq 'src="/prototype/career-trail"' "$TMP/canary.html"
+grep -Fq '/prototype/royal-pages.css?v=stage2-review-1' "$TMP/canary.html"
+curl -fsSL --max-time 30 "$URL/prototype/career-trail" -o "$TMP/career.html"
+grep -Fq 'id="global-track"' "$TMP/career.html"
+grep -Fq 'id="global-ball"' "$TMP/career.html"
+grep -Fq 'id="gm9-orb"' "$TMP/career.html"
+grep -Fq '/prototype/curve-overlay-review.js?v=3b' "$TMP/career.html"
+grep -Fq '/prototype/curve-art-review.js?v=3b' "$TMP/career.html"
+curl -fsSL --max-time 30 "$URL/prototype/curve-art-review.js" -o "$TMP/career-photos.js"
+curl -fsSL --max-time 30 "$URL/prototype/curve-overlay-review.js" -o "$TMP/career-cards.js"
+curl -fsSL --max-time 30 "$URL/prototype/curve-overlay-review.css" -o "$TMP/career-cards.css"
+curl -fsSL --max-time 30 "$URL/prototype/royal-pages.css" -o "$TMP/royal-pages.css"
+grep -Fq 'window.GaramaalCurveArt=Object.freeze' "$TMP/career-photos.js"
+grep -Fq 'gm11-card-panel' "$TMP/career-cards.js"
+grep -Fq 'gm11-card:is(:hover,:focus-visible)' "$TMP/career-cards.css"
+grep -Fq -- '--gm-brand:#A76543' "$TMP/royal-pages.css"
+python3 - "$TMP/career-photos.js" <<'PY'
+import re,sys
+s=open(sys.argv[1],encoding="utf-8").read()
+assert len(set(re.findall(r'https://images\.unsplash\.com/photo-[^"\s]+',s)))==8, "Expected eight real stock photos"
+PY
+echo "STAGE 4 CANARY UI VERIFIED: original V9 orb/curve, 4 independent cards, stock registry, royal colour tokens"
 curl -fsSL --max-time 30 "$URL/manifest.webmanifest" -o "$TMP/manifest.json"
 python3 - "$TMP/manifest.json" <<'PY'
 import json,sys
@@ -153,6 +177,10 @@ assert len(active)==1 and active[0].get("revisionName")==sys.argv[2] and int(act
 PY
 curl -fsSL --max-time 45 "https://garamaal.web.app/prototype?release=$SHA" -o "$TMP/live.html"
 grep -Fq 'Live import authorisation off' "$TMP/live.html"
+grep -Fq 'src="/prototype/career-trail"' "$TMP/live.html"
+curl -fsSL --max-time 45 "https://garamaal.web.app/prototype/career-trail?release=$SHA" -o "$TMP/live-career.html"
+grep -Fq 'id="global-ball"' "$TMP/live-career.html"
+grep -Fq '/prototype/curve-overlay-review.js?v=3b' "$TMP/live-career.html"
 PROMOTION_ATTEMPTED=0
 echo "PRODUCTION VERIFIED: https://garamaal.web.app/prototype"
 echo "Revision: $REV (100%); rollback baseline: $BASELINE"
