@@ -182,6 +182,10 @@ app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").se
 app.get("/prototype/career-trail",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_v9.html")));
+/* Stage 3 REVIEW only; the existing /prototype launcher continues using V9. */
+app.get("/prototype/career-trail-v10-review",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_v10_review.html")));
 app.get("/prototype/career-theme.css",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
  .sendFile(path.join(__dirname,"garamaal_theme.css")));
