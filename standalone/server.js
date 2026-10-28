@@ -178,15 +178,19 @@ app.get("/prototype/copper-porcelain-fidelity.css",(_req,res)=>
   res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
     .sendFile(path.join(__dirname,"copper_porcelain_fidelity.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
-// V9 replaces only the visible launcher; underlying authenticated Jobs remains intact.
+// Approved Stage 3B launcher retains V9's byte-identical sphere and curve.
+// Only the card and photographic visual layers are added; original V9 remains a rollback route.
 app.get("/prototype/career-trail",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html")));
+app.get("/prototype/career-trail-v9",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_v9.html")));
 /* Stage 3 REVIEW only; the existing /prototype launcher continues using V9. */
 app.get("/prototype/career-trail-v10-review",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_v10_review.html")));
-/* Stage 3B review only: exact V9 roller/track, visually layered stock photography. */
+/* Stage 3B visual source: exact V9 roller/track, separate stock photography. */
 app.get("/prototype/career-curve-review",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html")));
