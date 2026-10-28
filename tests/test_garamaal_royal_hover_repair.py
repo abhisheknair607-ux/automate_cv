@@ -73,3 +73,16 @@ def test_original_stage2_stays_visual_colour_only():
     assert "Royal Espresso repair" not in PAGES
     assert "--gm-success-bg" in PAGES and "--gm-danger-bg" in PAGES
     assert "nav#gmv3-jobs-tabbar" not in PAGES
+
+
+def test_neon_cleanup_in_swipe_profile_and_bulk_popups():
+    for selector in ("#selectionBarMount .selectionbar",
+                     "#gmv3-jobs-swipe .gmv3-drag-card:is(",
+                     "#gmv3-profile-modal :is(",
+                     "#gmv3-location-picker :is(",
+                     "#gmv3-goal-alerts :is("):
+        assert selector in REPAIR
+    assert "box-shadow:var(--gm-shadow-hover)!important" in REPAIR
+    assert "background:var(--gm-brand)!important;color:#FFFFFF!important" in REPAIR
+    # Real LIVE connectivity status is not changed to decorative copper.
+    assert "#modeBadge.gmv3-live-badge" not in REPAIR
