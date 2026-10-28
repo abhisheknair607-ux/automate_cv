@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Production release only after explicit approval. No credentials or Sheets writes.
+# Guarded UI-only release. Preserve ALL existing production environment and secret references.
 # Deploy latest main as a 0%-traffic canary, verify, promote, and auto-rollback
 # the Cloud Run traffic split if any subsequent check fails.
 set -Eeuo pipefail
@@ -57,10 +57,10 @@ for k,v in {
  "FRESHMAL_SPREADSHEET_ID":"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc",
 }.items():
  assert env.get(k)==v, k+" changed; do not deploy"
-# Enable only read-only GitHub workflow dispatch in the new canary revision.
-# All Google Sheets write authorizations remain disabled.
-for k in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"):
- assert env.get(k)!="true", k+" must remain disabled"
+# These values are controlled by the existing, approved production configuration.
+# The UI release must not disable enabled features or enable disabled ones.
+for k in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED","ALLOW_ALERT_WORKFLOW_DISPATCH"):
+ assert env.get(k) in (None,"false","true"), k+" has an unexpected value"
 traffic=[(v.get("revisionName"),int(v.get("percent",0))) for v in srv.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0]
 assert traffic and sum(p for _,p in traffic)==100 and all(r for r,_ in traffic), "Unknown live Cloud Run traffic"
 assert any(v.get("name")=="GITHUB_WORKFLOW_TOKEN" and v.get("valueFrom",{}).get("secretKeyRef")
@@ -80,7 +80,7 @@ cp "$ROOT/package.json" "$TMP/build/package.json"
 cp -R "$ROOT/standalone" "$TMP/build/standalone"
 cp -R "$ROOT/garamaal-release-webapp" "$TMP/build/garamaal-release-webapp"
 gcloud run deploy "$SERVICE" --source "$TMP/build" --project "$PROJECT" --region "$REGION" \
-  --no-traffic --tag "$TAG" --update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true --quiet
+  --no-traffic --tag "$TAG" --quiet
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/canary.json"
 readarray -t TAG_DATA < <(python3 - "$TMP/before.json" "$TMP/canary.json" "$TAG" <<'PY'
 import json,sys
@@ -96,13 +96,11 @@ def config(s):
 old_spec,old_env=config(before)
 new_spec,new_env=config(after)
 assert old_spec.get("serviceAccountName")==new_spec.get("serviceAccountName"), "Runtime identity changed"
-assert new_env.get("ALLOW_ALERT_WORKFLOW_DISPATCH",{}).get("value")=="true", "Read-only dispatch not enabled"
+# UI-only deployment: exact equivalence of flags, Sheets IDs and secret refs.
+# This blocks both accidental permission escalation and disabling existing features.
+assert set(new_env)==set(old_env), "Environment variable names changed in UI-only canary"
 for key,value in old_env.items():
- if key!="ALLOW_ALERT_WORKFLOW_DISPATCH":
-  assert new_env.get(key)==value, "Existing environment or secret changed: "+key
-assert set(new_env).difference(old_env) <= {"ALLOW_ALERT_WORKFLOW_DISPATCH"}, "Unexpected new runtime settings"
-for key in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED"):
- assert new_env.get(key,{}).get("value")!="true", "Unapproved write controls remain disabled"
+ assert new_env.get(key)==value, "Existing environment or secret reference changed: "+key
 tags=[v for v in after.get("status",{}).get("traffic",[]) if v.get("tag")==sys.argv[3]]
 assert len(tags)==1 and int(tags[0].get("percent",0))==0, "Canary must stay at 0% traffic"
 print(tags[0].get("revisionName",""))
@@ -158,5 +156,4 @@ grep -Fq 'Live import authorisation off' "$TMP/live.html"
 PROMOTION_ATTEMPTED=0
 echo "PRODUCTION VERIFIED: https://garamaal.web.app/prototype"
 echo "Revision: $REV (100%); rollback baseline: $BASELINE"
-echo "Preview Import and Check Duplicates dispatch are enabled (read-only)."
-echo "Run Import, automatic Dup Q writes, and historical deletion remain disabled."
+echo "UI-only release: existing environment flags and secret references are preserved."
