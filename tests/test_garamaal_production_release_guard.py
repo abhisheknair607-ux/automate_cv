@@ -23,13 +23,15 @@ def test_release_cannot_replace_runtime_secrets_or_worker():
     assert "GARAMAAL_ALERT_IMPORT_APPROVED" in S
     assert "ALLOW_MANUAL_CV_DISPATCH" in S
     commands = [line for line in S.splitlines() if not line.lstrip().startswith("#")]
-    assert "--update-env-vars=ALLOW_ALERT_WORKFLOW_DISPATCH=true" in S
-    assert S.count("--update-env-vars=") == 1
-    for forbidden in ("--set-env-vars", "--set-secrets", "firebase deploy"):
+    # UI-only releases must NEVER mutate existing production feature flags or secrets.
+    for forbidden in ("--update-env-vars", "--set-env-vars", "--remove-env-vars",
+                      "--set-secrets", "--remove-secrets", "firebase deploy"):
         assert not any(forbidden in line for line in commands)
-    assert 'for k in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED")' in S
-    assert 'Existing environment or secret changed' in S
-    assert 'Unapproved write controls remain disabled' in S
+    assert 'for k in ("ALLOW_DUP_STATUS_WRITES","GARAMAAL_ALERT_IMPORT_APPROVED","ALLOW_ALERT_WORKFLOW_DISPATCH"):' in S
+    assert 'assert set(new_env)==set(old_env)' in S
+    assert 'assert new_env.get(key)==value' in S
+    assert "Existing environment or secret reference changed" in S
+    assert 'old_spec.get("serviceAccountName")==new_spec.get("serviceAccountName")' in S
 
 
 def test_release_is_zero_traffic_canary_first_then_auto_rollback():
