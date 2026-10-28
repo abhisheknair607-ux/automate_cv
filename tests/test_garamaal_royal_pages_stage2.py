@@ -84,6 +84,15 @@ def test_meaningful_status_colours_remain_separate():
             assert fg in area and bg in area
     assert ".tag-ok" in CSS and ".tag-warn" in CSS and ".tag-red" in CSS
     assert ".toast.error" in CSS
+    # The screenshot-visible KPI/targets and legacy neon location popups are explicitly recoloured.
+    for selector in ("#gmv3-goal-alerts", ".gmv3-pipeline-kpi",
+                     ".gmv3-goal-step button", ".gmv3-followup-stats",
+                     ".gmv3-alert-line button", "#gmv3-filter-sheet",
+                     "#gmv3-location-picker", ".gmv3-account-avatar",
+                     "#gmv3-account-drawer-button", ".gmv3-swipe-reset"):
+        assert selector in CSS
+    assert "body.gmv3-workspace #gmv3-filter-sheet .gmv3-filter-actions button[type=submit]" in CSS
+    assert "body.gmv3-workspace #gmv3-location-picker .gmv3-location-option:hover" in CSS
 
 
 def test_no_self_referential_design_tokens():
