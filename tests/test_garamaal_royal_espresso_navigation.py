@@ -30,6 +30,9 @@ def test_original_five_tabs_and_back_behavior_untouched():
     assert "window.GaramaalJobsHub=Object.freeze({selectPage,openSwipe,closeMore:hideOverlay})" in NAV
     assert 'homeButton.addEventListener("click",showHome)' in HOME
     assert 'body.gmv3-jobs-workspace #gmv3-home-button' in THEME
+    # Landing/workspace class changes only refresh presentation visibility.
+    assert 'new MutationObserver(sync).observe(doc.body' in NAV
+    assert 'attributeFilter:["class"]' in NAV
 
 
 def test_sprites_replaced_with_svg_style_mis_without_removing_controls():
