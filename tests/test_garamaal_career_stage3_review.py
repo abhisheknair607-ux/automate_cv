@@ -1,4 +1,4 @@
-"""Stage 3: preserve production homepage while preparing V10.3 scroll review."""
+"""Stage 4: activate approved V9-curve journey, preserve old V9 and V10.3 review routes."""
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -7,8 +7,10 @@ REVIEW = (ROOT / "standalone/garamaal_career_trail_v10_review.html").read_text(e
 BRIDGE = (ROOT / "standalone/garamaal_theme_bridge.js").read_text(encoding="utf-8")
 
 
-def test_v10_review_only_does_not_replace_existing_landing_route():
+def test_approved_stage3b_is_live_and_v9_remains_recoverable():
     assert 'app.get("/prototype/career-trail",(_req,res)=>' in SERVER
+    assert 'sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html"))' in SERVER
+    assert 'app.get("/prototype/career-trail-v9",(_req,res)=>' in SERVER
     assert 'sendFile(path.join(__dirname,"garamaal_career_trail_v9.html"))' in SERVER
     assert 'app.get("/prototype/career-trail-v10-review",(_req,res)=>' in SERVER
     assert 'sendFile(path.join(__dirname,"garamaal_career_trail_v10_review.html"))' in SERVER
