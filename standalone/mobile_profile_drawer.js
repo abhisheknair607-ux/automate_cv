@@ -32,6 +32,9 @@
    '<div class="gmv3-account-install"><div><strong>Take Garamaal with you</strong><small>Install the app on your phone or desktop</small></div><button type="button" data-gm-account="install">↓ Install</button></div>'+ 
    '<fieldset class="gmv3-account-switch"><legend>Choose workspace</legend><div>'+
    ['Abhishek','Pooja'].map(n=>'<button type="button" data-gm-candidate="'+n+'" aria-pressed="'+String(name()===n)+'" class="'+(name()===n?'active':'')+'">'+esc(n)+'</button>').join("")+'</div></fieldset>'+
+   '<fieldset class="gm9-appearance"><legend>APPEARANCE · COPPER & BROWN</legend><div>'+ 
+   '<button type="button" data-gm-theme="light" aria-pressed="'+String(window.GaramaalTheme?.get()!=="dark")+'">☀ Light Copper</button>'+
+   '<button type="button" data-gm-theme="dark" aria-pressed="'+String(window.GaramaalTheme?.get()==="dark")+'">☾ Dark Brown</button></div></fieldset>'+
    '<nav class="gmv3-account-options" aria-label="Profile and more tools">'+
    actionMarkup("profile","✎","Edit career profile","Experience, education and career goals")+
    actionMarkup("stats","▥","Statistics & targets","Applications, CVs and daily goals")+
@@ -77,6 +80,12 @@
  doc.addEventListener("click",e=>{
   if(!veil)return;
   if(e.target===veil){close();return}
+  const themeButton=e.target.closest?.("[data-gm-theme]");
+  if(themeButton&&veil.contains(themeButton)){
+   window.GaramaalTheme?.set(themeButton.dataset.gmTheme);
+   veil.querySelectorAll("[data-gm-theme]").forEach(b=>b.setAttribute("aria-pressed",String(b===themeButton)));
+   return;
+  }
   const target=e.target.closest?.("[data-gm-account],[data-gm-candidate]");
   if(!target||!veil.contains(target))return;
   if(target.hasAttribute("data-gm-candidate")){pick(target.dataset.gmCandidate);return}
