@@ -1,0 +1,28 @@
+/* The V9 visual launcher is framed ABOVE existing real Jobs DOM; never touch its handlers. */
+body.gmv3-landing #gmv3-launch{overflow:hidden!important}
+#gmv3-launch #gm9-career-iframe{display:block!important;position:absolute;inset:0;width:100%;height:100%;border:0;z-index:1000;background:#f7f1ea}
+#gmv3-launch #gm9-career-iframe[hidden]{display:none!important}
+body.gmv3-workspace #gmv3-launch{display:none!important}
+@media(prefers-reduced-motion:reduce){#gmv3-launch #gm9-career-iframe{scroll-behavior:auto}}
+/* Shared Copper + Porcelain Light, Warm Brown + Copper Dark.
+   These declarations intentionally style existing controls ONLY. */
+html[data-garamaal-theme="light"]{--gm9-bg:#f7f1ea;--gm9-paper:#fffdfa;--gm9-card:#fff;--gm9-ink:#302822;--gm9-muted:#6c5d53;--gm9-border:#e9d9cd;--gm9-accent:#a94f34;--gm9-active:#f4dfd0;--gm9-ring:#cf8c69;color-scheme:light}
+html[data-garamaal-theme="dark"]{--gm9-bg:#201915;--gm9-paper:#2d231e;--gm9-card:#382920;--gm9-ink:#fff0e3;--gm9-muted:#dec5b1;--gm9-border:#6a4b3b;--gm9-accent:#efaa81;--gm9-active:#523628;--gm9-ring:#e8a47c;color-scheme:dark}
+body.gmv3-workspace{--bg:var(--gm9-bg);--white:var(--gm9-card);--ink:var(--gm9-ink);--text:var(--gm9-ink);--muted:var(--gm9-muted);--line:var(--gm9-border);--navy:var(--gm9-accent);--navy2:var(--gm9-accent);--blue:var(--gm9-accent);--gm-copper:var(--gm9-accent);--gm-paper:var(--gm9-paper);--gm-ink:var(--gm9-ink);--gm-border:var(--gm9-border);--gm-ivory:var(--gm9-bg);--cp-copper:var(--gm9-accent);--cp-paper:var(--gm9-paper);--cp-white:var(--gm9-card);--cp-ink:var(--gm9-ink);--cp-body:var(--gm9-muted);--cp-edge:var(--gm9-border);--cp-ivory:var(--gm9-bg);background:var(--gm9-bg)!important;color:var(--gm9-ink)!important}
+body.gmv3-workspace .shell,body.gmv3-workspace .main,body.gmv3-workspace .content{background:var(--gm9-bg)!important;color:var(--gm9-ink)!important}
+body.gmv3-workspace .topbar,body.gmv3-workspace .sidebar,body.gmv3-workspace .panel,body.gmv3-workspace .card,body.gmv3-workspace .job,body.gmv3-workspace .kpi,body.gmv3-workspace .modal-content,body.gmv3-workspace .gmv3-panel,body.gmv3-workspace .gmv3-swipe-surface,body.gmv3-workspace .gmv3-filter-card,body.gmv3-workspace .gmv3-account-drawer{background:var(--gm9-paper)!important;color:var(--gm9-ink)!important;border-color:var(--gm9-border)!important}
+body.gmv3-workspace .gmv3-tabbar,body.gmv3-workspace .gmv3-panelmask .gmv3-panel,body.gmv3-workspace .gmv3-account-veil .gmv3-account-drawer{background:var(--gm9-paper)!important;color:var(--gm9-ink)!important;border-color:var(--gm9-border)!important}
+body.gmv3-workspace input:not([type="checkbox"]):not([type="radio"]),body.gmv3-workspace textarea,body.gmv3-workspace select{background:var(--gm9-card)!important;color:var(--gm9-ink)!important;border-color:var(--gm9-border)!important}
+body.gmv3-workspace h1,body.gmv3-workspace h2,body.gmv3-workspace h3,body.gmv3-workspace h4,body.gmv3-workspace label,body.gmv3-workspace th,body.gmv3-workspace td,body.gmv3-workspace .nav-btn,body.gmv3-workspace .crumb,body.gmv3-workspace .job strong{color:var(--gm9-ink)!important}
+body.gmv3-workspace p,body.gmv3-workspace small,body.gmv3-workspace .muted{color:var(--gm9-muted)!important}
+body.gmv3-workspace button{accent-color:var(--gm9-accent)}
+body.gmv3-workspace button:focus-visible,body.gmv3-workspace a:focus-visible{outline:3px solid var(--gm9-ring)!important;outline-offset:2px}
+body.gmv3-workspace .gmv3-tabbar button[aria-current="page"],body.gmv3-workspace .nav-btn.active{background:var(--gm9-active)!important;color:var(--gm9-accent)!important}
+body.gmv3-workspace .gmv3-account-action,body.gmv3-workspace .gmv3-account-switch button{background:var(--gm9-card)!important;color:var(--gm9-ink)!important;border-color:var(--gm9-border)!important}
+/* Right-side More & Me appearance control. No application state changes. */
+.gm9-appearance{margin:13px 0;padding:13px;border:1px solid var(--gm9-border,#e9d9cd);border-radius:15px;background:var(--gm9-paper,#fffdfa);color:var(--gm9-ink,#302822)}
+.gm9-appearance legend{padding:0 7px;font-size:11px;font-weight:800;letter-spacing:.06em;color:var(--gm9-accent,#a94f34)}
+.gm9-appearance div{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gm9-appearance button{border:1px solid var(--gm9-border,#e9d9cd);border-radius:11px;background:var(--gm9-card,#fff);color:var(--gm9-ink,#302822);padding:11px 8px;font-size:12px;font-weight:750;min-height:43px}
+.gm9-appearance button[aria-pressed="true"]{border-color:var(--gm9-accent,#a94f34);background:var(--gm9-active,#f4dfd0);color:var(--gm9-accent,#a94f34)}
+html[data-garamaal-theme="dark"] body.gmv3-workspace .gmv3-account-veil{background:#0d0a08ad!important}

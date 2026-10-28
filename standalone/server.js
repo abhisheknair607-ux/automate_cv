@@ -178,10 +178,23 @@ app.get("/prototype/copper-porcelain-fidelity.css",(_req,res)=>
   res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
     .sendFile(path.join(__dirname,"copper_porcelain_fidelity.css")));
 app.get("/prototype/collage-intro.js",(_req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"mobile_collage_intro.js")));
+// V9 replaces only the visible launcher; underlying authenticated Jobs remains intact.
+app.get("/prototype/career-trail",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_v9.html")));
+app.get("/prototype/career-theme.css",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+ .sendFile(path.join(__dirname,"garamaal_theme.css")));
+app.get("/prototype/career-bridge.js",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+ .sendFile(path.join(__dirname,"garamaal_theme_bridge.js")));
 app.get("/prototype",(req,res)=>{
   if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
   const fragment=fs.readFileSync(path.join(__dirname,"mobile_home_landing.html"),"utf8");
+  const careerFragment=fragment.replace(/<\/section>\s*$/,
+    '<iframe id="gm9-career-iframe" title="Garamaal Career Journey" src="/prototype/career-trail" loading="eager"></iframe></section>');
+  if(careerFragment===fragment)return res.status(500).type("text/plain").send("Career launcher insertion marker missing");
   if(!html.includes("<body>")||!html.includes("</head>")||
      !html.includes("<script>\n'use strict';")){
     return res.status(500).type("text/plain").send("Prototype source marker missing");
@@ -212,8 +225,9 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/hub.css?v=m26-neon-held-12">'+
     '<link rel="stylesheet" href="/prototype/collage.css?v=m26-cv-controls-18">'+
     '<link rel="stylesheet" href="/prototype/copper-porcelain.css?v=1">'+
-    '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2"></head>');
-  html=html.replace("<body>",'<body class="gmv3-landing">'+fragment);
+    '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
+    '<link rel="stylesheet" href="/prototype/career-theme.css?v=9"></head>');
+  html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
   html=html.replace("</body>",
@@ -228,7 +242,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
-    '<script src="/prototype/collage-intro.js?v=m26-neon-held-12"></script></body>');
+    '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
 
