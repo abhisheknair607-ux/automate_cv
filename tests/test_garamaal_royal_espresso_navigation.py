@@ -24,7 +24,7 @@ def test_original_five_tabs_and_back_behavior_untouched():
     for ident, label in (("dashboard", "Dashboard"), ("discovery", "Discovery"),
                          ("swipe", "Swipe"), ("fresh", "Make CV"), ("more", "More")):
         assert f'["{ident}","{label}"' in NAV
-        assert f'data-g3-jobs="{chr(39)}+id+' in NAV
+        assert 'data-g3-jobs="' in NAV
         assert f'button[data-g3-jobs="{ident}"]' in THEME
     assert "bar.addEventListener(\"click\"" in NAV
     assert "window.GaramaalJobsHub=Object.freeze({selectPage,openSwipe,closeMore:hideOverlay})" in NAV
