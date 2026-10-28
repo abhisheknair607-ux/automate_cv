@@ -186,6 +186,19 @@ app.get("/prototype/career-trail",(_req,res)=>
 app.get("/prototype/career-trail-v10-review",(_req,res)=>
  res.set("Cache-Control","no-store, max-age=0").type("html")
  .sendFile(path.join(__dirname,"garamaal_career_trail_v10_review.html")));
+/* Stage 3B review only: exact V9 roller/track, visually layered stock photography. */
+app.get("/prototype/career-curve-review",(_req,res)=>
+ res.set("Cache-Control","no-store, max-age=0").type("html")
+ .sendFile(path.join(__dirname,"garamaal_career_trail_curve_review.html")));
+app.get("/prototype/curve-art-review.js",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+ .sendFile(path.join(__dirname,"garamaal_curve_art_review.js")));
+app.get("/prototype/curve-overlay-review.js",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
+ .sendFile(path.join(__dirname,"garamaal_curve_overlay_review.js")));
+app.get("/prototype/curve-overlay-review.css",(_req,res)=>
+ res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
+ .sendFile(path.join(__dirname,"garamaal_curve_overlay_review.css")));
 app.get("/prototype/career-theme.css",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/css")
  .sendFile(path.join(__dirname,"garamaal_theme.css")));
