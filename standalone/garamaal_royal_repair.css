@@ -177,3 +177,91 @@ body.gmv3-workspace.gmv3-jobs-workspace :is(
   animation:none!important;opacity:0!important
  }
 }
+
+
+/* Legacy Stage 7–12 neon accents were not confined to Dashboard:
+   tame Swipe, Profile, bulk action bar and target controls too. */
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-goal-alerts :is(
+ .gmv3-goal-step button,.gmv3-alert-line button){
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand-hover)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-goal-alerts :is(
+ .gmv3-goal-step output,.gmv3-followup-stats strong,.gmv3-goal-heading > span){
+ color:var(--gm-brand)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-goal-alerts .gmv3-followup-stats > div{
+ background:var(--gm-surface)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #selectionBarMount .selectionbar{
+ background:var(--gm-surface-raised)!important;color:var(--gm-text)!important;
+ border:1px solid var(--gm-brand)!important;
+ box-shadow:var(--gm-shadow-raised)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #selectionBarMount .selectionbar b{
+ color:var(--gm-brand)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #selectionBarMount .bulk-preference-actions button[data-value="Favorite"]{
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-swipe :is(
+ .gmv3-drag-card,.gmv3-choice-sheet,.gmv3-cv-settings,.gmv3-cv-checkbox,
+ .gmv3-swipe-extra,.gmv3-swipe-quick-details){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-swipe .gmv3-drag-card:is(
+ :hover,:focus-within,.gmv3-hold-ready,.gmv3-card-expanded){
+ border-color:var(--gm-brand)!important;box-shadow:var(--gm-shadow-hover)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-swipe :is(
+ .gmv3-swipe-title-link,.gmv3-swipe-title-link:hover,.gmv3-swipe-grip-mark,
+ .gmv3-swipe-more-excerpt strong,.gmv3-choice-live){
+ color:var(--gm-brand)!important;text-decoration-color:var(--gm-brand)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-swipe :is(
+ .gmv3-cv-commands button,[data-gs-option="run-cv-now"]){
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand-hover)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-jobs-swipe :is(
+ .gmv3-cv-commands button,[data-gs-option="run-cv-now"]):hover:not(:disabled){
+ background:var(--gm-brand-hover)!important;color:#FFFFFF!important;
+ box-shadow:var(--gm-shadow-hover)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-profile-modal :is(
+ .gmv3-pf-backdrop){background:var(--gm-overlay)!important}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-profile-modal :is(
+ .gmv3-pf-dialog,.gmv3-pf-top,.gmv3-pf-section,.gmv3-pf-entry,
+ .gmv3-pf-source,.gmv3-pf-source-switch){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-profile-modal :is(
+ .gmv3-pf-candidate,.gmv3-pf-number,.gmv3-pf-save,
+ .gmv3-pf-source-switch button[aria-pressed="true"],.gmv3-pf-source-header span){
+ background:var(--gm-brand)!important;color:#FFFFFF!important;
+ border-color:var(--gm-brand-hover)!important;
+ box-shadow:none!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-profile-modal :is(
+ .gmv3-pf-track span,.gmv3-pf-dot.is-filled){
+ background:var(--gm-brand)!important;border-color:var(--gm-brand)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-profile-modal :is(
+ .gmv3-pf-field input,.gmv3-pf-field textarea):focus{
+ border-color:var(--gm-brand)!important;
+ box-shadow:0 0 0 2px #a7654333!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-location-picker :is(
+ .gmv3-location-panel,.gmv3-location-head,.gmv3-location-foot){
+ background:var(--gm-surface)!important;color:var(--gm-text)!important;
+ border-color:var(--gm-border)!important;box-shadow:var(--gm-shadow-card)!important
+}
+body.gmv3-workspace.gmv3-jobs-workspace #gmv3-location-picker :is(
+ .gmv3-location-batch [data-gmf-loc="only"],
+ .gmv3-location-foot [data-gmf-loc="done"]){
+ background:var(--gm-brand)!important;color:#FFFFFF!important;border-color:var(--gm-brand)!important
+}
+/* Keep LIVE badge green as a real status, unlike legacy neon decorative glows. */
