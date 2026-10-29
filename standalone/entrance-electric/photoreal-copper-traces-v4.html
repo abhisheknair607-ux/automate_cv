@@ -81,6 +81,7 @@ html[data-theme=light] .hero:after{background:linear-gradient(180deg,rgba(255,25
 .board .trace-run{fill:none;stroke:#ffbe83;stroke-linejoin:round;stroke-linecap:round;stroke-width:3;stroke-dasharray:1 1000;stroke-dashoffset:0;opacity:1}
 .board .trace-soft .trace-run{stroke:#d37c40;stroke-width:14;opacity:.95}
 .board .trace-bright .trace-run{stroke:#fff4d8;stroke-width:3.5;opacity:1}
+.board .trace-tips .trace-tip{fill:#fff8df;opacity:.95;filter:drop-shadow(0 0 8px #ffbb85)}
 .board .pcb-out{fill:none;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:0 1000}
 .board .pcb-out.glow{stroke:#c9793b;stroke-width:12;filter:url(#pcb-bloom)}
 .board .pcb-out.core{stroke:#ffe7bb;stroke-width:3}
@@ -128,6 +129,7 @@ html[data-theme=light] .board .pcb-out.core{stroke:#fff5d9}
 <path data-track="T1" d="M 744 417 L 744 462 L 751 482 L 753 497 L 753 517" class="trace-run"/>
 <path data-track="T2" d="M 785 402 L 785 448 L 786 474 L 785 496 L 785 517" class="trace-run"/>
 <path data-track="T3" d="M 832 413 L 832 458 L 830 476 L 827 500 L 827 518" class="trace-run"/></g>
+    <g class="trace-tips"><circle data-tip="L1" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="L2" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="L3" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="R1" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="R2" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="R3" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="T1" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="T2" class="trace-tip" cx="0" cy="0" r="9"/><circle data-tip="T3" class="trace-tip" cx="0" cy="0" r="9"/></g>
     <path id="pcb-output-glow" class="pcb-out glow" d="M 765 750 L 765 782 L 765 816 L 765 864"/>
     <path id="pcb-output-core" class="pcb-out core" d="M 765 750 L 765 782 L 765 816 L 765 864"/>
   </g>
@@ -219,6 +221,7 @@ html[data-theme=light] .board .pcb-out.core{stroke:#fff5d9}
   'use strict';
   const nodes=[...document.querySelectorAll('.trace-bright .trace-run')];
   const bloom=[...document.querySelectorAll('.trace-soft .trace-run')];
+  const tips=[...document.querySelectorAll('.trace-tip')];
   const hero=document.getElementById('hero');
   const out=document.querySelectorAll('.pcb-out');
   const names=['L1','L2','L3','R1','R2','R3','T1','T2','T3'];
@@ -246,6 +249,7 @@ html[data-theme=light] .board .pcb-out.core{stroke:#fff5d9}
       el.style.strokeDasharray=`${visible.toFixed(2)} ${(len+60).toFixed(2)}`;
       el.style.strokeDashoffset=(-start).toFixed(2);
       const glow=bloom[i];glow.style.strokeDasharray=el.style.strokeDasharray;glow.style.strokeDashoffset=el.style.strokeDashoffset;
+      const tip=el.getPointAtLength(front); tips[i].setAttribute('cx',tip.x);tips[i].setAttribute('cy',tip.y);
       if(phase>.80)arrivals++;
     });
     hero.classList.toggle('circuit-charged',arrivals>0||scrollDisplayed>.01);
@@ -253,7 +257,7 @@ html[data-theme=light] .board .pcb-out.core{stroke:#fff5d9}
     for(const el of out){el.style.strokeDasharray=`${Math.max(.01,draw).toFixed(2)} ${(outLen+20).toFixed(2)}`;el.style.strokeDashoffset='0'}
     if(!reduced.matches)requestAnimationFrame(tick);
   }
-  if(reduced.matches){hero.classList.add('circuit-charged');for(const el of nodes)el.style.strokeDasharray='25 1000';for(const el of bloom)el.style.strokeDasharray='25 1000';for(const el of out)el.style.strokeDasharray='120 1000'}
+  if(reduced.matches){hero.classList.add('circuit-charged');for(const el of nodes)el.style.strokeDasharray='25 1000';for(const el of bloom)el.style.strokeDasharray='25 1000';for(const el of tips)el.style.opacity='0';for(const el of out)el.style.strokeDasharray='120 1000'}
   else requestAnimationFrame(tick);
 })();
 </script>
