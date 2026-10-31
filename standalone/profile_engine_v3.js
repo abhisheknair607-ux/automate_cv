@@ -190,7 +190,11 @@
     '<main class="gmp-main" id="gmp-main" tabindex="-1">'+
     (data?.imported?'<label class="gmp-mobile-label">Section<select class="gmp-mobile-sections" data-mobile-section>'+sectionSelect(active)+'</select></label>'+
      '<div class="gmp-mobile-manage">'+buttons("move-up","Move up")+buttons("move-down","Move down")+
-     (active.startsWith("custom_")?buttons("rename-section","Rename")+buttons("archive-section","Archive"):"")+'</div>':"")+
+     (active.startsWith("custom_")?buttons("rename-section","Rename")+buttons("archive-section","Archive"):"")+
+     buttons("toggle-archived",archived?"Hide archived":"Archived")+'</div>'+
+     (archived?'<div class="gmp-mobile-archived">'+sections().filter(x=>x.archived).map(x=>
+       '<div><strong>'+esc(x.title)+'</strong>'+
+       buttons("restore-section","Restore","gmp-btn-small").replace("data-action=","data-section-id=\""+esc(x.id)+"\" data-action=")+'</div>').join("")+'</div>':""):"")+
      main()+'</main></div>'+
     '<div class="gmp-status" role="status" aria-live="polite">'+esc(status||"Original evidence remains unchanged.")+'</div></div>';
  }
