@@ -45,6 +45,16 @@ test("Profile server enforces authenticated ACL, scoped source, and write approv
  assert.match(acl,/does not have access to the selected candidate/);
 });
 
+test("Profile readiness checks the same valid candidate-owned Firestore path as read",()=>{
+ const service=read("profile_service.js");
+ const readiness=service.match(/app\.post\("\/api\/profile\/readiness"[\s\S]*?app\.post\("\/api\/profile\/suggest"/);
+ assert.ok(readiness,"Profile readiness endpoint must exist");
+ assert.match(readiness[0],/async\(\{key,ref\}\)=>/);
+ assert.match(readiness[0],/await ref\.get\(\)/);
+ assert.doesNotMatch(readiness[0],/__profile_readiness__/);
+ assert.doesNotMatch(readiness[0],/\.set\(|\.update\(|\.create\(/);
+});
+
 test("Temporary Cloud Shell proxy can carry Firebase auth separately in isolated read-only staging",()=>{
  const server=read("server.js"),bridge=read("bridge.js");
  assert.match(server,/const PROFILE_PREVIEW_PROXY_AUTH = READ_ONLY/);
