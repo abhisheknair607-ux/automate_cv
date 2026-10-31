@@ -139,3 +139,37 @@ test("historical read is candidate-scoped and revision-bounded",()=>{
  assert.throws(()=>verifyHistoryRead({...p,candidate:"abhishek"},v),/ownership/);
  assert.throws(()=>verifyHistoryRead({...p,revision:1},v),/Invalid history/);
 });
+
+test("metadata-only Drive source changes require a versioned review rather than silently updating",()=>{
+ const previous=current();
+ const next={
+  candidate:previous.candidate,
+  records:previous.records.filter(r=>r.source.kind!=="user").map(r=>structuredClone(r)),
+  sources:previous.sources.map(s=>({...s}))
+ };
+ next.sources[0].sha256="changed-by-document-metadata";
+ const plan=planRefresh(previous,next);
+ assert.equal(plan.changes.length,0);
+ assert.equal(plan.sourceMetadataChanged,true);
+ const updated=applyRefresh(previous,next,plan,{});
+ assert.equal(updated.sources[0].sha256,"changed-by-document-metadata");
+ assert.deepEqual(updated.records,previous.records);
+ assert.equal(previous.sources[0].sha256,"a");
+ const identical=planRefresh(previous,{...next,sources:previous.sources});
+ assert.equal(identical.sourceMetadataChanged,false);
+ assert.equal(identical.changes.length,0);
+});
+test("history read fails closed on corrupted revision or record-count metadata",()=>{
+ const p=current(),v=versionDoc(p,{email:"user@example.com",action:"profile-record"});
+ assert.throws(()=>verifyHistoryRead(p,{...v,profile:{...v.profile,revision:999}}),/metadata mismatch/);
+ assert.throws(()=>verifyHistoryRead(p,{...v,recordCount:999}),/metadata mismatch/);
+});
+test("Profile read validates stored candidate before returning Firestore contents",()=>{
+ const fs=require("node:fs"),path=require("node:path");
+ const service=fs.readFileSync(path.join(__dirname,"../profile_service.js"),"utf8");
+ assert.match(service,/Stored profile ownership mismatch/);
+ assert.match(service,/confirmMetadataOnly/);
+ const client=fs.readFileSync(path.join(__dirname,"../profile_engine_v3.js"),"utf8");
+ assert.match(client,/sourceMetadataChanged/);
+ assert.match(client,/Approve source version update/);
+});
