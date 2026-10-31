@@ -56,6 +56,10 @@ function verifyHistoryRead(current,version){
   throw fail("Historical profile ownership mismatch",403);
  if(!Number.isInteger(version.revision)||version.revision>current.revision||version.revision<1)
   throw fail("Invalid history revision",409);
+ if(version.profile.revision!==version.revision||
+    !Array.isArray(version.profile.records)||
+    version.recordCount!==version.profile.records.length)
+  throw fail("Historical snapshot metadata mismatch",409);
  return asJSON(version);
 }
 module.exports={MAX_BYTES,pad,recordRevision,backfillBaseline,versionDoc,historySummary,verifyHistoryRead,validateSnapshot};
