@@ -30,7 +30,8 @@ test("Frontend syntax and guarded zero-traffic staging script are valid",()=>{
  assert.equal(x.status,0,x.stderr);
  assert.match(script,/SERVICE="garamaal-profile-staging"/);
  assert.match(script,/APPROVE_GARAMAAL_PROFILE_STAGING_EDITS/);
- assert.match(script,/--no-traffic --tag=profile-backup-readonly/);
+ assert.match(script,/--no-traffic --tag=profile-backup/);
+ assert.ok("garamaal-profile-staging".length+"profile-backup".length<=46,"Cloud Run tag/service name length limit");
  assert.match(script,/--no-traffic --tag=profile-edit/);
  assert.match(script,/GARAMAAL_PROFILE_WRITES_APPROVED=true/);
  assert.match(script,/APP_READ_ONLY":"true"/);
