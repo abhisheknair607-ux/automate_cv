@@ -22,8 +22,12 @@ fi
 python3 - "$tmp/service.json" <<'PY'
 import json,sys
 service=json.load(open(sys.argv[1],encoding="utf-8"))
-template=service.get("spec",{}).get("template",{}).get("spec",{})
-runtime=template.get("serviceAccountName") or "(not configured)"
+# Cloud Run CLI may return either Knative-style service spec or API v2.
+template=service.get("spec",{}).get("template",{}).get("spec")
+if template is None:
+ template=service.get("template",{}) or {}
+runtime=(template.get("serviceAccountName") or template.get("serviceAccount") or
+         "(not configured)")
 containers=template.get("containers",[])
 env={}
 if len(containers)==1:
@@ -49,7 +53,10 @@ safe_stage=(scope=="staging" and env.get("APP_READ_ONLY",{}).get("value")!="fals
 print("Staging isolation prerequisites:", "PASS" if safe_stage else "NOT READY")
 if scope=="production" and env.get("GARAMAAL_PROFILE_PRODUCTION_APPROVED",{}).get("value")=="true":
  print("WARNING: production Profile approval flag is enabled. Do not promote without release review.")
-traffic=[(v.get("revisionName"),v.get("percent",0)) for v in service.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0]
+observed_traffic=(service.get("status",{}).get("traffic") or
+                  service.get("traffic") or [])
+traffic=[(v.get("revisionName") or v.get("revision"),v.get("percent",0))
+         for v in observed_traffic if int(v.get("percent",0))>0]
 print("Active traffic revision count:",len(traffic))
 print("NEXT: Test authenticated /api/profile/readiness on this staging service.")
 print("Note: env presence does not prove actual Drive or Firestore access.")
