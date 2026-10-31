@@ -231,7 +231,10 @@
      '</select></label></div>').join("")+'</div>'+
     '<p>'+decided+' of '+changes.length+' decisions chosen. Select one option for every item.</p>'+
     buttons("apply-refresh","Apply reviewed Drive changes","gmp-btn-primary"):
-    '<p>There are no source changes to merge. The original profile remains intact.</p>')+
+    (p.sourceMetadataChanged?
+      '<p>No evidence text changed, but a Drive source version changed. Approve this separately to record the latest source hash without changing reviewed STAR facts.</p>'+
+      buttons("apply-refresh","Approve source version update","gmp-btn-primary"):
+      '<p>There are no source changes to merge. The original profile remains intact.</p>'))+
    '</section>';
  }
  function historyPanel(){
@@ -529,13 +532,14 @@
    if(!refreshPlan)return;
    if(hasUnsaved()){setStatus("Save or discard current profile edits before applying Drive changes.");return}
    const changes=refreshPlan.changes||[];
-   if(!changes.length||changes.some(c=>!refreshDecisions[c.id])){
+   if((!changes.length&&!refreshPlan.sourceMetadataChanged)||changes.some(c=>!refreshDecisions[c.id])){
     setStatus("Choose a review decision for every added, changed or missing source record.");
     return;
    }
    if(!window.confirm("Apply "+changes.length+" individually reviewed Drive decisions? Previous originals and history will remain available. This does not change CV generation."))return;
    const result=await request("refresh-apply",{candidate:key,revision:refreshPlan.revision,
-     fingerprint:refreshPlan.fingerprint,decisions:refreshDecisions});
+     fingerprint:refreshPlan.fingerprint,decisions:refreshDecisions,
+     confirmMetadataOnly:changes.length===0&&refreshPlan.sourceMetadataChanged===true});
    if(result){
     refreshPlan=null;refreshDecisions={};
     await refresh("Reviewed Drive changes saved in a new profile revision; CV workflow unchanged.");
