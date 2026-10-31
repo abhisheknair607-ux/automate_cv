@@ -99,16 +99,22 @@ function isHeading(line){
   const s=line.trim();
   if(!s||s.length>135||/^[-•*]\s/.test(s)||/^\d+[.)]\s/.test(s))return false;
   if(/[.!?]$/.test(s))return false;
-  if(/^(?:\w+\s*){1,8}$/.test(s)&&s.length>=5&&s===s.toUpperCase()&&/[A-Z]/.test(s))return true;
-  return /^(?:\d+\.|PART\s+\d+:?)\s+[A-Z][^.!?]{4,100}$/.test(s);
+  // Real experience headings include punctuation: "TAXLINK, MAYNOOTH, IRELAND".
+  if(s.length>=5&&s===s.toUpperCase()&&/[A-Z]{3}/.test(s))return true;
+  // Numbered subsection headings from the detailed Abhishek evidence document.
+  return /^(?:\d+\.|PART\s+\d+:?)\s+[A-Z][^!?]{4,120}$/.test(s);
 }
 function proseBlocks(text,key,kind,fileId){
   const lines=String(text).replace(/\r/g,"").split("\n"),groups=[];
-  let title="Source introduction",buf=[];
+  let title="Source introduction",parent="",buf=[];
   const flush=()=>{if(buf.some(v=>v.trim()))groups.push({title,text:buf.join("\n").trim()});buf=[];};
   for(const line of lines){
-    if(isHeading(line)){flush();title=line.trim();}
-    else buf.push(line);
+    if(isHeading(line)){
+      flush();
+      const next=line.trim();
+      if(/^\d+\.\s/.test(next))title=parent?parent+" — "+next:next;
+      else {title=next;if(next===next.toUpperCase())parent=next;}
+    }else buf.push(line);
   }
   flush();
   if(!groups.length&&String(text).trim())groups.push({title:"Complete original source",text:String(text).trim()});
