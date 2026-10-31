@@ -7,7 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from automate_cv import sources
-from automate_cv.profile_cv_adapter import (
+from standalone.profile_cv_adapter import (
     ProfileEvidenceError, _document, profile_evidence_mode,
     read_pinned_snapshot, select_evidence, prepare_evidence, preserve_drive_core,
 )
@@ -250,7 +250,7 @@ stage3_evidence_to_retrieve_or_verify: []
     assert Path(out[0]).name == "Selected_Evidence.md"
     text = Path(out[0]).read_text()
     assert "Managed 5 teams" in text and "CORE-GUARDRAILS" in text
-    assert provider.last_profile_evidence_audit is None
+    assert getattr(provider, 'last_profile_evidence_audit', None) is None
     assert not (tmp_path / "Profile_Evidence_Comparison.json").exists()
 
 
@@ -288,7 +288,7 @@ def test_profile_keyword_tags_require_literal_original_source_support():
 
 
 def test_staging_cutover_uses_profile_selected_package_and_retains_drive_core(tmp_path, monkeypatch):
-    from automate_cv import profile_cv_adapter
+    from standalone import staging_profile_cv_handoff as staging
     original = """CANDIDATE KEY pooja
 EVIDENCE CORE-CHRONOLOGY
 Career chronology 2026.
@@ -314,10 +314,13 @@ END EVIDENCE PR-POOJA-LIFEGOALS"""
     provider = sources.Sources(FakeDrive(), None)
     provider.profiles = {"pooja": p}
     monkeypatch.setattr(sources, "docx_text", lambda path: original)
-    monkeypatch.setattr(profile_cv_adapter, "profile_evidence_mode", lambda: "profile")
     evidence = select_evidence(profile(), [ID], candidate="pooja")
-    monkeypatch.setattr(profile_cv_adapter, "prepare_evidence",
-                        lambda candidate, ids, workdir: ("profile", evidence))
+    monkeypatch.setattr(staging, "prepare_evidence",
+                        lambda candidate, ids, workdir, **kwargs: ("profile", evidence))
+    provider = staging.ProfileStage3Sources(provider, environ={
+        **ENV, "GARAMAAL_CV_EVIDENCE_MODE": "profile",
+        "GARAMAAL_PROFILE_CV_CUTOVER_APPROVED": "true",
+    })
     handoff = """STAGE2_HANDOFF
 cv_structure: Lower Experience
 selected_professional_evidence:
