@@ -23,7 +23,11 @@
       '<div class="gmp-card-body">'+
       '<p class="gmp-label">Original evidence · protected from editing</p>'+
       '<div class="gmp-original">'+esc(r.originalText)+'</div>'+
-      '<div class="gmp-meta">'+esc(r.source?.kind||"user")+' · '+esc(r.source?.locator||"Candidate added")+'</div>'+
+      '<div class="gmp-meta">'+esc(r.source?.kind||"user")+' · '+esc(r.source?.locator||"Candidate added")+
+       (r.source?.lineStart?' · Lines '+r.source.lineStart+'–'+r.source.lineEnd:'')+'</div>'+
+      (r.classification?.needsReview?'<p class="gmp-review-note"><strong>Classification review:</strong> '+esc(r.classification.reason)+'. You can move this evidence to another section before using it.</p>':'')+
+      (r.cvEligible===false?'<p class="gmp-review-note"><strong>Routing reference only:</strong> this text describes how evidence is selected and cannot itself be marked verified for CV use.</p>':'')+
+      (r.duplicateOf?'<p class="gmp-review-note"><strong>Possible duplicate:</strong> original text is preserved and linked to another record for review.</p>':'')+
       '<div class="gmp-field"><label>Move to section</label><select data-field="section">'+choices(r.section,data.sections)+'</select></div>'+
       '<h4>STAR achievement</h4><div class="gmp-star">'+
       ["situation","task","action","result"].map(name=>'<label class="gmp-field">'+name[0].toUpperCase()+name.slice(1)+
@@ -33,7 +37,7 @@
       '<div class="gmp-metrics"><strong>Numbers found in source (not automatically verified):</strong> '+(r.metrics?.length?r.metrics.map(m=>'<span class="gmp-tag">'+esc(m)+'</span>').join(""):"No clear metrics found")+'</div>'+
       '<label class="gmp-field"><span><input data-field="metricsReviewed" type="checkbox" '+(r.metricsReviewed?"checked":"")+'/> I reviewed the numbers and their meaning against the original evidence</span></label>'+
       '<label class="gmp-field">Evidence status<select data-field="status">'+
-         [["needs-review","Needs review"],["verified","Verified"],["exclude","Exclude from CV"]].map(([id,title])=>'<option value="'+id+'" '+(r.status===id?"selected":"")+'>'+title+'</option>').join("")+'</select></label>'+
+         [["needs-review","Needs review"],...(r.cvEligible===false?[]:[["verified","Verified"]]),["exclude","Exclude from CV"]].map(([id,title])=>'<option value="'+id+'" '+(r.status===id?"selected":"")+'>'+title+'</option>').join("")+'</select></label>'+
       button("save-record","Save this evidence","gmp-btn-primary")+'</div></details></div>';
    }).join("");
  }
@@ -41,11 +45,13 @@
   if(!mount)return;
   const sections=data?.sections||[];
   const sourceCount=data?.sources?.length||0,recordCount=data?.records?.length||0;
+  const needsReview=(data?.records||[]).filter(r=>r.classification?.needsReview).length;
+  const routerCount=(data?.records||[]).filter(r=>r.cvEligible===false).length;
   mount.innerHTML='<div class="gmp-app" role="dialog" aria-modal="true" aria-label="Garamaal Career Profile">'+
    '<header class="gmp-head"><div><p>GARAMAAL · CAREER INTELLIGENCE</p><h2>My Career Profile</h2></div>'+
    '<div class="gmp-head-controls"><span class="gmp-candidate">'+(key==="pooja"?"Pooja":"Abhishek")+'</span>'+button("close","Close")+'</div></header>'+
    '<div class="gmp-banner"><strong>CV evidence source: existing Google Drive</strong> · This editable structured profile is not used to make CVs until the workflow migration is tested. '+
-    sourceCount+' Drive source files · '+recordCount+' evidence records · Revision '+(data?.revision||0)+'</div>'+
+    sourceCount+' Drive source files · '+recordCount+' evidence records · '+needsReview+' classification reviews · '+routerCount+' router references · Revision '+(data?.revision||0)+'</div>'+
    '<div class="gmp-layout"><aside class="gmp-side">'+
       sections.map(s=>'<button data-section="'+esc(s.id)+'" aria-current="'+String(active===s.id)+'"><span>'+esc(s.title)+'</span><small>'+count(s.id)+'</small></button>').join("")+
       '<hr style="border:0;border-top:1px solid #c4a184;margin:10px 0">'+button("add-section","+ Add section")+'</aside>'+
@@ -62,8 +68,10 @@
     (preview?'<div class="gmp-card" style="padding:14px"><h3>Source import preview</h3>'+
       '<p>'+preview.sources.map(s=>esc(s.title)+' ('+s.records+' records)').join(" · ")+'</p>'+
       '<p>'+preview.totalRecords+' total records. '+preview.counts.map(x=>esc(x.section)+': '+x.records).join(" · ")+'</p>'+
+      '<p><strong>Review required:</strong> '+Number(preview.classificationReview||0)+' category suggestions · '+Number(preview.routerReferences||0)+' routing references · '+Number(preview.duplicateCandidates||0)+' possible duplicates.</p>'+
+      '<p><strong>Text completeness check:</strong> '+(preview.allSourcesComplete?'Passed for extracted text':'Not verified — import blocked until review')+'</p>'+
       (data?.imported?'<p>Re-import is intentionally blocked while existing edits need a reviewed merge.</p>':
-       button("import","Import and structure my Drive profile","gmp-btn-primary"))+'</div>':"")+
+       (preview.allSourcesComplete?button("import","Import and structure my Drive profile","gmp-btn-primary"):'<p>Complete source-text coverage is required before importing.</p>'))+'</div>':"")+
     '</main></div><div class="gmp-status" role="status" aria-live="polite">'+esc(message||"Original Drive evidence remains unchanged.")+'</div></div>';
  }
  function say(text){message=text;const el=mount?.querySelector(".gmp-status");if(el)el.textContent=text}
