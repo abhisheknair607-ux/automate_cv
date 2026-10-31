@@ -211,3 +211,29 @@
  .gmp-refresh-item{padding:10px}
  .gmp-refresh-review .gmp-form-head{align-items:flex-start}
 }
+
+/* Stage 8B — pre-import full-source inspector, zero writes. */
+.gmp-import-preview{margin-top:14px}
+.gmp-preview-filters{display:grid;grid-template-columns:1.2fr 1fr;gap:10px;margin:15px 0}
+.gmp-preview-filters label{display:grid;gap:5px;font-size:11px;font-weight:700;color:#73533b;min-width:0}
+.gmp-preview-filters input,.gmp-preview-filters select{width:100%;min-width:0;box-sizing:border-box;border:1px solid #c9a788;border-radius:9px;padding:10px;background:#fffcf8;color:#4b3020;font:inherit}
+.gmp-preview-list{display:grid;gap:9px}
+.gmp-preview-record{border:1px solid #d5b79b;border-radius:11px;min-width:0;overflow:hidden;background:#fffbf5}
+.gmp-preview-record summary{cursor:pointer;display:flex;justify-content:space-between;gap:12px;align-items:center;padding:12px;font-size:13px;list-style:none}
+.gmp-preview-record summary::-webkit-details-marker{display:none}
+.gmp-preview-record summary span:first-child{min-width:0;display:grid;gap:4px}
+.gmp-preview-record summary small{font-size:11px;color:#82634b;overflow-wrap:anywhere}
+.gmp-preview-record summary>span:last-child{font-size:11px;white-space:nowrap;color:#986239}
+.gmp-preview-record[open] summary{border-bottom:1px solid #d6b89e}
+.gmp-preview-body{padding:12px 14px;color:#543925;font-size:12px;overflow-wrap:anywhere}
+.gmp-preview-body p{margin:8px 0!important}
+.gmp-preview-body a{color:#925831;text-decoration:underline}
+.gmp-preview-original{white-space:pre-wrap;overflow-wrap:anywhere;max-height:55vh;overflow:auto;background:#f5e9d9;border:1px solid #d5bba4;border-radius:8px;padding:12px;font:12px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace;color:#463021}
+.gmp-import-preview .gmp-btn:focus-visible,.gmp-preview-record summary:focus-visible,.gmp-preview-filters input:focus-visible,.gmp-preview-filters select:focus-visible{outline:2px solid #ba7c49;outline-offset:2px}
+.gmp-root.gmp-dark .gmp-preview-filters label,.gmp-root.gmp-dark .gmp-preview-record summary small{color:#dfbfa2}
+.gmp-root.gmp-dark .gmp-preview-filters input,.gmp-root.gmp-dark .gmp-preview-filters select,.gmp-root.gmp-dark .gmp-preview-record{background:#2e211b;color:#efd9c7;border-color:#76543f}
+.gmp-root.gmp-dark .gmp-preview-record summary>span:last-child,.gmp-root.gmp-dark .gmp-preview-body a{color:#e0b18b}
+.gmp-root.gmp-dark .gmp-preview-body{color:#e7ccb5}
+.gmp-root.gmp-dark .gmp-preview-original{background:#261c17;border-color:#6c4d3a;color:#f0dbc7}
+@media(max-width:720px){.gmp-preview-filters{grid-template-columns:1fr}.gmp-preview-record summary{padding:10px}.gmp-preview-original{max-height:45vh}}
+@media(prefers-reduced-motion:reduce){.gmp-preview-record,.gmp-preview-record summary{scroll-behavior:auto;transition:none}}
