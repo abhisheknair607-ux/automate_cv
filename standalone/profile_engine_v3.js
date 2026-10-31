@@ -172,9 +172,9 @@
    '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
    buttons("readiness","Connections")+'</div>'+editor()+
-   '<div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
+   '<div class="gmp-results"><div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
     '<div class="gmp-empty"><strong>No matching evidence.</strong><p>Change the filter or add factual evidence in this section.</p></div>')+'</div>'+
-   (list.length>limit?buttons("load-more","Load more ("+(list.length-limit)+" remaining)"):"")+
+   (list.length>limit?buttons("load-more","Load more ("+(list.length-limit)+" remaining)"):"")+'</div>'+
    readinessPane()+sourcePreview();
  }
  function render(){
@@ -212,7 +212,7 @@
  }
  function navigate(section){
   if(!guardExit())return;
-  active=section;form=null;dirty=false;expanded="";limit=40;query="";render();
+  active=section;form=null;dirty=false;expanded="";limit=40;query="";filter="all";render();
  }
  async function refresh(message){
   if(!mount)return;
@@ -299,16 +299,25 @@
   if(!mount?.contains(event.target))return;
   const el=event.target;
   if(el.matches("[data-mobile-section]")){navigate(el.value);return}
-  if(el.matches("[data-filter]")){if(!guardExit()){el.value=filter;return}filter=el.value;dirty=false;render()}
+  if(el.matches("[data-filter]")){if(!guardExit()){el.value=filter;return}filter=el.value;dirty=false;form=null;render()}
  });
  doc.addEventListener("input",event=>{
   if(!mount?.contains(event.target))return;
   const el=event.target;
   if(el.matches("[data-search]")){
-   query=el.value;
-   // Update visible cards in place, so the search cursor stays put.
-   const matches=records().filter(filterMatches),ids=new Set(matches.map(r=>r.id));
-   mount.querySelectorAll("[data-card]").forEach(card=>card.hidden=!ids.has(card.dataset.card));
+   if(dirty||form){
+    el.value=query;
+    setStatus("Save or discard unsaved edits before searching.");
+    return;
+   }
+   query=el.value;limit=40;expanded="";
+   const hits=records().filter(filterMatches);
+   const target=mount.querySelector(".gmp-results");
+   if(target)target.innerHTML='<div class="gmp-record-list">'+(hits.length?hits.slice(0,limit).map(evidenceCard).join(""):
+     '<div class="gmp-empty"><strong>No matching evidence.</strong></div>')+'</div>'+
+      (hits.length>limit?buttons("load-more","Load more ("+(hits.length-limit)+" remaining)"):"");
+   const summary=mount.querySelector(".gmp-main-head p");
+   if(summary)summary.textContent=hits.length+" matching records · Your original source documents are always preserved.";
    return;
   }
   if(el.matches("[data-field],[data-star],#gmp-editor-form [name]")){
