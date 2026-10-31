@@ -39,5 +39,5 @@ test("No worker-source switch and no automatic STAR acceptance",()=>{
  assert.match(ui,/dirty=true;setStatus\("Source excerpts inserted into a draft only/);
  assert.match(ui,/request\("record"/);
  assert.match(service,/GARAMAAL_PROFILE_WRITES_APPROVED/);
- assert.doesNotMatch(service,/automate_cv\.sources|selected_evidence_ids|stage3|worker/);
+ assert.doesNotMatch(service,/selected_evidence_ids|runCVWorkflow|child_process/);
 });
