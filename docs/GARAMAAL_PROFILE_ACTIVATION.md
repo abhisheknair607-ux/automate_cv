@@ -119,3 +119,29 @@ Cloud Run runtime configuration, Firestore IAM and a live staging URL cannot be 
 - Production-grade candidate tenancy and Firestore policy review, live staging import/save and source refresh diff (Stage 5).
 - CV worker profile evidence adapter with strict verified-only selection, source-version pinning and Drive rollback (Stage 6).
 - Full end-to-end browser/paid-CV regression and explicit guarded activation (Stage 7).
+
+
+## Stage 4 — grounded STAR and JD intelligence (31 October 2026)
+
+This stage is developed on draft PR #99 (no production deployment). It adds conservative, transparent, extractive assistance, not free-form generative AI.
+
+### Implemented
+
+- STAR: profile_suggestions.js reads each eligible candidate-owned original evidence record and returns verbatim Situation, Task, Action and Result excerpts. Each includes exact character offsets, source hash, and evidence locator. Unsupported STAR fields stay blank; no results are invented.
+- Numerical evidence: original percentages, money and quantified scope are presented with surrounding source excerpts. A read-only claim-check endpoint compares numbers in unsaved STAR, working facts and CV drafts against the immutable original record.
+- Approval gate: an unsupported numerical claim cannot be marked verified. Adding an unsupported number to a verified record downgrades its status and resets number approval. Equal amounts with different meanings still require manual context checks.
+- JD screen: a pasted job description is compared with a bounded vocabulary of terms and aliases in original candidate-owned evidence. Exact matches have source excerpts and review status; absent terms are flagged as gaps. Guardrails and routing references are not evidence. This is not a semantic fit score.
+- UI: source excerpt checkbox selections can be inserted into unsaved STAR and CV draft fields only by explicit action, with verified status and numeric approval reset. JD keyword tags are inserted into a record draft only when the user opens the matching source; Save evidence remains a separate review step.
+- New endpoints: /api/profile/suggest, /api/profile/check-claims, /api/profile/jd-match. They are read-only, authenticated, profile-flag-gated and revision-scoped. JD text is analysed in the request but not stored in Firestore or Drive or sent to an external model.
+- Original CV worker, Jobs, Social, Drive sources, deployment flags and production traffic remain unchanged. No model API tokens used.
+
+### Tests and limitations
+
+- Added unit tests for literal source offsets, numeric precision, missing STAR fields, unsupported currency/percent claims, candidate evidence isolation, negative-claim and routing restrictions, and JD keyword support/gaps.
+- Added separate integration safety checks for authenticated read-only routing, explicit draft review, and no CV worker integration.
+- Phrase matching is deliberately narrow and may miss real skills. Matching keywords and numbers do not establish actual work ownership or accuracy: all approvals must be manually reviewed.
+- GitHub CI cannot validate live Firestore IAM, actual Cloud Run Drive permissions, and browser/device rendering. Run the existing read-only staging audit and authenticated profile connection checks before enabling any write gate.
+
+### Stage 5 next
+
+Validate production-grade identity/permission separation, Firestore record version history, a non-destructive Drive source refresh and reviewed merge, and real staging import/edit tests. Stage 6 will separately connect verified Profile evidence to the CV worker with a rollback to Drive, only after the Stage 5 evidence and security gates are approved.
