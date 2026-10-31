@@ -9,6 +9,7 @@ const {getFirestore}=require("firebase-admin/firestore");
 const mammoth=require("mammoth");
 const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("./profile_evidence");
 const sectionOps=require("./profile_section_ops");
+const profileSuggestions=require("./profile_suggestions");
 const COLLECTION="garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
@@ -114,6 +115,40 @@ function register(app,{authenticate,auth}){
     }
     status.ready=status.firestore.ready&&status.drive.every(s=>s.accessible);
     return status;
+  }));
+  // Source-grounded, read-only assistance. No model calls, no Firestore writes,
+  // no automatic approval of STAR or keyword claims.
+  app.post("/api/profile/suggest",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    const id=String(body.recordId||"");
+    if(!id||id.length>128)throw Object.assign(Error("Valid record ID required"),{httpCode:400});
+    const snapshot=await ref.get();
+    if(!snapshot.exists||!snapshot.data().imported)
+      throw Object.assign(Error("Import this candidate profile first"),{httpCode:409});
+    const profile=snapshot.data();
+    if(profile.candidate!==key||profile.revision!==Number(body.revision))
+      throw Object.assign(Error("Profile version changed. Reload before using suggestions."),{httpCode:409});
+    const record=profile.records.find(r=>r.id===id);
+    if(!record)throw Object.assign(Error("Record not found"),{httpCode:404});
+    const suggestion=profileSuggestions.proposeStar(record);
+    const claims=[record.workingText||"",record.cvBullet||"",
+      ...Object.values(record.star||{})].join("\n");
+    suggestion.claimReview={
+      unsupportedNumbers:profileSuggestions.unsupportedNumbers(claims,record.originalText),
+      allNumberContextRequiresReview:true,
+      originalEvidenceImmutable:true
+    };
+    return {...suggestion,profileRevision:profile.revision};
+  }));
+  app.post("/api/profile/jd-match",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    const snapshot=await ref.get();
+    if(!snapshot.exists||!snapshot.data().imported)
+      throw Object.assign(Error("Import this candidate profile first"),{httpCode:409});
+    const profile=snapshot.data();
+    if(profile.candidate!==key||profile.revision!==Number(body.revision))
+      throw Object.assign(Error("Profile version changed. Reload before matching."),{httpCode:409});
+    // JD text is analyzed only in this request; it is never logged or stored.
+    const result=profileSuggestions.matchJD(body.jdText,profile.records);
+    return {...result,candidate:key,profileRevision:profile.revision};
   }));
   app.post("/api/profile/read",(req,res)=>handle(req,res,async({key,ref})=>{
     const snapshot=await ref.get();
