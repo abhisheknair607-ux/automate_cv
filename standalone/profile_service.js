@@ -186,6 +186,8 @@ function register(app,{authenticate,auth}){
   }));
   app.post("/api/profile/read",(req,res)=>handle(req,res,async({key,ref})=>{
     const snapshot=await ref.get();
+    if(snapshot.exists&&snapshot.data()?.candidate!==key)
+      throw Object.assign(Error("Stored profile ownership mismatch"),{httpCode:403});
     return snapshot.exists?snapshot.data():{
       schema:1,candidate:key,sections:clone(BASE_SECTIONS),sources:[],records:[],revision:0,imported:false
     };
@@ -247,6 +249,7 @@ function register(app,{authenticate,auth}){
     if(plan.changes.length>300)throw Object.assign(Error("Too many changes for one reviewed refresh"),{httpCode:413});
     return {candidate:key,revision:old.revision,fingerprint:plan.fingerprint,
       summary:plan.summary,sourceTypes:plan.sourceTypes,
+      sourceMetadataChanged:plan.sourceMetadataChanged,
       changes:plan.changes.map(c=>({
         id:c.id,type:c.type,locator:c.locator,sourceKind:c.sourceKind,
         beforeTitle:c.beforeTitle,afterTitle:c.afterTitle,beforeStatus:c.beforeStatus,
@@ -274,8 +277,11 @@ function register(app,{authenticate,auth}){
         throw Object.assign(Error("Profile changed; repeat preview"),{httpCode:409});
       const old=existing.data(),plan=planRefresh(old,incoming);
       if(plan.fingerprint!==body.fingerprint)throw Object.assign(Error("Drive sources changed; repeat preview"),{httpCode:409});
-      if(plan.changes.length===0)return {candidate:key,revision,changed:false};
-      const updated=applyRefresh(old,incoming,plan,body.decisions);
+      if(plan.changes.length===0&&!plan.sourceMetadataChanged)
+        return {candidate:key,revision,changed:false};
+      if(plan.changes.length===0&&plan.sourceMetadataChanged&&body.confirmMetadataOnly!==true)
+        throw Object.assign(Error("Approve the source version change in the refresh preview"),{httpCode:400});
+      const updated=applyRefresh(old,incoming,plan,body.decisions||{});
       if(updated.historySchema!==5)backfillBaseline(tx,ref,old,email);
       updated.revision=revision+1;
       updated.historySchema=5;
