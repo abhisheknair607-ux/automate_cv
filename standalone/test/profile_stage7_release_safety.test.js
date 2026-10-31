@@ -45,6 +45,19 @@ test("Profile server enforces authenticated ACL, scoped source, and write approv
  assert.match(acl,/does not have access to the selected candidate/);
 });
 
+test("Temporary Cloud Shell proxy can carry Firebase auth separately in isolated read-only staging",()=>{
+ const server=read("server.js"),bridge=read("bridge.js");
+ assert.match(server,/const PROFILE_PREVIEW_PROXY_AUTH = READ_ONLY/);
+ assert.match(server,/GARAMAAL_PROFILE_STAGING_ISOLATED/);
+ assert.match(server,/GARAMAAL_PROFILE_DATA_SCOPE === "staging"/);
+ assert.match(server,/req\.path\.startsWith\("\/api\/profile\/"\)/);
+ assert.match(server,/getAuth\(\)\.verifyIdToken\(match\[1\]\)/);
+ assert.match(server,/x-garamaal-firebase-authorization/);
+ assert.match(bridge,/profilePreviewProxyAuth===true/);
+ assert.match(bridge,/endpoint\.startsWith\("profile\/"\)/);
+ assert.match(bridge,/X-Garamaal-Firebase-Authorization/);
+});
+
 test("Staging audit is syntactically valid and contains no modifying cloud CLI commands",()=>{
  const audit=path.join(root,"profile-staging-readiness.sh");
  const result=spawnSync("bash",["-n",audit],{encoding:"utf8"});
