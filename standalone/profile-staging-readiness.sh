@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Garamaal Profile Stage 3 — read-only staging prerequisite audit.
+# Garamaal Profile Stage 5 — read-only staging prerequisite audit.
 # NEVER deploys, updates IAM, enables APIs, changes environment vars or traffic.
 set -euo pipefail
 PROJECT="$(printenv GARAMAAL_PROJECT || echo abhishek-cv-automation)"
@@ -34,10 +34,21 @@ for name in ("MASTER_EVIDENCE_BANK_FILE_ID","SUMMARY_DOC_FILE_ID",
              "POOJA_MASTER_EVIDENCE_BANK_FILE_ID","POOJA_SUMMARY_DOC_FILE_ID"):
  print("Configured variable:",name,"yes" if name in env and
    (env[name].get("value") or env[name].get("valueFrom")) else "NO")
-for name in ("GARAMAAL_PROFILE_ENABLED","GARAMAAL_PROFILE_WRITES_APPROVED","APP_READ_ONLY"):
+for name in ("GARAMAAL_PROFILE_ENABLED","GARAMAAL_PROFILE_WRITES_APPROVED",
+             "GARAMAAL_PROFILE_STAGING_ISOLATED","GARAMAAL_PROFILE_PRODUCTION_APPROVED",
+             "APP_READ_ONLY"):
  item=env.get(name,{})
  value=item.get("value")
  print("Control:",name, value if value in ("true","false") else "unset or secret-backed")
+scope=env.get("GARAMAAL_PROFILE_DATA_SCOPE",{}).get("value","")
+print("Data scope:",scope if scope in ("staging","production") else "UNSET/INVALID")
+acl=env.get("GARAMAAL_PROFILE_CANDIDATE_ACL_JSON",{})
+print("Candidate ACL:", "configured (contents hidden)" if acl.get("value") or acl.get("valueFrom") else "NOT CONFIGURED")
+safe_stage=(scope=="staging" and env.get("APP_READ_ONLY",{}).get("value")!="false"
+ and env.get("GARAMAAL_PROFILE_STAGING_ISOLATED",{}).get("value")=="true")
+print("Staging isolation prerequisites:", "PASS" if safe_stage else "NOT READY")
+if scope=="production" and env.get("GARAMAAL_PROFILE_PRODUCTION_APPROVED",{}).get("value")=="true":
+ print("WARNING: production Profile approval flag is enabled. Do not promote without release review.")
 traffic=[(v.get("revisionName"),v.get("percent",0)) for v in service.get("status",{}).get("traffic",[]) if int(v.get("percent",0))>0]
 print("Active traffic revision count:",len(traffic))
 print("NEXT: Test authenticated /api/profile/readiness on this staging service.")
@@ -53,4 +64,4 @@ PY
 else
  echo "Firestore default database: unavailable, not configured, or insufficient viewer permissions"
 fi
-echo "No configuration or production traffic was changed."
+echo "No configuration, IAM, Firestore data or production traffic was changed."
