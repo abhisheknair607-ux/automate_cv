@@ -93,12 +93,20 @@
  function numericReviewPanel(r){
   const item=numericChecks[r.id];
   if(!item)return "";
-  const missing=item.unsupportedNumbers||[];
-  return '<section class="gmp-stage4-card"><h5>Numerical evidence review</h5>'+
-   (missing.length?'<p><strong>Unsupported numbers — cannot mark verified:</strong></p>'+
-    missing.map(m=>'<p class="gmp-stage4-warning">'+esc(m.value)+' · no matching amount in the original evidence</p>').join(""):
-    '<p>All recognised numerical phrases in this draft appear in the original evidence. <strong>This is not proof that they mean the same thing.</strong></p>')+
-   '<p class="gmp-stage4-note">Check each amount against its original source sentence and the actual achievement before approval.</p></section>';
+  const checks=item.checks||[];
+  const unsupported=checks.filter(x=>x.status==="unsupported-number");
+  const different=checks.filter(x=>x.status==="context-review");
+  return '<section class="gmp-stage4-card" aria-label="Numbers checked against original evidence"><h5>Numerical evidence review</h5>'+
+    '<p><strong>'+checks.length+' numerical phrase'+(checks.length===1?"":"s")+' checked</strong> · '+
+      unsupported.length+' not present · '+different.length+' possible outcome mismatches</p>'+
+    (checks.length?checks.map(c=>
+     '<div class="gmp-metric-audit"><strong>'+esc(c.value)+'</strong> · <span class="gmp-metric-status '+esc(c.status)+'">'+
+       esc(c.status==="unsupported-number"?"Unsupported":c.status==="context-review"?"Context mismatch":"Value found; review required")+'</span>'+
+     '<p>'+esc(c.warning)+'</p>'+
+     (c.sourceContexts?.length?'<details><summary>Show original sentence'+(c.sourceContexts.length>1?"s":"")+'</summary>'+
+       c.sourceContexts.map(ref=>'<blockquote>'+esc(ref.sourceQuote)+'</blockquote>').join("")+'</details>':"")+'</div>'
+     ).join(""):'<p>No recognised numbers in this draft; this does not establish the draft is factually supported.</p>')+
+    '<p class="gmp-stage4-note">Only original evidence can support a number. A matching amount is never automatic proof of outcome, attribution or timing. Review before marking verified.</p></section>';
  }
  function jdMatcherPanel(){
   if(!data?.imported)return "";
