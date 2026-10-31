@@ -1,10 +1,15 @@
 """Stage 6: zero-network evidence selection and CV handoff regression tests."""
 import hashlib
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+
+# CI sets PYTHONPATH=src; the standalone staging adapter intentionally stays
+# outside protected src/automate_cv and is importable from the repository root.
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from automate_cv import sources
 from standalone.profile_cv_adapter import (
