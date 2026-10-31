@@ -10,12 +10,18 @@ const TASK=/\b(?:responsib(?:le|ility)|tasked|mandat(?:e|ed)|required|needed to|
 const ACTION=/\b(?:analysed|analyzed|built|developed|led|managed|prepared|reviewed|conducted|created|designed|delivered|implemented|coordinated|reconciled|assessed|screened|evaluated|modelled|modeled|advised|supported|presented|mapped|automated|negotiated|identified|facilitated|investigated|liaised|mentored|drafted|performed|produced)\b/i;
 function sentenceUnits(text){
  const raw=String(text||"").slice(0,20000),units=[];
- for(const match of raw.matchAll(/[^.!?\n]+(?:[.!?](?=\s|$)|$)/g)){
-  const fragment=match[0],trimLeft=fragment.length-fragment.trimStart().length;
-  const value=fragment.trim();
-  if(!value||!/[a-zA-ZÀ-ÿ]/.test(value)||value.length<9)continue;
-  const quote=value.slice(0,5000),start=match.index+trimLeft;
-  units.push({quote,start,end:start+quote.length});
+ for(const lineMatch of raw.matchAll(/[^\n]+/g)){
+  const line=lineMatch[0];
+  // End a sentence at punctuation followed by whitespace or line-end,
+  // but not at decimal points such as €50.1M.
+  for(const match of line.matchAll(/(?:.+?[.!?](?=\s|$)|.+$)/g)){
+   const fragment=match[0],trimLeft=fragment.length-fragment.trimStart().length;
+   const value=fragment.trim();
+   if(!value||!/[a-zA-ZÀ-ÿ]/.test(value)||value.length<9)continue;
+   const quote=value.slice(0,5000),start=lineMatch.index+match.index+trimLeft;
+   units.push({quote,start,end:start+quote.length});
+   if(units.length>=1000)break;
+  }
   if(units.length>=1000)break;
  }
  return units;
@@ -137,11 +143,16 @@ function matchJD(jd,records){
   if(!requirement)continue;
   const evidenced=[];
   for(const record of records){
-   if(record.cvEligible===false||record.status==="exclude"||record.source?.kind==="router")continue;
+   if(record.cvEligible===false||record.status==="exclude"||record.source?.kind==="router"||
+      record.section==="guardrails"||record.section==="reference")continue;
    const source=String(record.originalText||"");
    const hit=variants.map(v=>phraseMatch(source,v)).find(Boolean);
    if(!hit)continue;
    const left=Math.max(0,hit.start-65),right=Math.min(source.length,hit.end+85);
+   const lineStart=source.lastIndexOf("\n",hit.start)+1;
+   const lineEnd=source.indexOf("\n",hit.end);
+   const context=source.slice(lineStart,lineEnd<0?source.length:lineEnd);
+   if(/\b(?:do not|cannot claim|not direct|not owned|not verified|no evidence|no direct|not present|unsupported|hypothetical)\b/i.test(context))continue;
    evidenced.push({recordId:record.id,title:String(record.title||""),
     recordStatus:record.status,sourceQuote:source.slice(left,right).trim(),
     term:hit.text,locator:record.source?.locator||null,sourceOffset:hit.start,
