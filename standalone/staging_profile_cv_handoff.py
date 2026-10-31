@@ -67,4 +67,9 @@ class ProfileStage3Sources:
         baseline = Path(workdir) / "Drive_Selected_Evidence.md"
         baseline.write_text(original, encoding="utf-8")
         evidence_path.write_text(assembled, encoding="utf-8")
+        # The legacy provider calculated source telemetry before staging
+        # substitution. Recompute it so audit byte sizes describe the actual
+        # package Stage 3 receives, not its saved Drive baseline.
+        from automate_cv.sources import source_telemetry
+        self.legacy.last_stage3_telemetry = source_telemetry(paths)
         return paths
