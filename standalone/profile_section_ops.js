@@ -114,12 +114,16 @@ function patchRecord(profile,body){
   entry.status="needs-review";
  }
  if("title" in changes)entry.title=changes.title.trim();
+ const sectionChanged="section" in changes&&changes.section!==entry.section;
  if("section" in changes)entry.section=changes.section;
+ if(sectionChanged){entry.classificationReviewed=false;entry.status="needs-review";}
  if("cvBullet" in changes)entry.cvBullet=changes.cvBullet;
  if("star" in changes)entry.star={...changes.star};
  if("tags" in changes)entry.tags=[...new Set(changes.tags.map(x=>x.trim()).filter(Boolean))];
  if("classificationReviewed" in changes)entry.classificationReviewed=changes.classificationReviewed;
  if("metricsReviewed" in changes&&!textChanged)entry.metricsReviewed=changes.metricsReviewed;
  if("status" in changes&&!textChanged)entry.status=changes.status;
+ if(entry.status==="verified"&&(!entry.classificationReviewed||((entry.metrics||[]).length>0&&!entry.metricsReviewed)))
+  entry.status="needs-review";
 }
 module.exports={addSection,manageSection,addRecord,patchRecord};
