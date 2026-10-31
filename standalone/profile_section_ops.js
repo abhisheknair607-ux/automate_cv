@@ -4,6 +4,7 @@
  */
 const {randomUUID}=require("node:crypto");
 const {metricsFrom}=require("./profile_evidence");
+const {unsupportedNumbers}=require("./profile_suggestions");
 const error=(message,httpCode=400)=>Object.assign(Error(message),{httpCode});
 const isObject=value=>value!==null&&typeof value==="object"&&!Array.isArray(value);
 function section(profile,id){return profile.sections.find(s=>s.id===id);}
@@ -134,7 +135,17 @@ function patchRecord(profile,body){
  if("classificationReviewed" in changes)entry.classificationReviewed=changes.classificationReviewed;
  if("metricsReviewed" in changes&&!textChanged&&!workingChanged)entry.metricsReviewed=changes.metricsReviewed;
  if("status" in changes&&!textChanged&&!workingChanged)entry.status=changes.status;
- if(entry.status==="verified"&&(!entry.classificationReviewed||((entry.workingMetrics||entry.metrics||[]).length>0&&!entry.metricsReviewed)))
+ const claimText=[entry.workingText||"",entry.cvBullet||"",
+  ...["situation","task","action","result"].map(k=>entry.star?.[k]||"")].join("\n");
+ const unsupported=unsupportedNumbers(claimText,entry.originalText);
+ if(unsupported.length){
+  if(changes.status==="verified"&&!textChanged&&!workingChanged)
+   throw error("Unverified numerical claim: "+unsupported.map(x=>x.value).slice(0,5).join(", ")+". Check the original evidence before verifying.");
+  // Existing approved records must not stay verified after an unsupported new claim.
+  entry.status="needs-review";entry.metricsReviewed=false;
+ }
+ if(entry.status==="verified"&&(!entry.classificationReviewed||
+     ((entry.workingMetrics||entry.metrics||[]).length>0&&!entry.metricsReviewed)))
   entry.status="needs-review";
 }
 module.exports={addSection,manageSection,addRecord,patchRecord};
