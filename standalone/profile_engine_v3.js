@@ -9,7 +9,7 @@
  const api=(name,body)=>window.__cvStandalone.requestSpecial("profile/"+name,body);
  const currentCandidate=()=>typeof state!=="undefined"&&state.candidate==="Pooja"?"pooja":"abhishek";
  const names=["situation","task","action","result"];
- let mount=null,previous=null,data=null,readiness=null,preview=null,key="abhishek";
+ let mount=null,previous=null,data=null,readiness=null,preview=null,key="abhishek",identity=null,loadDone=false;
  let previewSearch="",previewFilter="all",previewLimit=12,verifyReport=null;
  let active="experience",query="",filter="all",expanded="",limit=40,form=null,archived=false,dirty=false,busy=false,status="";
  let jdText="",jdMatch=null,starAssists={},numericChecks={};
@@ -319,8 +319,17 @@
     (archived?'<div class="gmp-archived">'+sections().filter(s=>s.archived).map(s=>
       '<div>'+esc(s.title)+' '+buttons("restore-section","Restore","gmp-btn-small").replace("data-action=","data-section-id=\""+esc(s.id)+"\" data-action=")+'</div>').join("")+'</div>':"")+'</aside>';
  }
+ function identityPane(){
+  if(!identity)return "";
+  return '<section class="gmp-identity-banner" aria-label="Verified signed-in account">'+
+    '<strong>Verified Google sign-in:</strong> <code>'+esc(identity.email)+'</code>'+
+    '<span>Candidate access: '+esc((identity.candidates||[]).join(", ")||"none")+
+    ' · '+esc(identity.scope)+'</span>'+
+    '<small>This email is verified by Firebase, not by Cloud Shell. Copy it exactly for a staging access request.</small></section>';
+ }
  function main(){
-  if(!data)return '<div class="gmp-empty"><h3>Loading profile</h3><p>Checking your authenticated candidate record.</p></div>';
+  if(!data)return '<div class="gmp-empty"><h3>'+(loadDone?"Candidate access unavailable":"Loading profile")+'</h3>'+
+   '<p>'+(loadDone?"Check the verified Google email and candidate permissions shown above. No additional access has been granted.":"Checking your authenticated candidate record.")+'</p></div>';
   if(!data.imported)return '<div class="gmp-empty"><h3>Bring your Google Drive evidence into Garamaal</h3>'+
     '<p>First check both Drive sources and Firestore access. Previewing does not change your original files or CV workflow.</p>'+
     '<div class="gmp-actions">'+buttons("readiness","Check connections")+buttons("preview","View extracted records","gmp-btn-primary")+buttons("verify-twice","Verify sources twice")+
@@ -353,7 +362,7 @@
    '<div class="gmp-banner"><strong>CV source: original Google Drive</strong> · Profile edits are saved separately until CV migration is approved.'+
     (data?.imported?' <span class="gmp-stats">'+n+' records · '+review+' to review · rev '+data.revision+'</span>':"")+'</div>'+
    '<div class="gmp-layout">'+(data?.imported?sidePanel():'<aside class="gmp-side"><p>Existing Drive sources</p></aside>')+
-    '<main class="gmp-main" id="gmp-main" tabindex="-1">'+
+    '<main class="gmp-main" id="gmp-main" tabindex="-1">'+identityPane()+
     (data?.imported?'<label class="gmp-mobile-label">Section<select class="gmp-mobile-sections" data-mobile-section>'+sectionSelect(active)+'</select></label>'+
      '<div class="gmp-mobile-manage">'+buttons("move-up","Move up")+buttons("move-down","Move down")+
      (active.startsWith("custom_")?buttons("rename-section","Rename")+buttons("archive-section","Archive"):"")+
@@ -366,10 +375,15 @@
  }
  async function open(){
   if(mount)close(true);
-  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;previewSearch="";previewFilter="all";previewLimit=12;verifyReport=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;status="Loading secure profile…";
+  previous=doc.activeElement;key=currentCandidate();data=null;identity=null;loadDone=false;readiness=null;preview=null;previewSearch="";previewFilter="all";previewLimit=12;verifyReport=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;status="Loading secure profile…";
   mount=doc.createElement("div");mount.className="gmp-root";mount.id="garamaal-profile-engine";doc.body.append(mount);render();
-  await load({initial:true});
+  try{identity=await api("identity",{});}
+  catch(error){setStatus(error.message||"Could not verify Firebase sign-in.");}
   if(!mount)return;
+  await load({initial:true});
+  loadDone=true;
+  if(!mount)return;
+  render();
   const connection=await request("readiness",{candidate:key});
   if(connection){readiness=connection;render()}
   mount?.querySelector('[data-action="close"]')?.focus();
