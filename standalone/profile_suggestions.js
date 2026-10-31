@@ -3,7 +3,7 @@
 const {createHash}=require("node:crypto");
 const error=(message,httpCode=400)=>Object.assign(Error(message),{httpCode});
 const sha=s=>createHash("sha256").update(String(s||"")).digest("hex");
-const METRIC=/(?:[€£$]\s?\d[\d,.]*(?:\s?(?:k|m|bn|million|billion))?|\b\d[\d,.]*\s?%|\b\d[\d,.]*\s?\+?\s?(?:companies|clients|teams|projects|transactions|years|months|cases|countries|stakeholders|people|applications|portfolios|million|billion|basis points|bps|hours|days|members|deals|employees|files)\b|\b\d+(?:\.\d+)?\s?x\b)/gi;
+const METRIC=/(?:[€£$]\s?\d[\d,.]*(?:\s?(?:k|m|bn|million|billion))?|\b\d[\d,.]*\s?%|\b\d[\d,.]*\s?\+?\s?(?:companies|clients|teams|projects|transactions|years|months|cases|countries|stakeholders|people|applications|portfolios|million|billion|basis points|bps|hours|days|members|deals|employees|files)\b|\b\d+(?:\.\d+)?\s?x\b|\b\d+(?:[,.]\d+)*(?:\s?(?:k|m|bn))?\+?(?=$|[^\w]))/gi;
 const RESULT=/\b(?:increased?|improved?|grew|growth|reduced?|decreased?|saved?|achiev(?:ed|ing)|deliver(?:ed|ing)|generated?|result(?:ed|ing)|earned?|led to|enabled?|shortened?|raised?|doubled?|quadrupled?|fourfold|zero exceptions?|no exceptions?|higher|lower|faster|more accurate)\b/i;
 const SITUATION=/\b(?:during|amid|in response to|facing|challenge|issue|client need|business need|business model|operating model|across|within|as part of|environment)\b/i;
 const TASK=/\b(?:responsib(?:le|ility)|tasked|mandat(?:e|ed)|required|needed to|accountable|objective|goal|assigned|scope of work)\b/i;
