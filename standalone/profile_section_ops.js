@@ -110,6 +110,18 @@ function patchRecord(profile,body){
   for(const key of ["situation","task","action","result"])
    if(typeof changes.star[key]!=="string"||changes.star[key].length>4000)throw error("Invalid STAR field");
  }
+ // Validate a requested verification against the original before changing the
+ // record at all. Firestore transactions protect persistence, but this also
+ // keeps pure mutation helpers atomic on rejected review actions.
+ const proposedClaim=[("workingText" in changes?changes.workingText:entry.workingText)||"",
+   ("cvBullet" in changes?changes.cvBullet:entry.cvBullet)||"",
+   ...["situation","task","action","result"].map(k=>("star" in changes?changes.star[k]:entry.star?.[k])||"")
+ ].join("\n");
+ if(changes.status==="verified"){
+  const missing=unsupportedNumbers(proposedClaim,entry.originalText);
+  if(missing.length)throw error("Unverified numerical claim: "+
+    missing.map(x=>x.value).slice(0,5).join(", ")+". Check the original evidence before verifying.");
+ }
  const textChanged="originalText" in changes&&changes.originalText.trim()!==entry.originalText;
  const workingChanged="workingText" in changes&&changes.workingText.trim()!==(entry.workingText||"");
  if(textChanged){
@@ -139,8 +151,6 @@ function patchRecord(profile,body){
   ...["situation","task","action","result"].map(k=>entry.star?.[k]||"")].join("\n");
  const unsupported=unsupportedNumbers(claimText,entry.originalText);
  if(unsupported.length){
-  if(changes.status==="verified"&&!textChanged&&!workingChanged)
-   throw error("Unverified numerical claim: "+unsupported.map(x=>x.value).slice(0,5).join(", ")+". Check the original evidence before verifying.");
   // Existing approved records must not stay verified after an unsupported new claim.
   entry.status="needs-review";entry.metricsReviewed=false;
  }
