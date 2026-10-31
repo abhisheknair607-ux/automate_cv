@@ -10,9 +10,17 @@ IDENTITY="garamaal-profile-staging@$PROJECT.iam.gserviceaccount.com"
 CANDIDATE_LOGIN="abhisheknair607@gmail.com"
 [[ "$(git -C "$ROOT" branch --show-current)" == "feature/activate-garamaal-profile-20261031" ]] || { echo "STOP: wrong source branch" >&2; exit 2; }
 grep -Fq 'Download backup for Drive' "$ROOT/standalone/profile_engine_v3.js" || { echo "STOP: backup-export control missing" >&2; exit 2; }
+for f in profile_structured_ui.js profile_structured_ui.css profile_structured_service.js; do
+ [[ -s "$ROOT/standalone/$f" ]] || { echo "STOP: structured Profile file missing: $f" >&2; exit 2; }
+done
+grep -Fq 'profile-structured.js' "$ROOT/standalone/server.js" || { echo "STOP: structured editor not mounted" >&2; exit 2; }
 grep -Fq 'COPY --chown=node:node standalone ./standalone' "$ROOT/Dockerfile.garamaal-ui" || { echo "STOP: runtime source ownership fix missing" >&2; exit 2; }
 for tool in gcloud git python3; do command -v "$tool" >/dev/null || { echo "Missing $tool" >&2; exit 2; }; done
-if command -v node >/dev/null; then node --check "$ROOT/standalone/profile_engine_v3.js"; fi
+if command -v node >/dev/null; then
+ node --check "$ROOT/standalone/profile_engine_v3.js"
+ node --check "$ROOT/standalone/profile_structured_ui.js"
+ node --check "$ROOT/standalone/profile_structured_service.js"
+fi
 
 umask 077
 TEMP="$(mktemp -d)"
@@ -68,7 +76,7 @@ cp -R "$ROOT/garamaal-release-webapp" "$TEMP/build/"
 echo "Step 1: deploy backup-enabled application to a private 0%-traffic staging revision, with writes still disabled"
 gcloud run deploy "$SERVICE" --source="$TEMP/build" --project="$PROJECT" --region="$REGION" \
  --service-account="$IDENTITY" --no-traffic --tag=profile-backup-readonly \
- --no-allow-unauthenticated --update-env-vars=GARAMAAL_PROFILE_WRITES_APPROVED=false --quiet
+ --no-allow-unauthenticated --update-env-vars=GARAMAAL_PROFILE_WRITES_APPROVED=false,GARAMAAL_PROFILE_STRUCTURED_EDITOR=true --quiet
 
 echo "Step 2: verify read-only backup revision is healthy"
 gcloud run services describe "$SERVICE" --project="$PROJECT" --region="$REGION" --format=json >"$TEMP/built.json"
@@ -93,6 +101,7 @@ spec=s.get("spec",{}).get("template",{}).get("spec")
 if spec is None:spec=s.get("template",{})
 env={x["name"]:x.get("value") for x in spec["containers"][0]["env"]}
 assert env["APP_READ_ONLY"]=="true" and env["GARAMAAL_PROFILE_WRITES_APPROVED"]=="true"
+assert env["GARAMAAL_PROFILE_STRUCTURED_EDITOR"]=="true"
 assert env["GARAMAAL_PROFILE_DATA_SCOPE"]=="staging" and env["GARAMAAL_PROFILE_STAGING_ISOLATED"]=="true"
 st=s["status"]; assert st.get("latestCreatedRevisionName")==st.get("latestReadyRevisionName")
 assert any(x.get("tag")=="profile-edit" and int(x.get("percent") or 0)==0 for x in st.get("traffic",[]))
