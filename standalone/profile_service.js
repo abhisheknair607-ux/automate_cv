@@ -10,6 +10,7 @@ const mammoth=require("mammoth");
 const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("./profile_evidence");
 const sectionOps=require("./profile_section_ops");
 const profileSuggestions=require("./profile_suggestions");
+const {auditClaimNumbers}=require("./profile_claim_review");
 const COLLECTION="garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
@@ -133,7 +134,7 @@ function register(app,{authenticate,auth}){
     const claims=[record.workingText||"",record.cvBullet||"",
       ...Object.values(record.star||{})].join("\n");
     suggestion.claimReview={
-      unsupportedNumbers:profileSuggestions.unsupportedNumbers(claims,record.originalText),
+      ...auditClaimNumbers(claims,record.originalText),
       allNumberContextRequiresReview:true,
       originalEvidenceImmutable:true
     };
@@ -152,11 +153,11 @@ function register(app,{authenticate,auth}){
     const record=profile.records.find(r=>r.id===id);
     if(!record||record.cvEligible===false)
       throw Object.assign(Error("Eligible evidence record not found"),{httpCode:404});
-    const missing=profileSuggestions.unsupportedNumbers(body.claimText,record.originalText);
+    const audit=auditClaimNumbers(body.claimText,record.originalText);
     const observed=profileSuggestions.extractNumbers(record.originalText);
-    return {recordId:id,profileRevision:profile.revision,unsupportedNumbers:missing,
+    return {recordId:id,profileRevision:profile.revision,...audit,
       originalNumbers:observed.slice(0,30),
-      reviewRequired:true,warning:"Matching numbers still require meaning, ownership and source-context review. Only the original record counts as numerical support."};
+      reviewRequired:true};
   }));
   app.post("/api/profile/jd-match",(req,res)=>handle(req,res,async({key,ref,body})=>{
     const snapshot=await ref.get();
