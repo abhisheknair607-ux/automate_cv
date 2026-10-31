@@ -145,3 +145,37 @@ This stage is developed on draft PR #99 (no production deployment). It adds cons
 ### Stage 5 next
 
 Validate production-grade identity/permission separation, Firestore record version history, a non-destructive Drive source refresh and reviewed merge, and real staging import/edit tests. Stage 6 will separately connect verified Profile evidence to the CV worker with a rollback to Drive, only after the Stage 5 evidence and security gates are approved.
+
+
+## Stage 4 — source-backed STAR, metrics and JD keyword review (31 October 2026)
+
+### Candidate-owned, explainable suggestions
+
+- The Profile editor includes a **Suggest STAR from original** action for each eligible evidence record. It proposes verbatim, source-offset excerpts for Situation, Task, Action and Result. Missing fields remain blank; no fabricated result, employer, amount or seniority is inserted.
+- The reviewer selects the excerpts to insert into the unsaved STAR and CV-draft fields. The suggestion itself makes no Firestore write and never marks the record verified.
+- The source document, candidate, evidence key and original excerpt offsets stay attached to the suggestion. Routing reference records are ineligible for automatic STAR claims.
+- This stage uses a deterministic phrase extraction and keyword dictionary, not a generative model. The result is a suggested structure to review and rewrite, **not** an automatically polished or approved CV achievement.
+
+### Numeric claims: source validation plus outcome-context comparison
+
+- All recognisable percentages, currencies, counts, quantified units and standalone numbers are checked against the original evidence text. Numbers in an edited working fact alone are **not** source evidence.
+- Read-only /api/profile/check-claims returns each number, source-sentence excerpts, match status and warnings for absent numbers or numbers appearing under different outcome contexts.
+- Example: if the source says "improved client satisfaction by 40%", the draft "grew revenue by 40%" is flagged as a **different-outcome context** even though the percentage is the same.
+- A number absent from the original cannot pass verification. A number matched to an incompatible outcome context also cannot pass automated verification.
+- Every matching number still requires human review for meaning, period, attribution and source ownership. None are auto-approved.
+- Changes to original user-authored facts, working text, classification or unsupported numeric drafts reset earlier verification where required.
+- Heuristic context checks do not guarantee semantic equivalence; unusual units or nonnumeric outcomes may require manual source inspection.
+
+### JD keyword screening
+
+- Read-only /api/profile/jd-match accepts pasted JD text in the authenticated candidate context. A bounded role-skill dictionary and explicit phrase variants find only terms **literally supported by original candidate-owned evidence**.
+- Unmatched JD requirements remain gaps and never become skill tags. Source Router instructions, excluded records and negative guardrail contexts do not count as capability evidence.
+- The user may explicitly insert an evidenced term into an **unsaved** tag draft, then inspect the original and save normally.
+- The screen is not a role-fit score, does not save the raw JD and does not affect existing Stage 1/2/3 CV workflows.
+
+### Regression and release conditions
+
+- Standalone tests cover provenance, exact quotes, missing STAR parts, decimal/currency metrics, context mismatches, missing numbers, negative skill evidence, verified-status gates and JD candidate separation.
+- The feature is still behind GARAMAAL_PROFILE_ENABLED=true. Profile writes additionally require APP_READ_ONLY=false and GARAMAAL_PROFILE_WRITES_APPROVED=true. No changes to live Cloud Run traffic, the Drive originals or the current CV generator.
+- A **staging integration test** remains required: authenticate as both candidate profiles, import from the four Drive sources, review and save a STAR claim, confirm denial of unsupported numbers, paste a JD, and inspect the responsive UI in dark/light on desktop and phone.
+- The Profile-to-CV evidence source switch remains **deferred** until a separate verified, versioned adapter with rollback has been tested.
