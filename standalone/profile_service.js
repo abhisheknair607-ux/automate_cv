@@ -139,6 +139,25 @@ function register(app,{authenticate,auth}){
     };
     return {...suggestion,profileRevision:profile.revision};
   }));
+  app.post("/api/profile/check-claims",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    const id=String(body.recordId||"");
+    if(!id||id.length>128||typeof body.claimText!=="string"||body.claimText.length>20000)
+      throw Object.assign(Error("Invalid claim review request"),{httpCode:400});
+    const snap=await ref.get();
+    if(!snap.exists||!snap.data().imported)
+      throw Object.assign(Error("Import profile first"),{httpCode:409});
+    const profile=snap.data();
+    if(profile.candidate!==key||profile.revision!==Number(body.revision))
+      throw Object.assign(Error("Profile changed; reload before reviewing claims"),{httpCode:409});
+    const record=profile.records.find(r=>r.id===id);
+    if(!record||record.cvEligible===false)
+      throw Object.assign(Error("Eligible evidence record not found"),{httpCode:404});
+    const missing=profileSuggestions.unsupportedNumbers(body.claimText,record.originalText);
+    const observed=profileSuggestions.extractNumbers(record.originalText);
+    return {recordId:id,profileRevision:profile.revision,unsupportedNumbers:missing,
+      originalNumbers:observed.slice(0,30),
+      reviewRequired:true,warning:"Matching numbers still require meaning, ownership and source-context review. Only the original record counts as numerical support."};
+  }));
   app.post("/api/profile/jd-match",(req,res)=>handle(req,res,async({key,ref,body})=>{
     const snapshot=await ref.get();
     if(!snapshot.exists||!snapshot.data().imported)
