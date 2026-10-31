@@ -279,7 +279,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
-      (process.env.GARAMAAL_PROFILE_ENABLED==="true" ? '<script src="/prototype/profile-engine.js?v=stage1"></script>' : '')+
+      (typeof process!=="undefined" && process.env.GARAMAAL_PROFILE_ENABLED==="true" ? '<script src="/prototype/profile-engine.js?v=stage1"></script>' : '')+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
