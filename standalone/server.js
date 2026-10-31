@@ -278,7 +278,7 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
      '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1">'+
      '<link rel="stylesheet" href="/prototype/profile-engine.css?v=stage1">'+
-     (process.env.GARAMAAL_PROFILE_DATA_SCOPE==="staging"&&process.env.GARAMAAL_PROFILE_ENABLED==="true" ?
+     (typeof process!=="undefined"&&process.env.GARAMAAL_PROFILE_DATA_SCOPE==="staging"&&process.env.GARAMAAL_PROFILE_ENABLED==="true" ?
      '<link rel="stylesheet" href="/prototype/profile-structured.css?v=1">':"")+'</head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
