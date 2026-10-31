@@ -15,6 +15,10 @@ function allowed(){
   if(process.env.GARAMAAL_PROFILE_ENABLED!=="true")
     throw Object.assign(Error("Garamaal Profile backend is not enabled yet"),{httpCode:503});
 }
+function writeGate(){
+  if(process.env.APP_READ_ONLY!=="false" || process.env.GARAMAAL_PROFILE_WRITES_APPROVED!=="true")
+    throw Object.assign(Error("Profile saving is locked until staging writes are explicitly approved"),{httpCode:403});
+}
 function docFor(email,key){
   const owner=createHash("sha256").update(String(email).toLowerCase().trim()).digest("hex");
   return getFirestore().collection(COLLECTION).doc(owner).collection("candidates").doc(candidate(key));
@@ -149,6 +153,27 @@ function register(app,{authenticate,auth}){
       res.status(status).json({error:safeErr(error)});
     }
   }
+  app.post("/api/profile/readiness",(req,res)=>handle(req,res,async({key})=>{
+    const sources=sourceCatalog(key);
+    const status={candidate:key,profileEnabled:true,profileWritesApproved:
+      process.env.APP_READ_ONLY==="false"&&process.env.GARAMAAL_PROFILE_WRITES_APPROVED==="true",
+      firestore:{ready:false},drive:sources.map(s=>({kind:s.kind,configured:s.configured,accessible:false}))};
+    try{
+      await getFirestore().collection(COLLECTION).doc("__profile_readiness__").get();
+      status.firestore.ready=true;
+    }catch(error){status.firestore.message="Firestore read access not ready";}
+    if(sources.every(s=>s.configured)){
+      try{
+        const token=await googleToken(auth);
+        for(let i=0;i<sources.length;i++){
+          try{await driveGet(sources[i].fileId,token,true);status.drive[i].accessible=true;}
+          catch(error){status.drive[i].message="Drive file inaccessible to Cloud Run identity";}
+        }
+      }catch(error){status.drive.forEach(item=>item.message="Drive service credentials unavailable");}
+    }
+    status.ready=status.firestore.ready&&status.drive.every(s=>s.accessible);
+    return status;
+  }));
   app.post("/api/profile/read",(req,res)=>handle(req,res,async({key,ref})=>{
     const snapshot=await ref.get();
     return snapshot.exists?snapshot.data():{
@@ -167,6 +192,7 @@ function register(app,{authenticate,auth}){
     allSourcesComplete:p.sources.every(s=>s.integrity?.complete===true)};
   }));
   app.post("/api/profile/import",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    writeGate();
     if(body.confirm!==true)throw Object.assign(Error("Confirm source import first"),{httpCode:400});
     const p=await collectImport(key,auth);
     await getFirestore().runTransaction(async tx=>{
@@ -180,6 +206,7 @@ function register(app,{authenticate,auth}){
   }));
   async function mutate(req,res,type){
     return handle(req,res,async({key,ref,body})=>{
+      writeGate();
       const expected=Number(body.revision);
       if(!Number.isInteger(expected)||expected<1)throw Object.assign(Error("Revision required"),{httpCode:400});
       return getFirestore().runTransaction(async tx=>{
