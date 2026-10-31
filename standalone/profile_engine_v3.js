@@ -342,7 +342,8 @@
    '<label class="gmp-filter-wrap">Show<select data-filter><option value="all"'+(filter==="all"?" selected":"")+'>All records</option>'+
    [['review','Needs review'],['duplicate','Possible duplicates'],['verified','Verified'],['reference','Routing references']].map(([v,label])=>
     '<option value="'+v+'"'+(filter===v?" selected":"")+'>'+label+'</option>').join("")+'</select></label></div>'+
-   '<p class="gmp-stage4-note">Saved edits and full revision history are stored in Firestore. Use Download backup for Drive to keep a private JSON copy; it is not automatically uploaded to Drive.</p>'+\n   '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
+   '<p class="gmp-stage4-note">Saved edits and full revision history are stored in Firestore. Use Download backup for Drive to keep a private JSON copy; it is not automatically uploaded to Drive.</p>'+
+   '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
    buttons("readiness","Connections")+buttons("verify-twice","Verify sources twice")+
    buttons("refresh-preview","Review Drive changes")+buttons("history","Version history")+buttons("export-backup","Download backup for Drive")+'</div>'+
@@ -613,7 +614,7 @@
    }
    const pack={schema:"garamaal-profile-backup-v1",source:"staging-firestore",
     candidate:key,revision:snapshot.revision,exportedAt:new Date().toISOString(),profile:snapshot};
-   const blob=new Blob([JSON.stringify(pack,null,2)+"\\n"],{type:"application/json"});
+   const blob=new Blob([JSON.stringify(pack,null,2)+"\n"],{type:"application/json"});
    const url=URL.createObjectURL(blob);
    const anchor=doc.createElement("a");
    const date=new Date().toISOString().slice(0,10);
