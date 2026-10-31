@@ -104,14 +104,16 @@
  async function addSection(){
   const title=window.prompt("Name for your new profile section (2–90 characters)");
   if(!title)return;
-  await run("add-section",{candidate:key,revision:data.revision,title},()=>refresh());
+  const saved=await run("add-section",{candidate:key,revision:data.revision,title});
+  if(saved)await refresh();
  }
  async function addRecord(){
   const title=window.prompt("Title of new achievement, project or experience");
   if(!title)return;
   const originalText=window.prompt("Describe the factual evidence (STAR details can be added after saving)");
   if(!originalText)return;
-  await run("add-record",{candidate:key,revision:data.revision,section:active,title,originalText},()=>refresh());
+  const saved=await run("add-record",{candidate:key,revision:data.revision,section:active,title,originalText});
+  if(saved)await refresh();
  }
  document.addEventListener("click",async e=>{
   if(!mount)return;
@@ -131,7 +133,9 @@
   }
   if(action==="import"){
     if(!window.confirm("Import original Drive evidence for "+key+" into your editable Garamaal Profile? This does not change your CV source."))return;
-    await run("import",{candidate:key,confirm:true},async()=>{preview=null;await refresh();say("Source evidence imported. Review records and STAR metrics before CV use.");});return;
+    const saved=await run("import",{candidate:key,confirm:true});
+    if(saved){preview=null;await refresh();say("Source evidence imported. Review records and STAR metrics before CV use.");}
+    return;
   }
  });
  document.addEventListener("toggle",e=>{if(!mount?.contains(e.target)||!e.target.matches?.("[data-record]"))return;
@@ -143,9 +147,8 @@
  });
  document.addEventListener("input",e=>{
   if(!mount?.contains(e.target)||!e.target.matches("[data-gmp-search]"))return;
-  const focus=e.target.selectionStart;search=e.target.value;
+  search=e.target.value;
   // Filter cards in place; avoid re-rendering the focused search input.
-  mount.querySelectorAll(".gmp-card[data-search-card]").forEach(x=>x.hidden=true);
   mount.querySelectorAll("[data-record]").forEach(d=>{
    const r=data.records.find(x=>x.id===d.dataset.record);
    d.parentElement.hidden=!!search&&![r.title,r.originalText,...(r.tags||[])].join(" ").toLowerCase().includes(search.toLowerCase());
