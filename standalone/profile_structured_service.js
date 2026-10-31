@@ -54,8 +54,18 @@ function parse(input,key){
      if(!a||typeof a!=="object"||typeof a.id!=="string"||
         !/^[a-zA-Z0-9_-]{8,64}$/.test(a.id)||ids.has(a.id))throw error("Invalid achievement ID");
      ids.add(a.id);
-     if(Object.keys(a).some(k=>!["id",...BULLET_FIELDS].includes(k)))throw error("Unexpected achievement field");
-     return {id:a.id,...Object.fromEntries(BULLET_FIELDS.map(k=>[k,string(a[k]??"",3500)]))};
+     if(Object.keys(a).some(k=>!["id",...BULLET_FIELDS,"additionalMetrics"].includes(k)))throw error("Unexpected achievement field");
+     const metrics=a.additionalMetrics??[];
+     if(!Array.isArray(metrics)||metrics.length>25)throw error("Too many numerical outcomes");
+     const metricIds=new Set();
+     const validated=metrics.map(m=>{
+      if(!m||typeof m!=="object"||typeof m.id!=="string"||
+         !/^[a-zA-Z0-9_-]{8,64}$/.test(m.id)||metricIds.has(m.id))throw error("Invalid numerical evidence ID");
+      metricIds.add(m.id);
+      if(Object.keys(m).some(k=>!["id","value","context","evidence"].includes(k)))throw error("Unexpected numerical field");
+      return {id:m.id,value:string(m.value??"",1200),context:string(m.context??"",2500),evidence:string(m.evidence??"",3500)};
+     });
+     return {id:a.id,...Object.fromEntries(BULLET_FIELDS.map(k=>[k,string(a[k]??"",3500)])),additionalMetrics:validated};
     });
    }
    return clean;
