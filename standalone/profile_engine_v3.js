@@ -11,6 +11,7 @@
  const names=["situation","task","action","result"];
  let mount=null,previous=null,data=null,readiness=null,preview=null,key="abhishek";
  let active="experience",query="",filter="all",expanded="",limit=40,form=null,archived=false,dirty=false,busy=false,status="";
+ let jdText="",jdMatch=null,starAssists={},numericChecks={};
  const buttons=(action,title,extra="",aria="")=>'<button type="button" class="gmp-btn '+extra+'" data-action="'+action+'"'+
    (aria?' aria-label="'+esc(aria)+'"':'')+'>'+title+'</button>';
  const sourceUrl=id=>/^[a-zA-Z0-9_-]{15,120}$/.test(String(id||""))?
@@ -66,6 +67,59 @@
     ' · '+esc(r.source?.locator||"User entry")+esc(pos)+
     (link?' · <a href="'+link+'" target="_blank" rel="noopener noreferrer">Open original Drive file ↗</a>':"")+'</div>';
  }
+
+ function starAssistancePanel(r){
+  const preview=starAssists[r.id];
+  if(!preview)return "";
+  const fields=preview.fields||{};
+  return '<section class="gmp-stage4-card" aria-label="Source-backed STAR suggestions">'+
+   '<h5>Source-backed STAR suggestions <small>Review only · nothing saved</small></h5>'+
+   '<p class="gmp-stage4-note">Only verbatim excerpts are proposed. Empty fields mean the original evidence does not support a safe suggestion.</p>'+
+   names.map(name=>{
+    const item=fields[name],label=name.charAt(0).toUpperCase()+name.slice(1);
+    return item?'<label class="gmp-stage4-option"><input type="checkbox" data-assist-star="'+name+'">'+
+     '<span><strong>'+label+'</strong><small>Source characters '+item.source.start+'–'+item.source.end+'</small>'+
+     '<span class="gmp-stage4-quote">'+esc(item.text)+'</span></span></label>':
+     '<div class="gmp-stage4-gap"><strong>'+label+':</strong> No reliable excerpt found. Add only if supported by evidence.</div>';
+   }).join("")+
+   (preview.bullet?'<label class="gmp-stage4-option"><input type="checkbox" data-assist-bullet>'+
+    '<span><strong>CV draft (verbatim excerpt)</strong><span class="gmp-stage4-quote">'+esc(preview.bullet.text)+'</span></span></label>':"")+
+   '<p class="gmp-stage4-note"><strong>Numbers observed in the original:</strong> '+
+    (preview.sourceNumbers?.length?preview.sourceNumbers.map(m=>'<span class="gmp-tag" title="'+esc(m.sourceQuote)+'">'+esc(m.value)+'</span>').join(""):"None")+
+    '</p><p class="gmp-stage4-note">Each number still needs context and ownership verification.</p>'+
+   buttons("apply-star-preview","Insert selected excerpts into draft","gmp-btn-primary")+
+   '</section>';
+ }
+ function numericReviewPanel(r){
+  const item=numericChecks[r.id];
+  if(!item)return "";
+  const missing=item.unsupportedNumbers||[];
+  return '<section class="gmp-stage4-card"><h5>Numerical evidence review</h5>'+
+   (missing.length?'<p><strong>Unsupported numbers — cannot mark verified:</strong></p>'+
+    missing.map(m=>'<p class="gmp-stage4-warning">'+esc(m.value)+' · no matching amount in the original evidence</p>').join(""):
+    '<p>All recognised numerical phrases in this draft appear in the original evidence. <strong>This is not proof that they mean the same thing.</strong></p>')+
+   '<p class="gmp-stage4-note">Check each amount against its original source sentence and the actual achievement before approval.</p></section>';
+ }
+ function jdMatcherPanel(){
+  if(!data?.imported)return "";
+  const result=jdMatch;
+  return '<section class="gmp-jd-box"><details data-jd-details'+(result?" open":"")+'>'+
+   '<summary><strong>JD keyword evidence screen</strong> <small>Local draft · no CV generation</small></summary>'+
+   '<div class="gmp-jd-body"><label class="gmp-field">Paste a job description<textarea data-jd-text maxlength="20000" rows="5" placeholder="Paste the JD to identify supported keywords and evidence gaps. JD text is never saved to the Profile.">'+esc(jdText)+'</textarea></label>'+
+   buttons("match-jd","Find evidence-backed keywords","gmp-btn-primary")+
+   '<p class="gmp-stage4-note">A matching word does not establish competence. Suggestions are exact phrase/alias matches only.</p>'+
+   (result?'<div class="gmp-jd-results"><h5>Supported keywords for review ('+result.matchedTerms.length+')</h5>'+
+     (result.matchedTerms.length?result.matchedTerms.map(item=>'<div class="gmp-jd-term"><strong>'+esc(item.term)+'</strong>'+
+       item.recordMatches.slice(0,4).map(hit=>'<div class="gmp-jd-evidence"><span>'+esc(hit.title)+' · '+esc(hit.recordStatus)+
+        '</span><p>'+esc(hit.sourceQuote)+'</p>'+
+        '<button type="button" class="gmp-btn gmp-btn-small" data-action="insert-jd-tag" data-record-id="'+esc(hit.recordId)+
+        '" data-term="'+esc(item.term)+'">Review and insert tag</button></div>').join("")+'</div>').join(""):
+       '<p>No supported terms found in the original evidence.</p>')+
+    '<h5>JD terms not supported by source ('+result.unmatchedTerms.length+')</h5>'+
+     (result.unmatchedTerms.length?'<p class="gmp-stage4-warning">'+result.unmatchedTerms.map(x=>esc(x.term)).join(" · ")+'</p>':
+      '<p>No unmatched terms in the limited keyword dictionary; this is not a complete skills assessment.</p>')+
+    '</div>':"")+'</div></details></section>';
+ }
  function evidenceCard(r){
   const editable=r.source?.kind==="user",star=r.star||{};
   const statusList=[["needs-review","Needs review"],["verified","Verified"],["exclude","Exclude from CV"]];
@@ -92,6 +146,10 @@
     (r.duplicateOf?'<p class="gmp-review-note">Possible duplicate of record '+esc(r.duplicateOf)+'. Both originals are preserved.</p>':"")+
     '<label class="gmp-check"><input type="checkbox" data-field="classificationReviewed"'+checked(r.classificationReviewed)+'>'+
     ' I reviewed the section classification</label>'+
+    '<div class="gmp-stage4-actions">'+buttons("suggest-star","Suggest STAR from original")+
+    buttons("check-claims","Check draft numbers")+'</div>'+
+    '<div data-star-panel>'+starAssistancePanel(r)+'</div>'+
+    '<div data-numeric-panel>'+numericReviewPanel(r)+'</div>'+
     '<h4>STAR evidence</h4><div class="gmp-star">'+names.map(n=>
       '<label class="gmp-field">'+n[0].toUpperCase()+n.slice(1)+
       '<textarea data-star="'+n+'" maxlength="4000" rows="3" placeholder="Enter only what the original evidence supports">'+esc(star[n]||"")+'</textarea></label>').join("")+'</div>'+
@@ -175,7 +233,7 @@
     '<option value="'+v+'"'+(filter===v?" selected":"")+'>'+label+'</option>').join("")+'</select></label></div>'+
    '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
-   buttons("readiness","Connections")+'</div>'+editor()+
+   buttons("readiness","Connections")+'</div>'+jdMatcherPanel()+editor()+
    '<div class="gmp-results"><div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
     '<div class="gmp-empty"><strong>No matching evidence.</strong><p>Change the filter or add factual evidence in this section.</p></div>')+'</div>'+
    (list.length>limit?buttons("load-more","Load more ("+(list.length-limit)+" remaining)"):"")+'</div>'+
@@ -204,7 +262,7 @@
  }
  async function open(){
   if(mount)close(true);
-  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;status="Loading secure profile…";
+  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};status="Loading secure profile…";
   mount=doc.createElement("div");mount.className="gmp-root";mount.id="garamaal-profile-engine";doc.body.append(mount);render();
   await load({initial:true});
   if(!mount)return;
@@ -226,7 +284,7 @@
   if(!mount)return;
   const out=await request("read",{candidate:key});
   if(!out)return;
-  data=out;form=null;dirty=false;expanded="";limit=40;
+  data=out;form=null;dirty=false;expanded="";limit=40;starAssists={};numericChecks={};jdMatch=null;
   if(!selected())active=sections().find(x=>!x.archived)?.id||"experience";
   status=message||"Profile saved.";render();
  }
