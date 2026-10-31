@@ -6,7 +6,7 @@
  const api=(endpoint,body)=>window.__cvStandalone.requestSpecial("profile/"+endpoint,body);
  const candidate=()=>typeof state!=="undefined"&&state.candidate==="Pooja"?"pooja":"abhishek";
  const emptyStar={situation:"",task:"",action:"",result:""};
- let mount=null,data=null,active="experience",expanded="",search="",busy=false,message="",preview=null,previous=null,key="abhishek";
+ let mount=null,data=null,active="experience",expanded="",search="",busy=false,message="",preview=null,readiness=null,previous=null,key="abhishek";
  const count=s=>(data?.records||[]).filter(r=>r.section===s).length;
  const nice=s=>s==="verified"?"Verified":s==="exclude"?"Excluded":"Review needed";
  function button(action,label,extra=""){return '<button type="button" class="gmp-btn '+extra+'" data-gmp="'+action+'">'+label+'</button>'}
@@ -61,17 +61,24 @@
      '<h3>'+esc(sections.find(s=>s.id===active)?.title||"Profile evidence")+'</h3>'+
      '<p>Review original facts, complete STAR fields, check numbers, and decide whether this evidence belongs in a tailored CV.</p>'+
      '<div class="gmp-actions"><input class="gmp-search" type="search" data-gmp-search placeholder="Search original experience and skills" value="'+esc(search)+'">'+
-       button("add-record","+ Add evidence")+button("add-section","+ Add section")+button("preview","Check Drive source changes")+'</div>'+records():
+       button("add-record","+ Add evidence")+button("add-section","+ Add section")+button("preview","Check Drive source changes")+button("readiness","Check connections")+'</div>'+records():
      '<div class="gmp-empty"><h3>Import your real Drive profile</h3><p>No source data has been imported for this candidate yet. Garamaal will read the configured Summary Router and Master Evidence Bank, organise them into reviewable sections, and retain the original text.</p>'+
-     '<p><strong>Your existing CV automation will not change.</strong></p>'+button("preview","Inspect Drive sources","gmp-btn-primary")+
+     '<p><strong>Your existing CV automation will not change.</strong></p>'+button("readiness","Check connections")+' '+button("preview","Inspect Drive sources","gmp-btn-primary")+
      (legacy?' '+button("legacy","Open previous local draft"):"")+'</div>')+
+    (readiness?'<div class="gmp-card" style="padding:14px"><h3>Connection readiness</h3>'+
+      '<p>Firestore: '+(readiness.firestore?.ready?'Accessible':'Not ready')+
+      ' · Profile writes: '+(readiness.profileWritesApproved?'Approved':'Locked until authorised')+'</p>'+
+      '<p>'+readiness.drive.map(s=>esc(s.kind)+': '+(s.accessible?'Accessible':s.configured?'Not accessible':'Not configured')).join(' · ')+'</p>'+
+      '<p>'+(readiness.ready?'Profile storage and source reads are available.':'Complete the missing connections before importing.')+'</p></div>':'')+
     (preview?'<div class="gmp-card" style="padding:14px"><h3>Source import preview</h3>'+
       '<p>'+preview.sources.map(s=>esc(s.title)+' ('+s.records+' records)').join(" · ")+'</p>'+
       '<p>'+preview.totalRecords+' total records. '+preview.counts.map(x=>esc(x.section)+': '+x.records).join(" · ")+'</p>'+
       '<p><strong>Review required:</strong> '+Number(preview.classificationReview||0)+' category suggestions · '+Number(preview.routerReferences||0)+' routing references · '+Number(preview.duplicateCandidates||0)+' possible duplicates.</p>'+
       '<p><strong>Text completeness check:</strong> '+(preview.allSourcesComplete?'Passed for extracted text':'Not verified — import blocked until review')+'</p>'+
       (data?.imported?'<p>Re-import is intentionally blocked while existing edits need a reviewed merge.</p>':
-       (preview.allSourcesComplete?button("import","Import and structure my Drive profile","gmp-btn-primary"):'<p>Complete source-text coverage is required before importing.</p>'))+'</div>':"")+
+       (preview.allSourcesComplete && readiness?.profileWritesApproved===true
+      ?button("import","Import and structure my Drive profile","gmp-btn-primary")
+      :'<p>Import remains locked until text completeness passes and an authorised staging write is approved.</p>'))+'</div>':"")+
     '</main></div><div class="gmp-status" role="status" aria-live="polite">'+esc(message||"Original Drive evidence remains unchanged.")+'</div></div>';
  }
  function say(text){message=text;const el=mount?.querySelector(".gmp-status");if(el)el.textContent=text}
@@ -88,7 +95,7 @@
  }
  function open(){
   if(mount)close();
-  previous=document.activeElement;key=candidate();data=null;expanded="";preview=null;search="";message="Loading authorised profile…";
+  previous=document.activeElement;key=candidate();data=null;expanded="";preview=null;readiness=null;search="";message="Loading authorised profile…";
   mount=document.createElement("div");mount.className="gmp-root";mount.id="garamaal-profile-engine";document.body.append(mount);
   render();refresh();
  }
@@ -136,6 +143,9 @@
   if(action==="save-record"){await saveRecord(button.closest("[data-record]"));return}
   if(action==="add-section"){await addSection();return}
   if(action==="add-record"){await addRecord();return}
+  if(action==="readiness"){
+    await run("readiness",{candidate:key},result=>{readiness=result;message="Connection checks complete.";render()});return;
+  }
   if(action==="preview"){
     await run("import-preview",{candidate:key},p=>{preview=p;message="Source preview completed. No files changed.";render()});return;
   }
