@@ -606,6 +606,39 @@
    if(p){preview=p;previewLimit=12;status="Preview ready. No original documents changed.";render()}
    return;
   }
+  if(action==="verify-twice"){
+   if(hasUnsaved()){setStatus("Finish or discard pending edits before checking sources.");return}
+   const passes=[];
+   let latest=null,lastReady=null;
+   btnBusy(true);
+   for(let index=0;index<2;index++){
+    setStatus("Read-only check "+(index+1)+" of 2…");
+    try{
+     const ready=await api("readiness",{candidate:key});
+     const view=await api("import-preview",{candidate:key});
+     const pass=!!ready.firestore?.ready && (ready.drive||[]).length===2 &&
+      ready.drive.every(x=>x.accessible) && !!view.allSourcesComplete &&
+      Array.isArray(view.records) && view.totalRecords===view.records.length;
+     passes.push({passed:pass,result:(pass?"PASS":"ATTENTION")+" · Firestore "+
+      (ready.firestore?.ready?"readable":"unavailable")+"; Drive "+
+      (ready.drive||[]).filter(x=>x.accessible).length+"/2; records "+
+      view.totalRecords+"; coverage "+(view.allSourcesComplete?"passed":"not verified"),
+      signature:JSON.stringify({candidate:view.candidate,
+       sources:(view.sources||[]).map(x=>[x.kind,x.sha256,x.records,x.integrity?.complete]),
+       ids:view.records.map(x=>x.id)})});
+     latest=view;lastReady=ready;
+    }catch(error){
+     passes.push({passed:false,result:"FAILED: "+(error.message||"Source unavailable")});
+    }
+   }
+   btnBusy(false);
+   const matched=passes.length===2&&passes.every(x=>x.passed)&&passes[0].signature===passes[1].signature;
+   verifyReport={candidate:key,passes,matched};
+   if(latest){preview=latest;previewLimit=12}
+   if(lastReady)readiness=lastReady;
+   status=matched?"Both independent checks passed. Nothing was changed.":"Review the two-pass check results before import.";
+   render();return;
+  }
   if(action==="import"){
    if(!window.confirm("Import candidate-owned Drive originals into the editable Profile? The CV generator will continue reading Drive."))return;
    const p=await request("import",{candidate:key,confirm:true});
