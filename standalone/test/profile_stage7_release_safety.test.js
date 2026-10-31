@@ -70,18 +70,18 @@ test("Temporary Cloud Shell proxy can carry Firebase auth separately in isolated
 
 test("Private staging dashboard API and profile use separate Firebase bearer header",()=>{
  const server=read("server.js"),bridge=read("bridge.js");
- const base=server.match(/const PROFILE_PREVIEW_PROXY_AUTH[\\s\\S]*?const PROJECT/);
+ const base=server.match(/const PROFILE_PREVIEW_PROXY_AUTH[\s\S]*?const PROJECT/);
  assert.ok(base);
  assert.match(base[0],/READ_ONLY/);
  assert.match(base[0],/GARAMAAL_PROFILE_STAGING_ISOLATED/);
  assert.match(base[0],/GARAMAAL_PROFILE_DATA_SCOPE/);
- assert.match(server,/req\\.path\\.startsWith\\("\\/api\/"\\)/);
+ assert.match(server,/req\.path\.startsWith\("\/api\/"\)/);
  assert.match(server,/x-garamaal-firebase-authorization/);
- assert.match(server,/getAuth\\(\\)\\.verifyIdToken\\(match\\[1\\]\\)/);
- assert.match(bridge,/const firebaseAuthHeader=\\(\\)=>stageProfileProxyAuth\\?"X-Garamaal-Firebase-Authorization":"Authorization"/);
- const calls=(bridge.match(/\\[firebaseAuthHeader\\(\\)\\]:"Bearer "/g)||[]).length;
+ assert.match(server,/getAuth\(\)\.verifyIdToken\(match\[1\]\)/);
+ assert.match(bridge,/const firebaseAuthHeader=\(\)=>stageProfileProxyAuth\?"X-Garamaal-Firebase-Authorization":"Authorization"/);
+ const calls=(bridge.match(/\[firebaseAuthHeader\(\)\]:"Bearer "/g)||[]).length;
  assert.ok(calls>=3,"dashboard, usage and download requests must use preview-safe token header");
- assert.match(bridge,/const header=firebaseAuthHeader\\(\\)/);
+ assert.match(bridge,/const header=firebaseAuthHeader\(\)/);
  assert.match(bridge,/profilePreviewProxyAuth===true/);
 });
 test("Profile proxy transport deploy script targets only tagged zero-traffic staging",()=>{
