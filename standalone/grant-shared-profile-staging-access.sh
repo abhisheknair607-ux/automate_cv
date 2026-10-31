@@ -29,7 +29,7 @@ data=json.load(open(sys.argv[1],encoding="utf-8"))
 email=sys.argv[2].strip()
 out=sys.argv[3]
 expected_identity=sys.argv[4]
-if not re.fullmatch(r"[a-z0-9._+%-]+@[a-z0-9.-]+\\.[a-z]{2,63}",email):
+if not re.fullmatch(r"[a-z0-9._+%-]+@[a-z0-9.-]+\.[a-z]{2,63}",email):
     raise SystemExit("STOP: enter the exact lowercase Firebase-verified email.")
 template=data.get("spec",{}).get("template",{}).get("spec")
 if template is None:template=data.get("template",{})
