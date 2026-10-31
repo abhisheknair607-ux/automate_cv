@@ -25,6 +25,11 @@ const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
 // Safest default: never permit writes unless explicitly enabled after sign-off.
 const READ_ONLY = process.env.APP_READ_ONLY !== "false";
+// Private Cloud Shell proxy authenticates to Cloud Run separately from Firebase.
+// Accept a second Firebase header ONLY for read-only, isolated Profile staging.
+const PROFILE_PREVIEW_PROXY_AUTH = READ_ONLY &&
+  process.env.GARAMAAL_PROFILE_STAGING_ISOLATED === "true" &&
+  process.env.GARAMAAL_PROFILE_DATA_SCOPE === "staging";
 const PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || "";
 const ALLOWED = String(process.env.ALLOWED_EMAILS||"")
   .split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
@@ -67,6 +72,7 @@ app.get("/config",(req,res)=>res.json({
   projectId:PROJECT,
   appId:process.env.FIREBASE_WEB_APP_ID||"",
   readOnly:READ_ONLY,
+  profilePreviewProxyAuth:PROFILE_PREVIEW_PROXY_AUTH,
 }));
 app.get("/dashboard-ranking.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_ranking.js")));
 app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_connections.js")));
@@ -285,7 +291,10 @@ app.get("/prototype",(req,res)=>{
 });
 
 async function authenticate(req) {
-  const match=String(req.headers.authorization||"").match(/^Bearer\s+(.+)$/i);
+  const firebaseHeader = PROFILE_PREVIEW_PROXY_AUTH && req.path.startsWith("/api/profile/")
+    ? (req.headers["x-garamaal-firebase-authorization"] || req.headers.authorization)
+    : req.headers.authorization;
+  const match=String(firebaseHeader||"").match(/^Bearer\s+(.+)$/i);
   if(!match)throw Object.assign(new Error("Sign in to continue"),{httpCode:401});
   let claims;
   try { claims=await getAuth().verifyIdToken(match[1]); }
