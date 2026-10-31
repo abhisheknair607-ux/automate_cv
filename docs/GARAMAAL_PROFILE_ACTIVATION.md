@@ -179,3 +179,73 @@ Validate production-grade identity/permission separation, Firestore record versi
 - The feature is still behind GARAMAAL_PROFILE_ENABLED=true. Profile writes additionally require APP_READ_ONLY=false and GARAMAAL_PROFILE_WRITES_APPROVED=true. No changes to live Cloud Run traffic, the Drive originals or the current CV generator.
 - A **staging integration test** remains required: authenticate as both candidate profiles, import from the four Drive sources, review and save a STAR claim, confirm denial of unsupported numbers, paste a JD, and inspect the responsive UI in dark/light on desktop and phone.
 - The Profile-to-CV evidence source switch remains **deferred** until a separate verified, versioned adapter with rollback has been tested.
+
+
+## Stage 5 — access control, durable history, non-destructive Drive refresh (31 October 2026)
+
+**Implemented in draft PR #99, not deployed.** Existing Make CV worker and original Drive files remain unchanged.
+
+### Candidate-specific access control
+
+The Profile API continues to require Firebase verified-email authentication through the existing Garamaal login allowlist. It now ALSO checks a private server-only JSON ACL before creating any profile Firestore reference, even for readiness and history calls.
+
+Environment variable: GARAMAAL_PROFILE_CANDIDATE_ACL_JSON
+
+Example value for illustrative accounts (replace with actual approved sign-ins, never commit actual emails or secrets):
+
+    {"first-user@example.com":["abhishek"],"second-user@example.com":["pooja"],"approved-admin@example.com":["abhishek","pooja"]}
+
+Explicit email-to-candidate grants are required; there are no wildcard users, public reads, client-supplied owner identifiers or role bypasses. Missing/invalid ACL denies profile access. The Firestore document owner is a SHA-256 digest of the verified signed-in email and the chosen, ACL-permitted candidate. This means candidate records are isolated by signed-in account; a future shared-team tenancy design must not assume that two different emails automatically share edits.
+
+Firestore Admin SDK uses server IAM, bypassing mobile/web client Firestore Security Rules: **do not grant client-side direct access** to these profile collections. Scope the Cloud Run runtime identity and Firestore rules appropriately, restrict unauthorised access to sensitive career source/STAR data, and test cross-candidate denies in staging.
+
+### Separate staging and production data
+
+GARAMAAL_PROFILE_ENABLED=true alone is not enough to activate the Profile API. Require:
+
+- GARAMAAL_PROFILE_DATA_SCOPE=staging for the isolated test service (Firestore collection: garamaalProfilesStagingV1). Production future scope is production (collection: garamaalProfilesV1). Scope unset fails closed.
+- GARAMAAL_PROFILE_CANDIDATE_ACL_JSON set explicitly.
+- GARAMAAL_PROFILE_WRITES_APPROVED=true plus GARAMAAL_PROFILE_STAGING_ISOLATED=true for staging writes. Keep APP_READ_ONLY=true there so existing Jobs/Sheets APIs remain read-only.
+- For future production Profile writes, separate requirements: GARAMAAL_PROFILE_DATA_SCOPE=production, GARAMAAL_PROFILE_WRITES_APPROVED=true, GARAMAAL_PROFILE_PRODUCTION_APPROVED=true, and APP_READ_ONLY=false (requires its own explicit production release approval). **Do not enable these flags during Stage 5.**
+
+Source IDs remain server-only. Profile API read-only operations are separate from writes. Never expose the ACL JSON content in logs, browser config, PRs or screenshots.
+
+### Immutable version history
+
+Every approved first import, edited record/section, and reviewed Drive refresh is stored atomically with a full immutable snapshot at a numbered candidate-owned Firestore versions subcollection path. Each snapshot includes revision, action, timestamp, actor email hash, record count, source digests and previous document contents. A legacy already-imported record is captured as a baseline during its first Stage 5 write.
+
+Read-only API: profile/history lists at most the 20 most recent version headers; profile/history-version shows one selected candidate-owned snapshot. The UI lets a user inspect prior content. No silent rollback/restore is performed, and history remains accessible only with current candidate ACL access.
+
+History storage is additive and can grow; staging testing should assess actual Firestore write costs, retention policy, document-size limits, GDPR data-deletion obligations and client privacy controls before production activation. Sensitive full history requires the same security protections as active profiles.
+
+### Drive source refresh diff and reviewed merge
+
+Endpoints: profile/refresh-preview (read-only), profile/refresh-apply (write-gated).
+
+- Every refresh re-reads both authorised configured Drive source files; if a file ID changes, missing coverage is detected, the wrong candidate is selected or source data is a placeholder, import fails closed.
+- A preview computes unchanged, added, text-changed and missing source records keyed by source type, configured file ID and evidence locator. It returns bounded old/new excerpts, an opaque source/revision fingerprint, and a decision UI. No data is written during preview.
+- Each added record requires Accept or Skip; each text-changed record requires Replace or Keep; each missing original requires Archive or Keep. **Every changed item must be explicitly reviewed.** There is no silent default bulk overwrite.
+- On Replace, the old source and all prior approved STAR overlays remain present in the Profile as inactive, non-CV-eligible audit records. A new evidence record is created with blank STAR/metrics approvals, needs-review status, and only a user-reviewed section assignment retained. On Keep, stale originals are kept but not eligible for the future CV engine. Missing records are not deleted.
+- Unchanged original evidence retains its reviewed annotations. Candidate-added records and custom sections remain intact.
+- The Apply request re-reads Drive, checks the existing Firestore revision and recomputes the same fingerprint inside the Firestore transaction. Any intervening user edit, source change or decision omission blocks the merge.
+- The final reviewed profile and immutable version snapshot write atomically. Source-change previews over 300 modifications are blocked for an individually reviewed/manual migration workflow.
+
+Original Drive source documents are **never modified** by this process.
+
+### Staging prerequisite checks — execution pending
+
+Use the read-only audit script in an authenticated Google Cloud Shell session:
+
+    bash standalone/profile-staging-readiness.sh
+
+If the service has a different name:
+
+    GARAMAAL_STAGING_SERVICE=your-isolated-staging-service bash standalone/profile-staging-readiness.sh
+
+The script inspects service metadata, missing Drive env variables, profile scope, ACL presence without showing its content, read-only control flags, default Firestore database and current traffic metadata. It does not deploy, set IAM, create Firestore data, alter environment variables or change traffic. It cannot itself prove access to Drive or Firestore: additionally test authenticated Profile readiness, candidate-authorised preview/import/save, cross-user denial, concurrency, history and actual refresh in a private staging service.
+
+**Remaining permissions blockers:** This chat has access to GitHub code/tests but not authorised Google Cloud Run deployment, Cloud IAM roles, Firestore database configuration or a real test-browser session. No live Cloud Run/Drive/Firestore interaction has been performed. A successful CI run does not establish those permissions.
+
+### Next Stage 6 (separate approval)
+
+Implement a version-pinned, read-only evidence adapter in the Python CV worker that accepts **verified and CV-eligible** candidate Profile records, source hashes and approved STAR/metrics only. Preserve the existing Drive source as a guarded rollback. Run comparison builds before any profile-source cutover and never enable Profile writes or promote production traffic as a side effect.
