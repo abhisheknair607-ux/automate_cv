@@ -83,7 +83,9 @@
     '<p class="gmp-review-note">Changing factual evidence resets its metrics and verified status.': 
     '<p class="gmp-label">Original evidence — protected from editing</p>'+
     '<div class="gmp-original">'+esc(r.originalText)+'</div>')+
-    (editable?'</p>':'')+provenance(r)+
+    (editable?'</p>':'')+
+    (editable?'':'<label class="gmp-field">Structured working facts (editable; original kept above)<textarea data-field="workingText" maxlength="12000" rows="5" placeholder="Correct or clarify the source facts here. New claims require separate evidence review.">'+esc(r.workingText||"")+'</textarea></label>')+
+    provenance(r)+
     (r.classification?.needsReview?
      '<p class="gmp-review-note"><strong>Classification review:</strong> '+esc(r.classification.reason)+'. Confirm the section below.</p>':"")+
     (r.cvEligible===false?'<p class="gmp-review-note">This is a routing instruction, not a standalone CV claim. It cannot be verified for CV use.</p>':"")+
@@ -95,8 +97,10 @@
       '<textarea data-star="'+n+'" maxlength="4000" rows="3" placeholder="Enter only what the original evidence supports">'+esc(star[n]||"")+'</textarea></label>').join("")+'</div>'+
     '<label class="gmp-field">CV-ready bullet (draft, not yet used by the CV generator)<textarea data-field="cvBullet" maxlength="4000" rows="3" placeholder="Action · scope · verified result">'+esc(r.cvBullet||"")+'</textarea></label>'+
     '<label class="gmp-field">Search keywords and skills (comma-separated)<input data-field="tags" maxlength="1800" value="'+esc((r.tags||[]).join(", "))+'" placeholder="transfer pricing, stakeholder management"></label>'+
-    '<div class="gmp-metrics"><strong>Numbers detected in source:</strong> '+
+    '<div class="gmp-metrics"><strong>Numbers detected in original source:</strong> '+
       ((r.metrics||[]).length?r.metrics.map(m=>'<span class="gmp-tag">'+esc(m)+'</span>').join(""):"None detected")+'</div>'+
+    (r.workingMetrics?.length?'<div class="gmp-metrics"><strong>Numbers in edited working facts:</strong> '+
+      r.workingMetrics.map(m=>'<span class="gmp-tag">'+esc(m)+'</span>').join("")+'</div>':'')+
     '<label class="gmp-check"><input type="checkbox" data-field="metricsReviewed"'+checked(r.metricsReviewed)+'> I checked the figures against the original record</label>'+
     '<label class="gmp-field">Review status<select data-field="status">'+
       statusOptions.map(([val,label])=>'<option value="'+val+'"'+(r.status===val?" selected":"")+'>'+label+'</option>').join("")+'</select></label>'+
@@ -255,6 +259,7 @@
    metricsReviewed:f("metricsReviewed").checked,classificationReviewed:f("classificationReviewed").checked,
    status:f("status").value,star};
   if(r.source?.kind==="user")changes.originalText=f("originalText").value;
+  else changes.workingText=f("workingText").value;
   const result=await request("record",{candidate:key,revision:data.revision,id,changes});
   if(result){active=changes.section;await refresh("Evidence changes saved.");expanded=id;render();}
  }
