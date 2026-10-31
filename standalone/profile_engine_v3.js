@@ -270,11 +270,12 @@
   if(summary&&mount.contains(summary)){
    const details=summary.closest("[data-record]");
    if(details){
-    if(expanded&&expanded!==details.dataset.record&&dirty){
-     if(!window.confirm("You have unsaved evidence changes. Discard before opening another record?")){
-      event.preventDefault();return;
-     }
-     dirty=false;setStatus("Unsaved record changes discarded.");
+    if(form||(expanded&&expanded!==details.dataset.record&&dirty)){
+     if(!guardExit()){event.preventDefault();return}
+     event.preventDefault();
+     dirty=false;form=null;expanded=details.dataset.record;
+     status="Unsaved edits discarded. Original saved records are unchanged.";
+     render();return;
     }
     mount.querySelectorAll("details[data-record]").forEach(node=>{if(node!==details)node.open=false});
     expanded=details.dataset.record;
