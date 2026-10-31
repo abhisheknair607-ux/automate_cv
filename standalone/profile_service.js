@@ -11,6 +11,9 @@ const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("
 const sectionOps=require("./profile_section_ops");
 const profileSuggestions=require("./profile_suggestions");
 const {auditClaimNumbers}=require("./profile_claim_review");
+const {permit}=require("./profile_access");
+const {planRefresh,applyRefresh}=require("./profile_refresh");
+const {recordRevision,backfillBaseline,historySummary,verifyHistoryRead,pad}=require("./profile_history");
 const COLLECTION="garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
@@ -22,9 +25,8 @@ function writeGate(){
   if(process.env.APP_READ_ONLY!=="false" || process.env.GARAMAAL_PROFILE_WRITES_APPROVED!=="true")
     throw Object.assign(Error("Profile saving is locked until staging writes are explicitly approved"),{httpCode:403});
 }
-function docFor(email,key){
-  const owner=createHash("sha256").update(String(email).toLowerCase().trim()).digest("hex");
-  return getFirestore().collection(COLLECTION).doc(owner).collection("candidates").doc(candidate(key));
+function docFor(ownerDigest,key){
+  return getFirestore().collection(COLLECTION).doc(ownerDigest).collection("candidates").doc(candidate(key));
 }
 async function googleToken(auth){
   const access=await (await auth.getClient()).getAccessToken();
@@ -88,8 +90,9 @@ function register(app,{authenticate,auth}){
       allowed();
       const email=await authenticate(req);
       const key=candidate(req.body?.candidate);
-      const ref=docFor(email,key);
-      const data=await fn({key,ref,body:req.body||{}});
+      const grant=permit(email,key); // Separate candidate ACL, after Firebase auth.
+      const ref=docFor(grant.ownerDigest,key);
+      const data=await fn({key,ref,email:grant.email,body:req.body||{}});
       res.json({data});
     }catch(error){const status=error.httpCode||500;
       console.error("[profile]",req.path,"status="+status,safeErr(error));
@@ -187,7 +190,7 @@ function register(app,{authenticate,auth}){
     duplicateCandidates:p.records.filter(r=>r.duplicateOf).length,
     allSourcesComplete:p.sources.every(s=>s.integrity?.complete===true)};
   }));
-  app.post("/api/profile/import",(req,res)=>handle(req,res,async({key,ref,body})=>{
+  app.post("/api/profile/import",(req,res)=>handle(req,res,async({key,ref,email,body})=>{
     writeGate();
     if(body.confirm!==true)throw Object.assign(Error("Confirm source import first"),{httpCode:400});
     const p=await collectImport(key,auth);
@@ -196,12 +199,83 @@ function register(app,{authenticate,auth}){
       if(snap.exists&&snap.data()?.imported)
         throw Object.assign(Error("Already imported. Existing edits were preserved; use the future reviewed refresh workflow."),{httpCode:409});
       p.revision=1;p.imported=true;p.importedAt=new Date().toISOString();
-      tx.set(ref,p);
+      p.historySchema=5;
+      recordRevision(tx,ref,p,{email,action:"drive-import"});
     });
     return {candidate:key,revision:1,records:p.records.length,sources:p.sources};
   }));
+
+  app.post("/api/profile/history",(req,res)=>handle(req,res,async({key,ref})=>{
+    const current=await ref.get();
+    if(!current.exists||!current.data().imported)
+      throw Object.assign(Error("Import profile before viewing history"),{httpCode:409});
+    if(current.data().candidate!==key)throw Object.assign(Error("Candidate mismatch"),{httpCode:403});
+    const listing=await ref.collection("versions").orderBy("revision","desc").limit(20).get();
+    return {candidate:key,currentRevision:current.data().revision,
+      versions:listing.docs.map(historySummary),
+      baselinePending:current.data().historySchema!==5};
+  }));
+  app.post("/api/profile/history-version",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    const rev=Number(body.version);
+    if(!Number.isSafeInteger(rev)||rev<1)throw Object.assign(Error("Invalid history version"),{httpCode:400});
+    const [current,snap]=await Promise.all([ref.get(),ref.collection("versions").doc(pad(rev)).get()]);
+    if(!current.exists||current.data().candidate!==key)throw Object.assign(Error("Candidate profile not found"),{httpCode:404});
+    if(!snap.exists)throw Object.assign(Error("History version not found"),{httpCode:404});
+    const result=verifyHistoryRead(current.data(),snap.data());
+    return {candidate:key,revision:result.revision,action:result.action,
+      createdAt:result.createdAt,profile:result.profile};
+  }));
+  app.post("/api/profile/refresh-preview",(req,res)=>handle(req,res,async({key,ref,body})=>{
+    const snapshot=await ref.get();
+    if(!snapshot.exists||snapshot.data().candidate!==key)
+      throw Object.assign(Error("Profile is not imported"),{httpCode:409});
+    const old=snapshot.data(),expected=Number(body.revision);
+    if(old.revision!==expected)throw Object.assign(Error("Profile changed. Reload before refreshing."),{httpCode:409});
+    const incoming=await collectImport(key,auth);
+    const plan=planRefresh(old,incoming);
+    if(plan.changes.length>300)throw Object.assign(Error("Too many changes for one reviewed refresh"),{httpCode:413});
+    return {candidate:key,revision:old.revision,fingerprint:plan.fingerprint,
+      summary:plan.summary,sourceTypes:plan.sourceTypes,
+      changes:plan.changes.map(c=>({
+        id:c.id,type:c.type,locator:c.locator,sourceKind:c.sourceKind,
+        beforeTitle:c.beforeTitle,afterTitle:c.afterTitle,beforeStatus:c.beforeStatus,
+        beforeExcerpt:c.beforeText?.slice(0,850)||null,
+        afterExcerpt:c.afterText?.slice(0,850)||null,
+        beforeTruncated:(c.beforeText?.length||0)>850,
+        afterTruncated:(c.afterText?.length||0)>850
+      })),
+      requiresExplicitReview:true};
+  }));
+  app.post("/api/profile/refresh-apply",(req,res)=>handle(req,res,async({key,ref,email,body})=>{
+    writeGate();
+    const revision=Number(body.revision);
+    if(!Number.isSafeInteger(revision)||revision<1||typeof body.fingerprint!=="string")
+      throw Object.assign(Error("Run a current refresh preview first"),{httpCode:400});
+    const snapshot=await ref.get();
+    if(!snapshot.exists||snapshot.data().candidate!==key||snapshot.data().revision!==revision)
+      throw Object.assign(Error("Profile changed; repeat preview"),{httpCode:409});
+    // Re-read Drive originals at commit time, so a changed source invalidates
+    // the preview fingerprint instead of silently merging a newer document.
+    const incoming=await collectImport(key,auth);
+    return getFirestore().runTransaction(async tx=>{
+      const existing=await tx.get(ref);
+      if(!existing.exists||existing.data().candidate!==key||existing.data().revision!==revision)
+        throw Object.assign(Error("Profile changed; repeat preview"),{httpCode:409});
+      const old=existing.data(),plan=planRefresh(old,incoming);
+      if(plan.fingerprint!==body.fingerprint)throw Object.assign(Error("Drive sources changed; repeat preview"),{httpCode:409});
+      if(plan.changes.length===0)return {candidate:key,revision,changed:false};
+      const updated=applyRefresh(old,incoming,plan,body.decisions);
+      if(updated.historySchema!==5)backfillBaseline(tx,ref,old,email);
+      updated.revision=revision+1;
+      updated.historySchema=5;
+      updated.updatedAt=new Date().toISOString();
+      recordRevision(tx,ref,updated,{email,action:"drive-refresh-reviewed"});
+      return {candidate:key,revision:updated.revision,changed:true,
+        counts:plan.summary};
+    });
+  }));
   async function mutate(req,res,type){
-    return handle(req,res,async({key,ref,body})=>{
+    return handle(req,res,async({key,ref,email,body})=>{
       writeGate();
       const expected=Number(body.revision);
       if(!Number.isInteger(expected)||expected<1)throw Object.assign(Error("Revision required"),{httpCode:400});
@@ -215,11 +289,13 @@ function register(app,{authenticate,auth}){
         if(type==="add-record")sectionOps.addRecord(p,body);
         if(type==="add-section")sectionOps.addSection(p,body);
         if(type==="section")sectionOps.manageSection(p,body);
+        if(p.historySchema!==5)backfillBaseline(tx,ref,snap.data(),email);
         p.revision++;
+        p.historySchema=5;
         p.updatedAt=new Date().toISOString();
         if(JSON.stringify(p).length>MAX_PROFILE_CHARS)
           throw Object.assign(Error("Profile storage limit exceeded"),{httpCode:413});
-        tx.set(ref,p);
+        recordRevision(tx,ref,p,{email,action:"profile-"+type});
         return {revision:p.revision,candidate:key};
       });
     });
