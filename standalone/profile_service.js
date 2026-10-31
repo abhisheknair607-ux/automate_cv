@@ -10,7 +10,6 @@ const mammoth=require("mammoth");
 const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("./profile_evidence");
 const COLLECTION="garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
-const NAME_RE=/^[a-zA-Z][a-zA-Z0-9_-]{1,39}$/;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
 function allowed(){
   if(process.env.GARAMAAL_PROFILE_ENABLED!=="true")
@@ -94,6 +93,8 @@ function patchRecord(profile,body){
       entry.section=value;
     }else if(k==="status"){
       if(!["needs-review","verified","exclude"].includes(value))throw Object.assign(Error("Invalid evidence status"),{httpCode:400});
+      if(value==="verified"&&entry.cvEligible===false)
+        throw Object.assign(Error("Router references cannot become verified CV evidence"),{httpCode:400});
       entry.status=value;
     }else if(k==="metricsReviewed"){
       if(typeof value!=="boolean")throw Object.assign(Error("Invalid metric verification"),{httpCode:400});
@@ -159,7 +160,11 @@ function register(app,{authenticate,auth}){
     // Preview is completely read-only and never changes CV or Firestore.
     return {candidate:key,sources:p.sources,counts:p.sections.map(s=>({
       section:s.id,records:p.records.filter(r=>r.section===s.id).length
-    })),totalRecords:p.records.length};
+    })),totalRecords:p.records.length,
+    classificationReview:p.records.filter(r=>r.classification?.needsReview).length,
+    routerReferences:p.records.filter(r=>r.cvEligible===false).length,
+    duplicateCandidates:p.records.filter(r=>r.duplicateOf).length,
+    allSourcesComplete:p.sources.every(s=>s.integrity?.complete===true)};
   }));
   app.post("/api/profile/import",(req,res)=>handle(req,res,async({key,ref,body})=>{
     if(body.confirm!==true)throw Object.assign(Error("Confirm source import first"),{httpCode:400});
