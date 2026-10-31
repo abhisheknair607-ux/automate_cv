@@ -514,6 +514,48 @@
   if(action==="readiness"){
    const p=await request("readiness",{candidate:key});if(p){readiness=p;status="Connection check completed.";render()}return;
   }
+  if(action==="refresh-preview"){
+   if(hasUnsaved()){setStatus("Save or discard current profile edits before comparing Drive sources.");return}
+   const result=await request("refresh-preview",{candidate:key,revision:data.revision});
+   if(result){refreshPlan=result;refreshDecisions={};status="Review each Drive change before importing.";render()}
+   return;
+  }
+  if(action==="close-refresh"){
+   if(Object.values(refreshDecisions).some(Boolean)&&
+      !window.confirm("Discard your unsaved Drive merge decisions?"))return;
+   refreshPlan=null;refreshDecisions={};render();return;
+  }
+  if(action==="apply-refresh"){
+   if(!refreshPlan)return;
+   if(hasUnsaved()){setStatus("Save or discard current profile edits before applying Drive changes.");return}
+   const changes=refreshPlan.changes||[];
+   if(!changes.length||changes.some(c=>!refreshDecisions[c.id])){
+    setStatus("Choose a review decision for every added, changed or missing source record.");
+    return;
+   }
+   if(!window.confirm("Apply "+changes.length+" individually reviewed Drive decisions? Previous originals and history will remain available. This does not change CV generation."))return;
+   const result=await request("refresh-apply",{candidate:key,revision:refreshPlan.revision,
+     fingerprint:refreshPlan.fingerprint,decisions:refreshDecisions});
+   if(result){
+    refreshPlan=null;refreshDecisions={};
+    await refresh("Reviewed Drive changes saved in a new profile revision; CV workflow unchanged.");
+   }
+   return;
+  }
+  if(action==="history"){
+   if(hasUnsaved()){setStatus("Save or discard current profile edits before opening revision history.");return}
+   const result=await request("history",{candidate:key});
+   if(result){historyList=result;historySnapshot=null;status="History loaded. Snapshots are read-only.";render()}
+   return;
+  }
+  if(action==="close-history"){historyList=null;historySnapshot=null;render();return}
+  if(action==="view-history"){
+   const version=Number(el.dataset.historyRevision);
+   if(!Number.isSafeInteger(version)||version<1)return;
+   const result=await request("history-version",{candidate:key,version});
+   if(result){historySnapshot=result;status="Showing read-only revision "+version+".";render()}
+   return;
+  }
   if(action==="preview"){
    const p=await request("import-preview",{candidate:key});if(p){preview=p;status="Preview completed. No Drive files changed.";render()}return;
   }
@@ -530,6 +572,12 @@
  doc.addEventListener("change",event=>{
   if(!mount?.contains(event.target))return;
   const el=event.target;
+  if(el.matches("[data-refresh-decision]")){
+   refreshDecisions[el.dataset.refreshDecision]=el.value;
+   setStatus(Object.values(refreshDecisions).filter(Boolean).length+
+    " Drive change decisions selected. Nothing saved until Apply.");
+   return;
+  }
   if(el.matches("[data-mobile-section]")){navigate(el.value);return}
   if(el.matches("[data-filter]")){if(!guardExit()){el.value=filter;return}filter=el.value;dirty=false;form=null;render()}
  });
