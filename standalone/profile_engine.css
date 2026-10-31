@@ -164,3 +164,19 @@
  .gmp-jd-body{padding:12px}
  .gmp-jd-box summary{padding:12px}
 }
+
+/* Stage 4: contextual quantitative evidence audit, shared by desktop and mobile. */
+.gmp-metric-audit{border:1px solid #d7bba0;border-radius:10px;background:#fff8ef;padding:12px;margin:8px 0;font-size:12px}
+.gmp-metric-audit strong{font-size:13px}
+.gmp-metric-audit p{margin:6px 0 8px!important}
+.gmp-metric-audit details{border-top:1px solid #e6d3bf;margin-top:10px;padding-top:7px}
+.gmp-metric-audit summary{cursor:pointer;font-weight:650;font-size:12px}
+.gmp-metric-audit blockquote{border-left:2px solid #b98b65;margin:9px 0 0;padding:8px 10px;background:#f3e7d9;overflow-wrap:anywhere;white-space:pre-wrap}
+.gmp-metric-status{font-size:11px;font-weight:650}
+.gmp-metric-status.unsupported-number,.gmp-metric-status.context-review{color:#9e4d31}
+.gmp-metric-status.matching-number-needs-review{color:#7b583e}
+.gmp-root.gmp-dark .gmp-metric-audit{background:#30221b;color:#ead5c4;border-color:#75543f}
+.gmp-root.gmp-dark .gmp-metric-audit details{border-color:#75543f}
+.gmp-root.gmp-dark .gmp-metric-audit blockquote{background:#3c2b21;border-color:#a77b59}
+.gmp-root.gmp-dark .gmp-metric-status.unsupported-number,.gmp-root.gmp-dark .gmp-metric-status.context-review{color:#ffb693}
+.gmp-root.gmp-dark .gmp-metric-status.matching-number-needs-review{color:#d8b89e}
