@@ -67,11 +67,15 @@ function patchRecord(profile,body){
  if(!entry)throw error("Record not found",404);
  const changes=body.changes;
  if(!isObject(changes)||Object.keys(changes).length===0)throw error("Missing record changes");
- const allowed=new Set(["title","section","cvBullet","status","metricsReviewed","star","tags","classificationReviewed","originalText"]);
+ const allowed=new Set(["title","section","cvBullet","status","metricsReviewed","star","tags","classificationReviewed","originalText","workingText"]);
  for(const key of Object.keys(changes))if(!allowed.has(key))throw error("Original evidence and provenance are protected");
  // Validate everything first so one invalid value never partially applies.
  if("title" in changes){
   if(typeof changes.title!=="string"||changes.title.trim().length<2||changes.title.length>180)throw error("Invalid evidence title");
+ }
+ if("workingText" in changes){
+  if(typeof changes.workingText!=="string"||changes.workingText.length>12000)
+   throw error("Working evidence must be 0–12000 characters");
  }
  if("originalText" in changes){
   if(entry.source?.kind!=="user")throw error("Imported Drive evidence cannot be overwritten");
@@ -106,12 +110,19 @@ function patchRecord(profile,body){
    if(typeof changes.star[key]!=="string"||changes.star[key].length>4000)throw error("Invalid STAR field");
  }
  const textChanged="originalText" in changes&&changes.originalText.trim()!==entry.originalText;
+ const workingChanged="workingText" in changes&&changes.workingText.trim()!==(entry.workingText||"");
  if(textChanged){
   entry.previousUserText=entry.originalText;
   entry.originalText=changes.originalText.trim();
   entry.metrics=metricsFrom(entry.originalText);
   entry.metricsReviewed=false;
   entry.status="needs-review";
+ }
+ if(workingChanged){
+  entry.previousWorkingText=entry.workingText||"";
+  entry.workingText=changes.workingText.trim();
+  entry.workingMetrics=metricsFrom(entry.workingText);
+  entry.metricsReviewed=false;entry.status="needs-review";
  }
  if("title" in changes)entry.title=changes.title.trim();
  const sectionChanged="section" in changes&&changes.section!==entry.section;
@@ -121,9 +132,9 @@ function patchRecord(profile,body){
  if("star" in changes)entry.star={...changes.star};
  if("tags" in changes)entry.tags=[...new Set(changes.tags.map(x=>x.trim()).filter(Boolean))];
  if("classificationReviewed" in changes)entry.classificationReviewed=changes.classificationReviewed;
- if("metricsReviewed" in changes&&!textChanged)entry.metricsReviewed=changes.metricsReviewed;
- if("status" in changes&&!textChanged)entry.status=changes.status;
- if(entry.status==="verified"&&(!entry.classificationReviewed||((entry.metrics||[]).length>0&&!entry.metricsReviewed)))
+ if("metricsReviewed" in changes&&!textChanged&&!workingChanged)entry.metricsReviewed=changes.metricsReviewed;
+ if("status" in changes&&!textChanged&&!workingChanged)entry.status=changes.status;
+ if(entry.status==="verified"&&(!entry.classificationReviewed||((entry.workingMetrics||entry.metrics||[]).length>0&&!entry.metricsReviewed)))
   entry.status="needs-review";
 }
 module.exports={addSection,manageSection,addRecord,patchRecord};
