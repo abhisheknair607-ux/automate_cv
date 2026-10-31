@@ -82,7 +82,7 @@ def test_verified_profile_includes_only_selected_evidence_and_provenance():
     assert "Original source file: " + MASTER_ID in selected.package
     assert "Managed 5 teams" in selected.package
     assert "Situation: Documented product delivery programme." in selected.package
-    assert "Reviewed tags (not automatic qualifications)" in selected.package
+    assert "project management" not in selected.package  # not stated in original source
 
 
 @pytest.mark.parametrize("mutation", [
