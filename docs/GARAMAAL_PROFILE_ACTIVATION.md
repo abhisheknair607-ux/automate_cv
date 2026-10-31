@@ -266,7 +266,7 @@ New regression coverage is included in standalone/test/profile_stage5.test.js. A
 
 ## Stage 6 — read-only Profile-to-CV evidence adapter (31 October 2026)
 
-**Draft branch only — not merged or deployed.** Stage 6 updates Python source selection, not the live Cloud Run Profile and not the current GitHub Actions environment.
+**Draft branch only — not merged or deployed.** Stage 6 adds a separately composed, opt-in staging wrapper around the unchanged Python CV source builder. The protected production worker files and current GitHub Actions configuration stay byte-for-byte unchanged.
 
 ### Inspected legacy handoff
 
@@ -274,12 +274,12 @@ The worker continues to read the original candidate-specific Master Evidence Ban
 
 ### Adapter and safe source modes
 
-New Python module: src/automate_cv/profile_cv_adapter.py.
+New staging-only Python modules: standalone/profile_cv_adapter.py (read-only pinned Firestore and eligibility checks) and standalone/staging_profile_cv_handoff.py (ProfileStage3Sources proxy around the legacy Sources.stage3). The protected src/automate_cv worker files remain unchanged, and the repository's protect-worker CI guard is not relaxed. An isolated staging orchestrator must explicitly wrap workflow.sources with ProfileStage3Sources before calling Workflow.run; the default worker does not import or activate this adapter.
 
 - **Default**: GARAMAAL_CV_EVIDENCE_MODE=drive (or unset). This bypasses Firestore entirely and preserves the existing Stage 3 source package and CV output behaviour. No extra credentials or release configuration are required.
 - **Opt-in staging comparison**: GARAMAAL_CV_EVIDENCE_MODE=compare. Reads one explicitly pinned, candidate-owned Firestore revision and writes only a local Profile_Evidence_Comparison.json coverage report (candidate, revision, selected/approved/missing IDs and source hashes). The model still receives the unmodified Drive Selected_Evidence.md.
 - **Explicit staging cutover**: GARAMAAL_CV_EVIDENCE_MODE=profile, with GARAMAAL_PROFILE_CV_CUTOVER_APPROVED=true. Replaces the local Stage 3 selected evidence file with only reviewed Profile records that match the Stage 2 selected IDs. Any missing/unreviewed key fails before a paid Stage 3 model call. The original Drive Selected_Evidence.md is copied locally to Drive_Selected_Evidence.md for comparison and rollback. The original source QA continues to use the Drive Master Bank.
-- Both nondefault modes require GARAMAAL_PROFILE_DATA_SCOPE=staging and GARAMAAL_PROFILE_CV_STAGING_ISOLATED=true. The adapter deliberately cannot read production profile collections or activate itself as part of the currently configured GitHub Actions workflows.
+- Both nondefault modes require GARAMAAL_PROFILE_DATA_SCOPE=staging and GARAMAAL_PROFILE_CV_STAGING_ISOLATED=true. The staging adapter deliberately cannot read production profile collections or activate itself as part of currently configured GitHub Actions workflows.
 - Invalid modes, owner IDs, versions, unsupported credentials, missing evidence or mismatched candidate provenance cause explicit failures, not silent fallback. To roll back, unset GARAMAAL_CV_EVIDENCE_MODE or set it to drive.
 
 ### Explicit configuration for isolated staging only
@@ -288,7 +288,7 @@ New Python module: src/automate_cv/profile_cv_adapter.py.
 - GARAMAAL_PROFILE_CV_OWNER_DIGEST_ABHISHEK and GARAMAAL_PROFILE_CV_OWNER_DIGEST_POOJA = the 64-hex SHA-256 digest of the corresponding approved Firebase login email, exactly matching the server-side Stage 5 owner path. Set only for candidates being tested. Never commit actual login addresses, owner digests or credentials.
 - GARAMAAL_PROFILE_CV_REVISION_ABHISHEK / GARAMAAL_PROFILE_CV_REVISION_POOJA = explicit positive pinned snapshot revisions.
 - The staging execution identity needs Google Application Default Credentials (ideally short-lived Workload Identity Federation) with only the read access required for that staging Firestore collection. The adapter uses an authenticated Firestore REST GET to read the candidate document and the 10-digit-padded immutable version document. It does not make any database writes or accept user-supplied path components.
-- A production job with no Stage 6 environment variables remains Drive-only.
+- A production job remains Drive-only regardless of these staging flags unless a separate isolated staging runner deliberately installs the ProfileStage3Sources proxy. The adapter cannot activate by environment variable alone in the protected worker.
 
 ### Evidence policy
 
@@ -303,3 +303,8 @@ Tests: tests/test_profile_cv_adapter.py (mock Firestore REST, no network), exist
 **Not performed:** no real staging Workload Identity Federation / Firestore ADC read, approved human review of imported records, actual CV/CL comparison generation, visual staging browser verification or production release. No configuration flags, GitHub Action secrets, IAM settings, Cloud Run traffic or Drive originals were modified.
 
 Before enabling compare or profile, complete Stage 5 staging credential validation and a representative set of reviewed Master Evidence records for each candidate. The Stage 7 gate must compare resulting CV documents, ATS fit and factual QA side by side with the Drive baseline and preserve a tested rollback before any production source cutover.
+
+
+### Repository safeguard outcome
+
+The existing Garamaal UI CI guard intentionally rejects changes to src/automate_cv outside an earlier narrow job-discovery allowlist. An initial Stage 6 integration attempt correctly tripped this safeguard. Rather than weaken or bypass it, all edits to protected worker files were reverted to their main-branch originals; the adapter and integration proxy were moved to standalone. The original worker and CI guard remain intact. Stage 7 must use a separately reviewed staging runner and test plan before contemplating any approved CV worker migration.
