@@ -348,6 +348,89 @@
   if(action==="close"){close();return}
   if(action==="legacy"){if(guardExit()){close(true);previousEditor?.open()}return}
   if(action==="reset-record"){if(!guardExit())return;dirty=false;render();return}
+  if(action==="suggest-star"){
+   const card=el.closest("[data-record]"),id=card?.dataset.record;
+   if(!id)return;
+   const result=await request("suggest",{candidate:key,recordId:id,revision:data.revision});
+   if(result){
+    starAssists[id]=result;
+    const panel=card.querySelector("[data-star-panel]");
+    if(panel)panel.innerHTML=starAssistancePanel(records().find(r=>r.id===id));
+    setStatus("Verbatim source excerpts ready. Select fields and insert them into your unsaved draft.");
+   }
+   return;
+  }
+  if(action==="check-claims"){
+   const card=el.closest("[data-record]"),id=card?.dataset.record;
+   if(!id)return;
+   const parts=[card.querySelector('[data-field="workingText"]')?.value||"",
+    card.querySelector('[data-field="cvBullet"]')?.value||"",
+    ...names.map(n=>card.querySelector('[data-star="'+n+'"]')?.value||"")];
+   const result=await request("check-claims",{candidate:key,recordId:id,
+    revision:data.revision,claimText:parts.join("\n")});
+   if(result){
+    numericChecks[id]=result;
+    const panel=card.querySelector("[data-numeric-panel]");
+    if(panel)panel.innerHTML=numericReviewPanel(records().find(r=>r.id===id));
+    setStatus(result.unsupportedNumbers.length?
+      "Some numbers are not in the original. Correct them before verifying.":
+      "Recognised numbers found in source. Their meaning and ownership still need your review.");
+   }
+   return;
+  }
+  if(action==="apply-star-preview"){
+   const card=el.closest("[data-record]"),id=card?.dataset.record,proposal=starAssists[id];
+   if(!proposal)return;
+   const selected=names.filter(n=>card.querySelector('[data-assist-star="'+n+'"]')?.checked&&proposal.fields[n]);
+   const addBullet=card.querySelector("[data-assist-bullet]")?.checked&&proposal.bullet;
+   if(!selected.length&&!addBullet){setStatus("Select one or more source excerpts first.");return}
+   const targets=selected.map(n=>card.querySelector('[data-star="'+n+'"]'));
+   if(addBullet)targets.push(card.querySelector('[data-field="cvBullet"]'));
+   if(targets.some(input=>input?.value.trim())&&
+      !window.confirm("Replace existing draft fields with selected source excerpts? Unsaved changes can be discarded."))return;
+   for(const n of selected)card.querySelector('[data-star="'+n+'"]').value=proposal.fields[n].text;
+   if(addBullet)card.querySelector('[data-field="cvBullet"]').value=proposal.bullet.text;
+   const stat=card.querySelector('[data-field="status"]');
+   if(stat)stat.value="needs-review";
+   const metrics=card.querySelector('[data-field="metricsReviewed"]');
+   if(metrics)metrics.checked=false;
+   numericChecks[id]=null;
+   const panel=card.querySelector("[data-numeric-panel]");
+   if(panel)panel.innerHTML="";
+   dirty=true;setStatus("Source excerpts inserted into a draft only. Check claims and Save evidence separately.");
+   return;
+  }
+  if(action==="match-jd"){
+   const jd=mount.querySelector("[data-jd-text]")?.value||jdText;
+   jdText=jd;
+   const result=await request("jd-match",{candidate:key,revision:data.revision,jdText});
+   if(result){
+    jdMatch=result;status="JD screening complete. Terms require candidate review; nothing was saved.";render();
+    const box=mount?.querySelector(".gmp-jd-box");
+    box?.scrollIntoView?.({block:"nearest"});
+   }
+   return;
+  }
+  if(action==="insert-jd-tag"){
+   const id=el.dataset.recordId,term=el.dataset.term;
+   const match=jdMatch?.matchedTerms?.find(x=>x.term===term&&x.recordMatches?.some(y=>y.recordId===id));
+   const record=records().find(r=>r.id===id);
+   if(!match||!record||record.cvEligible===false)return;
+   if(!guardExit())return;
+   active=record.section;expanded=id;query="";filter="all";form=null;dirty=false;
+   const index=records().filter(r=>r.section===active).findIndex(r=>r.id===id);
+   limit=Math.max(40,index+1);render();
+   const card=[...mount.querySelectorAll("[data-record]")].find(c=>c.dataset.record===id);
+   const tags=card?.querySelector('[data-field="tags"]');
+   if(!tags){setStatus("Unable to open matching evidence. Select the record manually.");return}
+   const previous=tags.value.split(",").map(x=>x.trim()).filter(Boolean);
+   if(!previous.some(x=>x.toLowerCase()===term.toLowerCase())){
+    previous.push(term);tags.value=previous.join(", ");dirty=true;
+   }
+   tags.focus();
+   setStatus("JD term added to the draft tag field, not saved or verified. Check the original evidence and Save.");
+   return;
+  }
   if(action==="save-record"){await saveRecord(el.closest("[data-record]"));return}
   if(action==="cancel-form"){form=null;dirty=false;render();return}
   if(action==="add-record"||action==="add-section"||action==="rename-section"){
@@ -387,6 +470,7 @@
  doc.addEventListener("input",event=>{
   if(!mount?.contains(event.target))return;
   const el=event.target;
+  if(el.matches("[data-jd-text]")){jdText=el.value;return}
   if(el.matches("[data-search]")){
    if(dirty||form){
     el.value=query;
