@@ -10,6 +10,7 @@
  const currentCandidate=()=>typeof state!=="undefined"&&state.candidate==="Pooja"?"pooja":"abhishek";
  const names=["situation","task","action","result"];
  let mount=null,previous=null,data=null,readiness=null,preview=null,key="abhishek";
+ let previewSearch="",previewFilter="all",previewLimit=12,verifyReport=null;
  let active="experience",query="",filter="all",expanded="",limit=40,form=null,archived=false,dirty=false,busy=false,status="";
  let jdText="",jdMatch=null,starAssists={},numericChecks={};
  let refreshPlan=null,refreshDecisions={},historyList=null,historySnapshot=null;
@@ -194,16 +195,55 @@
     buttons("cancel-form","Cancel")+'</div><form id="gmp-editor-form">'+contents+
     '<div class="gmp-actions"><button type="submit" class="gmp-btn gmp-btn-primary">Save</button></div></form></section>';
  }
+ function previewVisible(){
+  const all=Array.isArray(preview?.records)?preview.records:[];
+  return all.filter(r=>(previewFilter==="all"||
+    (previewFilter==="review"&&r.classification?.needsReview)||
+    (previewFilter==="master"&&r.source?.kind==="master")||
+    (previewFilter==="router"&&r.source?.kind==="router"))&&
+    (!previewSearch.trim()||[r.title,r.originalText,r.source?.locator,r.section].join(" ").toLowerCase().includes(previewSearch.toLowerCase().trim())));
+ }
+ function previewList(){
+  const hits=previewVisible(),all=preview?.records||[];
+  return '<p>'+hits.length+' matching / '+all.length+' records · Tap a row to see all extracted text</p>'+
+   hits.slice(0,previewLimit).map(r=>{
+    const src=r.source||{},link=sourceUrl(src.fileId);
+    return '<details class="gmp-preview-record"><summary><span><strong>'+esc(r.title)+'</strong><small>'+
+     esc(src.kind==="router"?"Router reference — not CV evidence":"Master evidence")+
+     ' · '+esc(r.section)+(r.classification?.needsReview?" · Classification review":"")+
+     '</small></span><span>View text</span></summary><div class="gmp-preview-body">'+
+     '<p><strong>Source:</strong> '+esc(src.locator||"Original source")+
+     (src.lineStart?" · lines "+src.lineStart+"–"+src.lineEnd:"")+
+     (link?' · <a href="'+link+'" target="_blank" rel="noopener noreferrer">Open original Drive file</a>':"")+'</p>'+
+     '<p><strong>Why classified:</strong> '+esc(r.classification?.reason||"Review")+'</p>'+
+     '<p><strong>CV status:</strong> '+(r.cvEligible?"Candidate evidence, not yet verified":"Reference only")+'</p>'+
+     '<p><strong>Exact extracted text:</strong></p><pre class="gmp-preview-original">'+esc(r.originalText||"")+'</pre></div></details>';
+   }).join("")+
+   (hits.length>previewLimit?buttons("preview-more","Show next "+Math.min(12,hits.length-previewLimit)+" records"):"");
+ }
+ function doubleCheckPane(){
+  if(!verifyReport)return "";
+  return '<section class="gmp-inline-editor"><h3>Two-pass verification · '+esc(verifyReport.candidate)+'</h3>'+
+    verifyReport.passes.map((p,i)=>'<p><strong>Pass '+(i+1)+': </strong>'+esc(p.result)+'</p>').join("")+
+    '<p><strong>Source consistency:</strong> '+(verifyReport.matched?"Matching document hashes and record IDs":"Not confirmed")+'</p>'+
+    '<p>Read-only checks for this authenticated candidate. No import or CV changes.</p></section>';
+ }
  function sourcePreview(){
   if(!preview)return "";
-  return '<section class="gmp-inline-editor"><h3>Drive import preview</h3>'+
-   '<p>'+preview.sources.map(s=>esc(s.title)+' ('+s.records+' records)').join(" · ")+'</p>'+
+  return '<section class="gmp-inline-editor gmp-import-preview"><h3>Inspect extracted Drive evidence</h3>'+
+   '<p>Open each record to inspect the full text, its source and classification. Nothing is imported by viewing it.</p>'+
+   '<p>'+preview.sources.map(x=>esc(x.title)+' ('+x.records+' records)').join(" · ")+'</p>'+
    '<p>'+preview.totalRecords+' records · '+Number(preview.classificationReview||0)+' classification checks · '+
-    Number(preview.routerReferences||0)+' routing references · '+Number(preview.duplicateCandidates||0)+' potential duplicates</p>'+
+    Number(preview.routerReferences||0)+' router references · '+Number(preview.duplicateCandidates||0)+' possible duplicates</p>'+
    '<p>Extracted-text audit: '+(preview.allSourcesComplete?"Passed":"Not verified")+'</p>'+
-   (data?.imported?'<p>Refreshing an imported profile needs a future reviewed merge; existing edits are safe.</p>':
-    (readiness?.profileWritesApproved&&preview.allSourcesComplete?buttons("import","Import evidence","gmp-btn-primary"):
-      '<p>Import is locked until the authenticated staging write gate is approved.</p>'))+'</section>';
+   '<div class="gmp-preview-filters"><label>Search text<input data-preview-search type="search" placeholder="Employer, project, skill…" value="'+esc(previewSearch)+'"></label>'+
+    '<label>Source or review status<select data-preview-filter>'+
+    [["all","All records"],["master","Master Bank"],["router","Summary Router"],["review","Needs classification review"]].map(([v,t])=>
+      '<option value="'+v+'"'+(previewFilter===v?" selected":"")+'>'+t+'</option>').join("")+'</select></label></div>'+
+   '<div class="gmp-preview-list" data-preview-list>'+previewList()+'</div>'+
+   (data?.imported?'<p>Imported profile edits are separate from the Drive originals.</p>':
+    readiness?.profileWritesApproved&&preview.allSourcesComplete?buttons("import","Import evidence","gmp-btn-primary"):
+    '<p>Import remains locked until isolated staging writes are approved.</p>')+'</section>';
  }
 
  function refreshPanel(){
