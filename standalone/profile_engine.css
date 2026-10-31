@@ -123,3 +123,9 @@
  .gmp-btn{min-height:35px}
 }
 @media(prefers-reduced-motion:reduce){.gmp-app .gmp-btn{transition:none!important;transform:none!important}}
+
+.gmp-mobile-archived{display:none}
+@media(max-width:720px){
+ .gmp-mobile-archived{display:grid;gap:8px;border:1px solid var(--gmp-line);border-radius:10px;padding:10px;margin-bottom:12px}
+ .gmp-mobile-archived>div{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}
+}
