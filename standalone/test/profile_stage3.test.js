@@ -129,3 +129,15 @@ test("reclassifying an approved claim requires renewed section review",()=>{
  assert.equal(p.records[0].status,"needs-review");
  assert.equal(p.records[0].classificationReviewed,false);
 });
+
+test("Drive originals can have corrected working text without source mutation",()=>{
+ const p=base(),entry=p.records[0],original=entry.originalText;
+ patchRecord(p,{id:"drive-record",changes:{classificationReviewed:true,metricsReviewed:true,status:"verified"}});
+ patchRecord(p,{id:"drive-record",changes:{workingText:"Reviewed a portfolio using corrected factual descriptions and €50.1M scope.",status:"verified"}});
+ assert.equal(entry.originalText,original);
+ assert.match(entry.workingText,/corrected factual descriptions/);
+ assert.equal(entry.previousWorkingText,"");
+ assert.equal(entry.status,"needs-review");
+ assert.equal(entry.metricsReviewed,false);
+ assert.ok(entry.workingMetrics.some(s=>s.includes("€50.1M")));
+});
