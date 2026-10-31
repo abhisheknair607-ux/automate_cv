@@ -157,6 +157,48 @@ def _claim_numbers(text: str) -> set[str]:
             for match in NUMBER.finditer(text)}
 
 
+
+# Conservative independent Python check for reused numbers with incompatible
+# outcome categories. JS verifies on save, but CV staging must recheck pinned
+# snapshots rather than trusting historic client-side review flags alone.
+_CONTEXT_LABELS = {
+    "client-outcome": re.compile(r"\b(?:satisfaction|retention|referrals?|nps|customer experience)\b", re.I),
+    "revenue": re.compile(r"\b(?:revenue|profits?|earnings|margins?|sales|ebitda|turnover)\b", re.I),
+    "cost": re.compile(r"\b(?:costs?|expenses?|savings?|spend|expenditure|budget)\b", re.I),
+    "speed": re.compile(r"\b(?:turnaround|processing time|hours?|days?|minutes?|deadline)\b", re.I),
+    "quality": re.compile(r"\b(?:accuracy|errors?|quality|productivity|efficiency|rework)\b", re.I),
+    "investments": re.compile(r"\b(?:portfolios?|assets?|aum|funds?|investments?|capital|returns?|valuations?)\b", re.I),
+    "compliance": re.compile(r"\b(?:risk|compliance|exceptions?|audits?|regulatory|controls?|breaches?)\b", re.I),
+    "scope": re.compile(r"\b(?:companies|clients|customers|teams?|people|projects?|transactions?|cases?|countries|stakeholders|files)\b", re.I),
+}
+
+
+def _numeric_contexts(text: str) -> dict[str, list[set[str]]]:
+    contexts: dict[str, list[set[str]]] = {}
+    for sentence in re.split(r"(?<=[.!?])\s+|\n+", text):
+        labels = {name for name, pattern in _CONTEXT_LABELS.items()
+                  if pattern.search(sentence)}
+        for match in NUMBER.finditer(sentence):
+            key = re.sub(r"[\s,]+", "", match.group(0)).lower()
+            contexts.setdefault(key, []).append(labels)
+    return contexts
+
+
+def incompatible_numeric_context(claim: str, original: str) -> bool:
+    """Flag *known* outcome mismatches, not certify semantic equivalence."""
+    reference = _numeric_contexts(original)
+    for value, claim_contexts in _numeric_contexts(claim).items():
+        possible = reference.get(value, [])
+        if not possible:
+            return True
+        for required in claim_contexts:
+            # Unclassified context still requires review, but cannot be
+            # automatically called a known mismatch by this narrow detector.
+            if required and all(found and not (required & found) for found in possible):
+                return True
+    return False
+
+
 def _source_id(record: dict) -> str | None:
     src = record.get("source") or {}
     key = src.get("evidenceKey") or ""
@@ -188,6 +230,8 @@ def _eligible(record: dict, master_id: str) -> bool:
                 str(record.get("cvBullet") or "")]
     reviewed.extend(str(v or "") for v in (record.get("star") or {}).values())
     if not _claim_numbers("\n".join(reviewed)).issubset(_claim_numbers(original)):
+        return False
+    if any(incompatible_numeric_context(claim, original) for claim in reviewed if claim):
         return False
     return True
 
