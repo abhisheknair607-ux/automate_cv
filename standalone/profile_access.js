@@ -27,7 +27,8 @@ function parseAcl(raw){
  if(!obj||typeof obj!=="object"||Array.isArray(obj))throw unauthorized("Invalid candidate permission map",503);
  const normalized=Object.create(null);
  for(const [email,grants] of Object.entries(obj)){
-  if(email!==normalizeEmail(email)||!Array.isArray(grants)||grants.length<1)
+  if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||email!==email.toLowerCase()||
+     !Array.isArray(grants)||grants.length<1)
    throw unauthorized("Invalid candidate permission entry",503);
   const unique=[...new Set(grants)];
   if(unique.some(x=>!["abhishek","pooja"].includes(x)))
