@@ -1,0 +1,28 @@
+/* Garamaal Profile Engine – isolated to /prototype, Copper & Porcelain. */
+.gmp-root{position:fixed;inset:0;z-index:990;background:rgba(28,17,11,.65);display:flex;align-items:center;justify-content:center;padding:18px;font-family:inherit}
+.gmp-app{width:min(1200px,100%);height:min(90vh,950px);display:flex;flex-direction:column;background:var(--bg,#f8f2ea);color:var(--text,#302219);border:1px solid #9e6b49;border-radius:20px;overflow:hidden;box-shadow:0 24px 80px #160e0970}
+.gmp-app button,.gmp-app input,.gmp-app select,.gmp-app textarea{font:inherit}
+.gmp-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:19px 24px;border-bottom:1px solid #b48b6c55;background:linear-gradient(115deg,#f3e7d7,#e8d2bb)}
+.gmp-head h2{margin:3px 0 0;color:#3d271a;font-family:Georgia,serif;font-size:25px}.gmp-head p{margin:0;color:#785b44;font-size:12px}
+.gmp-head-controls{display:flex;gap:8px;align-items:center}.gmp-candidate{font-weight:700;color:#624027;border:1px solid #ae805f;border-radius:24px;padding:7px 13px}
+.gmp-app button{cursor:pointer}.gmp-btn{border:1px solid #aa7856;background:#fff8ef;color:#56341f;border-radius:9px;padding:9px 13px;font-weight:650}.gmp-btn:hover{filter:brightness(.96);box-shadow:0 4px 10px #68402225}
+.gmp-btn-primary{background:#845532;color:white;border-color:#845532}.gmp-btn:disabled{opacity:.55;cursor:wait}
+.gmp-banner{background:#f4e7d8;color:#62432c;font-size:12px;padding:9px 20px;border-bottom:1px solid #b88f7355}
+.gmp-layout{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:0;flex:1}
+.gmp-side{border-right:1px solid #b88f7355;overflow:auto;background:#f2e6d8;padding:16px 10px}
+.gmp-side button{display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%;border:0;background:transparent;color:#5b3e2e;padding:10px;border-radius:9px;font-size:13px}
+.gmp-side button[aria-current=true]{background:#cfad8d;color:#352016;font-weight:750}.gmp-side small{opacity:.7}
+.gmp-main{overflow:auto;padding:22px;min-width:0}.gmp-main h3{font-family:Georgia,serif;font-size:21px;margin:0 0 8px;color:inherit}
+.gmp-main p{font-size:13px;line-height:1.6}.gmp-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:13px 0 19px}
+.gmp-search{flex:1;min-width:180px;border:1px solid #b98c6b;border-radius:9px;padding:9px 12px;background:#fffaf3;color:#3d291b}
+.gmp-card{border:1px solid #b88f7360;border-radius:13px;background:#fff8f0;margin-bottom:11px;overflow:hidden;color:#422d1e}
+.gmp-card summary{list-style:none;cursor:pointer;padding:15px;display:flex;align-items:center;gap:10px}.gmp-card summary::-webkit-details-marker{display:none}
+.gmp-card summary strong{flex:1;font-size:14px}.gmp-card summary small{color:#80634e;font-size:11px}
+.gmp-card details[open] summary{border-bottom:1px solid #cfac9166}.gmp-card-body{padding:16px}.gmp-original{white-space:pre-wrap;max-height:300px;overflow:auto;font-size:12px;line-height:1.65;padding:12px;border-radius:9px;background:#f5eadb;border:1px solid #c8ab91;color:#4c392b}
+.gmp-meta{font-size:11px;color:#795b46;margin:8px 0 14px;overflow-wrap:anywhere}.gmp-star{display:grid;grid-template-columns:1fr 1fr;gap:11px}.gmp-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650;color:#533621;margin-bottom:10px}.gmp-field textarea,.gmp-field select,.gmp-field input{border:1px solid #bea083;border-radius:8px;padding:9px;color:#3f2a1d;background:#fffefa;min-width:0}
+.gmp-field textarea{min-height:70px;resize:vertical}.gmp-metrics{font-size:12px;line-height:1.5}.gmp-tag{display:inline-block;padding:3px 7px;border-radius:20px;border:1px solid #b58c70;margin:3px;color:#67452f;font-size:11px}
+.gmp-status{padding:11px 22px;border-top:1px solid #ba987755;background:#f0e1cf;color:#61432c;font-size:12px;min-height:38px}
+.gmp-empty{padding:32px;max-width:640px;border:1px dashed #ab7e60;border-radius:13px;background:#fff9f1}
+.gmp-app .gmp-label{color:#69482f;font-size:12px}.gmp-mobile-sections{display:none}
+@media(prefers-color-scheme:dark){body[data-gm-theme=dark] .gmp-app{background:#241b17;color:#eee1d2}body[data-gm-theme=dark] .gmp-head{background:#372a23}body[data-gm-theme=dark] .gmp-head h2,body[data-gm-theme=dark] .gmp-head p{color:#f0d8be}body[data-gm-theme=dark] .gmp-side{background:#30231b}body[data-gm-theme=dark] .gmp-side button{color:#ebc9ac}body[data-gm-theme=dark] .gmp-card{background:#30251f;color:#f1e1d3}body[data-gm-theme=dark] .gmp-original{background:#241d19;color:#f2e2d2}body[data-gm-theme=dark] .gmp-status,body[data-gm-theme=dark] .gmp-banner{background:#3a2b21;color:#e5c4a5}}
+@media(max-width:720px){.gmp-root{padding:0}.gmp-app{height:100dvh;border-radius:0}.gmp-head{padding:13px 12px}.gmp-head h2{font-size:20px}.gmp-candidate{font-size:11px}.gmp-layout{display:block}.gmp-side{display:none}.gmp-mobile-sections{display:block;margin:0 0 14px;width:100%;padding:9px;background:#fff7ec;color:#4d3120;border:1px solid #c8aa90;border-radius:9px}.gmp-main{padding:13px}.gmp-star{grid-template-columns:1fr}.gmp-card summary{padding:12px}.gmp-btn{font-size:12px;padding:8px}.gmp-banner{padding:7px 12px}}
