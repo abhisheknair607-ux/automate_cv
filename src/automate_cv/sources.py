@@ -322,7 +322,9 @@ class Sources:
         # Default remains the exact existing Drive-selected source. The opted-in
         # comparison only writes a local coverage audit; it never enters the
         # Stage 3 model context or alters the generated Word document.
-        from .profile_cv_adapter import profile_evidence_mode, prepare_evidence
+        from .profile_cv_adapter import (
+            profile_evidence_mode, prepare_evidence, preserve_drive_core,
+        )
         mode = profile_evidence_mode()
         if mode != 'drive':
             mode, profile_selection = prepare_evidence(
@@ -337,7 +339,11 @@ class Sources:
                 original_package = Path(workdir) / 'Drive_Selected_Evidence.md'
                 original_package.write_bytes(Path(selected_path).read_bytes())
                 Path(selected_path).write_text(
-                    profile_selection.package, encoding='utf-8'
+                    preserve_drive_core(
+                        profile_selection.package,
+                        original_package.read_text(encoding='utf-8'),
+                        candidate_key,
+                    ), encoding='utf-8'
                 )
         paths = [selected_path]
 
