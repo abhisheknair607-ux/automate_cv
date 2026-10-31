@@ -127,7 +127,7 @@
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
        "swipe/updateFreshControl","swipe/updateApplicationProgress",
        "profile/identity","profile/readiness","profile/read","profile/import-preview","profile/import","profile/record","profile/add-record","profile/add-section","profile/section","profile/suggest","profile/jd-match","profile/check-claims",
-       "profile/history","profile/history-version","profile/refresh-preview","profile/refresh-apply"].includes(endpoint))
+       "profile/history","profile/history-version","profile/refresh-preview","profile/refresh-apply","profile/structured/read","profile/structured/save","profile/structured/history","profile/structured/history-version"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
