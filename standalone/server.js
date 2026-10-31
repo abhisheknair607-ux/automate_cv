@@ -19,6 +19,7 @@ const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
+const profileService=require("./profile_service");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -154,6 +155,10 @@ app.get("/prototype/account-drawer.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_drawer.js")));
 app.get("/prototype/profile-editor.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
+app.get("/prototype/profile-engine.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"profile_engine_client.js")));
+app.get("/prototype/profile-engine.css",(_req,res)=>
+  res.type("text/css").sendFile(path.join(__dirname,"profile_engine.css")));
 app.get("/prototype/tactile-feedback.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_tactile_feedback.js")));
 // Allowlisted branch artwork and intro script; never publicize backend file paths.
@@ -257,7 +262,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
     '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
     '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
-     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1"></head>');
+     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1">'+
+     '<link rel="stylesheet" href="/prototype/profile-engine.css?v=stage1"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -273,6 +279,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+      '<script src="/prototype/profile-engine.js?v=stage1"></script>'+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
@@ -288,6 +295,8 @@ async function authenticate(req) {
     throw Object.assign(new Error("This Google account is not authorised for Automate CV"),{httpCode:403});
   return email;
 }
+// Opt-in profile feature: separate from the legacy CV source selection.
+profileService.register(app,{authenticate,auth});
 // Lightweight authenticated live queue feed, polled by the Make CV cards.
 app.post("/api/getCvQueue",async (req,res)=>{
   try {
