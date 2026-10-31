@@ -342,10 +342,10 @@
    '<label class="gmp-filter-wrap">Show<select data-filter><option value="all"'+(filter==="all"?" selected":"")+'>All records</option>'+
    [['review','Needs review'],['duplicate','Possible duplicates'],['verified','Verified'],['reference','Routing references']].map(([v,label])=>
     '<option value="'+v+'"'+(filter===v?" selected":"")+'>'+label+'</option>').join("")+'</select></label></div>'+
-   '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
+   '<p class="gmp-stage4-note">Saved edits and full revision history are stored in Firestore. Use Download backup for Drive to keep a private JSON copy; it is not automatically uploaded to Drive.</p>'+\n   '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
    buttons("readiness","Connections")+buttons("verify-twice","Verify sources twice")+
-   buttons("refresh-preview","Review Drive changes")+buttons("history","Version history")+'</div>'+
+   buttons("refresh-preview","Review Drive changes")+buttons("history","Version history")+buttons("export-backup","Download backup for Drive")+'</div>'+
    refreshPanel()+historyPanel()+jdMatcherPanel()+editor()+
    '<div class="gmp-results"><div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
     '<div class="gmp-empty"><strong>No matching evidence.</strong><p>Change the filter or add factual evidence in this section.</p></div>')+'</div>'+
@@ -599,6 +599,30 @@
     refreshPlan=null;refreshDecisions={};
     await refresh("Reviewed Drive changes saved in a new profile revision; CV workflow unchanged.");
    }
+   return;
+  }
+  if(action==="export-backup"){
+   if(hasUnsaved()){
+    setStatus("Save or discard your pending edits before exporting a backup.");return;
+   }
+   // Read the latest authorised candidate document, not an unsaved browser draft.
+   const snapshot=await request("read",{candidate:key});
+   if(!snapshot)return;
+   if(snapshot.candidate!==key||snapshot.imported!==true||!Number.isSafeInteger(snapshot.revision)||snapshot.revision<1){
+    setStatus("Imported, saved profile required before downloading a backup.");return;
+   }
+   const pack={schema:"garamaal-profile-backup-v1",source:"staging-firestore",
+    candidate:key,revision:snapshot.revision,exportedAt:new Date().toISOString(),profile:snapshot};
+   const blob=new Blob([JSON.stringify(pack,null,2)+"\\n"],{type:"application/json"});
+   const url=URL.createObjectURL(blob);
+   const anchor=doc.createElement("a");
+   const date=new Date().toISOString().slice(0,10);
+   anchor.href=url;
+   anchor.download="Garamaal_Profile_"+(key==="pooja"?"Pooja":"Abhishek")+"_rev"+snapshot.revision+"_"+date+".json";
+   anchor.style.display="none";
+   doc.body.appendChild(anchor);anchor.click();anchor.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   setStatus("Backup downloaded for "+key+" revision "+snapshot.revision+". Upload this private JSON file to your Google Drive; automatic Drive sync is not enabled.");
    return;
   }
   if(action==="history"){
