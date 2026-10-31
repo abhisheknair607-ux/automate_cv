@@ -156,7 +156,7 @@ app.get("/prototype/account-drawer.js",(_req,res)=>
 app.get("/prototype/profile-editor.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
 app.get("/prototype/profile-engine.js",(_req,res)=>
-  res.type("text/javascript").sendFile(path.join(__dirname,"profile_engine_client.js")));
+  res.type("text/javascript").sendFile(path.join(__dirname,"profile_engine_v3.js")));
 app.get("/prototype/profile-engine.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"profile_engine.css")));
 app.get("/prototype/tactile-feedback.js",(_req,res)=>
