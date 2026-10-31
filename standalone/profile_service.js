@@ -11,7 +11,7 @@ const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("
 const sectionOps=require("./profile_section_ops");
 const profileSuggestions=require("./profile_suggestions");
 const {auditClaimNumbers}=require("./profile_claim_review");
-const {permit}=require("./profile_access");
+const {permit,parseAcl}=require("./profile_access");
 const {planRefresh,applyRefresh}=require("./profile_refresh");
 const {recordRevision,backfillBaseline,historySummary,verifyHistoryRead,pad}=require("./profile_history");
 const DATA_SCOPE=process.env.GARAMAAL_PROFILE_DATA_SCOPE;
@@ -112,6 +112,23 @@ function register(app,{authenticate,auth}){
       res.status(status).json({error:safeErr(error)});
     }
   }
+  // This read-only identity check is intentionally independent of candidate ACL.
+  // It lets the user identify their verified Firebase account before asking a
+  // Cloud administrator to extend candidate permissions. Never public or prod.
+  app.post("/api/profile/identity",async(req,res)=>{
+    res.set("Cache-Control","private, no-store");
+    try{
+      allowed();
+      if(DATA_SCOPE!=="staging"||process.env.GARAMAAL_PROFILE_STAGING_ISOLATED!=="true"||
+         process.env.APP_READ_ONLY!=="true")
+        throw Object.assign(Error("Identity preview is staging-only"),{httpCode:403});
+      const email=await authenticate(req);
+      const acl=parseAcl(process.env.GARAMAAL_PROFILE_CANDIDATE_ACL_JSON);
+      res.json({data:{email,candidates:[...(acl[email]||[])],verified:true,scope:"staging"}});
+    }catch(error){
+      res.status(error.httpCode||500).json({error:safeErr(error)});
+    }
+  });
   app.post("/api/profile/readiness",(req,res)=>handle(req,res,async({key,ref})=>{
     const sources=sourceCatalog(key);
     const status={candidate:key,profileEnabled:true,profileWritesApproved:profileWriteApproved(),dataScope:DATA_SCOPE,
