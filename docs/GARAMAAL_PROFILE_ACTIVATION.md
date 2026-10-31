@@ -76,3 +76,46 @@ Use an isolated staging service or separate **zero-traffic** revision with the c
 ### Next planned stage
 
 Stage 3: in-page edit/add-section dialogs, section ordering and optional archiving, provenance links, better search and confidence review. Stage 4: sourced STAR assistance and metric evidence checking. Stage 5: final candidate ownership / Firestore security and versioning. Stage 6: after review and controlled tests, migrate the Python CV worker to a verified, versioned profile evidence package with a rollback to Drive.
+
+
+## Stage 3 — full responsive editor (31 October 2026)
+
+Feature branch: feature/activate-garamaal-profile-20261031; draft pull request #99.
+
+### Implemented UI and data safeguards
+
+- New isolated profile_engine_v3.js served from the existing /prototype/profile-engine.js endpoint only when GARAMAAL_PROFILE_ENABLED=true. The earlier browser-local Profile remains available as rollback when the flag is off.
+- Responsive Copper & Porcelain profile workspace with accessible mobile section selector, keyboard navigation, light/dark styling, and section-specific evidence lists.
+- Inline forms for adding factual evidence and adding or renaming custom sections. No browser prompt() or direct Firebase clients in the new editor.
+- Move sections up/down, archive empty custom sections, restore archived sections (on mobile and desktop). Built-in sections and records cannot be deleted; nonempty custom sections cannot be archived.
+- Global search across all original evidence, titles, keywords, draft CV bullets, provenance and section names; review/verified/duplicate/reference filters. Paged display for large evidence inventories.
+- Display original Drive evidence unmodified with file source links, evidence key/locator and extracted line range. Optional editable working facts are stored separately from the original source, with their own number observations and status reset.
+- Editable STAR fields, keywords, CV-draft bullet, classification review and numeric review checkboxes. Human review is required before verification. Router records are not CV-eligible.
+- Unsaved-edit warnings when changing sections or closing the editor. Save is explicit and revisions protect against concurrent overwrites.
+- Pure tested backend mutation functions for safe section and evidence operations, used inside the authenticated Firestore transaction. Candidate separation and CV worker isolation remain unchanged.
+- Existing Jobs, Make CV, Social and original Drive file sources are unchanged; no profile-to-CV switch or model tokens are used by these UI edits.
+
+### Staging prerequisite audit
+
+A new **read-only** script is available:
+
+    bash standalone/profile-staging-readiness.sh
+
+It defaults to service automate-cv-staging in project abhishek-cv-automation and region europe-west1. It inspects the selected Cloud Run service and Firestore configuration without changing anything. The script refuses the production dashboard by default.
+
+For a differently named staging service:
+
+    GARAMAAL_STAGING_SERVICE=your-isolated-service bash standalone/profile-staging-readiness.sh
+
+For audit-only inspection of production (still no mutations), the user must deliberately opt in using ALLOW_PROFILE_PRODUCTION_INSPECTION=true and GARAMAAL_STAGING_SERVICE=automate-cv-dashboard. **Do not enable any profile flags on production during Stage 3.**
+
+It deliberately does not print Drive file IDs, OAuth tokens or secret values. Environment variable presence is not sufficient: staging must also pass the authenticated /api/profile/readiness check, and then a controlled import preview, actual import, STAR/section edits and mobile/browser testing before any production approval.
+
+Cloud Run runtime configuration, Firestore IAM and a live staging URL cannot be tested or changed through the available GitHub connector. The CLI script must be executed in an appropriately authorised Google Cloud Shell session. Do not claim runtime readiness or end-to-end browser testing merely because repository CI passes.
+
+### Deferred until later stages
+
+- Automatic STAR bullet drafting and metric validation against underlying source evidence (Stage 4).
+- Production-grade candidate tenancy and Firestore policy review, live staging import/save and source refresh diff (Stage 5).
+- CV worker profile evidence adapter with strict verified-only selection, source-version pinning and Drive rollback (Stage 6).
+- Full end-to-end browser/paid-CV regression and explicit guarded activation (Stage 7).
