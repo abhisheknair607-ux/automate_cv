@@ -19,11 +19,17 @@ const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
+const profileService=require("./profile_service");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
 // Safest default: never permit writes unless explicitly enabled after sign-off.
 const READ_ONLY = process.env.APP_READ_ONLY !== "false";
+// Private Cloud Shell proxy authenticates to Cloud Run separately from Firebase.
+// Accept a second Firebase header ONLY for read-only, isolated Profile staging.
+const PROFILE_PREVIEW_PROXY_AUTH = READ_ONLY &&
+  process.env.GARAMAAL_PROFILE_STAGING_ISOLATED === "true" &&
+  process.env.GARAMAAL_PROFILE_DATA_SCOPE === "staging";
 const PROJECT = process.env.GOOGLE_CLOUD_PROJECT || process.env.FIREBASE_PROJECT_ID || "";
 const ALLOWED = String(process.env.ALLOWED_EMAILS||"")
   .split(",").map(s=>s.trim().toLowerCase()).filter(Boolean);
@@ -66,6 +72,7 @@ app.get("/config",(req,res)=>res.json({
   projectId:PROJECT,
   appId:process.env.FIREBASE_WEB_APP_ID||"",
   readOnly:READ_ONLY,
+  profilePreviewProxyAuth:PROFILE_PREVIEW_PROXY_AUTH,
 }));
 app.get("/dashboard-ranking.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_ranking.js")));
 app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_connections.js")));
@@ -154,6 +161,10 @@ app.get("/prototype/account-drawer.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_drawer.js")));
 app.get("/prototype/profile-editor.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_profile_editor.js")));
+app.get("/prototype/profile-engine.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"profile_engine_v3.js")));
+app.get("/prototype/profile-engine.css",(_req,res)=>
+  res.type("text/css").sendFile(path.join(__dirname,"profile_engine.css")));
 app.get("/prototype/tactile-feedback.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_tactile_feedback.js")));
 // Allowlisted branch artwork and intro script; never publicize backend file paths.
@@ -257,7 +268,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
     '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
     '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
-     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1"></head>');
+     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1">'+
+     '<link rel="stylesheet" href="/prototype/profile-engine.css?v=stage1"></head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -273,12 +285,16 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+      (typeof process!=="undefined" && process.env.GARAMAAL_PROFILE_ENABLED==="true" ? '<script src="/prototype/profile-engine.js?v=stage1"></script>' : '')+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
 
 async function authenticate(req) {
-  const match=String(req.headers.authorization||"").match(/^Bearer\s+(.+)$/i);
+  const firebaseHeader = PROFILE_PREVIEW_PROXY_AUTH && req.path.startsWith("/api/profile/")
+    ? (req.headers["x-garamaal-firebase-authorization"] || req.headers.authorization)
+    : req.headers.authorization;
+  const match=String(firebaseHeader||"").match(/^Bearer\s+(.+)$/i);
   if(!match)throw Object.assign(new Error("Sign in to continue"),{httpCode:401});
   let claims;
   try { claims=await getAuth().verifyIdToken(match[1]); }
@@ -288,6 +304,8 @@ async function authenticate(req) {
     throw Object.assign(new Error("This Google account is not authorised for Automate CV"),{httpCode:403});
   return email;
 }
+// Opt-in profile feature: separate from the legacy CV source selection.
+profileService.register(app,{authenticate,auth});
 // Lightweight authenticated live queue feed, polled by the Make CV cards.
 app.post("/api/getCvQueue",async (req,res)=>{
   try {

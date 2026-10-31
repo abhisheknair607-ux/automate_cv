@@ -1,0 +1,166 @@
+"use strict";
+/* Pure Stage 3 Profile mutations. Never alter imported original evidence in-place.
+ * All operations run inside the existing authenticated Firestore revision transaction.
+ */
+const {randomUUID}=require("node:crypto");
+const {metricsFrom}=require("./profile_evidence");
+const {unsupportedNumbers}=require("./profile_suggestions");
+const {auditClaimNumbers}=require("./profile_claim_review");
+const error=(message,httpCode=400)=>Object.assign(Error(message),{httpCode});
+const isObject=value=>value!==null&&typeof value==="object"&&!Array.isArray(value);
+function section(profile,id){return profile.sections.find(s=>s.id===id);}
+function addSection(profile,body){
+ const title=String(body.title||"").trim();
+ if(title.length<2||title.length>90)throw error("Section name must be 2–90 characters");
+ if(profile.sections.length>=40)throw error("Maximum 40 sections");
+ if(profile.sections.some(s=>s.title.toLowerCase()===title.toLowerCase()))throw error("A section with this name already exists");
+ const id="custom_"+randomUUID().replace(/-/g,"").slice(0,18);
+ profile.sections.push({id,title,archived:false,custom:true});
+ return id;
+}
+function manageSection(profile,body){
+ const id=String(body.id||"");
+ const index=profile.sections.findIndex(s=>s.id===id);
+ if(index<0)throw error("Section not found",404);
+ const target=profile.sections[index],action=String(body.action||"");
+ if(action==="rename"){
+  if(!id.startsWith("custom_"))throw error("Built-in section names are protected");
+  const title=String(body.title||"").trim();
+  if(title.length<2||title.length>90)throw error("Section name must be 2–90 characters");
+  if(profile.sections.some(s=>s.id!==id&&s.title.toLowerCase()===title.toLowerCase()))throw error("Section title already exists");
+  target.title=title;return;
+ }
+ if(action==="move-up"||action==="move-down"){
+  const to=index+(action==="move-up"?-1:1);
+  if(to<0||to>=profile.sections.length)throw error("Section already at the edge");
+  const other=profile.sections[to];
+  profile.sections[to]=target;profile.sections[index]=other;
+  return;
+ }
+ if(action==="archive"){
+  if(!id.startsWith("custom_"))throw error("Built-in sections cannot be archived");
+  if(profile.records.some(r=>r.section===id))throw error("Move the evidence to another section before archiving");
+  if(target.archived)throw error("Section already archived");
+  target.archived=true;return;
+ }
+ if(action==="restore"){
+  if(!id.startsWith("custom_")||!target.archived)throw error("Section is not archived");
+  target.archived=false;return;
+ }
+ throw error("Unknown section operation");
+}
+function addRecord(profile,body){
+ const sectionId=String(body.section||"achievements");
+ const to=section(profile,sectionId);
+ if(!to||to.archived)throw error("Choose an active section");
+ const text=String(body.originalText||"").trim();
+ if(text.length<2||text.length>12000)throw error("Factual evidence description must be 2–12000 characters");
+ const title=String(body.title||"").trim();
+ if(title.length<2||title.length>180)throw error("Evidence title must be 2–180 characters");
+ const id=randomUUID();
+ profile.records.push({id,section:sectionId,title,
+  originalText:text,source:{kind:"user",fileId:"",locator:"Candidate-added evidence",index:-1},
+  metrics:metricsFrom(text),metricsReviewed:false,star:{situation:"",task:"",action:"",result:""},
+  cvBullet:"",status:"needs-review",classificationReviewed:true,cvEligible:true,tags:[]});
+ return id;
+}
+function patchRecord(profile,body){
+ const entry=profile.records.find(r=>r.id===body.id);
+ if(!entry)throw error("Record not found",404);
+ const changes=body.changes;
+ if(!isObject(changes)||Object.keys(changes).length===0)throw error("Missing record changes");
+ const allowed=new Set(["title","section","cvBullet","status","metricsReviewed","star","tags","classificationReviewed","originalText","workingText"]);
+ for(const key of Object.keys(changes))if(!allowed.has(key))throw error("Original evidence and provenance are protected");
+ // Validate everything first so one invalid value never partially applies.
+ if("title" in changes){
+  if(typeof changes.title!=="string"||changes.title.trim().length<2||changes.title.length>180)throw error("Invalid evidence title");
+ }
+ if("workingText" in changes){
+  if(typeof changes.workingText!=="string"||changes.workingText.length>12000)
+   throw error("Working evidence must be 0–12000 characters");
+ }
+ if("originalText" in changes){
+  if(entry.source?.kind!=="user")throw error("Imported Drive evidence cannot be overwritten");
+  if(typeof changes.originalText!=="string"||changes.originalText.trim().length<2||changes.originalText.length>12000)throw error("Invalid original text");
+ }
+ if("section" in changes){
+  const target=section(profile,changes.section);
+  if(!target||target.archived)throw error("Cannot move evidence to an unavailable section");
+ }
+ if("cvBullet" in changes&&(typeof changes.cvBullet!=="string"||changes.cvBullet.length>4000))
+  throw error("Invalid CV draft");
+ if("status" in changes){
+  if(!["needs-review","verified","exclude"].includes(changes.status))throw error("Invalid evidence status");
+  if(changes.status==="verified"&&entry.cvEligible===false)throw error("Router references cannot be verified CV evidence");
+  if(changes.status==="verified"&&entry.cvEligible!==false){
+   const classificationApproved="classificationReviewed" in changes?
+      changes.classificationReviewed:entry.classificationReviewed===true;
+   const metricsApproved="metricsReviewed" in changes?
+      changes.metricsReviewed:entry.metricsReviewed===true;
+   if(!classificationApproved)throw error("Review the evidence classification before verifying");
+   if((entry.metrics||[]).length>0&&!metricsApproved)
+    throw error("Review detected numbers before verifying quantified evidence");
+  }
+ }
+ if("metricsReviewed" in changes&&typeof changes.metricsReviewed!=="boolean")throw error("Invalid metrics approval");
+ if("classificationReviewed" in changes&&typeof changes.classificationReviewed!=="boolean")throw error("Invalid classification review");
+ if("tags" in changes&&(!Array.isArray(changes.tags)||changes.tags.length>30||
+    changes.tags.some(x=>typeof x!=="string"||x.length>60)))throw error("Invalid keywords");
+ if("star" in changes){
+  if(!isObject(changes.star))throw error("Invalid STAR fields");
+  for(const key of ["situation","task","action","result"])
+   if(typeof changes.star[key]!=="string"||changes.star[key].length>4000)throw error("Invalid STAR field");
+ }
+ // Validate a requested verification against the original before changing the
+ // record at all. Firestore transactions protect persistence, but this also
+ // keeps pure mutation helpers atomic on rejected review actions.
+ const proposedClaim=[("workingText" in changes?changes.workingText:entry.workingText)||"",
+   ("cvBullet" in changes?changes.cvBullet:entry.cvBullet)||"",
+   ...["situation","task","action","result"].map(k=>("star" in changes?changes.star[k]:entry.star?.[k])||"")
+ ].join("\n");
+ if(changes.status==="verified"){
+  const missing=unsupportedNumbers(proposedClaim,entry.originalText);
+  if(missing.length)throw error("Unverified numerical claim: "+
+    missing.map(x=>x.value).slice(0,5).join(", ")+". Check the original evidence before verifying.");
+  const context=auditClaimNumbers(proposedClaim,entry.originalText).contextWarnings;
+  if(context.length)throw error("Numerical claim uses a different outcome context from its original evidence: "+
+    context.map(x=>x.value).slice(0,5).join(", ")+". Correct the draft before verifying.");
+ }
+ const textChanged="originalText" in changes&&changes.originalText.trim()!==entry.originalText;
+ const workingChanged="workingText" in changes&&changes.workingText.trim()!==(entry.workingText||"");
+ if(textChanged){
+  entry.previousUserText=entry.originalText;
+  entry.originalText=changes.originalText.trim();
+  entry.metrics=metricsFrom(entry.originalText);
+  entry.metricsReviewed=false;
+  entry.status="needs-review";
+ }
+ if(workingChanged){
+  entry.previousWorkingText=entry.workingText||"";
+  entry.workingText=changes.workingText.trim();
+  entry.workingMetrics=metricsFrom(entry.workingText);
+  entry.metricsReviewed=false;entry.status="needs-review";
+ }
+ if("title" in changes)entry.title=changes.title.trim();
+ const sectionChanged="section" in changes&&changes.section!==entry.section;
+ if("section" in changes)entry.section=changes.section;
+ if(sectionChanged){entry.classificationReviewed=false;entry.status="needs-review";}
+ if("cvBullet" in changes)entry.cvBullet=changes.cvBullet;
+ if("star" in changes)entry.star={...changes.star};
+ if("tags" in changes)entry.tags=[...new Set(changes.tags.map(x=>x.trim()).filter(Boolean))];
+ if("classificationReviewed" in changes)entry.classificationReviewed=changes.classificationReviewed;
+ if("metricsReviewed" in changes&&!textChanged&&!workingChanged)entry.metricsReviewed=changes.metricsReviewed;
+ if("status" in changes&&!textChanged&&!workingChanged)entry.status=changes.status;
+ const claimText=[entry.workingText||"",entry.cvBullet||"",
+  ...["situation","task","action","result"].map(k=>entry.star?.[k]||"")].join("\n");
+ const unsupported=unsupportedNumbers(claimText,entry.originalText);
+ const contextRisk=auditClaimNumbers(claimText,entry.originalText).contextWarnings;
+ if(unsupported.length||contextRisk.length){
+  // Existing approved records must not stay verified after an unsupported new claim.
+  entry.status="needs-review";entry.metricsReviewed=false;
+ }
+ if(entry.status==="verified"&&(!entry.classificationReviewed||
+     ((entry.workingMetrics||entry.metrics||[]).length>0&&!entry.metricsReviewed)))
+  entry.status="needs-review";
+}
+module.exports={addSection,manageSection,addRecord,patchRecord};

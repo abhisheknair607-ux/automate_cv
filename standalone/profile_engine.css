@@ -1,0 +1,213 @@
+/* Garamaal Profile Engine – isolated to /prototype, Copper & Porcelain. */
+.gmp-root{position:fixed;inset:0;z-index:990;background:rgba(28,17,11,.65);display:flex;align-items:center;justify-content:center;padding:18px;font-family:inherit}
+.gmp-app{width:min(1200px,100%);height:min(90vh,950px);display:flex;flex-direction:column;background:var(--bg,#f8f2ea);color:var(--text,#302219);border:1px solid #9e6b49;border-radius:20px;overflow:hidden;box-shadow:0 24px 80px #160e0970}
+.gmp-app button,.gmp-app input,.gmp-app select,.gmp-app textarea{font:inherit}
+.gmp-head{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:19px 24px;border-bottom:1px solid #b48b6c55;background:linear-gradient(115deg,#f3e7d7,#e8d2bb)}
+.gmp-head h2{margin:3px 0 0;color:#3d271a;font-family:Georgia,serif;font-size:25px}.gmp-head p{margin:0;color:#785b44;font-size:12px}
+.gmp-head-controls{display:flex;gap:8px;align-items:center}.gmp-candidate{font-weight:700;color:#624027;border:1px solid #ae805f;border-radius:24px;padding:7px 13px}
+.gmp-app button{cursor:pointer}.gmp-btn{border:1px solid #aa7856;background:#fff8ef;color:#56341f;border-radius:9px;padding:9px 13px;font-weight:650}.gmp-btn:hover{filter:brightness(.96);box-shadow:0 4px 10px #68402225}
+.gmp-btn-primary{background:#845532;color:white;border-color:#845532}.gmp-btn:disabled{opacity:.55;cursor:wait}
+.gmp-banner{background:#f4e7d8;color:#62432c;font-size:12px;padding:9px 20px;border-bottom:1px solid #b88f7355}
+.gmp-layout{display:grid;grid-template-columns:235px minmax(0,1fr);min-height:0;flex:1}
+.gmp-side{border-right:1px solid #b88f7355;overflow:auto;background:#f2e6d8;padding:16px 10px}
+.gmp-side button{display:flex;align-items:center;justify-content:space-between;text-align:left;width:100%;border:0;background:transparent;color:#5b3e2e;padding:10px;border-radius:9px;font-size:13px}
+.gmp-side button[aria-current=true]{background:#cfad8d;color:#352016;font-weight:750}.gmp-side small{opacity:.7}
+.gmp-main{overflow:auto;padding:22px;min-width:0}.gmp-main h3{font-family:Georgia,serif;font-size:21px;margin:0 0 8px;color:inherit}
+.gmp-main p{font-size:13px;line-height:1.6}.gmp-actions{display:flex;align-items:center;flex-wrap:wrap;gap:9px;margin:13px 0 19px}
+.gmp-search{flex:1;min-width:180px;border:1px solid #b98c6b;border-radius:9px;padding:9px 12px;background:#fffaf3;color:#3d291b}
+.gmp-card{border:1px solid #b88f7360;border-radius:13px;background:#fff8f0;margin-bottom:11px;overflow:hidden;color:#422d1e}
+.gmp-card summary{list-style:none;cursor:pointer;padding:15px;display:flex;align-items:center;gap:10px}.gmp-card summary::-webkit-details-marker{display:none}
+.gmp-card summary strong{flex:1;font-size:14px}.gmp-card summary small{color:#80634e;font-size:11px}
+.gmp-card details[open] summary{border-bottom:1px solid #cfac9166}.gmp-card-body{padding:16px}.gmp-original{white-space:pre-wrap;max-height:300px;overflow:auto;font-size:12px;line-height:1.65;padding:12px;border-radius:9px;background:#f5eadb;border:1px solid #c8ab91;color:#4c392b}
+.gmp-meta{font-size:11px;color:#795b46;margin:8px 0 14px;overflow-wrap:anywhere}.gmp-star{display:grid;grid-template-columns:1fr 1fr;gap:11px}.gmp-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:650;color:#533621;margin-bottom:10px}.gmp-field textarea,.gmp-field select,.gmp-field input{border:1px solid #bea083;border-radius:8px;padding:9px;color:#3f2a1d;background:#fffefa;min-width:0}
+.gmp-field textarea{min-height:70px;resize:vertical}.gmp-metrics{font-size:12px;line-height:1.5}.gmp-tag{display:inline-block;padding:3px 7px;border-radius:20px;border:1px solid #b58c70;margin:3px;color:#67452f;font-size:11px}
+.gmp-status{padding:11px 22px;border-top:1px solid #ba987755;background:#f0e1cf;color:#61432c;font-size:12px;min-height:38px}
+.gmp-empty{padding:32px;max-width:640px;border:1px dashed #ab7e60;border-radius:13px;background:#fff9f1}
+.gmp-app .gmp-label{color:#69482f;font-size:12px}.gmp-mobile-sections{display:none}
+@media(prefers-color-scheme:dark){body[data-gm-theme=dark] .gmp-app{background:#241b17;color:#eee1d2}body[data-gm-theme=dark] .gmp-head{background:#372a23}body[data-gm-theme=dark] .gmp-head h2,body[data-gm-theme=dark] .gmp-head p{color:#f0d8be}body[data-gm-theme=dark] .gmp-side{background:#30231b}body[data-gm-theme=dark] .gmp-side button{color:#ebc9ac}body[data-gm-theme=dark] .gmp-card{background:#30251f;color:#f1e1d3}body[data-gm-theme=dark] .gmp-original{background:#241d19;color:#f2e2d2}body[data-gm-theme=dark] .gmp-status,body[data-gm-theme=dark] .gmp-banner{background:#3a2b21;color:#e5c4a5}}
+@media(max-width:720px){.gmp-root{padding:0}.gmp-app{height:100dvh;border-radius:0}.gmp-head{padding:13px 12px}.gmp-head h2{font-size:20px}.gmp-candidate{font-size:11px}.gmp-layout{display:block}.gmp-side{display:none}.gmp-mobile-sections{display:block;margin:0 0 14px;width:100%;padding:9px;background:#fff7ec;color:#4d3120;border:1px solid #c8aa90;border-radius:9px}.gmp-main{padding:13px}.gmp-star{grid-template-columns:1fr}.gmp-card summary{padding:12px}.gmp-btn{font-size:12px;padding:8px}.gmp-banner{padding:7px 12px}}
+
+.gmp-review-note{font-size:12px;line-height:1.6;border-left:3px solid #a46c43;padding:8px 11px;margin:10px 0;background:#f6e8d8;color:#60412e}
+.gmp-review-note strong{color:#663f24}
+
+/* Stage 3: accessible inline editing and section manager */
+.gmp-app{--gmp-panel:#fffaf4;--gmp-ink:#3d291d;--gmp-muted:#81644f;--gmp-line:#ceb39a;--gmp-tint:#f4e8da;color:var(--gmp-ink);background:#f9f2ea}
+.gmp-accent{color:#a56b44}
+.gmp-section-nav{display:flex;flex-direction:column;gap:3px}
+.gmp-section-button{min-height:41px}
+.gmp-side-head{display:flex;align-items:center;justify-content:space-between;margin:0 5px 15px;gap:5px;font-size:11px;letter-spacing:.12em;color:#73513b}
+.gmp-side-head .gmp-btn,.gmp-side .gmp-btn{width:auto;border:1px solid #b99477;background:#fff8ef;padding:7px 9px}
+.gmp-section-manage{margin:19px 5px 14px;padding-top:15px;border-top:1px solid var(--gmp-line)}
+.gmp-section-manage strong{font-size:11px;color:#684832}
+.gmp-section-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.gmp-btn-small{font-size:11px!important;padding:7px 9px!important}
+.gmp-archived{display:grid;gap:8px;padding:10px 2px;font-size:12px}
+.gmp-archived>div{display:flex;justify-content:space-between;align-items:center;gap:5px}
+.gmp-archived button{width:auto!important}
+.gmp-main-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.gmp-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:14px 0}
+.gmp-search-wrap,.gmp-filter-wrap{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--gmp-muted)}
+.gmp-search-wrap{flex:2;min-width:190px}.gmp-filter-wrap{flex:1;min-width:130px}
+.gmp-filter-wrap select,.gmp-mobile-label select{width:100%;padding:10px;border-radius:9px;background:var(--gmp-panel);color:var(--gmp-ink);border:1px solid var(--gmp-line)}
+.gmp-search{width:100%;box-sizing:border-box;color:var(--gmp-ink);background:var(--gmp-panel)}
+.gmp-card{box-shadow:0 2px 9px #4d30170a}
+.gmp-card[hidden]{display:none!important}
+.gmp-record-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.gmp-record-title strong{font-size:14px;color:#4f3120;font-weight:730}
+.gmp-record-title small{font-size:11px;color:#8a6952}
+.gmp-pill{flex-shrink:0;border-radius:20px;background:#f1e4d4;border:1px solid #dec6ab;font-size:10px;padding:4px 9px;color:#674e38;white-space:nowrap}
+.gmp-card summary{gap:11px}
+.gmp-split{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+.gmp-field{font-weight:650}
+.gmp-field input,.gmp-field select,.gmp-field textarea{width:100%;box-sizing:border-box}
+.gmp-field textarea{min-height:80px}
+.gmp-field input:focus,.gmp-field textarea:focus,.gmp-field select:focus,
+.gmp-btn:focus-visible,.gmp-section-button:focus-visible{outline:2px solid #ae744f;outline-offset:2px}
+.gmp-field textarea:focus{border-color:#a77150}
+.gmp-check{display:flex;align-items:flex-start;gap:9px;line-height:1.5;font-size:12px;margin:13px 0;color:#63452f}
+.gmp-check input{accent-color:#a46b45;flex:0 0 auto;width:16px;height:16px;margin:1px 0 0}
+.gmp-record-footer{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:16px}
+.gmp-meta a{color:#8d5433;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.gmp-inline-editor{border:1px solid #c89d7c;background:#fff7ed;border-radius:13px;padding:18px;margin:14px 0 21px;color:#4a3222}
+.gmp-inline-editor h3{margin:0 0 8px;font-size:18px}
+.gmp-inline-editor p{margin:8px 0 15px}
+.gmp-form-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.gmp-form-head .gmp-btn{flex-shrink:0}
+.gmp-record-list{min-height:150px}
+.gmp-mobile-label,.gmp-mobile-manage{display:none}
+.gmp-app .gmp-btn:hover{transform:translateY(-1px)}
+.gmp-app .gmp-btn:active{transform:translateY(0)}
+.gmp-root.gmp-dark .gmp-app{--gmp-panel:#30241e;--gmp-ink:#f0ddca;--gmp-muted:#bd9a81;--gmp-line:#644c3b;--gmp-tint:#3a2a20;color:#f0ddca;background:#241b16}
+.gmp-root.gmp-dark .gmp-head{background:#35261f;border-color:#644c3b}
+.gmp-root.gmp-dark .gmp-head h2,.gmp-root.gmp-dark .gmp-head p{color:#efdbca}
+.gmp-root.gmp-dark .gmp-banner,.gmp-root.gmp-dark .gmp-status{background:#38271e;color:#e6c8b1}
+.gmp-root.gmp-dark .gmp-side{background:#2b211b;border-color:#594336}
+.gmp-root.gmp-dark .gmp-side-head,.gmp-root.gmp-dark .gmp-section-manage strong{color:#dfbca5}
+.gmp-root.gmp-dark .gmp-section-button{color:#f0d9c5}
+.gmp-root.gmp-dark .gmp-card,.gmp-root.gmp-dark .gmp-inline-editor{background:#32251e;color:#edd6c5;border-color:#6b4e3e}
+.gmp-root.gmp-dark .gmp-record-title strong,.gmp-root.gmp-dark .gmp-record-title small{color:#f0d8c6}
+.gmp-root.gmp-dark .gmp-pill{background:#4e3727;color:#e6c5a8;border-color:#775541}
+.gmp-root.gmp-dark .gmp-field,.gmp-root.gmp-dark .gmp-check{color:#e4c8ad}
+.gmp-root.gmp-dark .gmp-field input,.gmp-root.gmp-dark .gmp-field textarea,.gmp-root.gmp-dark .gmp-field select,
+.gmp-root.gmp-dark .gmp-filter-wrap select,.gmp-root.gmp-dark .gmp-mobile-label select,
+.gmp-root.gmp-dark .gmp-search{background:#2a211c;color:#f2d8c5;border-color:#72513d}
+.gmp-root.gmp-dark .gmp-original{background:#271d18;color:#ebd6c3;border-color:#614735}
+.gmp-root.gmp-dark .gmp-review-note{background:#403024;color:#e8c9ae}
+.gmp-root.gmp-dark .gmp-btn{background:#433126;color:#f5ddc7;color:#f5ddc7;border-color:#8a6249}
+.gmp-root.gmp-dark .gmp-btn-primary{background:#a67249;border-color:#b58760;color:#fff7ed}
+.gmp-root.gmp-dark .gmp-meta,.gmp-root.gmp-dark .gmp-label{color:#bd977c}
+.gmp-root.gmp-dark .gmp-meta a{color:#efbc91}
+.gmp-root.gmp-dark .gmp-empty{background:#2e211b;border-color:#7b5942}
+@media(max-width:720px){
+ .gmp-app{width:100%;height:100dvh;max-height:none}
+ .gmp-layout{display:flex;flex-direction:column}
+ .gmp-main{flex:1;overscroll-behavior:contain}
+ .gmp-mobile-label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;margin-bottom:8px}
+ .gmp-mobile-sections{display:block;width:100%}
+ .gmp-mobile-manage{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 14px}
+ .gmp-mobile-manage .gmp-btn{padding:7px 9px;font-size:11px}
+ .gmp-toolbar{display:grid;grid-template-columns:1fr;gap:8px}
+ .gmp-search-wrap,.gmp-filter-wrap{min-width:0}
+ .gmp-split,.gmp-star{grid-template-columns:1fr}
+ .gmp-head{padding:13px}
+ .gmp-head p{font-size:10px}
+ .gmp-head h2{font-size:21px}
+ .gmp-banner{padding:10px 13px;line-height:1.6}
+ .gmp-card summary{padding:12px;gap:6px}
+ .gmp-record-title strong{font-size:13px}
+ .gmp-pill{font-size:10px;padding:3px 6px}
+ .gmp-card-body{padding:12px}
+ .gmp-inline-editor{padding:12px}
+ .gmp-status{padding:8px 13px;font-size:11px}
+ .gmp-actions{gap:6px}
+ .gmp-btn{min-height:35px}
+}
+@media(prefers-reduced-motion:reduce){.gmp-app .gmp-btn{transition:none!important;transform:none!important}}
+
+.gmp-mobile-archived{display:none}
+@media(max-width:720px){
+ .gmp-mobile-archived{display:grid;gap:8px;border:1px solid var(--gmp-line);border-radius:10px;padding:10px;margin-bottom:12px}
+ .gmp-mobile-archived>div{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}
+}
+
+/* Stage 4 — grounded suggestion panels. No extra theme or dependency. */
+.gmp-stage4-actions{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+.gmp-stage4-card,.gmp-jd-box{border:1px solid #caad91;border-radius:12px;background:#f9efe3;color:#4b3323;padding:15px;margin:12px 0}
+.gmp-stage4-card h5,.gmp-jd-box h5{font-size:14px;margin:0 0 10px;color:inherit}
+.gmp-stage4-card small{color:#866549;font-size:11px}
+.gmp-stage4-card .gmp-btn{margin-top:10px}
+.gmp-stage4-option{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #dcc4aa;border-radius:9px;margin:7px 0;cursor:pointer;background:#fff9f1;font-size:12px}
+.gmp-stage4-option input{accent-color:#a26b49;width:17px;height:17px;margin-top:2px;flex:0 0 auto}
+.gmp-stage4-option>span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.gmp-stage4-quote{font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.gmp-stage4-gap{font-size:12px;color:#6e5546;padding:9px 10px;border-left:2px solid #c5a787;margin:6px 0}
+.gmp-stage4-note{font-size:12px;line-height:1.55;color:#79563d}
+.gmp-stage4-warning{color:#904c2c;font-size:12px;border-left:3px solid #bb7048;padding:6px 9px;background:#f6ded1}
+.gmp-jd-box{margin:12px 0 18px;padding:0}
+.gmp-jd-box summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;list-style:none}
+.gmp-jd-box summary::-webkit-details-marker{display:none}
+.gmp-jd-box summary small{font-size:11px;color:#82654e}
+.gmp-jd-box details[open] summary{border-bottom:1px solid #d9bca0}
+.gmp-jd-body{padding:16px}.gmp-jd-results{margin-top:17px}
+.gmp-jd-term{padding:10px 0;border-bottom:1px solid #dec5ad}
+.gmp-jd-evidence{margin:8px 0 8px 10px;padding:10px;background:#fff9f1;border-radius:8px;font-size:12px}
+.gmp-jd-evidence>span{font-size:11px;font-weight:700;color:#69503d}
+.gmp-jd-evidence p{margin:7px 0!important;overflow-wrap:anywhere}
+.gmp-root.gmp-dark .gmp-stage4-card,.gmp-root.gmp-dark .gmp-jd-box{background:#39281e;border-color:#70523b;color:#f1d6ba}
+.gmp-root.gmp-dark .gmp-stage4-option,.gmp-root.gmp-dark .gmp-jd-evidence{background:#30221b;border-color:#775941;color:#f0d7bf}
+.gmp-root.gmp-dark .gmp-stage4-note,.gmp-root.gmp-dark .gmp-stage4-gap,.gmp-root.gmp-dark .gmp-stage4-card small,.gmp-root.gmp-dark .gmp-jd-box summary small{color:#c3a186}
+.gmp-root.gmp-dark .gmp-stage4-warning{color:#fac7a2;background:#4c3023}
+@media(max-width:720px){
+ .gmp-stage4-card{padding:12px}
+ .gmp-stage4-actions{gap:6px}
+ .gmp-stage4-actions .gmp-btn{flex:1;white-space:normal}
+ .gmp-jd-body{padding:12px}
+ .gmp-jd-box summary{padding:12px}
+}
+
+/* Stage 4: contextual quantitative evidence audit, shared by desktop and mobile. */
+.gmp-metric-audit{border:1px solid #d7bba0;border-radius:10px;background:#fff8ef;padding:12px;margin:8px 0;font-size:12px}
+.gmp-metric-audit strong{font-size:13px}
+.gmp-metric-audit p{margin:6px 0 8px!important}
+.gmp-metric-audit details{border-top:1px solid #e6d3bf;margin-top:10px;padding-top:7px}
+.gmp-metric-audit summary{cursor:pointer;font-weight:650;font-size:12px}
+.gmp-metric-audit blockquote{border-left:2px solid #b98b65;margin:9px 0 0;padding:8px 10px;background:#f3e7d9;overflow-wrap:anywhere;white-space:pre-wrap}
+.gmp-metric-status{font-size:11px;font-weight:650}
+.gmp-metric-status.unsupported-number,.gmp-metric-status.context-review{color:#9e4d31}
+.gmp-metric-status.matching-number-needs-review{color:#7b583e}
+.gmp-root.gmp-dark .gmp-metric-audit{background:#30221b;color:#ead5c4;border-color:#75543f}
+.gmp-root.gmp-dark .gmp-metric-audit details{border-color:#75543f}
+.gmp-root.gmp-dark .gmp-metric-audit blockquote{background:#3c2b21;border-color:#a77b59}
+.gmp-root.gmp-dark .gmp-metric-status.unsupported-number,.gmp-root.gmp-dark .gmp-metric-status.context-review{color:#ffb693}
+.gmp-root.gmp-dark .gmp-metric-status.matching-number-needs-review{color:#d8b89e}
+
+/* Stage 5 — source delta review + read-only history. */
+.gmp-refresh-review,.gmp-history-review{border-color:#b78964;background:#fff7ef}
+.gmp-refresh-items{display:grid;gap:12px;max-height:58vh;overflow:auto;overscroll-behavior:contain;margin:12px 0}
+.gmp-refresh-item{border:1px solid #d4b79c;border-radius:10px;padding:13px;background:#fffcf8;min-width:0}
+.gmp-refresh-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.gmp-refresh-meta strong{font-size:11px;letter-spacing:.06em;color:#9b5d36}
+.gmp-refresh-meta small{font-size:11px;color:#80654c;overflow-wrap:anywhere;max-width:100%}
+.gmp-refresh-item>details{border-top:1px solid #dfc8b3;padding:7px 0}
+.gmp-refresh-item summary{font-size:12px;cursor:pointer;font-weight:650}
+.gmp-refresh-item pre,.gmp-history-snapshot pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:180px;overflow:auto;background:#f3e6d6;padding:10px;border-radius:8px;color:#553c2b}
+.gmp-refresh-item .gmp-field{margin:12px 0 0}
+.gmp-history-list{display:grid;gap:7px;max-height:35vh;overflow:auto}
+.gmp-history-item{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 12px;border:1px solid #d6bfa7;border-radius:9px;background:#fffdf8}
+.gmp-history-item>span{display:grid;gap:4px;font-size:13px}
+.gmp-history-item small{display:block;color:#876a52;font-size:11px}
+.gmp-history-snapshot{margin-top:16px;border-top:1px solid #cfab88;padding-top:13px}
+.gmp-history-snapshot details{padding:8px 0;border-bottom:1px solid #ddc9b8}
+.gmp-history-snapshot summary{cursor:pointer;font-size:12px;font-weight:650}
+.gmp-root.gmp-dark .gmp-refresh-review,.gmp-root.gmp-dark .gmp-history-review{background:#34251d;border-color:#816048}
+.gmp-root.gmp-dark .gmp-refresh-item,.gmp-root.gmp-dark .gmp-history-item{background:#2c211a;border-color:#76573f}
+.gmp-root.gmp-dark .gmp-refresh-meta strong,.gmp-root.gmp-dark .gmp-history-item small{color:#e4b38f}
+.gmp-root.gmp-dark .gmp-refresh-meta small{color:#d8b698}
+.gmp-root.gmp-dark .gmp-refresh-item pre,.gmp-root.gmp-dark .gmp-history-snapshot pre{background:#251b16;color:#eed9c8}
+@media(max-width:720px){
+ .gmp-refresh-items{max-height:48vh}
+ .gmp-refresh-meta{display:grid;gap:5px}
+ .gmp-history-item{gap:7px;padding:8px}
+ .gmp-refresh-item{padding:10px}
+ .gmp-refresh-review .gmp-form-head{align-items:flex-start}
+}

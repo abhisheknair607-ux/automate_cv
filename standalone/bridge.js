@@ -7,6 +7,7 @@
 (function() {
   let authInstance=null, currentUser=null, firebaseReady=false, oauthProvider=null;
   let callbacks=[],sdkError=null;
+  let stageProfileProxyAuth=false;
   const listenerReady=new Promise(resolve=>{window.__cvAuthReady=resolve;});
 
   function errorText(message) {
@@ -123,12 +124,16 @@
   async function requestSpecial(endpoint,body){
     if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status","jd-recovery/run","jd-recovery/status",
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
-       "swipe/updateFreshControl","swipe/updateApplicationProgress"].includes(endpoint))
+       "swipe/updateFreshControl","swipe/updateApplicationProgress",
+       "profile/readiness","profile/read","profile/import-preview","profile/import","profile/record","profile/add-record","profile/add-section","profile/section","profile/suggest","profile/jd-match","profile/check-claims",
+       "profile/history","profile/history-version","profile/refresh-preview","profile/refresh-apply"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
+      const header=stageProfileProxyAuth && endpoint.startsWith("profile/")
+        ? "X-Garamaal-Firebase-Authorization" : "Authorization";
       return fetch("/api/"+endpoint,{method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        headers:{"Content-Type":"application/json",[header]:"Bearer "+await user.getIdToken(force)},
         body:JSON.stringify(body||{})
       });
     }
@@ -194,6 +199,7 @@
       const config=await response.json();
       if(!config.apiKey||!config.authDomain||!config.projectId||!config.appId)
         throw Error("Firebase sign-in needs its one-time deployment configuration.");
+      stageProfileProxyAuth=config.profilePreviewProxyAuth===true;
       await loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js");
       await loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js");
       firebase.initializeApp(config);
