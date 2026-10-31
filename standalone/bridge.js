@@ -123,7 +123,8 @@
   async function requestSpecial(endpoint,body){
     if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status","jd-recovery/run","jd-recovery/status",
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
-       "swipe/updateFreshControl","swipe/updateApplicationProgress"].includes(endpoint))
+       "swipe/updateFreshControl","swipe/updateApplicationProgress",
+       "profile/read","profile/import-preview","profile/import","profile/record","profile/add-record","profile/add-section"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
