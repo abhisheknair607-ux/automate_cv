@@ -12,6 +12,7 @@
  let mount=null,previous=null,data=null,readiness=null,preview=null,key="abhishek";
  let active="experience",query="",filter="all",expanded="",limit=40,form=null,archived=false,dirty=false,busy=false,status="";
  let jdText="",jdMatch=null,starAssists={},numericChecks={};
+ let refreshPlan=null,refreshDecisions={},historyList=null,historySnapshot=null;
  const buttons=(action,title,extra="",aria="")=>'<button type="button" class="gmp-btn '+extra+'" data-action="'+action+'"'+
    (aria?' aria-label="'+esc(aria)+'"':'')+'>'+title+'</button>';
  const sourceUrl=id=>/^[a-zA-Z0-9_-]{15,120}$/.test(String(id||""))?
@@ -204,6 +205,55 @@
     (readiness?.profileWritesApproved&&preview.allSourcesComplete?buttons("import","Import evidence","gmp-btn-primary"):
       '<p>Import is locked until the authenticated staging write gate is approved.</p>'))+'</section>';
  }
+
+ function refreshPanel(){
+  if(!refreshPlan)return "";
+  const p=refreshPlan,changes=p.changes||[],summary=p.summary||{};
+  const selections={added:[["","Choose..."],["accept","Import new evidence"],["skip","Skip for now"]],
+    changed:[["","Choose..."],["replace","Use updated source, archive old"],["keep","Keep previous, unverified"]],
+    removed:[["","Choose..."],["archive","Archive missing source"],["keep","Keep for review, not CV"]]};
+  const decided=changes.filter(c=>refreshDecisions[c.id]).length;
+  return '<section class="gmp-inline-editor gmp-refresh-review" aria-label="Review Drive changes">'+
+   '<div class="gmp-form-head"><h3>Review Google Drive changes</h3>'+buttons("close-refresh","Close review")+'</div>'+
+   '<p>'+Number(summary.added||0)+' added · '+Number(summary.changed||0)+' updated · '+
+    Number(summary.removed||0)+' missing · '+Number(summary.unchanged||0)+' unchanged</p>'+
+   '<p class="gmp-review-note">No information is overwritten. Replaced and missing originals remain in the profile history. Updated claims require fresh STAR and metrics review.</p>'+
+   (changes.length?'<div class="gmp-refresh-items">'+changes.map(change=>
+    '<div class="gmp-refresh-item"><div class="gmp-refresh-meta"><strong>'+esc(change.type.toUpperCase())+
+     '</strong><small>'+esc(change.sourceKind)+' · '+esc(change.locator)+'</small></div>'+
+     (change.beforeExcerpt?'<details><summary>Previous original'+(change.beforeTruncated?' (excerpt)':'')+
+       '</summary><pre>'+esc(change.beforeExcerpt)+'</pre></details>':'')+
+     (change.afterExcerpt?'<details><summary>Latest Drive original'+(change.afterTruncated?' (excerpt)':'')+
+       '</summary><pre>'+esc(change.afterExcerpt)+'</pre></details>':'')+
+     '<label class="gmp-field">Your decision<select data-refresh-decision="'+esc(change.id)+'">'+
+      selections[change.type].map(([v,label])=>'<option value="'+v+'"'+
+       (refreshDecisions[change.id]===v?' selected':'')+'>'+label+'</option>').join("")+
+     '</select></label></div>').join("")+'</div>'+
+    '<p>'+decided+' of '+changes.length+' decisions chosen. Select one option for every item.</p>'+
+    buttons("apply-refresh","Apply reviewed Drive changes","gmp-btn-primary"):
+    '<p>There are no source changes to merge. The original profile remains intact.</p>')+
+   '</section>';
+ }
+ function historyPanel(){
+  if(!historyList)return "";
+  const versions=historyList.versions||[],snap=historySnapshot;
+  return '<section class="gmp-inline-editor gmp-history-review">'+
+   '<div class="gmp-form-head"><h3>Profile revision history</h3>'+buttons("close-history","Close history")+'</div>'+
+   '<p class="gmp-stage4-note">Immutable, read-only snapshots saved with each approved edit. No rollback is performed by opening a version.</p>'+
+   (historyList.baselinePending?'<p class="gmp-review-note">Legacy baseline will be snapshotted during the next approved edit.</p>':'')+
+   '<div class="gmp-history-list">'+(versions.length?versions.map(v=>
+    '<div class="gmp-history-item"><span><strong>Revision '+v.revision+'</strong> · '+esc(v.action)+
+     '<small>'+esc(v.createdAt||"")+' · '+Number(v.recordCount||0)+' records</small></span>'+
+     '<button type="button" class="gmp-btn gmp-btn-small" data-action="view-history" data-history-revision="'+v.revision+'">View</button></div>').join(""):
+    '<p>No stored history versions. New edits will create snapshots.</p>')+'</div>'+
+   (snap?'<div class="gmp-history-snapshot"><h4>Snapshot '+snap.revision+' · '+esc(snap.action)+'</h4>'+
+     '<p>'+esc(snap.createdAt||"")+' · '+Number(snap.profile?.records?.length||0)+' records · read-only</p>'+
+     (snap.profile?.records||[]).slice(0,15).map(r=>
+      '<details><summary>'+esc(r.title)+' · '+esc(r.status)+'</summary>'+
+       '<pre>'+esc(String(r.originalText||"").slice(0,1800))+'</pre></details>').join("")+
+      ((snap.profile?.records||[]).length>15?'<p>Showing the first 15 records from this snapshot.</p>':'')+
+     '</div>':"")+'</section>';
+ }
  function readinessPane(){
   if(!readiness)return "";
   return '<section class="gmp-inline-editor"><h3>Staging connection status</h3><p>Firestore: '+
@@ -242,7 +292,9 @@
     '<option value="'+v+'"'+(filter===v?" selected":"")+'>'+label+'</option>').join("")+'</select></label></div>'+
    '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
-   buttons("readiness","Connections")+'</div>'+jdMatcherPanel()+editor()+
+   buttons("readiness","Connections")+
+   buttons("refresh-preview","Review Drive changes")+buttons("history","Version history")+'</div>'+
+   refreshPanel()+historyPanel()+jdMatcherPanel()+editor()+
    '<div class="gmp-results"><div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
     '<div class="gmp-empty"><strong>No matching evidence.</strong><p>Change the filter or add factual evidence in this section.</p></div>')+'</div>'+
    (list.length>limit?buttons("load-more","Load more ("+(list.length-limit)+" remaining)"):"")+'</div>'+
@@ -271,7 +323,7 @@
  }
  async function open(){
   if(mount)close(true);
-  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};status="Loading secure profile…";
+  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;status="Loading secure profile…";
   mount=doc.createElement("div");mount.className="gmp-root";mount.id="garamaal-profile-engine";doc.body.append(mount);render();
   await load({initial:true});
   if(!mount)return;
@@ -293,7 +345,7 @@
   if(!mount)return;
   const out=await request("read",{candidate:key});
   if(!out)return;
-  data=out;form=null;dirty=false;expanded="";limit=40;starAssists={};numericChecks={};jdMatch=null;
+  data=out;form=null;dirty=false;expanded="";limit=40;starAssists={};numericChecks={};jdMatch=null;refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;
   if(!selected())active=sections().find(x=>!x.archived)?.id||"experience";
   status=message||"Profile saved.";render();
  }
