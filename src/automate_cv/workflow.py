@@ -690,10 +690,9 @@ class Workflow:
             stage3_sources = source_telemetry(source_paths)
             # Metadata-only audit: chosen profile revision, coverage and source
             # digests. No complete private Profile snapshot is uploaded.
-            if self.sources.last_profile_evidence_audit is not None:
-                manifest['profile_evidence_audit'] = dict(
-                    self.sources.last_profile_evidence_audit
-                )
+            profile_audit = getattr(self.sources, 'last_profile_evidence_audit', None)
+            if profile_audit is not None:
+                manifest['profile_evidence_audit'] = dict(profile_audit)
             else:
                 manifest.pop('profile_evidence_audit', None)
             stage3_key = self._checkpoint_key_stage3(
