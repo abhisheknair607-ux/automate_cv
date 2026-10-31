@@ -86,6 +86,15 @@ function patchRecord(profile,body){
  if("status" in changes){
   if(!["needs-review","verified","exclude"].includes(changes.status))throw error("Invalid evidence status");
   if(changes.status==="verified"&&entry.cvEligible===false)throw error("Router references cannot be verified CV evidence");
+  if(changes.status==="verified"&&entry.cvEligible!==false){
+   const classificationApproved="classificationReviewed" in changes?
+      changes.classificationReviewed:entry.classificationReviewed===true;
+   const metricsApproved="metricsReviewed" in changes?
+      changes.metricsReviewed:entry.metricsReviewed===true;
+   if(!classificationApproved)throw error("Review the evidence classification before verifying");
+   if((entry.metrics||[]).length>0&&!metricsApproved)
+    throw error("Review detected numbers before verifying quantified evidence");
+  }
  }
  if("metricsReviewed" in changes&&typeof changes.metricsReviewed!=="boolean")throw error("Invalid metrics approval");
  if("classificationReviewed" in changes&&typeof changes.classificationReviewed!=="boolean")throw error("Invalid classification review");
