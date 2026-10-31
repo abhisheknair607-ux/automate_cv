@@ -112,3 +112,20 @@ test("Stage 3 client is syntactically valid, and opt-in gate preserves original 
  assert.match(client,/data-mobile-section/);
  assert.match(client,/data-field="classificationReviewed"/);
 });
+
+test("unreviewed quantitative claims cannot be labelled verified",()=>{
+ const p=base();
+ assert.throws(()=>patchRecord(p,{id:"drive-record",changes:{status:"verified"}}),/classification/);
+ assert.throws(()=>patchRecord(p,{id:"drive-record",changes:{classificationReviewed:true,status:"verified"}}),/numbers/);
+ patchRecord(p,{id:"drive-record",changes:{classificationReviewed:true,metricsReviewed:true,status:"verified"}});
+ assert.equal(p.records[0].status,"verified");
+ patchRecord(p,{id:"drive-record",changes:{metricsReviewed:false}});
+ assert.equal(p.records[0].status,"needs-review");
+});
+test("reclassifying an approved claim requires renewed section review",()=>{
+ const p=base();
+ patchRecord(p,{id:"drive-record",changes:{classificationReviewed:true,metricsReviewed:true,status:"verified"}});
+ patchRecord(p,{id:"drive-record",changes:{section:"projects"}});
+ assert.equal(p.records[0].status,"needs-review");
+ assert.equal(p.records[0].classificationReviewed,false);
+});
