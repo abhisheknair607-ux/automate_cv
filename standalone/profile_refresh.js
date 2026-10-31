@@ -46,6 +46,8 @@ function planRefresh(current,incoming){
  }
  const changes=[];
  const sourceFingerprint=sha(incoming.sources.map(s=>[s.kind,s.fileId,s.sha256]));
+ const previousFingerprint=sha((current.sources||[]).map(s=>[s.kind,s.fileId,s.sha256]));
+ const sourceMetadataChanged=sourceFingerprint!==previousFingerprint;
  for(const [key,after] of nextRecords){
   const before=oldRecords.get(key);
   const type=!before?"added":before.originalText===after.originalText?"unchanged":"changed";
@@ -68,7 +70,7 @@ function planRefresh(current,incoming){
  const fingerprint=sha([current.candidate,current.revision,sourceFingerprint,
    changes.map(c=>[c.id,c.type,c.beforeId,c.afterId])]);
  return {candidate:current.candidate,revision:current.revision,
-  sourceFingerprint,fingerprint,changes,summary:{
+  sourceFingerprint,sourceMetadataChanged,fingerprint,changes,summary:{
    unchanged:nextRecords.size-changes.filter(c=>c.type==="added"||c.type==="changed").length,
    added:changes.filter(c=>c.type==="added").length,
    changed:changes.filter(c=>c.type==="changed").length,
@@ -138,6 +140,8 @@ function applyRefresh(current,incoming,plan,decisions){
  }
  // For skipped new records, source snapshot still records the latest Drive
  // hash; a later preview will propose them again because they're not stored.
+ // Even when no extracted record changed, approved source-hash updates must
+ // be versioned. They must never silently refresh the current manifest.
  updated.sources=clone(incoming.sources);
  updated.schema=Math.max(Number(updated.schema)||1,5);
  return updated;
