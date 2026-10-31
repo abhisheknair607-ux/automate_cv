@@ -34,6 +34,11 @@ function profileWriteApproved(){
     process.env.GARAMAAL_PROFILE_PRODUCTION_APPROVED==="true";
 }
 function writeGate(){
+  // Structured career editing uses its own staging collection; original
+  // Drive-evidence archives remain read-only after the structured cutover.
+  if(process.env.GARAMAAL_PROFILE_DATA_SCOPE==="staging" &&
+     process.env.GARAMAAL_PROFILE_STRUCTURED_EDITOR==="true")
+    throw Object.assign(Error("Original Drive evidence is read-only in the structured Profile"),{httpCode:403});
   if(!profileWriteApproved())
     throw Object.assign(Error("Profile saving is not approved for this isolated data scope"),{httpCode:403});
 }
