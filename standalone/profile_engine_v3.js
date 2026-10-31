@@ -266,6 +266,21 @@
  doc.addEventListener("click",async event=>{
   if(!mount)return;
   if(event.target===mount){close();return}
+  const summary=event.target.closest?.("summary");
+  if(summary&&mount.contains(summary)){
+   const details=summary.closest("[data-record]");
+   if(details){
+    if(expanded&&expanded!==details.dataset.record&&dirty){
+     if(!window.confirm("You have unsaved evidence changes. Discard before opening another record?")){
+      event.preventDefault();return;
+     }
+     dirty=false;setStatus("Unsaved record changes discarded.");
+    }
+    mount.querySelectorAll("details[data-record]").forEach(node=>{if(node!==details)node.open=false});
+    expanded=details.dataset.record;
+   }
+   return;
+  }
   const section=event.target.closest?.("[data-section]");
   if(section&&mount.contains(section)){navigate(section.dataset.section);return}
   const el=event.target.closest?.("[data-action]");
