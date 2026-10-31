@@ -249,3 +249,16 @@ The script inspects service metadata, missing Drive env variables, profile scope
 ### Next Stage 6 (separate approval)
 
 Implement a version-pinned, read-only evidence adapter in the Python CV worker that accepts **verified and CV-eligible** candidate Profile records, source hashes and approved STAR/metrics only. Preserve the existing Drive source as a guarded rollback. Run comparison builds before any profile-source cutover and never enable Profile writes or promote production traffic as a side effect.
+
+
+### Stage 5 follow-up audit — metadata-only refresh and fail-closed reads
+
+The final review identified and addressed three additional cases in the draft branch:
+
+- **Stored-candidate mismatch**: Profile read now explicitly denies a document whose embedded candidate differs from the ACL-authorised candidate request. A malformed or misplaced document is never returned simply because the caller has access to the containing path.
+- **Revision integrity**: History-version reads check that the stored revision and record-count metadata agree with the full snapshot. A mismatched stored version is rejected, not shown as authoritative history.
+- **Source-version-only refresh**: The refresh planner compares current and incoming Drive source hashes separately from the extracted evidence-record text diff. If records are identical but a source hash changed, the UI offers an **explicit source version approval**, and the backend requires confirmMetadataOnly=true before recording a new profile revision and immutable history snapshot. No existing evidence, STAR overlay, or verification status changes in that case. A truly unchanged source remains a no-op.
+
+New regression coverage is included in standalone/test/profile_stage5.test.js. All changes remain in the feature branch, behind the existing Profile and staging write gates. No Cloud Run configuration was changed here.
+
+**Staging blockers still apply**: the connected GitHub tool can verify repository content and GitHub CI but cannot read actual Cloud Run service revision configuration, service-account Drive permissions, Firestore IAM, or perform an authenticated test-browser import. Run the read-only script bash standalone/profile-staging-readiness.sh in authorised Cloud Shell and then exercise authenticated staging readiness, import, versioned edit, refresh, and cross-candidate denial flows before considering a release.
