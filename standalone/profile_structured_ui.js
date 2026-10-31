@@ -28,7 +28,7 @@
  };
  const ACH_FIELDS=["title","situation","task","action","result","metricValue","metricContext","evidenceNote"];
  const makeId=()=>("id"+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2))).replace(/[^a-zA-Z0-9_-]/g,"").slice(0,64);
- const freshAch=()=>Object.fromEntries([["id",makeId()],...ACH_FIELDS.map(k=>[k,""])]);
+ const freshAch=()=>Object.fromEntries([["id",makeId()],...ACH_FIELDS.map(k=>[k,""]),["additionalMetrics",[]]]);
  const fresh=(type)=>Object.fromEntries([["id",makeId()],...FIELDS[type].map(([k])=>[k,""]),...(type==="experience"||type==="projects"?[["achievements",[]]]:[])]);
  let root=null,previous=null,profile=null,key="abhishek",active="overview",expanded="",dirty=false,busy=false,status="",versionList=null,viewHistory=null;
  const btn=(action,label,extra="",attrs="")=>'<button type="button" class="gsp-btn '+extra+'" data-action="'+action+'" '+attrs+'>'+label+'</button>';
@@ -39,8 +39,8 @@
  const changed=()=>{dirty=true;setStatus("Unsaved changes — use Save Profile before leaving.")};
  const count=type=>(profile?.lists?.[type]||[]).length;
  function field(label,k,value,opts={}){
-  const target=opts.target||"overview",type=opts.type||"",index=opts.index??"",ach=opts.ach??"";
-  const attrs='data-target="'+esc(target)+'" data-type="'+esc(type)+'" data-index="'+esc(index)+'" data-ach="'+esc(ach)+'" data-field="'+esc(k)+'"';
+  const target=opts.target||"overview",type=opts.type||"",index=opts.index??"",ach=opts.ach??"",metric=opts.metric??"";
+  const attrs='data-target="'+esc(target)+'" data-type="'+esc(type)+'" data-index="'+esc(index)+'" data-ach="'+esc(ach)+'" data-metric="'+esc(metric)+'" data-field="'+esc(k)+'"';
   const large=opts.large||/summary|description|details|evidenceNote|notes|result|situation|task|action|metricContext|headline/i.test(k);
   return '<label class="gsp-field"><span>'+esc(label)+'</span>'+
    (large?'<textarea rows="'+(opts.big?5:2)+'" '+attrs+' maxlength="10000">'+esc(value)+'</textarea>':
@@ -60,6 +60,13 @@
   '<div class="gsp-two">'+
   field("What does the number measure?","metricContext",a.metricContext,{target:"ach",type,index:i,ach:j})+
   field("Evidence / source notes","evidenceNote",a.evidenceNote,{target:"ach",type,index:i,ach:j})+
+  '</div>'+ 
+  '<div class="gsp-metric-section"><div class="gsp-add-row"><strong>Additional measurable outcomes</strong>'+btn("add-metric","+ Add numerical outcome","gsp-btn-small",'data-type="'+type+'" data-index="'+i+'" data-ach="'+j+'"')+'</div>'+
+  (a.additionalMetrics||[]).map((m,k)=>'<div class="gsp-metric-row"><div class="gsp-two">'+
+    field("Number / value","value",m.value,{target:"metric",type,index:i,ach:j,metric:k})+
+    field("What it measures","context",m.context,{target:"metric",type,index:i,ach:j,metric:k})+'</div>'+ 
+    field("Supporting evidence","evidence",m.evidence,{target:"metric",type,index:i,ach:j,metric:k})+
+    btn("remove-metric","Remove number","gsp-danger",'data-type="'+type+'" data-index="'+i+'" data-ach="'+j+'" data-metric="'+k+'"')+'</div>').join("")+
   '</div>'+
   '<div class="gsp-inline-foot">'+btn("remove-ach","Remove achievement","gsp-danger",'data-type="'+type+'" data-index="'+i+'" data-ach="'+j+'"')+
   '<small>STAR and numerical evidence stay inside this experience — they are not separate profile sections.</small></div></div></details>';
@@ -128,10 +135,11 @@
    '<div class="gsp-actions">'+btn("history","Version history")+btn("backup","Download backup for Drive")+btn("save","Save Profile","gsp-btn-primary")+'</div></footer></div>';
  }
  function updateField(el){
-  const k=el.dataset.field,target=el.dataset.target,type=el.dataset.type,i=Number(el.dataset.index||0),j=Number(el.dataset.ach||0);
+  const k=el.dataset.field,target=el.dataset.target,type=el.dataset.type,i=Number(el.dataset.index||0),j=Number(el.dataset.ach||0),m=Number(el.dataset.metric||0);
   if(target==="overview"&&Object.prototype.hasOwnProperty.call(profile.overview,k))profile.overview[k]=el.value;
   else if(target==="entry"&&profile.lists[type]?.[i]&&Object.prototype.hasOwnProperty.call(profile.lists[type][i],k))profile.lists[type][i][k]=el.value;
   else if(target==="ach"&&profile.lists[type]?.[i]?.achievements?.[j]&&Object.prototype.hasOwnProperty.call(profile.lists[type][i].achievements[j],k))profile.lists[type][i].achievements[j][k]=el.value;
+  else if(target==="metric"&&profile.lists[type]?.[i]?.achievements?.[j]?.additionalMetrics?.[m]&&Object.prototype.hasOwnProperty.call(profile.lists[type][i].achievements[j].additionalMetrics[m],k))profile.lists[type][i].achievements[j].additionalMetrics[m][k]=el.value;
   else return;
   changed();
  }
@@ -175,6 +183,17 @@
   if(action==="remove-ach"){
    if(!window.confirm("Remove this achievement from the draft?"))return;
    profile.lists[type][i].achievements.splice(j,1);changed();render();return;
+  }
+  if(action==="add-metric"){
+   const a=profile.lists[type]?.[i]?.achievements?.[j];
+   if(!a)return;
+   a.additionalMetrics=a.additionalMetrics||[];
+   a.additionalMetrics.push({id:makeId(),value:"",context:"",evidence:""});changed();render();return;
+  }
+  if(action==="remove-metric"){
+   const a=profile.lists[type]?.[i]?.achievements?.[j];
+   if(!a||!window.confirm("Remove this numerical outcome from the draft?"))return;
+   a.additionalMetrics.splice(Number(b.dataset.metric||0),1);changed();render();return;
   }
   if(action==="source-archive"){
    if(!cleanExit())return;
