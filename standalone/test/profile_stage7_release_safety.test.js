@@ -58,6 +58,19 @@ test("Temporary Cloud Shell proxy can carry Firebase auth separately in isolated
  assert.match(bridge,/X-Garamaal-Firebase-Authorization/);
 });
 
+test("Profile proxy transport deploy script targets only tagged zero-traffic staging",()=>{
+ const file=path.join(root,"deploy-profile-preview-transport.sh");
+ const script=read("deploy-profile-preview-transport.sh");
+ const syntax=spawnSync("bash",["-n",file],{encoding:"utf8"});
+ assert.equal(syntax.status,0,syntax.stderr);
+ assert.match(script,/SERVICE="garamaal-profile-staging"/);
+ assert.match(script,/--no-traffic/);
+ assert.match(script,/--no-allow-unauthenticated/);
+ assert.match(script,/GARAMAAL_PROFILE_WRITES_APPROVED":"false"/);
+ assert.match(script,/APP_READ_ONLY":"true"/);
+ assert.doesNotMatch(script,/automate-cv-dashboard|automate-cv-social|update-traffic|GARAMAAL_PROFILE_WRITES_APPROVED":"true"/);
+});
+
 test("Staging audit is syntactically valid and contains no modifying cloud CLI commands",()=>{
  const audit=path.join(root,"profile-staging-readiness.sh");
  const result=spawnSync("bash",["-n",audit],{encoding:"utf8"});
