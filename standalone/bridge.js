@@ -124,7 +124,8 @@
     if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status","jd-recovery/run","jd-recovery/status",
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
        "swipe/updateFreshControl","swipe/updateApplicationProgress",
-       "profile/readiness","profile/read","profile/import-preview","profile/import","profile/record","profile/add-record","profile/add-section","profile/section","profile/suggest","profile/jd-match","profile/check-claims"].includes(endpoint))
+       "profile/readiness","profile/read","profile/import-preview","profile/import","profile/record","profile/add-record","profile/add-section","profile/section","profile/suggest","profile/jd-match","profile/check-claims",
+       "profile/history","profile/history-version","profile/refresh-preview","profile/refresh-apply"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
