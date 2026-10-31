@@ -129,3 +129,38 @@
  .gmp-mobile-archived{display:grid;gap:8px;border:1px solid var(--gmp-line);border-radius:10px;padding:10px;margin-bottom:12px}
  .gmp-mobile-archived>div{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:12px}
 }
+
+/* Stage 4 — grounded suggestion panels. No extra theme or dependency. */
+.gmp-stage4-actions{display:flex;flex-wrap:wrap;gap:8px;margin:15px 0}
+.gmp-stage4-card,.gmp-jd-box{border:1px solid #caad91;border-radius:12px;background:#f9efe3;color:#4b3323;padding:15px;margin:12px 0}
+.gmp-stage4-card h5,.gmp-jd-box h5{font-size:14px;margin:0 0 10px;color:inherit}
+.gmp-stage4-card small{color:#866549;font-size:11px}
+.gmp-stage4-card .gmp-btn{margin-top:10px}
+.gmp-stage4-option{display:flex;gap:10px;align-items:flex-start;padding:10px;border:1px solid #dcc4aa;border-radius:9px;margin:7px 0;cursor:pointer;background:#fff9f1;font-size:12px}
+.gmp-stage4-option input{accent-color:#a26b49;width:17px;height:17px;margin-top:2px;flex:0 0 auto}
+.gmp-stage4-option>span{display:flex;flex-direction:column;gap:4px;min-width:0}
+.gmp-stage4-quote{font-size:12px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.gmp-stage4-gap{font-size:12px;color:#6e5546;padding:9px 10px;border-left:2px solid #c5a787;margin:6px 0}
+.gmp-stage4-note{font-size:12px;line-height:1.55;color:#79563d}
+.gmp-stage4-warning{color:#904c2c;font-size:12px;border-left:3px solid #bb7048;padding:6px 9px;background:#f6ded1}
+.gmp-jd-box{margin:12px 0 18px;padding:0}
+.gmp-jd-box summary{cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;list-style:none}
+.gmp-jd-box summary::-webkit-details-marker{display:none}
+.gmp-jd-box summary small{font-size:11px;color:#82654e}
+.gmp-jd-box details[open] summary{border-bottom:1px solid #d9bca0}
+.gmp-jd-body{padding:16px}.gmp-jd-results{margin-top:17px}
+.gmp-jd-term{padding:10px 0;border-bottom:1px solid #dec5ad}
+.gmp-jd-evidence{margin:8px 0 8px 10px;padding:10px;background:#fff9f1;border-radius:8px;font-size:12px}
+.gmp-jd-evidence>span{font-size:11px;font-weight:700;color:#69503d}
+.gmp-jd-evidence p{margin:7px 0!important;overflow-wrap:anywhere}
+.gmp-root.gmp-dark .gmp-stage4-card,.gmp-root.gmp-dark .gmp-jd-box{background:#39281e;border-color:#70523b;color:#f1d6ba}
+.gmp-root.gmp-dark .gmp-stage4-option,.gmp-root.gmp-dark .gmp-jd-evidence{background:#30221b;border-color:#775941;color:#f0d7bf}
+.gmp-root.gmp-dark .gmp-stage4-note,.gmp-root.gmp-dark .gmp-stage4-gap,.gmp-root.gmp-dark .gmp-stage4-card small,.gmp-root.gmp-dark .gmp-jd-box summary small{color:#c3a186}
+.gmp-root.gmp-dark .gmp-stage4-warning{color:#fac7a2;background:#4c3023}
+@media(max-width:720px){
+ .gmp-stage4-card{padding:12px}
+ .gmp-stage4-actions{gap:6px}
+ .gmp-stage4-actions .gmp-btn{flex:1;white-space:normal}
+ .gmp-jd-body{padding:12px}
+ .gmp-jd-box summary{padding:12px}
+}
