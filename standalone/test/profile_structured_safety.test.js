@@ -34,6 +34,7 @@ test("Structured Profile backend has owner isolation, revision fencing and stagi
  assert.match(svc,/process\.env\.APP_READ_ONLY!=="true"/);
  assert.match(svc,/process\.env\.GARAMAAL_PROFILE_DATA_SCOPE!=="staging"/);
  assert.match(svc,/previous\.revision!==expected/);
+ assert.match(read("profile_service.js"),/GARAMAAL_PROFILE_STRUCTURED_EDITOR==="true"/);
  assert.match(svc,/runTransaction/);
  assert.match(svc,/tx\.create\(/);
  assert.match(svc,/\.collection\("versions"\)/);
