@@ -274,7 +274,6 @@ class Sources:
         self.make_cover_letter = False
         self.last_stage3_telemetry = []
         self.last_selected_evidence_ids = []
-        self.last_profile_evidence_audit = None
 
     def stage2(self, candidate_key, workdir):
         p = self.profiles[candidate_key]
@@ -318,33 +317,6 @@ class Sources:
             candidate_key=candidate_key,
         )
         self.last_selected_evidence_ids = selected_ids
-        self.last_profile_evidence_audit = None
-        # Default remains the exact existing Drive-selected source. The opted-in
-        # comparison only writes a local coverage audit; it never enters the
-        # Stage 3 model context or alters the generated Word document.
-        from .profile_cv_adapter import (
-            profile_evidence_mode, prepare_evidence, preserve_drive_core,
-        )
-        mode = profile_evidence_mode()
-        if mode != 'drive':
-            mode, profile_selection = prepare_evidence(
-                candidate_key, selected_ids, workdir,
-            )
-            self.last_profile_evidence_audit = {
-                'mode': mode, **profile_selection.summary(),
-            }
-            if mode == 'profile':
-                # Staging-only explicit source cutover. Preserve the original
-                # Drive-selected package locally for one-setting rollback.
-                original_package = Path(workdir) / 'Drive_Selected_Evidence.md'
-                original_package.write_bytes(Path(selected_path).read_bytes())
-                Path(selected_path).write_text(
-                    preserve_drive_core(
-                        profile_selection.package,
-                        original_package.read_text(encoding='utf-8'),
-                        candidate_key,
-                    ), encoding='utf-8'
-                )
         paths = [selected_path]
 
         for file_id in (p.formatting_master_file_id, p.base_cv_file_id):
