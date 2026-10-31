@@ -282,8 +282,15 @@ def select_evidence(
         if str(record.get("cvBullet") or "").strip():
             body.extend(["Reviewed CV bullet draft:", str(record["cvBullet"]), ""])
         if record.get("tags"):
-            body.extend(["Reviewed tags (not automatic qualifications):",
-                         ", ".join(map(str, record["tags"])), ""])
+            # Manually typed keywords are not automatically proven skills.
+            # Require literal source support before including a candidate tag.
+            supported_tags = [str(tag) for tag in record["tags"]
+                              if isinstance(tag, str) and len(tag) <= 60
+                              and re.search(r"(?<!\\w)" + re.escape(tag)
+                                            + r"(?!\\w)", record["originalText"], re.I)]
+            if supported_tags:
+                body.extend(["Source-supported reviewed tags (not automatic qualifications):",
+                             ", ".join(supported_tags), ""])
     body.extend([
         "## STAGE 2 EVIDENCE COVERAGE",
         f"Selected: {', '.join(selected_ids)}",
@@ -295,6 +302,40 @@ def select_evidence(
         tuple(missing), tuple(s["sha256"] for s in sources),
         "\n".join(body).strip() + "\n",
     )
+
+
+def preserve_drive_core(profile_package: str, drive_package: str, candidate: str) -> str:
+    """Keep mandatory legacy core policy and chronology during staging cutover.
+
+    Stage 2 continues to use Drive's Summary Router, so the transitional
+    Profile package must retain the exact Drive-derived chronology,
+    credentials and claim guardrails that the historical Stage 3 received.
+    Stage 7 can replace these with separately reviewed Profile-owned records.
+    """
+    required = ("CORE-CHRONOLOGY", "CORE-CREDENTIALS", "CORE-GUARDRAILS") if candidate == "pooja" else (
+        "CORE-CHRONOLOGY", "CORE-CREDENTIALS"
+    )
+    blocks = {}
+    text = str(drive_package)
+    for key in required:
+        match = re.search(r"(?ms)^## " + re.escape(key) +
+                          r"\s*\n(.*?)(?=^## |\Z)", text)
+        if not match or len(match.group(1).strip()) < 5:
+            raise ProfileEvidenceError(
+                "Original Drive Stage 3 core context is missing: " + key
+            )
+        blocks[key] = match.group(1).strip()
+    lines = [
+        profile_package.rstrip(),
+        "",
+        "## TRANSITIONAL DRIVE CORE CONTEXT — REFERENCE AND GUARDRAILS",
+        "These original sections are included unchanged from the established "
+        "Drive evidence package. They do not represent newly approved Profile "
+        "STAR outcomes or supplementary quantified claims.",
+    ]
+    for key in required:
+        lines.extend([f"### {key}", blocks[key], ""])
+    return "\n".join(lines).strip() + "\n"
 
 
 def prepare_evidence(
