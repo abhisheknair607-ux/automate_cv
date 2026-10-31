@@ -75,7 +75,7 @@ cp -R "$ROOT/garamaal-release-webapp" "$TEMP/build/"
 
 echo "Step 1: deploy backup-enabled application to a private 0%-traffic staging revision, with writes still disabled"
 gcloud run deploy "$SERVICE" --source="$TEMP/build" --project="$PROJECT" --region="$REGION" \
- --service-account="$IDENTITY" --no-traffic --tag=profile-backup-readonly \
+ --service-account="$IDENTITY" --no-traffic --tag=profile-backup \
  --no-allow-unauthenticated --update-env-vars=GARAMAAL_PROFILE_WRITES_APPROVED=false,GARAMAAL_PROFILE_STRUCTURED_EDITOR=true --quiet
 
 echo "Step 2: verify read-only backup revision is healthy"
@@ -84,7 +84,7 @@ python3 - "$TEMP/built.json" <<'PY'
 import json,sys
 s=json.load(open(sys.argv[1],encoding="utf-8")); st=s.get("status",{})
 assert st.get("latestReadyRevisionName") and st.get("latestReadyRevisionName")==st.get("latestCreatedRevisionName"),"STOP: staged build not ready"
-assert any(x.get("tag")=="profile-backup-readonly" and int(x.get("percent") or 0)==0 for x in st.get("traffic",[])),"STOP: tagged zero-traffic backup revision missing"
+assert any(x.get("tag")=="profile-backup" and int(x.get("percent") or 0)==0 for x in st.get("traffic",[])),"STOP: tagged zero-traffic backup revision missing"
 print("PASS: backup-enabled image ready at 0% traffic")
 PY
 
