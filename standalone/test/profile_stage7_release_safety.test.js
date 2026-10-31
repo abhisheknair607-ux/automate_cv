@@ -115,6 +115,38 @@ test("Two-pass verification checks the authenticated candidate twice without wri
  assert.doesNotMatch(part[0],/api\("import",|api\("record",|api\("refresh-apply",/);
 });
 
+test("Firebase-verified staging identity can be checked without candidate delegation",()=>{
+ const service=read("profile_service.js"),bridge=read("bridge.js"),ui=read("profile_engine_v3.js");
+ const identity=service.match(/app\.post\("\/api\/profile\/identity"[\s\S]*?app\.post\("\/api\/profile\/readiness"/);
+ assert.ok(identity);
+ assert.match(identity[0],/const email=await authenticate\(req\)/);
+ assert.match(identity[0],/DATA_SCOPE!=="staging"/);
+ assert.match(identity[0],/APP_READ_ONLY/);
+ assert.match(identity[0],/parseAcl\(process\.env\.GARAMAAL_PROFILE_CANDIDATE_ACL_JSON\)/);
+ assert.match(identity[0],/candidates:/);
+ assert.doesNotMatch(identity[0],/\.set\(|\.create\(|\.update\(/);
+ assert.match(bridge,/"profile\/identity"/);
+ assert.match(ui,/api\("identity",\{\}\)/);
+ assert.match(ui,/Verified Google sign-in/);
+ assert.match(ui,/identityPane\(\)/);
+});
+test("Shared staging ACL grant needs exact browser email and explicit approval",()=>{
+ const name="grant-shared-profile-staging-access.sh";
+ const file=path.join(root,name),script=read(name);
+ const syntax=spawnSync("bash",["-n",file],{encoding:"utf8"});
+ assert.equal(syntax.status,0,syntax.stderr);
+ assert.match(script,/SERVICE="garamaal-profile-staging"/);
+ assert.match(script,/--no-traffic/);
+ assert.match(script,/--no-allow-unauthenticated/);
+ assert.match(script,/--update-env-vars/);
+ assert.match(script,/GARAMAAL_PROFILE_WRITES_APPROVED":"false"/);
+ assert.match(script,/APP_READ_ONLY":"true"/);
+ assert.match(script,/if email not in old_acl or "abhishek" not in old_acl\[email\]/);
+ assert.match(script,/APPROVE SHARED STAGING ACCESS/);
+ assert.match(script,/--image="\$IMAGE"/);
+ assert.doesNotMatch(script,/automate-cv-dashboard|automate-cv-social|--allow-unauthenticated|update-traffic|--set-env-vars|--clear-env-vars/);
+});
+
 test("Staging audit is syntactically valid and contains no modifying cloud CLI commands",()=>{
  const audit=path.join(root,"profile-staging-readiness.sh");
  const result=spawnSync("bash",["-n",audit],{encoding:"utf8"});
