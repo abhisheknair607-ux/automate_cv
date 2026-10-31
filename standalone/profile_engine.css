@@ -180,3 +180,34 @@
 .gmp-root.gmp-dark .gmp-metric-audit blockquote{background:#3c2b21;border-color:#a77b59}
 .gmp-root.gmp-dark .gmp-metric-status.unsupported-number,.gmp-root.gmp-dark .gmp-metric-status.context-review{color:#ffb693}
 .gmp-root.gmp-dark .gmp-metric-status.matching-number-needs-review{color:#d8b89e}
+
+/* Stage 5 — source delta review + read-only history. */
+.gmp-refresh-review,.gmp-history-review{border-color:#b78964;background:#fff7ef}
+.gmp-refresh-items{display:grid;gap:12px;max-height:58vh;overflow:auto;overscroll-behavior:contain;margin:12px 0}
+.gmp-refresh-item{border:1px solid #d4b79c;border-radius:10px;padding:13px;background:#fffcf8;min-width:0}
+.gmp-refresh-meta{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.gmp-refresh-meta strong{font-size:11px;letter-spacing:.06em;color:#9b5d36}
+.gmp-refresh-meta small{font-size:11px;color:#80654c;overflow-wrap:anywhere;max-width:100%}
+.gmp-refresh-item>details{border-top:1px solid #dfc8b3;padding:7px 0}
+.gmp-refresh-item summary{font-size:12px;cursor:pointer;font-weight:650}
+.gmp-refresh-item pre,.gmp-history-snapshot pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;max-height:180px;overflow:auto;background:#f3e6d6;padding:10px;border-radius:8px;color:#553c2b}
+.gmp-refresh-item .gmp-field{margin:12px 0 0}
+.gmp-history-list{display:grid;gap:7px;max-height:35vh;overflow:auto}
+.gmp-history-item{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 12px;border:1px solid #d6bfa7;border-radius:9px;background:#fffdf8}
+.gmp-history-item>span{display:grid;gap:4px;font-size:13px}
+.gmp-history-item small{display:block;color:#876a52;font-size:11px}
+.gmp-history-snapshot{margin-top:16px;border-top:1px solid #cfab88;padding-top:13px}
+.gmp-history-snapshot details{padding:8px 0;border-bottom:1px solid #ddc9b8}
+.gmp-history-snapshot summary{cursor:pointer;font-size:12px;font-weight:650}
+.gmp-root.gmp-dark .gmp-refresh-review,.gmp-root.gmp-dark .gmp-history-review{background:#34251d;border-color:#816048}
+.gmp-root.gmp-dark .gmp-refresh-item,.gmp-root.gmp-dark .gmp-history-item{background:#2c211a;border-color:#76573f}
+.gmp-root.gmp-dark .gmp-refresh-meta strong,.gmp-root.gmp-dark .gmp-history-item small{color:#e4b38f}
+.gmp-root.gmp-dark .gmp-refresh-meta small{color:#d8b698}
+.gmp-root.gmp-dark .gmp-refresh-item pre,.gmp-root.gmp-dark .gmp-history-snapshot pre{background:#251b16;color:#eed9c8}
+@media(max-width:720px){
+ .gmp-refresh-items{max-height:48vh}
+ .gmp-refresh-meta{display:grid;gap:5px}
+ .gmp-history-item{gap:7px;padding:8px}
+ .gmp-refresh-item{padding:10px}
+ .gmp-refresh-review .gmp-form-head{align-items:flex-start}
+}
