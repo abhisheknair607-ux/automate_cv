@@ -8,6 +8,7 @@
   let authInstance=null, currentUser=null, firebaseReady=false, oauthProvider=null;
   let callbacks=[],sdkError=null;
   let stageProfileProxyAuth=false;
+  const firebaseAuthHeader=()=>stageProfileProxyAuth?"X-Garamaal-Firebase-Authorization":"Authorization";
   const listenerReady=new Promise(resolve=>{window.__cvAuthReady=resolve;});
 
   function errorText(message) {
@@ -102,7 +103,7 @@
       const token=await user.getIdToken(force);
       return fetch("/api/"+encodeURIComponent(method),{
         method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+        headers:{"Content-Type":"application/json",[firebaseAuthHeader()]:"Bearer "+token},
         body:JSON.stringify({arg:arg===undefined?null:arg})
       });
     }
@@ -130,8 +131,7 @@
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
-      const header=stageProfileProxyAuth && endpoint.startsWith("profile/")
-        ? "X-Garamaal-Firebase-Authorization" : "Authorization";
+      const header=firebaseAuthHeader();
       return fetch("/api/"+endpoint,{method:"POST",credentials:"same-origin",cache:"no-store",
         headers:{"Content-Type":"application/json",[header]:"Bearer "+await user.getIdToken(force)},
         body:JSON.stringify(body||{})
@@ -147,7 +147,7 @@
     const user=await waitForUser();
     async function send(force=false){
       return fetch("/api/usage",{method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        headers:{"Content-Type":"application/json",[firebaseAuthHeader()]:"Bearer "+await user.getIdToken(force)},
         body:JSON.stringify({candidate,row})
       });
     }
@@ -162,7 +162,7 @@
     async function send(force=false) {
       return fetch("/api/download",{
         method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        headers:{"Content-Type":"application/json",[firebaseAuthHeader()]:"Bearer "+await user.getIdToken(force)},
         body:JSON.stringify({candidate,row,kind})
       });
     }
