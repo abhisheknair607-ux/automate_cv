@@ -286,8 +286,8 @@ def select_evidence(
             # Require literal source support before including a candidate tag.
             supported_tags = [str(tag) for tag in record["tags"]
                               if isinstance(tag, str) and len(tag) <= 60
-                              and re.search(r"(?<!\\w)" + re.escape(tag)
-                                            + r"(?!\\w)", record["originalText"], re.I)]
+                              and re.search(r"(?<!\w)" + re.escape(tag)
+                                            + r"(?!\w)", record["originalText"], re.I)]
             if supported_tags:
                 body.extend(["Source-supported reviewed tags (not automatic qualifications):",
                              ", ".join(supported_tags), ""])
