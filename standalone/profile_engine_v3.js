@@ -146,8 +146,9 @@
     (r.duplicateOf?'<p class="gmp-review-note">Possible duplicate of record '+esc(r.duplicateOf)+'. Both originals are preserved.</p>':"")+
     '<label class="gmp-check"><input type="checkbox" data-field="classificationReviewed"'+checked(r.classificationReviewed)+'>'+
     ' I reviewed the section classification</label>'+
-    '<div class="gmp-stage4-actions">'+buttons("suggest-star","Suggest STAR from original")+
-    buttons("check-claims","Check draft numbers")+'</div>'+
+    (r.cvEligible===false?'<p class="gmp-stage4-note">Routing references are not eligible for STAR suggestions or numerical-claim approval.</p>':
+     '<div class="gmp-stage4-actions">'+buttons("suggest-star","Suggest STAR from original")+
+     buttons("check-claims","Check draft numbers")+'</div>')+
     '<div data-star-panel>'+starAssistancePanel(r)+'</div>'+
     '<div data-numeric-panel>'+numericReviewPanel(r)+'</div>'+
     '<h4>STAR evidence</h4><div class="gmp-star">'+names.map(n=>
@@ -401,6 +402,11 @@
    return;
   }
   if(action==="match-jd"){
+   if(hasUnsaved()){
+    if(!guardExit())return;
+    dirty=false;form=null;
+    status="Unsaved profile edits discarded before keyword screening.";
+   }
    const jd=mount.querySelector("[data-jd-text]")?.value||jdText;
    jdText=jd;
    const result=await request("jd-match",{candidate:key,revision:data.revision,jdText});
