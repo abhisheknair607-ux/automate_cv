@@ -8,6 +8,7 @@ const {createHash,randomUUID}=require("node:crypto");
 const {getFirestore}=require("firebase-admin/firestore");
 const mammoth=require("mammoth");
 const {candidate,sourceCatalog,parseSource,mergeImports,BASE_SECTIONS}=require("./profile_evidence");
+const sectionOps=require("./profile_section_ops");
 const COLLECTION="garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
@@ -79,66 +80,6 @@ async function collectImport(key,auth){
   return profile;
 }
 function clone(data){return JSON.parse(JSON.stringify(data));}
-function validSection(section,all){
-  return all.some(s=>s.id===section);
-}
-function patchRecord(profile,body){
-  const idx=profile.records.findIndex(r=>r.id===body.id);
-  if(idx<0)throw Object.assign(Error("Record not found"),{httpCode:404});
-  const changes=body.changes;
-  if(!changes||typeof changes!=="object"||Array.isArray(changes))
-    throw Object.assign(Error("Missing record changes"),{httpCode:400});
-  const entry=profile.records[idx];
-  for(const [k,value] of Object.entries(changes)){
-    if(["title","section","cvBullet","status","metricsReviewed","star","tags"].indexOf(k)<0)
-      throw Object.assign(Error("Original evidence is immutable"),{httpCode:400});
-    if(k==="section"){
-      if(!validSection(value,profile.sections))throw Object.assign(Error("Unknown profile section"),{httpCode:400});
-      entry.section=value;
-    }else if(k==="status"){
-      if(!["needs-review","verified","exclude"].includes(value))throw Object.assign(Error("Invalid evidence status"),{httpCode:400});
-      if(value==="verified"&&entry.cvEligible===false)
-        throw Object.assign(Error("Router references cannot become verified CV evidence"),{httpCode:400});
-      entry.status=value;
-    }else if(k==="metricsReviewed"){
-      if(typeof value!=="boolean")throw Object.assign(Error("Invalid metric verification"),{httpCode:400});
-      entry.metricsReviewed=value;
-    }else if(k==="star"){
-      if(!value||typeof value!=="object"||Array.isArray(value))throw Object.assign(Error("Invalid STAR fields"),{httpCode:400});
-      entry.star={};
-      for(const name of ["situation","task","action","result"]){
-        if(typeof value[name]!=="string"||value[name].length>4000)throw Object.assign(Error("Invalid STAR field"),{httpCode:400});
-        entry.star[name]=value[name];
-      }
-    }else if(k==="tags"){
-      if(!Array.isArray(value)||value.length>30||value.some(s=>typeof s!=="string"||s.length>60))
-        throw Object.assign(Error("Invalid tags"),{httpCode:400});
-      entry.tags=value;
-    }else{
-      if(typeof value!=="string"||value.length>(k==="cvBullet"?4000:180))
-        throw Object.assign(Error("Invalid record text"),{httpCode:400});
-      entry[k]=value;
-    }
-  }
-}
-function addRecord(profile,body){
-  const section=String(body.section||"achievements");
-  if(!validSection(section,profile.sections))throw Object.assign(Error("Unknown profile section"),{httpCode:400});
-  const text=String(body.originalText||"").trim();
-  if(!text||text.length>12000)throw Object.assign(Error("A source description is required (up to 12000 characters)"),{httpCode:400});
-  const id=randomUUID();
-  profile.records.push({id,section,title:String(body.title||"New evidence").slice(0,180),
-    originalText:text,source:{kind:"user",fileId:"",locator:"Candidate-added evidence",index:-1},
-    metrics:[],metricsReviewed:false,star:{situation:"",task:"",action:"",result:""},cvBullet:"",
-    status:"needs-review",tags:[]});
-}
-function addSection(profile,body){
-  const title=String(body.title||"").trim();
-  if(title.length<2||title.length>90||profile.sections.length>=40)
-    throw Object.assign(Error("Section name must be 2–90 characters; maximum 40 sections"),{httpCode:400});
-  const id="custom_"+randomUUID().replace(/-/g,"").slice(0,18);
-  profile.sections.push({id,title});
-}
 function register(app,{authenticate,auth}){
   async function handle(req,res,fn){
     try{
@@ -215,9 +156,10 @@ function register(app,{authenticate,auth}){
         const p=snap.data();
         if(p.candidate!==key||p.revision!==expected)
           throw Object.assign(Error("Profile was changed elsewhere. Reload before saving."),{httpCode:409});
-        if(type==="record")patchRecord(p,body);
-        if(type==="add-record")addRecord(p,body);
-        if(type==="add-section")addSection(p,body);
+        if(type==="record")sectionOps.patchRecord(p,body);
+        if(type==="add-record")sectionOps.addRecord(p,body);
+        if(type==="add-section")sectionOps.addSection(p,body);
+        if(type==="section")sectionOps.manageSection(p,body);
         p.revision++;
         p.updatedAt=new Date().toISOString();
         if(JSON.stringify(p).length>MAX_PROFILE_CHARS)
@@ -227,7 +169,7 @@ function register(app,{authenticate,auth}){
       });
     });
   }
-  for(const type of ["record","add-record","add-section"])
+  for(const type of ["record","add-record","add-section","section"])
     app.post("/api/profile/"+type,(req,res)=>mutate(req,res,type));
 }
 module.exports={register};
