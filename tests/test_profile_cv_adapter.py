@@ -9,7 +9,7 @@ import pytest
 from automate_cv import sources
 from automate_cv.profile_cv_adapter import (
     ProfileEvidenceError, _document, profile_evidence_mode,
-    read_pinned_snapshot, select_evidence, prepare_evidence,
+    read_pinned_snapshot, select_evidence, prepare_evidence, preserve_drive_core,
 )
 
 ID = "PR-POOJA-LIFEGOALS"
@@ -252,3 +252,86 @@ stage3_evidence_to_retrieve_or_verify: []
     assert "Managed 5 teams" in text and "CORE-GUARDRAILS" in text
     assert provider.last_profile_evidence_audit is None
     assert not (tmp_path / "Profile_Evidence_Comparison.json").exists()
+
+
+def test_profile_package_keeps_mandatory_drive_core_sections(tmp_path):
+    base = """# SELECTED EVIDENCE
+## CORE-CHRONOLOGY
+J.P. Nugent July 2026 to current.
+
+## CORE-CREDENTIALS
+MSc Finance and verified qualifications.
+
+## CORE-GUARDRAILS
+Do not treat temporary support as permanent investment authority.
+
+## PR-POOJA-LIFEGOALS
+Selected original work.
+"""
+    profile_package = select_evidence(profile(), [ID], candidate="pooja").package
+    joined = preserve_drive_core(profile_package, base, "pooja")
+    assert "PINNED GARMAAL PROFILE" in joined
+    assert "MSc Finance and verified qualifications" in joined
+    assert "Do not treat temporary support" in joined
+    assert "Managed 5 teams" in joined
+    with pytest.raises(ProfileEvidenceError, match="CORE-GUARDRAILS"):
+        preserve_drive_core(profile_package, base.replace("CORE-GUARDRAILS", "NO-GUARDRAILS"), "pooja")
+
+
+def test_profile_keyword_tags_require_literal_original_source_support():
+    p = profile()
+    p["records"][0]["tags"] = ["project management", "Power BI", "5 teams"]
+    result = select_evidence(p, [ID], candidate="pooja")
+    assert "5 teams" in result.package
+    assert "Power BI" not in result.package
+    assert "project management" not in result.package
+
+
+def test_staging_cutover_uses_profile_selected_package_and_retains_drive_core(tmp_path, monkeypatch):
+    from automate_cv import profile_cv_adapter
+    original = """CANDIDATE KEY pooja
+EVIDENCE CORE-CHRONOLOGY
+Career chronology 2026.
+END EVIDENCE CORE-CHRONOLOGY
+EVIDENCE CORE-CREDENTIALS
+MSc Finance.
+END EVIDENCE CORE-CREDENTIALS
+EVIDENCE CORE-GUARDRAILS
+No invented outcomes or qualifications.
+END EVIDENCE CORE-GUARDRAILS
+EVIDENCE PR-POOJA-LIFEGOALS
+Managed 5 teams during a documented product delivery programme.
+END EVIDENCE PR-POOJA-LIFEGOALS"""
+    class FakeDrive:
+        def find(self, *_args):
+            return None
+    p = SimpleNamespace(
+        formatting_master_file_id="", base_cv_file_id="",
+        high_experience_reference_file_id="", lower_experience_reference_file_id="",
+        cv_cover_letter_rules_file_id="", cover_letter_template_file_id="",
+        final_projects_folder_id="", projects_folder_id="",
+    )
+    provider = sources.Sources(FakeDrive(), None)
+    provider.profiles = {"pooja": p}
+    monkeypatch.setattr(sources, "docx_text", lambda path: original)
+    monkeypatch.setattr(profile_cv_adapter, "profile_evidence_mode", lambda: "profile")
+    evidence = select_evidence(profile(), [ID], candidate="pooja")
+    monkeypatch.setattr(profile_cv_adapter, "prepare_evidence",
+                        lambda candidate, ids, workdir: ("profile", evidence))
+    handoff = """STAGE2_HANDOFF
+cv_structure: Lower Experience
+selected_professional_evidence:
+  - key: PR-POOJA-LIFEGOALS
+selected_projects: []
+selected_achievements_qualifications_skills: []
+stage3_evidence_to_retrieve_or_verify: []
+"""
+    paths = provider.stage3("pooja", tmp_path, tmp_path / "summary.docx",
+                            tmp_path / "master.docx", handoff)
+    selected = Path(paths[0]).read_text()
+    retained = (tmp_path / "Drive_Selected_Evidence.md").read_text()
+    assert "PINNED GARMAAL PROFILE" in selected
+    assert "No invented outcomes" in selected
+    assert "Career chronology 2026" in selected
+    assert "Generated from MASTER EVIDENCE BANK" in retained
+    assert provider.last_profile_evidence_audit["revision"] == 7
