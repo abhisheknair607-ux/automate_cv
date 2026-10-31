@@ -29,3 +29,97 @@
 
 .gmp-review-note{font-size:12px;line-height:1.6;border-left:3px solid #a46c43;padding:8px 11px;margin:10px 0;background:#f6e8d8;color:#60412e}
 .gmp-review-note strong{color:#663f24}
+
+/* Stage 3: accessible inline editing and section manager */
+.gmp-app{--gmp-panel:#fffaf4;--gmp-ink:#3d291d;--gmp-muted:#81644f;--gmp-line:#ceb39a;--gmp-tint:#f4e8da;color:var(--gmp-ink);background:#f9f2ea}
+.gmp-accent{color:#a56b44}
+.gmp-section-nav{display:flex;flex-direction:column;gap:3px}
+.gmp-section-button{min-height:41px}
+.gmp-side-head{display:flex;align-items:center;justify-content:space-between;margin:0 5px 15px;gap:5px;font-size:11px;letter-spacing:.12em;color:#73513b}
+.gmp-side-head .gmp-btn,.gmp-side .gmp-btn{width:auto;border:1px solid #b99477;background:#fff8ef;padding:7px 9px}
+.gmp-section-manage{margin:19px 5px 14px;padding-top:15px;border-top:1px solid var(--gmp-line)}
+.gmp-section-manage strong{font-size:11px;color:#684832}
+.gmp-section-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.gmp-btn-small{font-size:11px!important;padding:7px 9px!important}
+.gmp-archived{display:grid;gap:8px;padding:10px 2px;font-size:12px}
+.gmp-archived>div{display:flex;justify-content:space-between;align-items:center;gap:5px}
+.gmp-archived button{width:auto!important}
+.gmp-main-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.gmp-toolbar{display:flex;align-items:end;gap:10px;flex-wrap:wrap;margin:14px 0}
+.gmp-search-wrap,.gmp-filter-wrap{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;color:var(--gmp-muted)}
+.gmp-search-wrap{flex:2;min-width:190px}.gmp-filter-wrap{flex:1;min-width:130px}
+.gmp-filter-wrap select,.gmp-mobile-label select{width:100%;padding:10px;border-radius:9px;background:var(--gmp-panel);color:var(--gmp-ink);border:1px solid var(--gmp-line)}
+.gmp-search{width:100%;box-sizing:border-box;color:var(--gmp-ink);background:var(--gmp-panel)}
+.gmp-card{box-shadow:0 2px 9px #4d30170a}
+.gmp-card[hidden]{display:none!important}
+.gmp-record-title{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.gmp-record-title strong{font-size:14px;color:#4f3120;font-weight:730}
+.gmp-record-title small{font-size:11px;color:#8a6952}
+.gmp-pill{flex-shrink:0;border-radius:20px;background:#f1e4d4;border:1px solid #dec6ab;font-size:10px;padding:4px 9px;color:#674e38;white-space:nowrap}
+.gmp-card summary{gap:11px}
+.gmp-split{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}
+.gmp-field{font-weight:650}
+.gmp-field input,.gmp-field select,.gmp-field textarea{width:100%;box-sizing:border-box}
+.gmp-field textarea{min-height:80px}
+.gmp-field input:focus,.gmp-field textarea:focus,.gmp-field select:focus,
+.gmp-btn:focus-visible,.gmp-section-button:focus-visible{outline:2px solid #ae744f;outline-offset:2px}
+.gmp-field textarea:focus{border-color:#a77150}
+.gmp-check{display:flex;align-items:flex-start;gap:9px;line-height:1.5;font-size:12px;margin:13px 0;color:#63452f}
+.gmp-check input{accent-color:#a46b45;flex:0 0 auto;width:16px;height:16px;margin:1px 0 0}
+.gmp-record-footer{display:flex;flex-wrap:wrap;gap:9px;align-items:center;margin-top:16px}
+.gmp-meta a{color:#8d5433;font-weight:650;text-decoration:underline;text-underline-offset:3px}
+.gmp-inline-editor{border:1px solid #c89d7c;background:#fff7ed;border-radius:13px;padding:18px;margin:14px 0 21px;color:#4a3222}
+.gmp-inline-editor h3{margin:0 0 8px;font-size:18px}
+.gmp-inline-editor p{margin:8px 0 15px}
+.gmp-form-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px}
+.gmp-form-head .gmp-btn{flex-shrink:0}
+.gmp-record-list{min-height:150px}
+.gmp-mobile-label,.gmp-mobile-manage{display:none}
+.gmp-app .gmp-btn:hover{transform:translateY(-1px)}
+.gmp-app .gmp-btn:active{transform:translateY(0)}
+.gmp-root.gmp-dark .gmp-app{--gmp-panel:#30241e;--gmp-ink:#f0ddca;--gmp-muted:#bd9a81;--gmp-line:#644c3b;--gmp-tint:#3a2a20;color:#f0ddca;background:#241b16}
+.gmp-root.gmp-dark .gmp-head{background:#35261f;border-color:#644c3b}
+.gmp-root.gmp-dark .gmp-head h2,.gmp-root.gmp-dark .gmp-head p{color:#efdbca}
+.gmp-root.gmp-dark .gmp-banner,.gmp-root.gmp-dark .gmp-status{background:#38271e;color:#e6c8b1}
+.gmp-root.gmp-dark .gmp-side{background:#2b211b;border-color:#594336}
+.gmp-root.gmp-dark .gmp-side-head,.gmp-root.gmp-dark .gmp-section-manage strong{color:#dfbca5}
+.gmp-root.gmp-dark .gmp-section-button{color:#f0d9c5}
+.gmp-root.gmp-dark .gmp-card,.gmp-root.gmp-dark .gmp-inline-editor{background:#32251e;color:#edd6c5;border-color:#6b4e3e}
+.gmp-root.gmp-dark .gmp-record-title strong,.gmp-root.gmp-dark .gmp-record-title small{color:#f0d8c6}
+.gmp-root.gmp-dark .gmp-pill{background:#4e3727;color:#e6c5a8;border-color:#775541}
+.gmp-root.gmp-dark .gmp-field,.gmp-root.gmp-dark .gmp-check{color:#e4c8ad}
+.gmp-root.gmp-dark .gmp-field input,.gmp-root.gmp-dark .gmp-field textarea,.gmp-root.gmp-dark .gmp-field select,
+.gmp-root.gmp-dark .gmp-filter-wrap select,.gmp-root.gmp-dark .gmp-mobile-label select,
+.gmp-root.gmp-dark .gmp-search{background:#2a211c;color:#f2d8c5;border-color:#72513d}
+.gmp-root.gmp-dark .gmp-original{background:#271d18;color:#ebd6c3;border-color:#614735}
+.gmp-root.gmp-dark .gmp-review-note{background:#403024;color:#e8c9ae}
+.gmp-root.gmp-dark .gmp-btn{background:#433126;color:#f5ddc7;color:#f5ddc7;border-color:#8a6249}
+.gmp-root.gmp-dark .gmp-btn-primary{background:#a67249;border-color:#b58760;color:#fff7ed}
+.gmp-root.gmp-dark .gmp-meta,.gmp-root.gmp-dark .gmp-label{color:#bd977c}
+.gmp-root.gmp-dark .gmp-meta a{color:#efbc91}
+.gmp-root.gmp-dark .gmp-empty{background:#2e211b;border-color:#7b5942}
+@media(max-width:720px){
+ .gmp-app{width:100%;height:100dvh;max-height:none}
+ .gmp-layout{display:flex;flex-direction:column}
+ .gmp-main{flex:1;overscroll-behavior:contain}
+ .gmp-mobile-label{display:flex;flex-direction:column;gap:5px;font-size:11px;font-weight:700;margin-bottom:8px}
+ .gmp-mobile-sections{display:block;width:100%}
+ .gmp-mobile-manage{display:flex;gap:7px;flex-wrap:wrap;margin:8px 0 14px}
+ .gmp-mobile-manage .gmp-btn{padding:7px 9px;font-size:11px}
+ .gmp-toolbar{display:grid;grid-template-columns:1fr;gap:8px}
+ .gmp-search-wrap,.gmp-filter-wrap{min-width:0}
+ .gmp-split,.gmp-star{grid-template-columns:1fr}
+ .gmp-head{padding:13px}
+ .gmp-head p{font-size:10px}
+ .gmp-head h2{font-size:21px}
+ .gmp-banner{padding:10px 13px;line-height:1.6}
+ .gmp-card summary{padding:12px;gap:6px}
+ .gmp-record-title strong{font-size:13px}
+ .gmp-pill{font-size:10px;padding:3px 6px}
+ .gmp-card-body{padding:12px}
+ .gmp-inline-editor{padding:12px}
+ .gmp-status{padding:8px 13px;font-size:11px}
+ .gmp-actions{gap:6px}
+ .gmp-btn{min-height:35px}
+}
+@media(prefers-reduced-motion:reduce){.gmp-app .gmp-btn{transition:none!important;transform:none!important}}
