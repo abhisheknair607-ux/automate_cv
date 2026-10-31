@@ -237,3 +237,12 @@
 .gmp-root.gmp-dark .gmp-preview-original{background:#261c17;border-color:#6c4d3a;color:#f0dbc7}
 @media(max-width:720px){.gmp-preview-filters{grid-template-columns:1fr}.gmp-preview-record summary{padding:10px}.gmp-preview-original{max-height:45vh}}
 @media(prefers-reduced-motion:reduce){.gmp-preview-record,.gmp-preview-record summary{scroll-behavior:auto;transition:none}}
+
+/* Isolated read-only staging identity disclosure to the verified signed-in user. */
+.gmp-identity-banner{display:grid;gap:6px;margin-bottom:16px;padding:11px 14px;border-radius:10px;border:1px solid #c29e7f;background:#fff6eb;color:#553b2b;font-size:12px}
+.gmp-identity-banner code{font-size:13px;user-select:text;overflow-wrap:anywhere;white-space:normal}
+.gmp-identity-banner span{font-weight:650}
+.gmp-identity-banner small{line-height:1.55;color:#805e48}
+.gmp-root.gmp-dark .gmp-identity-banner{background:#39291e;color:#edd2b9;border-color:#89654a}
+.gmp-root.gmp-dark .gmp-identity-banner small{color:#d5ae92}
+@media(max-width:720px){.gmp-identity-banner{padding:10px;font-size:11px}}
