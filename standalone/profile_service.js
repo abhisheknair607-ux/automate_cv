@@ -99,6 +99,7 @@ function clone(data){return JSON.parse(JSON.stringify(data));}
 function register(app,{authenticate,auth}){
   async function handle(req,res,fn){
     try{
+      res.set("Cache-Control","private, no-store");
       allowed();
       const email=await authenticate(req);
       const key=candidate(req.body?.candidate);
@@ -204,7 +205,15 @@ function register(app,{authenticate,auth}){
     classificationReview:p.records.filter(r=>r.classification?.needsReview).length,
     routerReferences:p.records.filter(r=>r.cvEligible===false).length,
     duplicateCandidates:p.records.filter(r=>r.duplicateOf).length,
-    allSourcesComplete:p.sources.every(s=>s.integrity?.complete===true)};
+    allSourcesComplete:p.sources.every(s=>s.integrity?.complete===true),
+    sections:p.sections.map(s=>({id:s.id,title:s.title})),
+    // Authenticated and candidate ACL protected. Preview is read-only and
+    // includes complete original text, router refs and review-only records.
+    records:p.records.map(r=>({
+      id:r.id,title:r.title,section:r.section,classification:r.classification,
+      source:r.source,originalText:r.originalText,metrics:r.metrics,
+      cvEligible:r.cvEligible,duplicateOf:r.duplicateOf
+    }))};
   }));
   app.post("/api/profile/import",(req,res)=>handle(req,res,async({key,ref,email,body})=>{
     writeGate();
