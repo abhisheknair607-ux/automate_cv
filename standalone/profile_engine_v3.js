@@ -323,8 +323,8 @@
   if(!data)return '<div class="gmp-empty"><h3>Loading profile</h3><p>Checking your authenticated candidate record.</p></div>';
   if(!data.imported)return '<div class="gmp-empty"><h3>Bring your Google Drive evidence into Garamaal</h3>'+
     '<p>First check both Drive sources and Firestore access. Previewing does not change your original files or CV workflow.</p>'+
-    '<div class="gmp-actions">'+buttons("readiness","Check connections")+buttons("preview","Preview source import","gmp-btn-primary")+
-    (previousEditor?buttons("legacy","Open previous local draft"):"")+'</div></div>'+readinessPane()+sourcePreview();
+    '<div class="gmp-actions">'+buttons("readiness","Check connections")+buttons("preview","View extracted records","gmp-btn-primary")+buttons("verify-twice","Verify sources twice")+
+    (previousEditor?buttons("legacy","Open previous local draft"):"")+'</div></div>'+readinessPane()+doubleCheckPane()+sourcePreview();
   const list=records().filter(filterMatches);
   return '<div class="gmp-main-head"><div><h3>'+esc(query.trim()?"Search results":selected()?.title||"Career evidence")+'</h3>'+
    '<p>'+list.length+' matching records · Your original source documents are always preserved.</p></div></div>'+
@@ -335,13 +335,13 @@
     '<option value="'+v+'"'+(filter===v?" selected":"")+'>'+label+'</option>').join("")+'</select></label></div>'+
    '<div class="gmp-actions">'+buttons("add-record","+ Add evidence","gmp-btn-primary")+
    buttons("add-section","+ Add section")+buttons("preview","Check Drive sources")+
-   buttons("readiness","Connections")+
+   buttons("readiness","Connections")+buttons("verify-twice","Verify sources twice")+
    buttons("refresh-preview","Review Drive changes")+buttons("history","Version history")+'</div>'+
    refreshPanel()+historyPanel()+jdMatcherPanel()+editor()+
    '<div class="gmp-results"><div class="gmp-record-list">'+(list.length?list.slice(0,limit).map(evidenceCard).join(""):
     '<div class="gmp-empty"><strong>No matching evidence.</strong><p>Change the filter or add factual evidence in this section.</p></div>')+'</div>'+
    (list.length>limit?buttons("load-more","Load more ("+(list.length-limit)+" remaining)"):"")+'</div>'+
-   readinessPane()+sourcePreview();
+   readinessPane()+doubleCheckPane()+sourcePreview();
  }
  function render(){
   if(!mount)return;
@@ -366,7 +366,7 @@
  }
  async function open(){
   if(mount)close(true);
-  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;status="Loading secure profile…";
+  previous=doc.activeElement;key=currentCandidate();data=null;readiness=null;preview=null;previewSearch="";previewFilter="all";previewLimit=12;verifyReport=null;query="";filter="all";active="experience";expanded="";limit=40;form=null;dirty=false;jdText="";jdMatch=null;starAssists={};numericChecks={};refreshPlan=null;refreshDecisions={};historyList=null;historySnapshot=null;status="Loading secure profile…";
   mount=doc.createElement("div");mount.className="gmp-root";mount.id="garamaal-profile-engine";doc.body.append(mount);render();
   await load({initial:true});
   if(!mount)return;
@@ -554,6 +554,7 @@
   if(action==="restore-section"){if(!guardExit())return;await editSection("restore",el.dataset.sectionId);return}
   if(action==="toggle-archived"){if(!guardExit())return;archived=!archived;render();return}
   if(action==="load-more"){limit+=40;render();return}
+  if(action==="preview-more"){previewLimit+=12;render();return}
   if(action==="readiness"){
    const p=await request("readiness",{candidate:key});if(p){readiness=p;status="Connection check completed.";render()}return;
   }
@@ -622,6 +623,7 @@
     " Drive change decisions selected. Nothing saved until Apply.");
    return;
   }
+  if(el.matches("[data-preview-filter]")){previewFilter=el.value;previewLimit=12;render();return}
   if(el.matches("[data-mobile-section]")){navigate(el.value);return}
   if(el.matches("[data-filter]")){if(!guardExit()){el.value=filter;return}filter=el.value;dirty=false;form=null;render()}
  });
