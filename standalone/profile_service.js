@@ -111,12 +111,15 @@ function register(app,{authenticate,auth}){
       res.status(status).json({error:safeErr(error)});
     }
   }
-  app.post("/api/profile/readiness",(req,res)=>handle(req,res,async({key})=>{
+  app.post("/api/profile/readiness",(req,res)=>handle(req,res,async({key,ref})=>{
     const sources=sourceCatalog(key);
     const status={candidate:key,profileEnabled:true,profileWritesApproved:profileWriteApproved(),dataScope:DATA_SCOPE,
       firestore:{ready:false},drive:sources.map(s=>({kind:s.kind,configured:s.configured,accessible:false}))};
     try{
-      await getFirestore().collection(COLLECTION).doc("__profile_readiness__").get();
+      // Probe the same candidate-owned path as /api/profile/read.
+      // Firestore reserves all __*__ document IDs; reading a missing
+      // candidate profile is permitted and does not create or alter data.
+      await ref.get();
       status.firestore.ready=true;
     }catch(error){status.firestore.message="Firestore read access not ready";}
     if(sources.every(s=>s.configured)){
