@@ -7,6 +7,7 @@
 (function() {
   let authInstance=null, currentUser=null, firebaseReady=false, oauthProvider=null;
   let callbacks=[],sdkError=null;
+  let stageProfileProxyAuth=false;
   const listenerReady=new Promise(resolve=>{window.__cvAuthReady=resolve;});
 
   function errorText(message) {
@@ -129,8 +130,10 @@
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
+      const header=stageProfileProxyAuth && endpoint.startsWith("profile/")
+        ? "X-Garamaal-Firebase-Authorization" : "Authorization";
       return fetch("/api/"+endpoint,{method:"POST",credentials:"same-origin",cache:"no-store",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+await user.getIdToken(force)},
+        headers:{"Content-Type":"application/json",[header]:"Bearer "+await user.getIdToken(force)},
         body:JSON.stringify(body||{})
       });
     }
@@ -196,6 +199,7 @@
       const config=await response.json();
       if(!config.apiKey||!config.authDomain||!config.projectId||!config.appId)
         throw Error("Firebase sign-in needs its one-time deployment configuration.");
+      stageProfileProxyAuth=config.profilePreviewProxyAuth===true;
       await loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js");
       await loadScript("https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js");
       firebase.initializeApp(config);
