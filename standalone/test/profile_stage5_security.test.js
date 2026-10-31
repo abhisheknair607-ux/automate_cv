@@ -17,7 +17,7 @@ test("all Profile entrypoints require verified auth and candidate-scoped ACL",()
  assert.match(service,/const grant=permit\(email,key\)/);
  assert.match(service,/const ref=docFor\(grant\.ownerDigest,key\)/);
  assert.doesNotMatch(service,/req\.body\?\.email|req\.body\?\.ownerDigest/);
- assert.match(service,/GARAMAAL_PROFILE_CANDIDATE_ACL_JSON/,"ACL may be in its dedicated module");
+ assert.match(read("profile_access.js"),/GARAMAAL_PROFILE_CANDIDATE_ACL_JSON/);
 });
 test("read-only staging and production writes use disjoint permissions and data scopes",()=>{
  const service=read("profile_service.js");
