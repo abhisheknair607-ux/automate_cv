@@ -25,8 +25,10 @@ const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
 // Safest default: never permit writes unless explicitly enabled after sign-off.
 const READ_ONLY = process.env.APP_READ_ONLY !== "false";
-// Private Cloud Shell proxy authenticates to Cloud Run separately from Firebase.
-// Accept a second Firebase header ONLY for read-only, isolated Profile staging.
+// Private Cloud Shell proxy uses Authorization for Cloud Run identity while the browser
+// uses Firebase ID tokens. Only in isolated, read-only Profile staging, allow the
+// browser to supply its Firebase token on a separate header for ALL /api routes.
+// Production services and non-isolated requests retain existing auth behavior.
 const PROFILE_PREVIEW_PROXY_AUTH = READ_ONLY &&
   process.env.GARAMAAL_PROFILE_STAGING_ISOLATED === "true" &&
   process.env.GARAMAAL_PROFILE_DATA_SCOPE === "staging";
@@ -291,7 +293,7 @@ app.get("/prototype",(req,res)=>{
 });
 
 async function authenticate(req) {
-  const firebaseHeader = PROFILE_PREVIEW_PROXY_AUTH && req.path.startsWith("/api/profile/")
+  const firebaseHeader = PROFILE_PREVIEW_PROXY_AUTH && req.path.startsWith("/api/")
     ? (req.headers["x-garamaal-firebase-authorization"] || req.headers.authorization)
     : req.headers.authorization;
   const match=String(firebaseHeader||"").match(/^Bearer\s+(.+)$/i);
