@@ -14,16 +14,28 @@ const {auditClaimNumbers}=require("./profile_claim_review");
 const {permit}=require("./profile_access");
 const {planRefresh,applyRefresh}=require("./profile_refresh");
 const {recordRevision,backfillBaseline,historySummary,verifyHistoryRead,pad}=require("./profile_history");
-const COLLECTION="garamaalProfilesV1";
+const DATA_SCOPE=process.env.GARAMAAL_PROFILE_DATA_SCOPE;
+const COLLECTION=DATA_SCOPE==="staging"?"garamaalProfilesStagingV1":"garamaalProfilesV1";
 const MAX_PROFILE_CHARS=650000;
 const safeErr=(e)=>String(e&&e.message||"Profile request failed").slice(0,250);
 function allowed(){
   if(process.env.GARAMAAL_PROFILE_ENABLED!=="true")
     throw Object.assign(Error("Garamaal Profile backend is not enabled yet"),{httpCode:503});
+  if(DATA_SCOPE!=="staging"&&DATA_SCOPE!=="production")
+    throw Object.assign(Error("Profile data scope must be explicitly configured"),{httpCode:503});
+}
+function profileWriteApproved(){
+  if(process.env.GARAMAAL_PROFILE_WRITES_APPROVED!=="true")return false;
+  // On isolated staging the Jobs/Sheets API must remain globally read-only.
+  if(DATA_SCOPE==="staging")
+    return process.env.GARAMAAL_PROFILE_STAGING_ISOLATED==="true"&&process.env.APP_READ_ONLY!=="false";
+  // Future production activation requires its own independent opt-in.
+  return DATA_SCOPE==="production"&&process.env.APP_READ_ONLY==="false"&&
+    process.env.GARAMAAL_PROFILE_PRODUCTION_APPROVED==="true";
 }
 function writeGate(){
-  if(process.env.APP_READ_ONLY!=="false" || process.env.GARAMAAL_PROFILE_WRITES_APPROVED!=="true")
-    throw Object.assign(Error("Profile saving is locked until staging writes are explicitly approved"),{httpCode:403});
+  if(!profileWriteApproved())
+    throw Object.assign(Error("Profile saving is not approved for this isolated data scope"),{httpCode:403});
 }
 function docFor(ownerDigest,key){
   return getFirestore().collection(COLLECTION).doc(ownerDigest).collection("candidates").doc(candidate(key));
@@ -101,8 +113,7 @@ function register(app,{authenticate,auth}){
   }
   app.post("/api/profile/readiness",(req,res)=>handle(req,res,async({key})=>{
     const sources=sourceCatalog(key);
-    const status={candidate:key,profileEnabled:true,profileWritesApproved:
-      process.env.APP_READ_ONLY==="false"&&process.env.GARAMAAL_PROFILE_WRITES_APPROVED==="true",
+    const status={candidate:key,profileEnabled:true,profileWritesApproved:profileWriteApproved(),dataScope:DATA_SCOPE,
       firestore:{ready:false},drive:sources.map(s=>({kind:s.kind,configured:s.configured,accessible:false}))};
     try{
       await getFirestore().collection(COLLECTION).doc("__profile_readiness__").get();
