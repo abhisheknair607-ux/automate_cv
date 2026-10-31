@@ -81,6 +81,40 @@ test("Profile proxy transport deploy script targets only tagged zero-traffic sta
  assert.doesNotMatch(script,/automate-cv-dashboard|automate-cv-social|update-traffic|GARAMAAL_PROFILE_WRITES_APPROVED":"true"/);
 });
 
+test("Private source preview shows full exact record text and provenance before import",()=>{
+ const server=read("profile_service.js");
+ const ui=read("profile_engine_v3.js");
+ const css=read("profile_engine.css");
+ const preview=server.match(/app\.post\("\/api\/profile\/import-preview"[\s\S]*?app\.post\("\/api\/profile\/import"/);
+ assert.ok(preview);
+ assert.match(server,/res\.set\("Cache-Control","private, no-store"\)/);
+ assert.match(preview[0],/originalText:r\.originalText/);
+ assert.match(preview[0],/classification:r\.classification/);
+ assert.match(preview[0],/source:r\.source/);
+ assert.match(preview[0],/allSourcesComplete/);
+ assert.doesNotMatch(preview[0],/\.set\(|\.update\(|\.create\(/);
+ assert.match(ui,/function previewList\(\)/);
+ assert.match(ui,/gmp-preview-original/);
+ assert.match(ui,/esc\(r\.originalText/);
+ assert.match(ui,/data-preview-search/);
+ assert.match(ui,/data-preview-filter/);
+ assert.match(ui,/previewLimit\+=12/);
+ assert.match(css,/\.gmp-preview-record/);
+ assert.match(css,/@media\(max-width:720px\)/);
+});
+test("Two-pass verification checks the authenticated candidate twice without writes",()=>{
+ const ui=read("profile_engine_v3.js");
+ const part=ui.match(/if\(action==="verify-twice"\)[\s\S]*?if\(action==="import"\)/);
+ assert.ok(part);
+ assert.match(part[0],/for\(let index=0;index<2;index\+\+\)/);
+ assert.match(part[0],/api\("readiness",\{candidate:key\}\)/);
+ assert.match(part[0],/api\("import-preview",\{candidate:key\}\)/);
+ assert.match(part[0],/signature:/);
+ assert.match(part[0],/source.*sha256/);
+ assert.match(part[0],/passes\.every\(x=>x\.passed\)/);
+ assert.doesNotMatch(part[0],/api\("import",|api\("record",|api\("refresh-apply",/);
+});
+
 test("Staging audit is syntactically valid and contains no modifying cloud CLI commands",()=>{
  const audit=path.join(root,"profile-staging-readiness.sh");
  const result=spawnSync("bash",["-n",audit],{encoding:"utf8"});
