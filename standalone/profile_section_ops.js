@@ -96,8 +96,8 @@ function patchRecord(profile,body){
   for(const key of ["situation","task","action","result"])
    if(typeof changes.star[key]!=="string"||changes.star[key].length>4000)throw error("Invalid STAR field");
  }
- if("originalText" in changes&&changes.originalText!==entry.originalText){
-  // Full user-authored change history is a later stage; retain previous text for review.
+ const textChanged="originalText" in changes&&changes.originalText.trim()!==entry.originalText;
+ if(textChanged){
   entry.previousUserText=entry.originalText;
   entry.originalText=changes.originalText.trim();
   entry.metrics=metricsFrom(entry.originalText);
@@ -110,13 +110,7 @@ function patchRecord(profile,body){
  if("star" in changes)entry.star={...changes.star};
  if("tags" in changes)entry.tags=[...new Set(changes.tags.map(x=>x.trim()).filter(Boolean))];
  if("classificationReviewed" in changes)entry.classificationReviewed=changes.classificationReviewed;
- if("metricsReviewed" in changes&&!("originalText" in changes&&changes.originalText!==entry.previousUserText))
-  entry.metricsReviewed=changes.metricsReviewed;
- if("status" in changes&&!("originalText" in changes&&entry.previousUserText===undefined))
-  entry.status=changes.status;
- // When the factual text changed, never approve its numbers or verify the new claim in this request.
- if("originalText" in changes&&entry.previousUserText!==undefined){
-  entry.metricsReviewed=false;entry.status="needs-review";
- }
+ if("metricsReviewed" in changes&&!textChanged)entry.metricsReviewed=changes.metricsReviewed;
+ if("status" in changes&&!textChanged)entry.status=changes.status;
 }
 module.exports={addSection,manageSection,addRecord,patchRecord};
