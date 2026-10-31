@@ -602,7 +602,9 @@
    return;
   }
   if(action==="preview"){
-   const p=await request("import-preview",{candidate:key});if(p){preview=p;status="Preview completed. No Drive files changed.";render()}return;
+   const p=await request("import-preview",{candidate:key});
+   if(p){preview=p;previewLimit=12;status="Preview ready. No original documents changed.";render()}
+   return;
   }
   if(action==="import"){
    if(!window.confirm("Import candidate-owned Drive originals into the editable Profile? The CV generator will continue reading Drive."))return;
@@ -630,6 +632,12 @@
  doc.addEventListener("input",event=>{
   if(!mount?.contains(event.target))return;
   const el=event.target;
+  if(el.matches("[data-preview-search]")){
+   previewSearch=el.value;previewLimit=12;
+   const target=mount.querySelector("[data-preview-list]");
+   if(target)target.innerHTML=previewList();
+   return;
+  }
   if(el.matches("[data-jd-text]")){jdText=el.value;return}
   if(el.matches("[data-search]")){
    if(dirty||form){
