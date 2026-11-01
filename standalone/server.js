@@ -268,7 +268,7 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
     '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
      '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1">'+
-     (profileBeta.enabled()?'<link rel="stylesheet" href="/prototype/profile-beta-ui.css?v=sitebeta1">':'')+'</head>');
+     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<link rel="stylesheet" href="/prototype/profile-beta-ui.css?v=sitebeta1">':'')+'</head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -284,7 +284,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
-     (profileBeta.enabled()?'<script src="/prototype/profile-beta-ui.js?v=sitebeta1"></script>':'')+
+     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<script src="/prototype/profile-beta-ui.js?v=sitebeta1"></script>':'')+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
