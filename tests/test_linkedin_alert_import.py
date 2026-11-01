@@ -425,3 +425,54 @@ def test_importer_missing_master_authorization_is_not_ignored(monkeypatch):
     with pytest.raises(RuntimeError, match="master Jobs"):
         li.run(FakeGmail({"m": fake_digest()}), sheets, preview=False)
     assert sheets.added == []
+
+
+def test_many_alerts_use_bounded_bulk_writes_not_one_request_per_job(monkeypatch):
+    """A realistic busy window must stay well under Sheets' per-user write quota."""
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    gmail = FakeGmail({
+        f"message-{n}": fake_digest(
+            html_body=job_html(str(4500000000 + n), "Financial Analyst",
+                               "Example Ltd", "Dublin, Ireland"))
+        for n in range(45)
+    })
+    result = li.run(gmail, sheets, preview=False)
+    assert result["added"] == 45
+    assert result["messages"] == 45
+    assert len(sheets.tabs[li.INTAKE]) == 46
+    assert len(sheets.tabs[li.LOG]) == 46
+    # 20 + 20 + 5 mail batches; one intake and one log call per batch.
+    assert sheets.added == [li.INTAKE, li.LOG] * 3
+    assert li.run(gmail, sheets, preview=False)["added"] == 0
+    assert len(sheets.tabs[li.INTAKE]) == 46
+
+
+def test_log_write_failure_after_bulk_intake_retries_without_duplicate_jobs(monkeypatch):
+    """Unlogged persisted jobs must remain discoverable on the next import."""
+    with_fake_source_tabs(monkeypatch)
+    sheets = FakeSheets()
+    gmail = FakeGmail({"m1": fake_digest(), "m2": fake_digest(
+        html_body=job_html("4499999999", "Wealth Adviser", "Davy", "Dublin, Ireland"))})
+    original_append = sheets.append
+    failed = False
+
+    def fail_first_log_append(**kwargs):
+        nonlocal failed
+        if not failed and kwargs["range"].startswith("'Email Import Log'!"):
+            failed = True
+            raise RuntimeError("simulated log write failure")
+        return original_append(**kwargs)
+
+    monkeypatch.setattr(sheets, "append", fail_first_log_append)
+    with pytest.raises(RuntimeError, match="simulated log write failure"):
+        li.run(gmail, sheets, preview=False)
+    assert len(sheets.tabs[li.INTAKE]) == 3
+    assert len(sheets.tabs[li.LOG]) == 1
+
+    monkeypatch.setattr(sheets, "append", original_append)
+    retry = li.run(gmail, sheets, preview=False)
+    assert retry["added"] == 0
+    assert retry["duplicates"] == 2
+    assert len(sheets.tabs[li.INTAKE]) == 3
+    assert len(sheets.tabs[li.LOG]) == 3
