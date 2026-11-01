@@ -102,7 +102,17 @@ function evidencePackage(profile,jd,options={}){
  const lines=["# GARAMAAL STRUCTURED PROFILE — STAGING EVIDENCE PACKAGE","",
   "Candidate: "+match.candidate,"Structured revision: "+match.revision,
   "Not an approval to publish or invent facts.","",
-  "## Career overview",String(profile.overview?.headline||""),String(profile.overview?.summary||""),""];
+  "## Career overview",String(profile.overview?.headline||""),String(profile.overview?.summary||""),"",
+  "## Candidate-entered employment chronology — verify against original Drive",
+  ...(profile.lists.experience||[]).map(r=>str(
+   "Employer: "+String(r.employer||""),"Role: "+String(r.title||""),
+   "Dates: "+[r.startDate,r.endDate].filter(Boolean).join(" - "),
+   "Role context: "+String(r.summary||"").slice(0,1400))),"",
+  "## Candidate-entered credentials — verify before using",
+  ...(profile.lists.education||[]).map(r=>str(r.institution,r.qualification,r.startDate,r.endDate)),
+  ...(profile.lists.certifications||[]).map(r=>str(r.name,r.issuer,r.date)),"",
+  "## Relevant structured skills — context, not verified achievement claims",
+  ...match.selected.filter(x=>x.type==="skills").map(x=>x.title+" — "+x.body.slice(0,1200)),""];
  for(const x of selected){
   lines.push("## "+x.id,"Employer: "+(x.employer||"project"),
    "Role/project: "+x.parentTitle,"Dates: "+x.dates,
