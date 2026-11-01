@@ -284,7 +284,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
-     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<script src="/prototype/profile-beta-ui.js?v=sitebeta1"></script>':'')+
+     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<script src="/prototype/profile-beta-ui.js?v=sitebeta2"></script>':'')+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
