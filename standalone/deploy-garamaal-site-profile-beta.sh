@@ -40,9 +40,20 @@ trap failback ERR
 trap 'rm -rf "$TMP"' EXIT
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/prod.json"
 gcloud run services describe "$STAGING" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/stage.json"
-BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$PINNED_STAGING_REV" <<'PY'
+# A failed --no-traffic deploy can update the latest service template without
+# updating the revision receiving traffic. Validate the latter independently.
+LIVE_REV="$(python3 - "$TMP/prod.json" <<'PY'
 import json,sys
-p,s=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:3])
+service=json.load(open(sys.argv[1],encoding="utf-8"))
+traffic=[t for t in service.get("status",{}).get("traffic",[]) if int(t.get("percent",0))>0]
+assert len(traffic)==1 and int(traffic[0].get("percent",0))==100, "Expected one 100%-traffic production revision"
+print(traffic[0]["revisionName"])
+PY
+)"
+gcloud run revisions describe "$LIVE_REV" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/live.json"
+BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" <<'PY'
+import json,sys
+p,s,live=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:4])
 def spec(o):return o.get("spec",{}).get("template",{}).get("spec",{})
 def e(o):
  cs=spec(o).get("containers",[])
@@ -56,14 +67,25 @@ for k,v in {"APP_READ_ONLY":"false","APP_ALLOW_PRODUCTION_WRITES":"true",
 "FRESHMAL_SPREADSHEET_ID":"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc"}.items():
  assert a.get(k,{}).get("value")==v,"Production safety setting changed: "+k
 assert a.get("GITHUB_WORKFLOW_TOKEN",{}).get("valueFrom",{}).get("secretKeyRef")
-assert a.get("GARAMAAL_PROFILE_BETA_ENABLED",{}).get("value") in (None,"false")
+# A failed canary can leave these beta flags in the service template.
+# Do NOT trust this template to establish what current users are seeing.
+def revspec(r):
+    v=r.get("spec",{})
+    return v if "containers" in v else r.get("template",{})
+live_spec=revspec(live)
+assert live_spec.get("serviceAccountName",live_spec.get("serviceAccount"))==spec(p).get("serviceAccountName"), "Live revision changed service identity"
+live_env={x["name"]:x for x in live_spec.get("containers",[])[0].get("env",[])}
+assert live_env.get("GARAMAAL_PROFILE_BETA_ENABLED",{}).get("value") in (None,"false"), "Stop: beta already enabled on traffic-serving revision"
+for k in ("APP_READ_ONLY","APP_ALLOW_PRODUCTION_WRITES","ALLOW_MANUAL_CV_DISPATCH","TAAZA_SPREADSHEET_ID","FRESHMAL_SPREADSHEET_ID"):
+ assert live_env.get(k)==a.get(k), "Live revision and service template disagree on "+k
+assert live_env.get("GITHUB_WORKFLOW_TOKEN")==a.get("GITHUB_WORKFLOW_TOKEN"), "Live GitHub token binding changed"
 for k,v in {"APP_READ_ONLY":"true","GARAMAAL_PROFILE_STAGING_ISOLATED":"true",
 "GARAMAAL_PROFILE_DATA_SCOPE":"staging","GARAMAAL_PROFILE_ENABLED":"true",
 "GARAMAAL_PROFILE_WRITES_APPROVED":"true","GARAMAAL_PROFILE_PRODUCTION_APPROVED":"false"}.items():
  assert b.get(k,{}).get("value")==v,"Staging safety setting changed: "+k
 tags=[x for x in s["status"]["traffic"] if x.get("tag")=="profile-edit"]
-assert len(tags)==1 and tags[0].get("revisionName")==sys.argv[3] and int(tags[0].get("percent",0))==0
-assert s["status"].get("latestReadyRevisionName")==sys.argv[3],"Staging match/edit build is not the latest ready revision"
+assert len(tags)==1 and tags[0].get("revisionName")==sys.argv[4] and int(tags[0].get("percent",0))==0
+assert s["status"].get("latestReadyRevisionName")==sys.argv[4],"Staging match/edit build is not the latest ready revision"
 live=[(x["revisionName"],int(x["percent"])) for x in p["status"]["traffic"] if int(x.get("percent",0))>0]
 assert sum(n for _,n in live)==100
 print(",".join(x+"="+str(n) for x,n in live))
@@ -98,7 +120,7 @@ a,b=env(p),env(n)
 added={"GARAMAAL_PROFILE_BETA_ENABLED":"true","GARAMAAL_PROFILE_BETA_DATA_SCOPE":"staging",
        "GARAMAAL_PROFILE_BETA_EMAIL":"abhisheknair607@gmail.com"}
 assert set(b)==set(a)|set(added),"Unexpected environment additions or removals"
-assert all(b[k]==v for k,v in a.items()),"Original secret/env changed"
+assert all(b[k]==v for k,v in a.items() if k not in added),"Existing non-beta secret/env changed"
 assert all(b[k].get("value")==v for k,v in added.items())
 assert p["spec"]["template"]["spec"]["serviceAccountName"]==n["spec"]["template"]["spec"]["serviceAccountName"]
 def traffic(s):return sorted((t["revisionName"],int(t["percent"])) for t in s["status"]["traffic"] if int(t.get("percent",0))>0)
