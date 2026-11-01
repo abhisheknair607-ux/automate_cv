@@ -274,5 +274,13 @@
   }
  });
  doc.addEventListener("keydown",e=>{if(root&&e.key==="Escape"){e.preventDefault();cleanExit()}});
- window.GaramaalProfile=Object.freeze({open,close:cleanExit});
+ // Other signed-in Garamaal candidates retain the original Profile until expressly enrolled.
+ window.GaramaalProfile=Object.freeze({
+  open(){
+   if(window.__cvStandalone?.getCurrentUserEmail?.()!=="abhisheknair607@gmail.com")
+    return original?.open?.();
+   return open();
+  },
+  close(){return root?cleanExit():original?.close?.()}
+ });
 })();
