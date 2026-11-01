@@ -64,3 +64,37 @@ test("Website release guards preserve live environment, keep staging revision pi
  assert.match(script,/GITHUB_WORKFLOW_TOKEN/);
  assert.doesNotMatch(script,/--allow-unauthenticated|--clear-env-vars|--set-env-vars|automate-cv-social/);
 });
+
+test("Staging plan validator reads only the two JSON files and treats the pinned revision as a string",()=>{
+ const script=read("deploy-garamaal-site-profile-beta.sh");
+ assert.match(script,/for x in sys\.argv\[1:3\]/);
+ const match=script.match(/BASELINE="\$\(python3 - "\$TMP\/prod\.json" "\$TMP\/stage\.json" "\$PINNED_STAGING_REV" <<'PY'\n([\s\S]*?)\nPY\n\)"/);
+ assert.ok(match,"Plan validation heredoc must be identifiable");
+ const os=require("node:os");
+ const tmp=fs.mkdtempSync(path.join(os.tmpdir(),"profile-beta-safety-"));
+ const revision="garamaal-profile-staging-00012-lug";
+ const prodEnv={
+  APP_READ_ONLY:"false",APP_ALLOW_PRODUCTION_WRITES:"true",ALLOW_MANUAL_CV_DISPATCH:"true",
+  TAAZA_SPREADSHEET_ID:"1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY",
+  FRESHMAL_SPREADSHEET_ID:"1ltT1gPFcpBdz1Wp_CuxkwFpfkwnnhjL316yVu3gxPCc"
+ };
+ const stageEnv={
+  APP_READ_ONLY:"true",GARAMAAL_PROFILE_STAGING_ISOLATED:"true",
+  GARAMAAL_PROFILE_DATA_SCOPE:"staging",GARAMAAL_PROFILE_ENABLED:"true",
+  GARAMAAL_PROFILE_WRITES_APPROVED:"true",GARAMAAL_PROFILE_PRODUCTION_APPROVED:"false"
+ };
+ const env=x=>Object.entries(x).map(([name,value])=>({name,value}));
+ const prod={spec:{template:{spec:{serviceAccountName:"automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com",
+  containers:[{env:[...env(prodEnv),{name:"GITHUB_WORKFLOW_TOKEN",valueFrom:{secretKeyRef:{name:"secret",key:"latest"}}}]}]}}},
+  status:{traffic:[{revisionName:"automate-cv-dashboard-00047-kos",percent:100}]}};
+ const stage={spec:{template:{spec:{serviceAccountName:"garamaal-profile-staging@abhishek-cv-automation.iam.gserviceaccount.com",
+  containers:[{env:env(stageEnv)}]}}},
+  status:{latestReadyRevisionName:revision,traffic:[{tag:"profile-edit",revisionName:revision,percent:0}]}};
+ try{
+  const a=path.join(tmp,"production.json"),b=path.join(tmp,"staging.json");
+  fs.writeFileSync(a,JSON.stringify(prod));fs.writeFileSync(b,JSON.stringify(stage));
+  const result=cp.spawnSync("python3",["-",a,b,revision],{input:match[1]+"\n",encoding:"utf8"});
+  assert.equal(result.status,0,result.stderr);
+  assert.match(result.stdout,/automate-cv-dashboard-00047-kos=100/);
+ }finally{fs.rmSync(tmp,{recursive:true,force:true})}
+});
