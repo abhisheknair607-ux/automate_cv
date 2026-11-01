@@ -2,6 +2,7 @@
 /* Normalised, candidate-owned career records. Intentionally separate from Drive
  * evidence archives and the production CV source; all writes are staging-only. */
 const {getFirestore}=require("firebase-admin/firestore");
+const {createHash}=require("node:crypto");
 const {permit}=require("./profile_access");
 const {findMatches,evidencePackage}=require("./profile_structured_match");
 const DATA_COLLECTION="garamaalCareerStructuredStagingV1";
@@ -156,7 +157,9 @@ function register(app,{authenticate}){
   const selection=evidencePackage(snap.data(),req.body?.jdText,{max:18});
   if(!selection.selectedIds.length)throw error("No candidate-confirmed achievements qualify for this JD. Review and confirm evidence first.",409);
   return {schema:"garamaal-staging-cv-handoff-v1",candidate:key,revision:snap.data().revision,
-   jdText:req.body.jdText,selectedIds:selection.selectedIds,markdown:selection.markdown,
+   jdText:req.body.jdText,jdSha256:createHash("sha256").update(req.body.jdText,"utf8").digest("hex"),
+   selectedIds:selection.selectedIds,markdown:selection.markdown,
+   selectedEvidence:selection.match.selected.filter(x=>x.eligibleForCv),
    previewOnly:true,productionCvUnchanged:true};
  }));
  app.post("/api/profile/structured/history",(req,res)=>run(req,res,async({ref,key})=>{
