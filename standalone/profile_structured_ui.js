@@ -205,9 +205,9 @@
    if(!jdMatch){setStatus("Run Match evidence first.");return}
    const result=await request("cv-package",{candidate:key,revision:profile.revision,jdText});
    if(!result)return;
-   const blob=new Blob([result.markdown],{type:"text/markdown"});
+   const blob=new Blob([JSON.stringify(result,null,2)+"\n"],{type:"application/json"});
    const url=URL.createObjectURL(blob),a=doc.createElement("a");
-   a.href=url;a.download="Garamaal_"+key+"_matched_evidence_rev"+profile.revision+".md";a.style.display="none";doc.body.append(a);a.click();a.remove();
+   a.href=url;a.download="Garamaal_"+key+"_cv_handoff_rev"+profile.revision+".json";a.style.display="none";doc.body.append(a);a.click();a.remove();
    setTimeout(()=>URL.revokeObjectURL(url),30000);
    setStatus("Staging CV evidence package downloaded. Production generation is unchanged.");return;
   }
