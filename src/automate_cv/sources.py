@@ -205,6 +205,18 @@ def build_selected_evidence(master_text, stage2_handoff, output_path, candidate_
     if candidate_key and candidate_key != 'pooja' and explicit_pooja:
         raise RuntimeError('Candidate mismatch: Pooja evidence bank supplied to another profile.')
     if explicit_pooja:
+        # Stage 2 sometimes uses "P09" as a readable reference to an already
+        # selected "FIN-POOJA-P09" record in verification notes. This bare
+        # shorthand is not a foreign evidence ID when its candidate-owned
+        # canonical ID was explicitly selected. Never infer an unselected ID.
+        qualified_ids = set(ids)
+        for key in ids:
+            if re.fullmatch(r'P\d{2}', key) and f'FIN-POOJA-{key}' not in qualified_ids:
+                raise RuntimeError(
+                    f'Pooja handoff contains unqualified project ID {key}; '
+                    'select its full FIN-POOJA- evidence ID first.'
+                )
+        ids = [key for key in ids if not re.fullmatch(r'P\d{2}', key)]
         if any(not key.startswith(('PR-POOJA-', 'FIN-POOJA-')) for key in ids):
             raise RuntimeError('Pooja handoff contains evidence IDs from another candidate.')
         sections = [
