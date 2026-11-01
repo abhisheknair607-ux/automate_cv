@@ -98,3 +98,18 @@ test("Staging plan validator reads only the two JSON files and treats the pinned
   assert.match(result.stdout,/automate-cv-dashboard-00047-kos=100/);
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
+
+test("Cloud Run EACCES regression: temporary release source and Node user retain readable app files",()=>{
+ const script=read("deploy-garamaal-site-profile-beta.sh");
+ const docker=fs.readFileSync(path.resolve(root,"..","Dockerfile.garamaal-ui"),"utf8");
+ const ci=fs.readFileSync(path.resolve(root,"..",".github/workflows/garamaal-ui-check.yml"),"utf8");
+ assert.match(script,/umask 077/);
+ assert.match(script,/chmod -R a\+rX "\$TMP\/build"/);
+ assert.ok(script.indexOf('chmod -R a+rX "$TMP/build"')>script.indexOf('cp -R "$ROOT/standalone"'));
+ assert.ok(script.indexOf('chmod -R a+rX "$TMP/build"')<script.indexOf('gcloud run deploy "$SERVICE"'));
+ assert.match(docker,/RUN chmod -R a\+rX \/app\/standalone \/app\/webapp \/app\/package\.json/);
+ assert.match(docker,/USER node/);
+ assert.match(ci,/chmod -R go-rwx "\$build_dir"/);
+ assert.match(ci,/docker build --file "\$build_dir\/Dockerfile"/);
+ assert.match(ci,/Smoke test the actual Cloud Run container entrypoint/);
+});
