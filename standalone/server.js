@@ -19,6 +19,7 @@ const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
+const profileBeta=require("./profile_beta_proxy");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -217,6 +218,15 @@ app.get("/prototype/royal-repair.css",(_req,res)=>
 app.get("/prototype/career-bridge.js",(_req,res)=>
  res.set("Cache-Control","no-cache, must-revalidate").type("text/javascript")
  .sendFile(path.join(__dirname,"garamaal_theme_bridge.js")));
+// Isolated Profile Beta files are inert unless the authenticated beta flag is approved.
+app.get("/prototype/profile-beta-ui.js",(_req,res)=>{
+  if(!profileBeta.enabled())return res.status(404).end();
+  res.set("Cache-Control","no-cache").type("text/javascript").sendFile(path.join(__dirname,"profile_beta_ui.js"));
+});
+app.get("/prototype/profile-beta-ui.css",(_req,res)=>{
+  if(!profileBeta.enabled())return res.status(404).end();
+  res.set("Cache-Control","no-cache").type("text/css").sendFile(path.join(__dirname,"profile_beta_ui.css"));
+});
 app.get("/prototype",(req,res)=>{
   if(typeof res.set==="function")res.set("Cache-Control","no-store, max-age=0");
   let html=fs.readFileSync(path.join(BASE,"webapp/Index.html"),"utf8");
@@ -257,7 +267,8 @@ app.get("/prototype",(req,res)=>{
     '<link rel="stylesheet" href="/prototype/copper-porcelain-fidelity.css?v=2">'+
     '<link rel="stylesheet" href="/prototype/career-theme.css?v=9">'+
     '<link rel="stylesheet" href="/prototype/royal-pages.css?v=stage2-review-1">'+
-     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1"></head>');
+     '<link rel="stylesheet" href="/prototype/royal-repair.css?v=1">'+
+     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<link rel="stylesheet" href="/prototype/profile-beta-ui.css?v=sitebeta1">':'')+'</head>');
   html=html.replace("<body>",'<body class="gmv3-landing">'+careerFragment);
   html=html.replace("<script>\n'use strict';",
     '<script src="/bridge.js"></script>\n<script>\n\'use strict\';');
@@ -273,6 +284,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+     ((typeof profileBeta!=="undefined"&&profileBeta.enabled())?'<script src="/prototype/profile-beta-ui.js?v=sitebeta2"></script>':'')+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
@@ -288,6 +300,8 @@ async function authenticate(req) {
     throw Object.assign(new Error("This Google account is not authorised for Automate CV"),{httpCode:403});
   return email;
 }
+// The private beta forwards only an authenticated Profile request to isolated staging.
+profileBeta.register(app,{authenticate});
 // Lightweight authenticated live queue feed, polled by the Make CV cards.
 app.post("/api/getCvQueue",async (req,res)=>{
   try {

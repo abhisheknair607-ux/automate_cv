@@ -61,5 +61,49 @@ jobs:
             standalone/test/live_swipe.test.js \
             standalone/test/pwa_swipe_dashboard_repair.test.js \
             standalone/test/swipe_full_cv_controls.test.js
-      - name: Verify production image can be assembled without modifying CV worker
-        run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
+      - name: Build actual Cloud Run image from a restrictive temporary release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          build_dir="$(mktemp -d)"
+          trap 'rm -rf "$build_dir"' EXIT
+          cp Dockerfile.garamaal-ui "$build_dir/Dockerfile"
+          cp package.json "$build_dir/package.json"
+          cp -R standalone "$build_dir/standalone"
+          cp -R garamaal-release-webapp "$build_dir/garamaal-release-webapp"
+          # Simulate the source modes that caused Cloud Run revision 00063-bib to crash.
+          chmod -R go-rwx "$build_dir"
+          test "$(stat -c '%a' "$build_dir/standalone/server.js")" = "600"
+          docker build --file "$build_dir/Dockerfile" --tag garamaal-ui:ci "$build_dir"
+      - name: Smoke test the actual Cloud Run container entrypoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="garamaal-beta-smoke-ci"
+          docker run --detach --rm --name "$container" -p 127.0.0.1:18765:8080 \
+            -e PORT=8080 \
+            -e GOOGLE_CLOUD_PROJECT=abhishek-cv-automation \
+            -e APP_READ_ONLY=false \
+            -e APP_ALLOW_PRODUCTION_WRITES=true \
+            -e ALLOW_MANUAL_CV_DISPATCH=true \
+            -e ALLOWED_EMAILS=abhisheknair607@gmail.com \
+            -e GARAMAAL_PROFILE_BETA_ENABLED=true \
+            -e GARAMAAL_PROFILE_BETA_DATA_SCOPE=staging \
+            -e GARAMAAL_PROFILE_BETA_EMAIL=abhisheknair607@gmail.com \
+            garamaal-ui:ci
+          trap 'docker logs "$container" 2>&1 | tail -80; docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          ok=0
+          for i in $(seq 1 20); do
+            if curl --fail --silent --max-time 2 http://127.0.0.1:18765/health > /tmp/garamaal-smoke-health.json; then
+              ok=1; break
+            fi
+            sleep 1
+          done
+          if test "$ok" != 1; then
+            echo "Container did not start; printed Node startup logs:" >&2
+            exit 1
+          fi
+          python3 -c 'import json; h=json.load(open("/tmp/garamaal-smoke-health.json")); assert h["ok"] and h["readOnly"] is False'
+          curl --fail --silent --max-time 5 http://127.0.0.1:18765/prototype | grep -Fq '/prototype/profile-beta-ui.js?v=sitebeta2'
+

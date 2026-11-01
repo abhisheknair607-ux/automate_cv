@@ -123,7 +123,8 @@
   async function requestSpecial(endpoint,body){
     if(!["connections/preview","connections/research","repair-ranks","duplicates/mark","alerts/run","alerts/status","jd-recovery/run","jd-recovery/status",
        "swipe/gmSwipeFeed","swipe/listJobs","swipe/getJob","swipe/setJobPreference","swipe/transferJob",
-       "swipe/updateFreshControl","swipe/updateApplicationProgress"].includes(endpoint))
+       "swipe/updateFreshControl","swipe/updateApplicationProgress",
+       "profile/structured/read","profile/structured/save","profile/structured/history","profile/structured/history-version","profile/structured/match","profile/structured/cv-package"].includes(endpoint))
       throw Error("Unsupported operation.");
     const user=await waitForUser();
     async function send(force=false){
@@ -216,7 +217,8 @@
   window.google=window.google||{};
   window.google.script=window.google.script||{};
   window.google.script.run=chain(null,null);
-  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage,requestSpecial};
+  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage,requestSpecial,
+    getCurrentUserEmail:()=>String(currentUser?.email||"").toLowerCase().trim()};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initAuth,{once:true});
   else initAuth();
 })();
