@@ -54,7 +54,7 @@ function extract(profile){
  return out;
 }
 function metricsReady(item){
- const numerical=/[€£$]\s*\d|\b\d[\d,.]*\s*(?:%|clients|people|projects|transactions|cases|deals|years|months)\b/i;
+ const numerical=/[€£$]\s*\d|\b\d[\d,.]*\s*%|\b\d[\d,.]*\s*(?:clients|people|projects|transactions|cases|deals|years|months)\b/i;
  const hasNumbers=numerical.test(item.claimText||"");
  return Boolean(item.achievementId&&item.reviewStatus==="confirmed"&&(!hasNumbers||item.metrics.length>0)
   &&item.metrics.every(m=>String(m.value||"").trim()&&String(m.context||"").trim()&&String(m.evidence||"").trim()));
