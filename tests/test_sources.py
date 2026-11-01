@@ -102,6 +102,65 @@ skills
     assert 'p13 evidence' not in text
 
 
+def _pooja_citi_handoff():
+    return '''STAGE2_HANDOFF
+cv_structure: High Experience
+selected_professional_evidence:
+  - key: PR-POOJA-SHAREKHAN
+selected_projects:
+  - id: FIN-POOJA-P09
+selected_achievements_qualifications_skills: []
+stage3_evidence_to_retrieve_or_verify:
+  - P09 Group 19 report and workbook
+'''
+
+
+def _pooja_test_master():
+    records = {
+        'CORE-CHRONOLOGY': 'Pooja chronology',
+        'CORE-CREDENTIALS': 'Pooja credentials',
+        'CORE-GUARDRAILS': 'Pooja safeguards',
+        'PR-POOJA-SHAREKHAN': 'Pooja professional evidence',
+        'FIN-POOJA-P09': 'Pooja project evidence',
+    }
+    return 'CANDIDATE KEY pooja\n' + '\n'.join(
+        f'EVIDENCE {key}\n{value}\nEND EVIDENCE {key}'
+        for key, value in records.items()
+    )
+
+
+def test_pooja_verified_project_shorthand_reuses_canonical_id(tmp_path):
+    path, ids = build_selected_evidence(
+        _pooja_test_master(),
+        _pooja_citi_handoff(),
+        tmp_path / 'Selected_Evidence.md',
+        candidate_key='pooja',
+    )
+    assert ids == ['PR-POOJA-SHAREKHAN', 'FIN-POOJA-P09']
+    assert 'Pooja project evidence' in path.read_text(encoding='utf-8')
+
+
+def test_pooja_unselected_project_shorthand_is_not_silently_accepted(tmp_path):
+    text = _pooja_citi_handoff().replace('P09 Group 19', 'P11 Group 19')
+    with pytest.raises(RuntimeError, match='unqualified project ID P11'):
+        build_selected_evidence(
+            _pooja_test_master(), text, tmp_path / 'Selected_Evidence.md',
+            candidate_key='pooja',
+        )
+
+
+def test_pooja_foreign_evidence_id_remains_blocked(tmp_path):
+    text = _pooja_citi_handoff().replace(
+        '  - key: PR-POOJA-SHAREKHAN',
+        '  - key: PR-POOJA-SHAREKHAN\n  - key: PR-EY-FAR',
+    )
+    with pytest.raises(RuntimeError, match='another candidate'):
+        build_selected_evidence(
+            _pooja_test_master(), text, tmp_path / 'Selected_Evidence.md',
+            candidate_key='pooja',
+        )
+
+
 class FakeDrive:
     def __init__(self, files):
         self.files = files
