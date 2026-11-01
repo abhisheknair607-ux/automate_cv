@@ -24,7 +24,7 @@ function extract(profile){
   out.push({id:type+":"+row.id+(achievement?":"+achievement.id:""),type,entryId:row.id,achievementId:achievement?.id||null,
    title:String(label||"").slice(0,220),body:String(body),parentTitle:meta.parentTitle||"",
    employer:meta.employer||"",dates:meta.dates||"",reviewStatus:achievement?.reviewStatus||"needs-review",
-   sourceReference:achievement?.evidenceNote||"",metrics:meta.metrics||[],candidate:profile.candidate});
+   sourceReference:achievement?.evidenceNote||"",metrics:meta.metrics||[],claimText:meta.claimText||"",candidate:profile.candidate});
  }
  for(const j of profile.lists.experience||[]){
   const base=str(j.employer,j.title,j.summary,j.location);
@@ -32,7 +32,7 @@ function extract(profile){
   for(const a of j.achievements||[]){
    const metrics=[{value:a.metricValue,context:a.metricContext,evidence:a.evidenceNote},...(a.additionalMetrics||[])].filter(m=>String(m.value||"").trim());
    add("experience",j,a,a.title||j.title,str(base,a.title,a.situation,a.task,a.action,a.result,
-    ...metrics.map(m=>str(m.value,m.context))),{parentTitle:j.title,employer:j.employer,dates,metrics});
+    ...metrics.map(m=>str(m.value,m.context))),{parentTitle:j.title,employer:j.employer,dates,metrics,claimText:str(a.title,a.action,a.result)});
   }
   add("role-context",j,null,j.title||j.employer,base,{parentTitle:j.title,employer:j.employer,dates});
  }
@@ -41,7 +41,7 @@ function extract(profile){
   for(const a of p.achievements||[]){
    const metrics=[{value:a.metricValue,context:a.metricContext,evidence:a.evidenceNote},...(a.additionalMetrics||[])].filter(m=>String(m.value||"").trim());
    add("project",p,a,a.title||p.name,str(base,a.title,a.situation,a.task,a.action,a.result,
-    ...metrics.map(m=>str(m.value,m.context))),{parentTitle:p.name,metrics});
+    ...metrics.map(m=>str(m.value,m.context))),{parentTitle:p.name,metrics,claimText:str(a.title,a.action,a.result)});
   }
   add("project-context",p,null,p.name,base,{parentTitle:p.name});
  }
@@ -54,8 +54,10 @@ function extract(profile){
  return out;
 }
 function metricsReady(item){
- return Boolean(item.achievementId&&item.reviewStatus==="confirmed"&&item.metrics.every(m=>String(m.value||"").trim()
-  &&String(m.context||"").trim()&&String(m.evidence||"").trim()));
+ const numerical=/[€£$]\\s*\\d|\\b\\d[\\d,.]*\\s*(?:%|clients|people|projects|transactions|cases|deals|years|months)\\b/i;
+ const hasNumbers=numerical.test(item.claimText||"");
+ return Boolean(item.achievementId&&item.reviewStatus==="confirmed"&&(!hasNumbers||item.metrics.length>0)
+  &&item.metrics.every(m=>String(m.value||"").trim()&&String(m.context||"").trim()&&String(m.evidence||"").trim()));
 }
 function findMatches(profile,jd,options={}){
  if(typeof jd!=="string"||jd.trim().length<15||jd.length>30000)
