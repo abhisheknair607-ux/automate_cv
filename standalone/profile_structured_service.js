@@ -15,7 +15,7 @@ const FIELDS=Object.freeze({
  preferences:["targetRole","location","workType","notes"],
 });
 const ENTRY_TYPES=Object.keys(FIELDS);
-const BULLET_FIELDS=["title","situation","task","action","result","metricValue","metricContext","evidenceNote"];
+const BULLET_FIELDS=["title","situation","task","action","result","metricValue","metricContext","evidenceNote","reviewStatus"];
 const error=(msg,code=400)=>Object.assign(Error(msg),{httpCode:code});
 const copy=x=>JSON.parse(JSON.stringify(x));
 const empty=key=>({schema:1,candidate:key,revision:0,
@@ -65,7 +65,13 @@ function parse(input,key){
       if(Object.keys(m).some(k=>!["id","value","context","evidence"].includes(k)))throw error("Unexpected numerical field");
       return {id:m.id,value:string(m.value??"",1200),context:string(m.context??"",2500),evidence:string(m.evidence??"",3500)};
      });
-     return {id:a.id,...Object.fromEntries(BULLET_FIELDS.map(k=>[k,string(a[k]??"",3500)])),additionalMetrics:validated};
+     const clean={id:a.id,...Object.fromEntries(BULLET_FIELDS.map(k=>[k,string(a[k]??"",3500)])),additionalMetrics:validated};
+     clean.reviewStatus=clean.reviewStatus||"needs-review";
+     if(!["needs-review","confirmed"].includes(clean.reviewStatus))throw error("Invalid evidence review state");
+     if(clean.reviewStatus==="confirmed"&&[...validated,{value:clean.metricValue,context:clean.metricContext,evidence:clean.evidenceNote}]
+         .some(m=>m.value&&(!m.context||!m.evidence)))
+       throw error("Cannot confirm a numerical outcome without context and supporting evidence");
+     return clean;
     });
    }
    return clean;
