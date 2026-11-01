@@ -61,8 +61,21 @@ jobs:
             standalone/test/live_swipe.test.js \
             standalone/test/pwa_swipe_dashboard_repair.test.js \
             standalone/test/swipe_full_cv_controls.test.js
-      - name: Verify production image can be assembled without modifying CV worker
-        run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
+      - name: Build actual Cloud Run image from a restrictive temporary release bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          build_dir="$(mktemp -d)"
+          trap 'rm -rf "$build_dir"' EXIT
+          cp Dockerfile.garamaal-ui "$build_dir/Dockerfile"
+          cp package.json "$build_dir/package.json"
+          cp -R standalone "$build_dir/standalone"
+          cp -R garamaal-release-webapp "$build_dir/garamaal-release-webapp"
+          # Simulate the source modes that caused Cloud Run revision 00063-bib to crash.
+          chmod -R go-rwx "$build_dir"
+          test "$(stat -c '%a' "$build_dir/standalone/server.js")" = "600"
+          docker build --file "$build_dir/Dockerfile" --tag garamaal-ui:ci "$build_dir"
       - name: Smoke test the actual Cloud Run container entrypoint
         shell: bash
         run: |
