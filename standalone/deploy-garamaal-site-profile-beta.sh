@@ -9,7 +9,9 @@ PROJECT="abhishek-cv-automation"
 REGION="europe-west1"
 SERVICE="automate-cv-dashboard"
 STAGING="garamaal-profile-staging"
-PINNED_STAGING_REV="garamaal-profile-staging-00010-xih"
+PINNED_STAGING_REV="$(printenv GARAMAAL_EXPECTED_STAGING_REV || true)"
+[[ "$PINNED_STAGING_REV" =~ ^garamaal-profile-staging-[0-9]{5}-[a-z0-9]+$ ]] || { echo "Pin a freshly tested staging revision in GARAMAAL_EXPECTED_STAGING_REV" >&2; exit 2; }
+[[ "$PINNED_STAGING_REV" != "garamaal-profile-staging-00010-xih" ]] || { echo "Old staging revision lacks JD matching" >&2; exit 2; }
 PROD_SA="automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com"
 TEST_EMAIL="abhisheknair607@gmail.com"
 TAG="prof-beta"
@@ -38,7 +40,7 @@ trap failback ERR
 trap 'rm -rf "$TMP"' EXIT
 gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/prod.json"
 gcloud run services describe "$STAGING" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/stage.json"
-BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" <<'PY'
+BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$PINNED_STAGING_REV" <<'PY'
 import json,sys
 p,s=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:])
 def spec(o):return o.get("spec",{}).get("template",{}).get("spec",{})
@@ -60,7 +62,8 @@ for k,v in {"APP_READ_ONLY":"true","GARAMAAL_PROFILE_STAGING_ISOLATED":"true",
 "GARAMAAL_PROFILE_WRITES_APPROVED":"true","GARAMAAL_PROFILE_PRODUCTION_APPROVED":"false"}.items():
  assert b.get(k,{}).get("value")==v,"Staging safety setting changed: "+k
 tags=[x for x in s["status"]["traffic"] if x.get("tag")=="profile-edit"]
-assert len(tags)==1 and tags[0].get("revisionName")=="garamaal-profile-staging-00010-xih" and int(tags[0].get("percent",0))==0
+assert len(tags)==1 and tags[0].get("revisionName")==sys.argv[3] and int(tags[0].get("percent",0))==0
+assert s["status"].get("latestReadyRevisionName")==sys.argv[3],"Staging match/edit build is not the latest ready revision"
 live=[(x["revisionName"],int(x["percent"])) for x in p["status"]["traffic"] if int(x.get("percent",0))>0]
 assert sum(n for _,n in live)==100
 print(",".join(x+"="+str(n) for x,n in live))
@@ -110,7 +113,8 @@ curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
 grep -Fq '/prototype/profile-beta-ui.js?v=sitebeta1' "$TMP/canary.html"
 grep -Fq '/prototype/hub-swipe.js' "$TMP/canary.html"
 grep -Fq '/prototype/copper-porcelain.css' "$TMP/canary.html"
-curl -fsSL --max-time 30 "$URL/prototype/profile-beta-ui.js" | grep -Fq 'Find my strongest evidence'
+curl -fsSL --max-time 30 "$URL/prototype/profile-beta-ui.js" -o "$TMP/beta.js"
+grep -Fq 'Find my strongest evidence' "$TMP/beta.js"
 STATUS="$(curl -sS --max-time 30 -o "$TMP/deny.json" -w '%{http_code}' \
  -X POST -H "Content-Type: application/json" -d '{"candidate":"pooja"}' \
  "$URL/api/profile/structured/read")"
