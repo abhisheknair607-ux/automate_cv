@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          container="garamaal-beta-smoke-$"
+          container="garamaal-beta-smoke-ci"
           docker run --detach --rm --name "$container" -p 127.0.0.1:18765:8080 \
             -e PORT=8080 \
             -e GOOGLE_CLOUD_PROJECT=abhishek-cv-automation \
