@@ -28,9 +28,9 @@
  };
  const ACH_FIELDS=["title","situation","task","action","result","metricValue","metricContext","evidenceNote"];
  const makeId=()=>("id"+(globalThis.crypto?.randomUUID?.()||Date.now().toString(36)+Math.random().toString(36).slice(2))).replace(/[^a-zA-Z0-9_-]/g,"").slice(0,64);
- const freshAch=()=>Object.fromEntries([["id",makeId()],...ACH_FIELDS.map(k=>[k,""]),["additionalMetrics",[]]]);
+ const freshAch=()=>Object.fromEntries([["id",makeId()],...ACH_FIELDS.map(k=>[k,""]),["reviewStatus","needs-review"],["additionalMetrics",[]]]);
  const fresh=(type)=>Object.fromEntries([["id",makeId()],...FIELDS[type].map(([k])=>[k,""]),...(type==="experience"||type==="projects"?[["achievements",[]]]:[])]);
- let root=null,previous=null,profile=null,key="abhishek",active="overview",expanded="",dirty=false,busy=false,status="",versionList=null,viewHistory=null;
+ let root=null,previous=null,profile=null,key="abhishek",active="overview",expanded="",dirty=false,busy=false,status="",versionList=null,viewHistory=null,jdText="",jdMatch=null;
  const btn=(action,label,extra="",attrs="")=>'<button type="button" class="gsp-btn '+extra+'" data-action="'+action+'" '+attrs+'>'+label+'</button>';
  const title=type=>TYPES.find(x=>x[0]===type)?.[1]||"Profile";
  const request=async(name,args)=>{if(busy)return null;busy=true;setStatus("Checking saved Profile…");try{return await api(name,args)}
@@ -60,7 +60,10 @@
   '<div class="gsp-two">'+
   field("What does the number measure?","metricContext",a.metricContext,{target:"ach",type,index:i,ach:j})+
   field("Evidence / source notes","evidenceNote",a.evidenceNote,{target:"ach",type,index:i,ach:j})+
-  '</div>'+ 
+  '</div>'+
+  '<label class="gsp-field gsp-review-control"><span>Evidence review</span><select data-target="ach" data-type="'+type+'" data-index="'+i+'" data-ach="'+j+'" data-field="reviewStatus">'+
+   '<option value="needs-review"'+(a.reviewStatus!=="confirmed"?" selected":"")+'>Needs review — not CV eligible</option>'+
+   '<option value="confirmed"'+(a.reviewStatus==="confirmed"?" selected":"")+'>Candidate-confirmed (check all figures and ownership)</option></select></label>'+
   '<div class="gsp-metric-section"><div class="gsp-add-row"><strong>Additional measurable outcomes</strong>'+btn("add-metric","+ Add numerical outcome","gsp-btn-small",'data-type="'+type+'" data-index="'+i+'" data-ach="'+j+'"')+'</div>'+
   (a.additionalMetrics||[]).map((m,k)=>'<div class="gsp-metric-row"><div class="gsp-two">'+
     field("Number / value","value",m.value,{target:"metric",type,index:i,ach:j,metric:k})+
@@ -89,7 +92,7 @@
     '<div class="gsp-inline-foot">'+btn("remove-entry","Remove this entry","gsp-danger",'data-type="'+type+'" data-index="'+i+'"')+'</div></div>':"")+'</article>';
  }
  function nav(){
-  const choices=[["overview","Overview","Profile"],...TYPES.map(t=>[t[0],t[1],String(count(t[0]))])];
+  const choices=[["overview","Overview","Profile"],...TYPES.map(t=>[t[0],t[1],String(count(t[0]))]),["jd-match","Match a job","JD"]];
   return '<nav class="gsp-nav" aria-label="Profile sections">'+choices.map(([key,name,c])=>
    '<button type="button" data-action="navigate" data-type="'+key+'" aria-current="'+String(active===key)+'">'+
    '<span>'+esc(name)+'</span><small>'+esc(c)+'</small></button>').join("")+'</nav>';
@@ -111,6 +114,20 @@
    btn("add-entry","+ "+esc(info[3]),"gsp-btn-primary",'data-type="'+type+'"')+'</div>'+
   (rows.length?rows.map((x,i)=>card(type,x,i)).join(""):'<div class="gsp-empty"><strong>Start with your first entry</strong><p>Your Profile will be organised into individual records rather than the original Drive headings.</p></div>');
  }
+ function matchPanel(){
+  const items=jdMatch?.selected||[];
+  return '<section class="gsp-intro"><span class="gsp-eyebrow">JOB DESCRIPTION → VERIFIED EVIDENCE</span><h3>Find my strongest evidence</h3>'+
+   '<p>Paste a job description. Garamaal ranks individual achievements and skills from your saved Profile. Matching does not verify claims or run paid CV generation.</p></section>'+
+   '<div class="gsp-match-panel"><label class="gsp-field">Job description<textarea rows="8" data-jd-text placeholder="Paste the complete job description here…">'+esc(jdText)+'</textarea></label>'+
+   '<div class="gsp-actions">'+btn("match-jd","Match evidence","gsp-btn-primary")+btn("download-package","Download CV evidence handoff")+'</div>'+
+   (jdMatch?'<div class="gsp-match-report"><h4>Evidence matches — draft preview</h4><p>'+items.length+' relevant entries · '+jdMatch.totals?.candidateConfirmed+' candidate-confirmed achievements in results. This is not an ATS score.</p>'+
+     items.map((item,i)=>'<article class="gsp-match-item"><strong>'+String(i+1)+'. '+esc(item.title)+'</strong><small>'+esc(item.employer||item.parentTitle||item.type)+'</small>'+
+      '<span>'+esc(item.eligibleForCv?"Candidate-confirmed — evidence handoff eligible":"Needs verification / context only")+'</span>'+
+      '<p>JD terms: '+esc((item.matchedTerms||[]).slice(0,8).join(", ")||"Domain relevance")+'</p>'+
+      (item.warnings?.length?'<p class="gsp-match-warning">'+esc(item.warnings.join(" · "))+'</p>':"")+'</article>').join("")+
+     '<p><strong>Unmatched JD terms:</strong> '+esc((jdMatch.jdCoverage?.unmatchedTerms||[]).slice(0,18).join(", ")||"None in this basic match")+'</p></div>':"")+
+   '</div>';
+ }
  function history(){
   if(!versionList)return "";
   return '<div class="gsp-history"><h4>Saved revision history</h4>'+
@@ -129,7 +146,7 @@
    '<div class="gsp-topline">Your information, your format. <strong>Firestore saves + revision history.</strong> Drive evidence is preserved separately. No CV source switch.</div>'+
    '<div class="gsp-body"><aside class="gsp-sidebar">'+nav()+
    '<div class="gsp-source">'+btn("source-archive","Open original Drive evidence","gsp-btn-link")+'<small>The original raw evidence is never shown as your editable career layout.</small></div>'+
-   '</aside><main class="gsp-main">'+(active==="overview"?overview():listSection())+
+   '</aside><main class="gsp-main">'+(active==="overview"?overview():active==="jd-match"?matchPanel():listSection())+
    history()+'</main></div>'+
    '<footer class="gsp-footer"><span data-gsp-status role="status">'+esc(status||"No unsaved changes.")+'</span>'+
    '<div class="gsp-actions">'+btn("history","Version history")+btn("backup","Download backup for Drive")+btn("save","Save Profile","gsp-btn-primary")+'</div></footer></div>';
@@ -151,14 +168,14 @@
  }
  function cleanExit(){
   if(dirty&&!window.confirm("You have unsaved Profile changes. Discard them?"))return false;
-  root?.remove();root=null;profile=null;dirty=false;versionList=null;viewHistory=null;
+  root?.remove();root=null;profile=null;dirty=false;versionList=null;viewHistory=null;jdMatch=null;
   previous?.focus?.();return true;
  }
  async function open(){
   if(root&&!cleanExit())return;
   previous=doc.activeElement;key=typeof state!=="undefined"&&state.candidate==="Pooja"?"pooja":"abhishek";
   root=doc.createElement("div");root.className="gsp-root";doc.body.append(root);
-  profile=null;active="overview";expanded="";dirty=false;status="Loading saved Profile…";render();
+  profile=null;active="overview";expanded="";dirty=false;jdText="";jdMatch=null;status="Loading saved Profile…";render();
   const res=await request("read",{candidate:key});
   if(!root)return;
   if(!res?.profile){setStatus("Unable to load the Profile.");return}
@@ -166,12 +183,34 @@
   render();
  }
  const doc=document;
- doc.addEventListener("input",e=>{if(root?.contains(e.target)&&e.target.matches("[data-field]"))updateField(e.target)});
+ doc.addEventListener("input",e=>{
+  if(!root?.contains(e.target))return;
+  if(e.target.matches("[data-field]"))updateField(e.target);
+  if(e.target.matches("[data-jd-text]")){jdText=e.target.value;jdMatch=null;}
+ });
+ doc.addEventListener("change",e=>{if(root?.contains(e.target)&&e.target.matches("select[data-field]"))updateField(e.target)});
  doc.addEventListener("click",async e=>{
   const b=e.target.closest("button[data-action]");
   if(!b||!root?.contains(b)||busy||!profile)return;
   const action=b.dataset.action,type=b.dataset.type,i=Number(b.dataset.index||0),j=Number(b.dataset.ach||0);
   if(action==="close"){cleanExit();return}
+  if(action==="match-jd"){
+   if(dirty){setStatus("Save or discard your Profile changes before matching a JD.");return}
+   const result=await request("match",{candidate:key,revision:profile.revision,jdText});
+   if(result){jdMatch=result;setStatus("Matching complete. Review the results; no CV was generated.");render()}
+   return;
+  }
+  if(action==="download-package"){
+   if(dirty){setStatus("Save your Profile changes first.");return}
+   if(!jdMatch){setStatus("Run Match evidence first.");return}
+   const result=await request("cv-package",{candidate:key,revision:profile.revision,jdText});
+   if(!result)return;
+   const blob=new Blob([result.markdown],{type:"text/markdown"});
+   const url=URL.createObjectURL(blob),a=doc.createElement("a");
+   a.href=url;a.download="Garamaal_"+key+"_matched_evidence_rev"+profile.revision+".md";a.style.display="none";doc.body.append(a);a.click();a.remove();
+   setTimeout(()=>URL.revokeObjectURL(url),30000);
+   setStatus("Staging CV evidence package downloaded. Production generation is unchanged.");return;
+  }
   if(action==="navigate"){active=type;expanded="";versionList=null;viewHistory=null;render();return}
   if(action==="expand"){expanded=expanded===type+"-"+b.dataset.id?"":type+"-"+b.dataset.id;render();return}
   if(action==="add-entry"){const entry=fresh(type);profile.lists[type].push(entry);expanded=type+"-"+entry.id;changed();render();return}
