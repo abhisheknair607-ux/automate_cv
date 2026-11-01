@@ -7,6 +7,9 @@ RUN npm install --omit=dev --no-fund --no-audit
 # Frozen, QA-tested standalone webapp. Never overwrite the Python worker's webapp/ files.
 COPY garamaal-release-webapp ./webapp
 COPY standalone ./standalone
+# The staging release copies files with umask 077. Permit non-root `node` to read/traverse
+# only the shipped application sources; source ownership and worker services stay unchanged.
+RUN chmod -R a+rX /app/standalone /app/webapp /app/package.json
 ENV NODE_ENV=production
 ENV PORT=8080
 EXPOSE 8080
