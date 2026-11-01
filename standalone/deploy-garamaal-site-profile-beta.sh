@@ -42,7 +42,7 @@ gcloud run services describe "$SERVICE" --project "$PROJECT" --region "$REGION" 
 gcloud run services describe "$STAGING" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/stage.json"
 BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$PINNED_STAGING_REV" <<'PY'
 import json,sys
-p,s=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:])
+p,s=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:3])
 def spec(o):return o.get("spec",{}).get("template",{}).get("spec",{})
 def e(o):
  cs=spec(o).get("containers",[])
