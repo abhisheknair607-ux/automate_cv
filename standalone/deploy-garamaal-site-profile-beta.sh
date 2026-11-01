@@ -10,6 +10,10 @@ REGION="europe-west1"
 SERVICE="automate-cv-dashboard"
 STAGING="garamaal-profile-staging"
 PINNED_STAGING_REV="$(printenv GARAMAAL_EXPECTED_STAGING_REV || true)"
+EXPECTED_LIVE_BETA_REV="$(printenv GARAMAAL_EXPECTED_LIVE_BETA_REV || true)"
+if [[ -n "$EXPECTED_LIVE_BETA_REV" ]]; then
+ [[ "$EXPECTED_LIVE_BETA_REV" =~ ^automate-cv-dashboard-[0-9]{5}-[a-z0-9]+$ ]] || { echo "Invalid expected live beta revision" >&2; exit 2; }
+fi
 [[ "$PINNED_STAGING_REV" =~ ^garamaal-profile-staging-[0-9]{5}-[a-z0-9]+$ ]] || { echo "Pin a freshly tested staging revision in GARAMAAL_EXPECTED_STAGING_REV" >&2; exit 2; }
 [[ "$PINNED_STAGING_REV" != "garamaal-profile-staging-00010-xih" ]] || { echo "Old staging revision lacks JD matching" >&2; exit 2; }
 PROD_SA="automate-cv-pilot-reader@abhishek-cv-automation.iam.gserviceaccount.com"
@@ -51,7 +55,7 @@ print(traffic[0]["revisionName"])
 PY
 )"
 gcloud run revisions describe "$LIVE_REV" --project "$PROJECT" --region "$REGION" --format=json > "$TMP/live.json"
-BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" <<'PY'
+BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" "$EXPECTED_LIVE_BETA_REV" <<'PY'
 import json,sys
 p,s,live=(json.load(open(x,encoding="utf-8")) for x in sys.argv[1:4])
 def spec(o):return o.get("spec",{}).get("template",{}).get("spec",{})
@@ -75,7 +79,14 @@ def revspec(r):
 live_spec=revspec(live)
 assert live_spec.get("serviceAccountName",live_spec.get("serviceAccount"))==spec(p).get("serviceAccountName"), "Live revision changed service identity"
 live_env={x["name"]:x for x in live_spec.get("containers",[])[0].get("env",[])}
-assert live_env.get("GARAMAAL_PROFILE_BETA_ENABLED",{}).get("value") in (None,"false"), "Stop: beta already enabled on traffic-serving revision"
+expected_beta=sys.argv[5]
+live_rev=next(t["revisionName"] for t in p["status"]["traffic"] if int(t.get("percent",0))==100)
+if expected_beta:
+ assert live_rev==expected_beta, "STOP: production beta revision has changed; review before deploy"
+ for k,v in {"GARAMAAL_PROFILE_BETA_ENABLED":"true","GARAMAAL_PROFILE_BETA_DATA_SCOPE":"staging","GARAMAAL_PROFILE_BETA_EMAIL":"abhisheknair607@gmail.com"}.items():
+  assert live_env.get(k,{}).get("value")==v, "STOP: live beta identity/scope mismatch: "+k
+else:
+ assert live_env.get("GARAMAAL_PROFILE_BETA_ENABLED",{}).get("value") in (None,"false"), "Stop: beta already enabled on traffic-serving revision; explicitly pin old beta revision"
 for k in ("APP_READ_ONLY","APP_ALLOW_PRODUCTION_WRITES","ALLOW_MANUAL_CV_DISPATCH","TAAZA_SPREADSHEET_ID","FRESHMAL_SPREADSHEET_ID"):
  assert live_env.get(k)==a.get(k), "Live revision and service template disagree on "+k
 assert live_env.get("GITHUB_WORKFLOW_TOKEN")==a.get("GITHUB_WORKFLOW_TOKEN"), "Live GitHub token binding changed"
@@ -136,11 +147,13 @@ import json,sys
 x=json.load(open(sys.argv[1]));assert x.get("ok") and x.get("readOnly")==False
 PY
 curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
-grep -Fq '/prototype/profile-beta-ui.js?v=sitebeta1' "$TMP/canary.html"
+grep -Fq '/prototype/profile-beta-ui.js?v=sitebeta2' "$TMP/canary.html"
 grep -Fq '/prototype/hub-swipe.js' "$TMP/canary.html"
 grep -Fq '/prototype/copper-porcelain.css' "$TMP/canary.html"
 curl -fsSL --max-time 30 "$URL/prototype/profile-beta-ui.js" -o "$TMP/beta.js"
 grep -Fq 'Find my strongest evidence' "$TMP/beta.js"
+grep -Fq 'Import Profile JSON' "$TMP/beta.js"
+grep -Fq 'Switch to Pooja' "$TMP/beta.js"
 STATUS="$(curl -sS --max-time 30 -o "$TMP/deny.json" -w '%{http_code}' \
  -X POST -H "Content-Type: application/json" -d '{"candidate":"pooja"}' \
  "$URL/api/profile/structured/read")"
