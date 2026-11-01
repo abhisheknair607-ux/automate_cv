@@ -81,3 +81,23 @@
 .gsp-metric-row{display:grid;gap:11px;padding:14px;border:1px solid #ddc7b4;border-radius:9px;margin:10px 0;background:#fffdfa}
 .gsp-metric-row>.gsp-btn{justify-self:start}
 .gsp-dark .gsp-metric-row{background:#302219;border-color:#75563f}
+
+/* Structured JD-to-evidence review. Relative relevance, never ATS scoring. */
+.gsp-match-panel{display:grid;gap:15px;padding:20px;border-radius:12px;border:1px solid #d4b59a;background:#fffaf4}
+.gsp-match-panel textarea{width:100%;min-height:170px;resize:vertical}
+.gsp-match-report{display:grid;gap:10px}
+.gsp-match-report h4{font:600 20px Georgia,serif;margin:6px 0}
+.gsp-match-report>p{font-size:12px;color:#7d604a;line-height:1.6}
+.gsp-match-item{border:1px solid #dfc7b2;border-radius:10px;padding:15px;background:#fffefd;display:grid;gap:7px}
+.gsp-match-item strong{font-size:14px;color:#583921}
+.gsp-match-item small{font-size:12px;color:#85664f}
+.gsp-match-item span{font-size:11px;font-weight:700;color:#816047}
+.gsp-match-item p{margin:0;font-size:12px;color:#755440}
+.gsp-match-warning{color:#aa542d!important}
+.gsp-review-control{padding:10px;border:1px solid #d5bea7;border-radius:9px;background:#fffaf3}
+.gsp-review-control select{width:100%;padding:9px;border:1px solid #c49b7a;border-radius:8px;background:#fffefa;color:#463021}
+.gsp-dark .gsp-match-panel,.gsp-dark .gsp-match-item,.gsp-dark .gsp-review-control{background:#33231a;color:#e9ceae;border-color:#76523b}
+.gsp-dark .gsp-match-item strong{color:#f3dac1}
+.gsp-dark .gsp-match-report>p,.gsp-dark .gsp-match-item p{color:#d1ad8c}
+.gsp-dark .gsp-review-control select{background:#21170f;color:#f4dac3;border-color:#76523b}
+@media(max-width:720px){.gsp-match-panel{padding:12px}.gsp-match-item{padding:12px}}
