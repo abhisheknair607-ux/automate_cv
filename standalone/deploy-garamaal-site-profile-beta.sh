@@ -80,6 +80,10 @@ cp "$ROOT/Dockerfile.garamaal-ui" "$TMP/build/Dockerfile"
 cp "$ROOT/package.json" "$TMP/build/package.json"
 cp -R "$ROOT/standalone" "$TMP/build/standalone"
 cp -R "$ROOT/garamaal-release-webapp" "$TMP/build/garamaal-release-webapp"
+# umask 077 must protect temporary files, but its 0600 copies cause EACCES
+# inside the container where the app runs as the unprivileged `node` user.
+# Only the deployment source bundle is made readable; no persistent files change.
+chmod -R a+rX "$TMP/build"
 gcloud run deploy "$SERVICE" --project "$PROJECT" --region "$REGION" \
  --source "$TMP/build" --no-traffic --tag="$TAG" \
  --update-env-vars="GARAMAAL_PROFILE_BETA_ENABLED=true,GARAMAAL_PROFILE_BETA_DATA_SCOPE=staging,GARAMAAL_PROFILE_BETA_EMAIL=$TEST_EMAIL" \
