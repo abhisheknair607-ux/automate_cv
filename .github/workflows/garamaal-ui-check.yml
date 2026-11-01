@@ -63,3 +63,34 @@ jobs:
             standalone/test/swipe_full_cv_controls.test.js
       - name: Verify production image can be assembled without modifying CV worker
         run: docker build --file Dockerfile.garamaal-ui --tag garamaal-ui:ci .
+      - name: Smoke test the actual Cloud Run container entrypoint
+        shell: bash
+        run: |
+          set -euo pipefail
+          container="garamaal-beta-smoke-$"
+          docker run --detach --rm --name "$container" -p 127.0.0.1:18765:8080 \
+            -e PORT=8080 \
+            -e GOOGLE_CLOUD_PROJECT=abhishek-cv-automation \
+            -e APP_READ_ONLY=false \
+            -e APP_ALLOW_PRODUCTION_WRITES=true \
+            -e ALLOW_MANUAL_CV_DISPATCH=true \
+            -e ALLOWED_EMAILS=abhisheknair607@gmail.com \
+            -e GARAMAAL_PROFILE_BETA_ENABLED=true \
+            -e GARAMAAL_PROFILE_BETA_DATA_SCOPE=staging \
+            -e GARAMAAL_PROFILE_BETA_EMAIL=abhisheknair607@gmail.com \
+            garamaal-ui:ci
+          trap 'docker logs "$container" 2>&1 | tail -80; docker rm -f "$container" >/dev/null 2>&1 || true' EXIT
+          ok=0
+          for i in $(seq 1 20); do
+            if curl --fail --silent --max-time 2 http://127.0.0.1:18765/health > /tmp/garamaal-smoke-health.json; then
+              ok=1; break
+            fi
+            sleep 1
+          done
+          if test "$ok" != 1; then
+            echo "Container did not start; printed Node startup logs:" >&2
+            exit 1
+          fi
+          python3 -c 'import json; h=json.load(open("/tmp/garamaal-smoke-health.json")); assert h["ok"] and h["readOnly"] is False'
+          curl --fail --silent --max-time 5 http://127.0.0.1:18765/prototype | grep -Fq '/prototype/profile-beta-ui.js?v=sitebeta1'
+
