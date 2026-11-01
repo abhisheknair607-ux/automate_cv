@@ -3,6 +3,7 @@
  * evidence archives and the production CV source; all writes are staging-only. */
 const {getFirestore}=require("firebase-admin/firestore");
 const {permit}=require("./profile_access");
+const {findMatches,evidencePackage}=require("./profile_structured_match");
 const DATA_COLLECTION="garamaalCareerStructuredStagingV1";
 const FIELDS=Object.freeze({
  experience:["employer","title","location","startDate","endDate","summary"],
@@ -138,6 +139,25 @@ function register(app,{authenticate}){
    tx.set(ref,saved,{merge:false});
    return {revision:saved.revision,updatedAt:now};
   });
+ }));
+ app.post("/api/profile/structured/match",(req,res)=>run(req,res,async({req,ref,key})=>{
+  const snap=await ref.get();
+  if(!snap.exists||snap.data()?.candidate!==key||!Number.isInteger(snap.data()?.revision))
+   throw error("Save a structured Profile before running JD matching",409);
+  if(snap.data().revision!==req.body?.revision)throw error("Profile changed; reload before matching",409);
+  return findMatches(snap.data(),req.body?.jdText,{max:18});
+ }));
+ app.post("/api/profile/structured/cv-package",(req,res)=>run(req,res,async({req,ref,key})=>{
+  // Staging evidence handoff: returns read-only text for review. Never dispatches paid generation.
+  const snap=await ref.get();
+  if(!snap.exists||snap.data()?.candidate!==key||!Number.isInteger(snap.data()?.revision))
+   throw error("Save a structured Profile before building evidence",409);
+  if(snap.data().revision!==req.body?.revision)throw error("Profile changed; reload and rerun JD matching",409);
+  const selection=evidencePackage(snap.data(),req.body?.jdText,{max:18});
+  if(!selection.selectedIds.length)throw error("No candidate-confirmed achievements qualify for this JD. Review and confirm evidence first.",409);
+  return {schema:"garamaal-staging-cv-handoff-v1",candidate:key,revision:snap.data().revision,
+   jdText:req.body.jdText,selectedIds:selection.selectedIds,markdown:selection.markdown,
+   previewOnly:true,productionCvUnchanged:true};
  }));
  app.post("/api/profile/structured/history",(req,res)=>run(req,res,async({ref,key})=>{
   const snap=await ref.get();
