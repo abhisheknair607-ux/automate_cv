@@ -68,8 +68,8 @@ test("Website release guards preserve live environment, keep staging revision pi
 test("Staging plan validator reads only the two JSON files and treats the pinned revision as a string",()=>{
  const script=read("deploy-garamaal-site-profile-beta.sh");
  assert.match(script,/for x in sys\.argv\[1:4\]/);
- const marker='BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" <<\'PY\'\\n';
- const block=script.split(marker)[1]?.split("\\nPY\\n)\"")[0];
+ const marker='BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" <<\'PY\'\n';
+ const block=script.split(marker)[1]?.split("\nPY\n)\"")[0];
  assert.ok(block,"Plan validator must be identifiable");
  const os=require("node:os");
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),"profile-beta-safety-"));
