@@ -67,9 +67,10 @@ test("Website release guards preserve live environment, keep staging revision pi
 
 test("Staging plan validator reads only the two JSON files and treats the pinned revision as a string",()=>{
  const script=read("deploy-garamaal-site-profile-beta.sh");
- assert.match(script,/for x in sys\.argv\[1:3\]/);
- const match=script.match(/BASELINE="\$\(python3 - "\$TMP\/prod\.json" "\$TMP\/stage\.json" "\$PINNED_STAGING_REV" <<'PY'\n([\s\S]*?)\nPY\n\)"/);
- assert.ok(match,"Plan validation heredoc must be identifiable");
+ assert.match(script,/for x in sys\.argv\[1:4\]/);
+ const marker='BASELINE="$(python3 - "$TMP/prod.json" "$TMP/stage.json" "$TMP/live.json" "$PINNED_STAGING_REV" <<\'PY\'\\n';
+ const block=script.split(marker)[1]?.split("\\nPY\\n)\"")[0];
+ assert.ok(block,"Plan validator must be identifiable");
  const os=require("node:os");
  const tmp=fs.mkdtempSync(path.join(os.tmpdir(),"profile-beta-safety-"));
  const revision="garamaal-profile-staging-00012-lug";
@@ -91,11 +92,21 @@ test("Staging plan validator reads only the two JSON files and treats the pinned
   containers:[{env:env(stageEnv)}]}}},
   status:{latestReadyRevisionName:revision,traffic:[{tag:"profile-edit",revisionName:revision,percent:0}]}};
  try{
-  const a=path.join(tmp,"production.json"),b=path.join(tmp,"staging.json");
+  const a=path.join(tmp,"production.json"),b=path.join(tmp,"staging.json"),c=path.join(tmp,"active-live-revision.json");
   fs.writeFileSync(a,JSON.stringify(prod));fs.writeFileSync(b,JSON.stringify(stage));
-  const result=cp.spawnSync("python3",["-",a,b,revision],{input:match[1]+"\n",encoding:"utf8"});
+  const live={spec:JSON.parse(JSON.stringify(prod.spec.template.spec))};
+  // Simulate a failed --no-traffic deployment: beta exists in the latest
+  // service template, but the 100%-traffic revision has NOT enabled it.
+  prod.spec.template.spec.containers[0].env.push({name:"GARAMAAL_PROFILE_BETA_ENABLED",value:"true"});
+  fs.writeFileSync(a,JSON.stringify(prod));
+  fs.writeFileSync(c,JSON.stringify(live));
+  const result=cp.spawnSync("python3",["-",a,b,c,revision],{input:block+"\n",encoding:"utf8"});
   assert.equal(result.status,0,result.stderr);
   assert.match(result.stdout,/automate-cv-dashboard-00047-kos=100/);
+  live.spec.containers[0].env.push({name:"GARAMAAL_PROFILE_BETA_ENABLED",value:"true"});
+  fs.writeFileSync(c,JSON.stringify(live));
+  const rejected=cp.spawnSync("python3",["-",a,b,c,revision],{input:block+"\n",encoding:"utf8"});
+  assert.notEqual(rejected.status,0,"Must reject a beta already enabled on the traffic-serving revision");
  }finally{fs.rmSync(tmp,{recursive:true,force:true})}
 });
 
