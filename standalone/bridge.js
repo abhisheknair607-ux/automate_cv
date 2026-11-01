@@ -217,7 +217,8 @@
   window.google=window.google||{};
   window.google.script=window.google.script||{};
   window.google.script.run=chain(null,null);
-  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage,requestSpecial};
+  window.__cvStandalone={switchAccount:async()=>{if(authInstance)await authInstance.signOut();emitUser(null);},downloadDocument,loadTokenUsage,requestSpecial,
+    getCurrentUserEmail:()=>String(currentUser?.email||"").toLowerCase().trim()};
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initAuth,{once:true});
   else initAuth();
 })();
