@@ -142,14 +142,16 @@
   const isDark=window.GaramaalTheme?.get?.()==="dark";root.classList.toggle("gsp-dark",!!isDark);
   root.innerHTML='<div class="gsp-app" role="dialog" aria-modal="true" aria-label="Structured Garamaal career profile">'+
    '<header class="gsp-header"><div><span class="gsp-eyebrow">GARAMAAL / PROFILE BETA</span><h2>My career profile</h2></div>'+
-   '<div class="gsp-header-actions"><span class="gsp-pill">'+(key==="pooja"?"Pooja":"Abhishek")+'</span>'+btn("close","Close")+'</div></header>'+
+   '<div class="gsp-header-actions"><span class="gsp-pill">'+(key==="pooja"?"Pooja":"Abhishek")+'</span>'+btn("switch-candidate",key==="pooja"?"Switch to Abhishek":"Switch to Pooja")+btn("close","Close")+'</div></header>'+
    '<div class="gsp-topline">Beta only · <strong>Firestore staging saves + revision history.</strong> Original Google Drive evidence is preserved. Live CV generation is unchanged.</div>'+
    '<div class="gsp-body"><aside class="gsp-sidebar">'+nav()+
    '<div class="gsp-source">'+btn("source-archive","Open original Drive evidence","gsp-btn-link")+'<small>The original raw evidence is never shown as your editable career layout.</small></div>'+
    '</aside><main class="gsp-main">'+(active==="overview"?overview():active==="jd-match"?matchPanel():listSection())+
    history()+'</main></div>'+
    '<footer class="gsp-footer"><span data-gsp-status role="status">'+esc(status||"No unsaved changes.")+'</span>'+
-   '<div class="gsp-actions">'+btn("history","Version history")+btn("backup","Download backup for Drive")+btn("save","Save Profile","gsp-btn-primary")+'</div></footer></div>';
+   '<div class="gsp-actions">'+btn("import-json","Import Profile JSON","gsp-btn-primary")+
+    '<input type="file" accept=".json,application/json" data-profile-upload style="display:none" aria-label="Select saved structured Profile JSON">'+
+    btn("history","Version history")+btn("backup","Download backup for Drive")+btn("save","Save Profile","gsp-btn-primary")+'</div></footer></div>';
  }
  function updateField(el){
   const k=el.dataset.field,target=el.dataset.target,type=el.dataset.type,i=Number(el.dataset.index||0),j=Number(el.dataset.ach||0),m=Number(el.dataset.metric||0);
@@ -171,6 +173,42 @@
   root?.remove();root=null;profile=null;dirty=false;versionList=null;viewHistory=null;jdMatch=null;
   previous?.focus?.();return true;
  }
+ async function loadCandidate(candidate){
+   if(!["abhishek","pooja"].includes(candidate))return;
+   if(dirty&&!window.confirm("Discard pending changes before switching candidate?"))return;
+   const previousCandidate=key;key=candidate;profile=null;dirty=false;active="overview";expanded="";jdText="";jdMatch=null;versionList=null;viewHistory=null;
+   setStatus("Loading "+(candidate==="pooja"?"Pooja":"Abhishek")+" from staging…");render();
+   const response=await request("read",{candidate});
+   if(!root)return;
+   if(response?.profile){profile=response.profile;status="Selected "+(candidate==="pooja"?"Pooja":"Abhishek")+" Profile. Original records are preserved until Save.";render()}
+   else {key=previousCandidate;setStatus("Could not switch Profile; reopen editor.");}
+ }
+ // File is read only in this browser session. No upload occurs until Save Profile.
+ async function importJson(file){
+   if(!file)return;
+   if(file.size>300000){setStatus("File too large. Select compact Structured_Profile.json, not expanded reference data.");return}
+   try{
+    const data=JSON.parse(await file.text());
+    const incoming=data?.schema==="garamaal-career-backup-v1"?data.profile:data;
+    if(!incoming||incoming.schema!==1||incoming.candidate!==key)
+      throw Error("Wrong candidate or format. Switch to the matching candidate and select their compact Structured_Profile.json file.");
+    const sections=TYPES.map(x=>x[0]);
+    if(!incoming.overview||!incoming.lists||sections.some(t=>!Array.isArray(incoming.lists[t])))throw Error("Profile JSON is missing required sections.");
+    const normalized={schema:1,candidate:key,revision:profile.revision,
+      overview:incoming.overview,lists:incoming.lists};
+    // The backend caps structured Profile content at 110kB.
+    const size=new TextEncoder().encode(JSON.stringify(normalized)).length;
+    if(size>109900)throw Error("Profile exceeds current safe size limit. Choose the compact JSON file.");
+    if(profile.lists.experience.length+profile.lists.projects.length>0 &&
+      !window.confirm("Replace this "+key+" Profile draft with "+file.name+"? The saved Profile remains in history and nothing is written until Save Profile."))return;
+    if(dirty&&!window.confirm("Discard current unsaved edits and load the JSON file?"))return;
+    profile=normalized;dirty=true;active="experience";expanded="";jdMatch=null;versionList=null;viewHistory=null;
+    const count=t=>profile.lists[t].length;
+    status="Imported "+file.name+" into "+key+" draft: "+count("experience")+" jobs, "+
+      count("projects")+" projects, "+count("skills")+" skills. Review and click Save Profile to write to staging.";
+    render();
+   }catch(e){setStatus("Import blocked: "+String(e.message||e).slice(0,240));}
+ }
  async function open(){
   if(root&&!cleanExit())return;
   previous=doc.activeElement;key=typeof state!=="undefined"&&state.candidate==="Pooja"?"pooja":"abhishek";
@@ -188,12 +226,20 @@
   if(e.target.matches("[data-field]"))updateField(e.target);
   if(e.target.matches("[data-jd-text]")){jdText=e.target.value;jdMatch=null;}
  });
- doc.addEventListener("change",e=>{if(root?.contains(e.target)&&e.target.matches("select[data-field]"))updateField(e.target)});
+ doc.addEventListener("change",async e=>{
+   if(!root?.contains(e.target))return;
+   if(e.target.matches("select[data-field]"))updateField(e.target);
+   if(e.target.matches("[data-profile-upload]")){
+     const file=e.target.files?.[0];e.target.value="";await importJson(file);
+   }
+ });
  doc.addEventListener("click",async e=>{
   const b=e.target.closest("button[data-action]");
   if(!b||!root?.contains(b)||busy||!profile)return;
   const action=b.dataset.action,type=b.dataset.type,i=Number(b.dataset.index||0),j=Number(b.dataset.ach||0);
   if(action==="close"){cleanExit();return}
+  if(action==="switch-candidate"){await loadCandidate(key==="pooja"?"abhishek":"pooja");return}
+  if(action==="import-json"){root.querySelector("[data-profile-upload]")?.click();return}
   if(action==="match-jd"){
    if(dirty){setStatus("Save or discard your Profile changes before matching a JD.");return}
    const result=await request("match",{candidate:key,revision:profile.revision,jdText});
