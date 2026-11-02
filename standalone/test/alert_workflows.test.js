@@ -124,3 +124,27 @@ test("history summary distinguishes last imported jobs from pending email review
  assert.equal(h.pendingReview,1);
  assert.equal(h.lastRunAt,"2026-10-26T23:00:00Z");
 });
+
+test("status reports an import run separately from dedupe and never hides failure",async()=>{
+ const fetcher=async url=>({
+  ok:true,status:200,json:async()=>({workflow_runs:[{
+   id:url.includes("linkedin-alerts")?701:702,
+   status:"completed",conclusion:url.includes("linkedin-alerts")?"failure":"success",
+   created_at:"2026-11-02T13:30:00Z",html_url:"https://github.com/example/actions/runs/701"
+  }]})
+ });
+ const runs=await a.latest({token:"TOKEN",fetcher});
+ assert.equal(runs.import.conclusion,"failure");
+ assert.equal(runs.dedupe.conclusion,"success");
+ assert.deepEqual(runs.preview,runs.import);
+});
+test("history counts latest log batch without claiming GitHub success",()=>{
+ const rows=[
+  ["2026-11-01T18:00:00Z","old","","2026-11-01T17:00:00Z","","",1,1,0,"Processed",""],
+  ["2026-11-01T23:24:27Z","a","","2026-11-01T20:00:00Z","","",6,5,1,"Partial",""],
+  ["2026-11-01T23:25:05Z","b","","2026-11-01T21:00:00Z","","",2,1,1,"Processed",""]
+ ];
+ const history=a.summarizeLog(rows);
+ assert.deepEqual(history.lastBatch,{emails:2,added:6,duplicates:2,needsReview:1});
+ assert.equal(history.pendingReview,1);
+});
