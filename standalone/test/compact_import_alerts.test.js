@@ -51,3 +51,15 @@ test("Sequential UI shows Preview, Run Import, Check Duplicates and setup-requir
   assert.match(page,/data\.dedupeEnabled/);
   assert.match(page,/data\.applyEnabled/);
 });
+
+test("Import Alerts retains three operations and hides diagnostics under collapsed details",()=>{
+ const popup=html.slice(html.indexOf("/* Import Alerts control lives"),
+  html.indexOf("  async function trigger(kind)"));
+ assert.match(popup,/<details class="alerts-diagnostics"><summary>History &amp; details<\/summary>/);
+ assert.match(popup,/data-alert-review/);
+ assert.match(popup,/const run=data\.runs\?\.import\|\|data\.runs\?\.preview/);
+ assert.match(popup,/failed&&data\.applyEnabled\?'Retry Import':'Run Import'/);
+ assert.doesNotMatch(popup,/data-alert-run="retry"/);
+ const controls=[...popup.matchAll(/data-alert-run="(preview|apply|dedupe)" disabled/g)];
+ assert.equal(controls.length,3);
+});
