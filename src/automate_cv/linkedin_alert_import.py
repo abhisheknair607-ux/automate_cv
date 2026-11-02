@@ -321,8 +321,39 @@ def logged_states(sheets) -> dict[str, str]:
     return states
 
 
+def _gmail_refresh_failure(exc: Exception) -> str:
+    """Convert sensitive OAuth exceptions into actionable, secret-free errors."""
+    data = next((value for value in getattr(exc, "args", ())
+                 if isinstance(value, dict)), {})
+    reason = str(data.get("error", "")).lower()
+    if reason == "invalid_grant":
+        return ("GMAIL_OAUTH_RECONNECT_REQUIRED: Gmail permission expired/revoked. "
+                "Reauthorise the shared inbox and replace the GitHub Actions "
+                "LINKEDIN_GMAIL_REFRESH_TOKEN secret. Retrying unchanged will fail.")
+    if reason == "invalid_client":
+        return ("GMAIL_OAUTH_CLIENT_INVALID: Check the linked Gmail OAuth client "
+                "ID and client secret in GitHub Actions secrets.")
+    return "GMAIL_OAUTH_REFRESH_FAILED: Gmail authorization is unavailable; check the OAuth account and scopes."
+
+
+def _sheet_permission_denied(exc: Exception) -> bool:
+    """Do not retry a Gmail failure or Sheets quota error using user OAuth."""
+    status = getattr(getattr(exc, "resp", None), "status", None)
+    uri = str(getattr(exc, "uri", ""))
+    body = getattr(exc, "content", b"")
+    if isinstance(body, bytes):
+        body = body.decode("utf-8", errors="replace")
+    body = str(body).lower()
+    return (status in (401, 403) and
+            urlsplit(uri).hostname == "sheets.googleapis.com" and
+            not any(term in body for term in ("quota", "ratelimit", "rate_limit",
+                                               "resource_exhausted")))
+
+
 def gmail_service():
     from google.oauth2.credentials import Credentials
+    from google.auth.transport.requests import Request
+    from google.auth.exceptions import RefreshError
     from googleapiclient.discovery import build
     names = ("LINKEDIN_GMAIL_CLIENT_ID", "LINKEDIN_GMAIL_CLIENT_SECRET",
              "LINKEDIN_GMAIL_REFRESH_TOKEN")
@@ -335,6 +366,15 @@ def gmail_service():
         client_id=os.environ[names[0]], client_secret=os.environ[names[1]],
         scopes=["https://www.googleapis.com/auth/gmail.readonly"],
     )
+    # Validate Gmail first, before using the Sheets write credential. This
+    # prevents a revoked Gmail token from producing two misleading failures
+    # (WIF then OAuth fallback) and never prints the secret or token.
+    try:
+        creds.refresh(Request())
+    except RefreshError as exc:
+        raise RuntimeError(_gmail_refresh_failure(exc)) from None
+    except Exception:
+        raise RuntimeError("GMAIL_OAUTH_CHECK_UNAVAILABLE: Gmail preflight could not complete.") from None
     return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
@@ -573,7 +613,12 @@ def main(argv=None) -> int:
         ap.error("Importer writes are locked: explicit parser approval gate is not enabled")
     if not 1 <= args.days <= 90 or not 1 <= args.max_messages <= 10000:
         ap.error("days must be 1..90, max-messages must be 1..10000")
-    gmail = gmail_service()
+    try:
+        gmail = gmail_service()
+    except RuntimeError as exc:
+        print("Import preflight failed (no spreadsheet writes): " + str(exc),
+              file=sys.stderr)
+        return 1
     errors = []
     for kind, sheets in sheet_service():
         try:
@@ -584,8 +629,17 @@ def main(argv=None) -> int:
             print(json.dumps({"sheets_auth": kind, **result}, sort_keys=True))
             return 0
         except Exception as exc:
-            errors.append(kind + ": " + str(exc))
-    print("Import failed (no CV workflow affected): " + " | ".join(errors), file=sys.stderr)
+            if kind == "workload_identity" and _sheet_permission_denied(exc):
+                errors.append("Sheets workload identity is not authorized")
+                continue
+            # A rate limit, Gmail error, parser failure or interrupted batch
+            # is not an authorization fallback. Retrying with the other Sheets
+            # identity can double the work and compound API quotas.
+            print("Import failed (no CV workflow affected): " +
+                  kind + ": " + str(exc), file=sys.stderr)
+            return 1
+    print("Import failed (no CV workflow affected): " + " | ".join(errors),
+          file=sys.stderr)
     return 1
 
 

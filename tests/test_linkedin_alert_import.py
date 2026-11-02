@@ -476,3 +476,45 @@ def test_log_write_failure_after_bulk_intake_retries_without_duplicate_jobs(monk
     assert retry["duplicates"] == 2
     assert len(sheets.tabs[li.INTAKE]) == 3
     assert len(sheets.tabs[li.LOG]) == 3
+
+
+def test_revoked_gmail_token_reports_exact_reconnect_action_without_secret():
+    error = Exception("DO_NOT_PRINT_REFRESH_TOKEN", {
+        "error": "invalid_grant",
+        "error_description": "Token has been expired or revoked."
+    })
+    output = li._gmail_refresh_failure(error)
+    assert "GMAIL_OAUTH_RECONNECT_REQUIRED" in output
+    assert "LINKEDIN_GMAIL_REFRESH_TOKEN" in output
+    assert "DO_NOT_PRINT" not in output
+    assert "Retrying unchanged will fail" in output
+
+
+def test_only_sheets_permission_denial_triggers_user_oauth_fallback():
+    from types import SimpleNamespace
+
+    def failure(status, uri, body):
+        err = Exception("provider failure")
+        err.resp = SimpleNamespace(status=status)
+        err.uri = uri
+        err.content = body.encode()
+        return err
+
+    sheets = "https://sheets.googleapis.com/v4/spreadsheets/id/values/Jobs"
+    gmail = "https://gmail.googleapis.com/gmail/v1/users/me/messages/id"
+    assert li._sheet_permission_denied(failure(403, sheets, "PERMISSION_DENIED"))
+    assert li._sheet_permission_denied(failure(401, sheets, "Unauthorized"))
+    assert not li._sheet_permission_denied(failure(403, gmail, "rateLimitExceeded"))
+    assert not li._sheet_permission_denied(failure(403, sheets, "Quota exceeded: rateLimitExceeded"))
+    assert not li._sheet_permission_denied(failure(429, sheets, "Quota exceeded"))
+    assert not li._sheet_permission_denied(RuntimeError("Parser error"))
+
+
+def test_expired_gmail_token_stops_before_any_sheet_writes(monkeypatch, capsys):
+    def expired():
+        raise RuntimeError("GMAIL_OAUTH_RECONNECT_REQUIRED: replace secret")
+    monkeypatch.setattr(li, "gmail_service", expired)
+    monkeypatch.setattr(li, "sheet_service", lambda: (_ for _ in ()).throw(
+        AssertionError("Sheets must not be accessed")))
+    assert li.main(["--on-date", "2026-11-02"]) == 1
+    assert "GMAIL_OAUTH_RECONNECT_REQUIRED" in capsys.readouterr().err
