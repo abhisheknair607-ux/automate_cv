@@ -271,12 +271,20 @@ def sheet_values(sheets, rng: str) -> list[list]:
     ).get("values", [])
 
 
-def append_row(sheets, tab: str, row: list) -> None:
-    sheets.spreadsheets().values().append(
-        spreadsheetId=SHEET_ID, range=f"'{tab}'!A1",
-        valueInputOption="RAW", insertDataOption="INSERT_ROWS",
-        body={"values": [row]},
-    ).execute(num_retries=3)
+# Reduce Sheets write calls: the historical one-job-one-request importer
+# exhausted the per-user Sheets quota during larger multi-day imports.
+WRITE_BATCH_MESSAGES = 20
+WRITE_BATCH_ROWS = 200
+
+
+def append_rows(sheets, tab: str, rows: list[list]) -> None:
+    """Append bounded batches; keep row order and existing column schema."""
+    for start in range(0, len(rows), WRITE_BATCH_ROWS):
+        sheets.spreadsheets().values().append(
+            spreadsheetId=SHEET_ID, range=f"'{tab}'!A1",
+            valueInputOption="RAW", insertDataOption="INSERT_ROWS",
+            body={"values": rows[start:start + WRITE_BATCH_ROWS]},
+        ).execute(num_retries=3)
 
 
 def known_job_ids(sheets) -> set[str]:
@@ -422,6 +430,22 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
                 "messages": 0, "totalListed": len(messages), "filtered": 0,
                 "excluded_ads": 0, "preview": preview,
                 "samples": [], "review_reasons": []}
+    pending_jobs, pending_logs = [], []
+
+    def flush():
+        if preview or not pending_logs:
+            return
+        # Jobs before logs: an interrupted run is safe to retry. The next run
+        # re-reads the intake/master URL identities before writing anything.
+        # A log is never marked Processed for jobs we have not persisted.
+        append_rows(sheets, INTAKE, pending_jobs)
+        append_rows(sheets, LOG, pending_logs)
+        pending_jobs.clear()
+        pending_logs.clear()
+        print("Import checkpoint: processed=" + str(counters["messages"]) +
+              ", new=" + str(counters["added"]) +
+              ", duplicates=" + str(counters["duplicates"]), flush=True)
+
     for item in messages:
         id_ = item["id"]
         last = states.get(id_, "")
@@ -507,7 +531,7 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
                     "status": "Needs Review" if needs_review else result,
                 })
             if not preview:
-                append_row(sheets, INTAKE, [
+                pending_jobs.append([
                     job.company, job.title, job.url, "",
                     job.location, "", "", "",
                     datetime.now(timezone.utc).date().isoformat(),
@@ -519,11 +543,14 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
         counters["duplicates"] += duplicates
         if not preview:
             now = datetime.now(timezone.utc).isoformat(timespec="seconds")
-            append_row(sheets, LOG, [
+            pending_logs.append([
                 now, id_, resource.get("threadId", ""), _date(message), subject,
                 owner, len(parsed) + len(pending), added, duplicates, result,
                 provider + ": " + details,
             ])
+            if len(pending_logs) >= WRITE_BATCH_MESSAGES:
+                flush()
+    flush()
     return counters
 
 

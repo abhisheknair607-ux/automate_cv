@@ -306,6 +306,12 @@ body[data-candidate="Pooja"] #expenseToggle:hover{color:#7851d7}
 .alerts-run-buttons{display:flex;flex-wrap:wrap;gap:7px;margin-top:9px}
 .alerts-run-buttons .btn{flex:1 1 100px;min-height:34px}
 .alerts-run-buttons .btn:disabled{opacity:.48;cursor:not-allowed}
+.alerts-diagnostics{margin-top:8px;border-top:1px solid var(--line);padding-top:8px}
+.alerts-diagnostics summary{cursor:pointer;font-size:12px;color:var(--muted);font-weight:700;min-height:28px}
+.alerts-diagnostics[open] summary{margin-bottom:6px}
+.alerts-diagnostics .alerts-links{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.alerts-diagnostics .alerts-links .btn{font-size:11px;min-height:30px}
+#alerts-live-status{margin:9px 0 2px;font-weight:700}
 
 .preference-icon.dup{min-width:38px;width:auto;padding:0 7px;font-size:11px;font-weight:800;letter-spacing:.01em}
 .preference-icon.dup[aria-pressed="true"]{background:#f1e9ff;border-color:#bda0e3;color:#68429e}
@@ -1070,14 +1076,16 @@ if(!DEMO){
    '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
    '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
    '<button class="btn btn-primary" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
-   '</div><p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p>'+
-   '<button class="btn" type="button" data-alert-review>Review flagged emails</button><div id="alerts-review-list"></div></div>'+
-   '<div class="alerts-foot">'+
-   '<a class="btn btn-primary" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
-   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+ 
+   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p>'+
+   '<details class="alerts-diagnostics"><summary>History &amp; details</summary>'+
+   '<p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p>'+
+   '<button class="btn" type="button" data-alert-review>Review flagged emails</button><div id="alerts-review-list"></div>'+
+   '<div class="alerts-links">'+
+   '<a class="btn" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
+   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+
    '<a class="btn" href="'+dedupeAudit+'" target="_blank" rel="noopener noreferrer">Audit ↗</a>'+
-   '<button class="btn" type="button" data-alert-dismiss="close">Close</button>'+
-   '</div>'+
+   '</div></details></div>'+
+   '<div class="alerts-foot"><button class="btn" type="button" data-alert-dismiss="close">Close</button></div>'+
    '</div></section></div>';
   mount.querySelector('[data-alert-dismiss="close"]').focus();
   loadStatus();
@@ -1101,18 +1109,27 @@ if(!DEMO){
    if(coverage){
     const h=data.history;
     coverage.textContent=h
-     ?'Last successfully imported alert: '+(h.lastImportedDate||'None recorded')+
-      ' · Pending email reviews: '+h.pendingReview+
+     ?(h.lastBatch?'Latest logged batch: '+h.lastBatch.added+' added · '+
+       h.lastBatch.duplicates+' duplicates · '+h.lastBatch.needsReview+' alerts need review. ':'')+
+      'Pending email reviews: '+h.pendingReview+
       (h.lastRunAt?' · Log updated: '+h.lastRunAt.slice(0,16).replace('T',' ')+' UTC':'')
      :'Import-history summary unavailable; open Taaza Email Import Log.';
    }
-   const run=data.runs?.dedupe||data.runs?.preview;
-   const readiness=data.applyEnabled?'Manual import authorised':
+   // Preview and Run Import share a workflow; Check Duplicates is separate.
+   // Only replace the existing button label on a failed run: no extra controls.
+   const run=data.runs?.import||data.runs?.preview;
+   const failed=run?.status==='completed'&&
+    ['failure','timed_out','cancelled'].includes(run.conclusion);
+   const running=run&&['queued','in_progress','waiting','requested','pending'].includes(run.status);
+   const importButton=mount.querySelector('[data-alert-run="apply"]');
+   if(importButton)importButton.textContent=failed&&data.applyEnabled?'Retry Import':'Run Import';
+   const readiness=data.applyEnabled?'Import authorised':
     data.previewEnabled?'Preview ready · Live import authorisation off':
     'GitHub workflow dispatch is not configured';
    feedback.textContent=run
-    ?'Last run: '+(run.conclusion||run.status||'Unknown')+' · '+readiness
-    :'No recent run · '+readiness;
+    ?'Latest alert run: '+(failed?'Failed':running?'Running':run.conclusion||run.status||'Unknown')+
+     (failed&&data.applyEnabled?' · Retry available':'')+' · '+readiness
+    :'No recent alert run · '+readiness;
   }catch(e){
    if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
   }
@@ -1170,7 +1187,7 @@ if(!DEMO){
     feedback.textContent='Select a valid start and end date (up to 90 days inclusive).';return;
    }
   }
-  if(kind==='apply'&&!window.confirm('Import all verified vacancies from '+startDate+' through '+endDate+' (inclusive)? Duplicates will be skipped and Jobs synced into Discovery. Existing jobs will not be deleted.'))return;
+  if(kind==='apply'&&!window.confirm('Import or retry verified vacancies from '+startDate+' through '+endDate+' (inclusive)? Already imported job links will be skipped. Existing jobs will not be deleted.'))return;
   button.disabled=true;
   feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
   try{
