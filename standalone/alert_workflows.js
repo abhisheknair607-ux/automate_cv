@@ -41,7 +41,21 @@ function summarizeLog(rows){
  }
  const pending=[...lastById.values()].filter(v=>v.result==="Review"||v.result==="Partial");
  pending.sort((a,b)=>b.receivedAt.localeCompare(a.receivedAt));
- return {lastImportedDate,lastRunAt,pendingReview:pending.length,reviews:pending.slice(0,50)};
+ // Logs are message-level, not GitHub run-level: this is a recent log batch,
+ // not proof that an entire import run completed successfully.
+ const latestTime=Date.parse(lastRunAt||"");
+ const batchRows=Number.isFinite(latestTime)?(rows||[]).filter(row=>{
+  const at=Date.parse(String(row[0]||""));
+  return Number.isFinite(at)&&at<=latestTime&&latestTime-at<=15*60*1000;
+ }):[];
+ const lastBatch=batchRows.length?{
+  emails:batchRows.length,
+  added:batchRows.reduce((n,r)=>n+(Number(r[7])||0),0),
+  duplicates:batchRows.reduce((n,r)=>n+(Number(r[8])||0),0),
+  needsReview:batchRows.filter(r=>["Partial","Review"].includes(String(r[9]||""))).length,
+ }:null;
+ return {lastImportedDate,lastRunAt,pendingReview:pending.length,
+  lastBatch,reviews:pending.slice(0,50)};
 }
 async function loadHistory({token,spreadsheetId,fetcher=fetch}){
  if(!token)throw error("Google Sheets credential unavailable",503);
@@ -103,6 +117,9 @@ async function latest({token,fetcher}){
   result[kind]=run?{status:run.status,conclusion:run.conclusion,
     runId:run.id,url:run.html_url,createdAt:run.created_at}:null;
  }
+ // Preview and Apply share a workflow. Do not show the dedupe run as an
+ // import outcome; retain preview for backward compatibility.
+ result.import=result.preview;
  return result;
 }
 module.exports={validateDate,validateRange,summarizeLog,loadHistory,available,github,dispatch,latest,WORKFLOWS};
