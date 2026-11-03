@@ -518,3 +518,47 @@ def test_expired_gmail_token_stops_before_any_sheet_writes(monkeypatch, capsys):
         AssertionError("Sheets must not be accessed")))
     assert li.main(["--on-date", "2026-11-02"]) == 1
     assert "GMAIL_OAUTH_RECONNECT_REQUIRED" in capsys.readouterr().err
+
+def test_gmail_rate_limit_has_bounded_backoff_and_successful_retry():
+    import json
+    from types import SimpleNamespace
+    from googleapiclient.errors import HttpError
+
+    def limited():
+        return HttpError(
+            SimpleNamespace(status=403, reason="rate limit"),
+            json.dumps({"error": {"message": "Quota exceeded",
+                 "errors": [{"reason": "rateLimitExceeded"}]}}).encode(),
+        )
+    class Request:
+        def __init__(self):
+            self.calls = 0
+        def execute(self, **_kwargs):
+            self.calls += 1
+            if self.calls < 3:
+                raise limited()
+            return {"messages": [{"id": "1"}]}
+    req = Request()
+    delays = []
+    assert li.gmail_execute(req, sleep=delays.append) == {"messages": [{"id": "1"}]}
+    assert req.calls == 3
+    assert delays == [5, 15]
+
+
+def test_gmail_permission_error_never_retried():
+    import json
+    from types import SimpleNamespace
+    from googleapiclient.errors import HttpError
+    err = HttpError(
+        SimpleNamespace(status=403, reason="permission denied"),
+        json.dumps({"error": {"message": "Permission denied",
+             "errors": [{"reason": "forbidden"}]}}).encode())
+    class Request:
+        calls = 0
+        def execute(self, **_kwargs):
+            self.calls += 1
+            raise err
+    req = Request()
+    with pytest.raises(HttpError):
+        li.gmail_execute(req, sleep=lambda _: pytest.fail("do not sleep"))
+    assert req.calls == 1
