@@ -13,6 +13,7 @@ import json
 import os
 import re
 import sys
+import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
@@ -405,16 +406,61 @@ def linked_job_ids(html_body: str, plain_body: str = "") -> set[str]:
     return found
 
 
+def gmail_execute(request, *, sleep=None):
+    """Retry Gmail's per-minute quotas without retrying permission errors.
+
+    A full/raw Gmail message costs substantially more quota than listing its ID.
+    Preview and apply can run close together, consuming the same per-user pool.
+    Exponential cooldowns preserve progress already checkpointed to Sheets.
+    """
+    from googleapiclient.errors import HttpError
+
+    pause = sleep or time.sleep
+    for attempt in range(6):
+        try:
+            return request.execute(num_retries=2)
+        except HttpError as exc:
+            if getattr(exc.resp, "status", None) not in (403, 429):
+                raise
+            try:
+                body = json.loads(exc.content.decode("utf-8", errors="replace"))
+                err = body.get("error", {})
+                reasons = [str(x.get("reason", "")) for x in err.get("errors", [])]
+                reasons += [str(x.get("reason", "")) for x in err.get("details", [])]
+                message = str(err.get("message", ""))
+            except (AttributeError, ValueError, TypeError):
+                reasons, message = [], ""
+            throttled = (
+                any(x in ("rateLimitExceeded", "userRateLimitExceeded",
+                          "quotaExceeded", "RESOURCE_EXHAUSTED") for x in reasons)
+                or "quota exceeded" in message.lower()
+                or (getattr(exc.resp, "status", None) == 429 and
+                    "rate" in message.lower())
+            )
+            if not throttled:
+                raise
+            if attempt >= 5:
+                raise RuntimeError(
+                    "GMAIL_RATE_LIMIT_RETRY_EXHAUSTED: Import paused safely. "
+                    "Rerun the same date range later; saved jobs will not duplicate."
+                ) from None
+            delay = (5, 15, 30, 65, 65)[attempt]
+            print(f"Gmail rate limit: cooldown {delay}s before retry {attempt + 2}/6",
+                  flush=True)
+            pause(delay)
+
+
 def list_all_messages(gmail, query: str, max_messages: int) -> list[dict]:
     """Fetch EVERY Gmail page; fail rather than silently dropping a truncated window."""
     found = []
     token = None
     seen = set()
     while True:
-        batch = gmail.users().messages().list(
+        batch_request = gmail.users().messages().list(
             userId="me", q=query, maxResults=min(500, max_messages),
             **({"pageToken": token} if token else {}),
-        ).execute(num_retries=3)
+        )
+        batch = gmail_execute(batch_request)
         for message in batch.get("messages", []):
             if message["id"] not in seen:
                 seen.add(message["id"])
@@ -494,8 +540,8 @@ def run(gmail, sheets, *, preview: bool, days: int = 7,
                 last in ("Review", "Partial") and not retry_review):
             counters["skipped"] += 1
             continue
-        resource = gmail.users().messages().get(
-            userId="me", id=id_, format="raw").execute(num_retries=3)
+        resource = gmail_execute(gmail.users().messages().get(
+            userId="me", id=id_, format="raw"))
         message = decode_message(resource["raw"])
         provider, parser_ready = provider_for(str(message.get("From", "")))
         if provider is None:
