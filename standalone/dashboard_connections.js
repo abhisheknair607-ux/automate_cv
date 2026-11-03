@@ -85,18 +85,31 @@ async function startResearch(row){
  }catch(e){show("Connections unavailable",'<p class="connection-note">'+esc(e.message||"Search failed.")+'</p><p class="connection-note">No automatic paid retry was made.</p>')}
 }
 async function jdClues(row){
- const job=currentJob(row);if(!job||!job.cvLink)return;
+ const job=currentJob(row);if(!job)return;
  activeJob={row,candidate:state.candidate};
  show("JD opportunities · "+job.company,'<p class="connection-note">Reading original saved JD clues…</p>');
  try{
   const data=await window.__cvStandalone.requestSpecial("clues/preview",{candidate:state.candidate,row});
   if(!activeJob||activeJob.row!==row)return;
-  const visa=data.visa,contact=data.contact,salary=data.salary;
-  const body='<div class="connection-person"><strong>Visa sponsorship: '+esc(visa?.status||"Not stated")+'</strong><small>'+esc(visa?.evidence||"No explicit sponsorship information.")+'</small></div>'+
-   '<div class="connection-person"><strong>Salary above 50,000: '+(salary?"Mentioned":"Not stated")+'</strong><small>'+esc(salary?salary.currency+" "+salary.annualValue+" · "+salary.evidence:"No explicit qualifying annual amount detected.")+'</small></div>'+
-   '<div class="connection-person"><strong>Named contact: '+(contact?"Mentioned":"Not stated")+'</strong><small>'+esc(contact?.evidence||"No named contact in the job description.")+'</small></div>'+
-   '<p class="connection-note">These are clues extracted from the JD, not independently verified employer commitments. The Dashboard ranking prompt can save the same evidence into Sheet1 BB–BD.</p>'+
-   '<button class="btn btn-primary" data-action="clues-save" data-row="'+row+'">Save insights to Freshmaal</button>';
+  const visa=data.visa,contact=data.contact,salary=data.salary,saved=data.savedEvidence||{};
+  const recorded=value=>String(value||"").trim()&&!/^NOT STATED\b/i.test(String(value||"").trim());
+  const contactText=recorded(saved.contact)?String(saved.contact):contact?.evidence||"";
+  const visaText=recorded(saved.visa)?String(saved.visa):visa?.evidence||"No explicit sponsorship information.";
+  const salaryText=recorded(saved.salary)?String(saved.salary):
+    salary?salary.currency+" "+salary.annualValue+" · "+salary.evidence:"No qualifying annual amount detected.";
+  const visaState=recorded(saved.visa)?String(saved.visa).split(":")[0]:visa?.status||"Not stated";
+  const profile=contactText.match(/https:\/\/(?:www\.)?linkedin\.com\/in\/[\w%.-]+\/?/i)?.[0]||"";
+  const email=contactText.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/)?.[0]||"";
+  const phone=contactText.match(/(?:\+353[\s-]?(?:\d[\s-]?){7,10}|0[1-9](?:[\d\s-]){7,12})/)?.[0]?.trim()||"";
+  const existing=Object.values(saved).some(recorded);
+  const body='<div class="connection-person"><strong>Named hiring / recruitment contact: '+(contactText?"Mentioned":"Not stated")+'</strong><small>'+esc(contactText||"No named contact identified in the JD.")+'</small>'+
+   (profile?'<div class="row">'+link(profile,"Open LinkedIn profile")+'</div>':"")+
+   (email?'<small>Email: '+esc(email)+'</small>':"")+(phone?'<small>Phone: '+esc(phone)+' (source-listed; direct line not verified)</small>':"")+'</div>'+
+   '<div class="connection-person"><strong>Visa sponsorship: '+esc(visaState)+'</strong><small>'+esc(visaText)+'</small></div>'+
+   '<div class="connection-person"><strong>Salary evidence</strong><small>'+esc(salaryText)+'</small></div>'+
+   '<p class="connection-note">A job poster or recruiter is not necessarily the hiring manager. This is evidence from the supplied posting or saved Freshmaal cells, not independent confirmation of sponsorship or pay.</p>'+
+   (job.cvLink&&!existing?'<button class="btn btn-primary" data-action="clues-save" data-row="'+row+'">Save insights to Freshmaal</button>':
+     existing?'<p class="connection-note">Existing evidence already stored in Freshmaal; no overwrite performed.</p>':"");
   show("JD opportunities · "+job.company,body);
  }catch(e){show("JD opportunities unavailable",'<p class="connection-note">'+esc(e.message||"Unable to read JD clues.")+'</p>')}
 }
