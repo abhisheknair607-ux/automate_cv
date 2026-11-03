@@ -1,0 +1,59 @@
+name: Verify job importer Gmail OAuth
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/verify-job-import-gmail.yml'
+permissions:
+  contents: read
+jobs:
+  gmail-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Gmail client (read-only)
+        run: python -m pip install --quiet google-api-python-client google-auth google-auth-httplib2
+      - name: Validate shared Gmail OAuth without importing jobs
+        env:
+          LINKEDIN_GMAIL_CLIENT_ID: ${{ secrets.LINKEDIN_GMAIL_CLIENT_ID }}
+          LINKEDIN_GMAIL_CLIENT_SECRET: ${{ secrets.LINKEDIN_GMAIL_CLIENT_SECRET }}
+          LINKEDIN_GMAIL_REFRESH_TOKEN: ${{ secrets.LINKEDIN_GMAIL_REFRESH_TOKEN }}
+        run: |
+          python - <<'PY'
+          import os, sys
+          from google.oauth2.credentials import Credentials
+          from google.auth.transport.requests import Request
+          from googleapiclient.discovery import build
+
+          names = ('LINKEDIN_GMAIL_CLIENT_ID', 'LINKEDIN_GMAIL_CLIENT_SECRET',
+                   'LINKEDIN_GMAIL_REFRESH_TOKEN')
+          if not all(os.getenv(k) for k in names):
+              sys.exit('GMAIL_CONFIG_MISSING: Complete the three LINKEDIN_GMAIL_* Actions secrets')
+          c = Credentials(
+              token=None,
+              refresh_token=os.environ[names[2]],
+              token_uri='https://oauth2.googleapis.com/token',
+              client_id=os.environ[names[0]], client_secret=os.environ[names[1]],
+              scopes=['https://www.googleapis.com/auth/gmail.readonly'],
+          )
+          try:
+              c.refresh(Request())
+              print('GMAIL_REFRESH_OK')
+          except Exception as err:
+              data = next((v for v in getattr(err, 'args', ()) if isinstance(v, dict)), {})
+              code = str(data.get('error', 'unknown'))
+              if code == 'invalid_grant':
+                  sys.exit('GMAIL_OAUTH_RECONNECT_REQUIRED: Check that the new refresh token matches the configured OAuth client; token may be revoked or expired')
+              if code == 'invalid_client':
+                  sys.exit('GMAIL_OAUTH_CLIENT_MISMATCH: GitHub Gmail client ID/secret do not match the new token')
+              sys.exit('GMAIL_OAUTH_REFRESH_FAILED: Re-check Google account consent and GitHub Gmail secrets')
+          try:
+              build('gmail', 'v1', credentials=c, cache_discovery=False).users().getProfile(userId='me').execute(num_retries=2)
+          except Exception:
+              sys.exit('GMAIL_API_ACCESS_FAILED: Gmail authentication succeeded but the account or Gmail scope is inaccessible')
+          print('JOB_IMPORT_GMAIL_PREFLIGHT_OK: Read-only verification; no job import or spreadsheet writes')
+          PY
