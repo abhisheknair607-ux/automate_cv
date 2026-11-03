@@ -26,6 +26,7 @@ class FakeSheets:
         self.previous = None
         self.categories = {}
         self.dropdown_options = []
+        self.row_capacity = 1000
 
     def spreadsheets(self):
         return self
@@ -37,7 +38,8 @@ class FakeSheets:
         self.calls.append(("get", args))
         if "fields" in args:
             result = {"sheets": [{"properties": {
-                "title": name, "sheetId": i, "gridProperties": {"rowCount": 1000}}}
+                "title": name, "sheetId": i, "gridProperties": {
+                    "rowCount": self.row_capacity if name == "Jobs" else 1000}}}
                 for i, name in enumerate(self.book, 1)]}
         else:
             if re.match(r"'Jobs'!P\d+:P\d+", args["range"]):
@@ -79,6 +81,9 @@ class FakeSheets:
                 assert last == first + len(change["values"]) - 1
         else:
             for req in body["requests"]:
+                if "appendDimension" in req:
+                    assert req["appendDimension"]["dimension"] == "ROWS"
+                    self.row_capacity += req["appendDimension"]["length"]
                 if "repeatCell" in req:
                     assert req["repeatCell"]["range"]["startColumnIndex"] == 15
                     self.dropdown_options = [v["userEnteredValue"] for v in
@@ -185,3 +190,18 @@ def test_one_job_can_belong_to_multiple_tabs_and_dropdown_lists_combination():
     assert book.categories[4] == "TP Europe | Pooja Europe"
     assert "TP Europe | Pooja Europe" in book.dropdown_options
     assert "Common" in book.dropdown_options
+
+def test_sync_at_full_grid_boundary_appends_rows_without_false_collision():
+    """Live regression: Jobs was full at row 1085; A1086:M1085 is reversed."""
+    sheet = FakeSheets()
+    sheet.row_capacity = 2  # header row 1 + existing job at row 2
+    first = taaza_sync.sync_once(sheet)
+    assert first["added"] == 2
+    assert first["master_row"] == 3
+    assert sheet.row_capacity == 4
+    assert [row[0] for row in sheet.book["Jobs"]] == ["Alpha", "EUTP", "Planner"]
+    assert not any(name == "get" and args.get("range") == "'Jobs'!A3:M2"
+                   for name, args in sheet.calls)
+    assert any("appendDimension" in req for name, args in sheet.calls
+               if name == "batchUpdate" for req in args["body"].get("requests", []))
+    assert taaza_sync.sync_once(sheet)["added"] == 0
