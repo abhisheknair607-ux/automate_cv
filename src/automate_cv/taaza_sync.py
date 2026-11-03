@@ -268,9 +268,14 @@ def sync_once(sheets):
             occupied = [i + 2 for i, row in enumerate(fresh) if any(str(v).strip() for v in row[:3])]
             first = (max(occupied) + 1) if occupied else 2
             last = first + len(additions) - 1
-            target = get_values(sheets, MASTER, first, min(last, dimensions[MASTER]))
-            if any(_occupied(row) for row in target):
-                raise RuntimeError("Jobs destination contains data; refusing to overwrite.")
+            # At the physical grid boundary, first can be greater than
+            # rowCount. Never issue a reversed A1086:M1085 range: Sheets may
+            # return the last occupied row and falsely report a collision.
+            # A read is necessary only for destination rows that exist.
+            if first <= dimensions[MASTER]:
+                target = get_values(sheets, MASTER, first, min(last, dimensions[MASTER]))
+                if any(_occupied(row) for row in target):
+                    raise RuntimeError("Jobs destination contains data; refusing to overwrite.")
             if last > dimensions[MASTER]:
                 sheets.spreadsheets().batchUpdate(
                     spreadsheetId=SHEET_ID,
