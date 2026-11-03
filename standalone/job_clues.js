@@ -3,6 +3,14 @@
  * Avoid interpreting 'no sponsorship' as sponsorship support.
  */
 function clean(s){return String(s||"").replace(/\s+/g," ").trim()}
+function namedPerson(text){
+ const cleaned=String(text||"").replace(/\[([^\]]+)\]\([^)]+\)/g,"$1")
+  .replace(/\b(?:please\s+)?contact\s+(?=[A-Z])/gi," ")
+  .replace(/\b(?:hiring manager|job poster|recruiter|reporting to|for enquiries)\s*[:–-]?\s*/gi," ");
+ const names=cleaned.match(/\b[A-Z][a-zA-ZÀ-ÿ’'-]+\s+(?:[A-Z][a-zA-ZÀ-ÿ’'-]+|[A-Z]\.?)\b/g)||[];
+ const skip=/^(?:Human Resources|Talent Acquisition|Hiring Team|Recruitment Team|Finance Team|Job Description|Contact Information|Financial Analyst|Senior Associate|Director Founder)$/i;
+ return names.find(name=>!skip.test(name))||null;
+}
 function jdClues(jd){
  const body=String(jd||"");
  const lines=body.split(/\n+/).map(clean).filter(Boolean);
@@ -11,7 +19,7 @@ function jdClues(jd){
  const explicitVisa=/(?:visa sponsorship|sponsor(?:ing|ship)?\s+(?:work\s+)?visas?|work permit sponsorship|employment permit sponsorship|critical skills permit)/i;
  const positive=/(?:we\s+(?:provide|offer|support|can sponsor|will sponsor)|(?:visa|work permit|employment permit)\s+sponsorship\s+(?:is\s+)?(?:available|provided|offered)|sponsorship\s+(?:provided|offered|available))/i;
  const negative=/(?:no |not |don't |do not |unable |cannot |without |does not |won't )/i;
- for(const line of lines){
+ for(const [i,line] of lines.entries()){
    if(line.length>450)continue;
    if(explicitVisa.test(line)){
      if(negative.test(line))sponsor.push({status:"no",evidence:line.slice(0,300)});
@@ -25,11 +33,14 @@ function jdClues(jd){
      if(n>50000&&n<=1000000&&!/(?:signing bonus|sign-on bonus|annual bonus only|per day|daily rate|per hour|hourly rate)/i.test(line))
        salary.push({currency,annualValue:n,evidence:line.slice(0,300)});
    }
-   // A named person's involvement is only a clue if explicitly described
-   // as a job contact. A generic HR team is not an identified individual.
-   if(/(?:contact|reach out to|reporting to|hiring manager|recruiter|for enquiries)/i.test(line)){
-     if(/(?:[A-Z][a-z'-]+\s+[A-Z][a-z'-]+)/.test(line)||/@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/.test(line))
-       people.push({evidence:line.slice(0,300)});
+   // Only identify a person where the JD explicitly links their name to
+   // recruitment, enquiries, a reporting line or a 'Job poster' label.
+   if(/(?:contact|reach out to|reporting to|hiring manager|recruiter|for enquiries|job poster)/i.test(line)){
+     const preceding=/job poster/i.test(line)?lines.slice(Math.max(0,i-5),i).reverse()
+       .map(x=>x.replace(/\[([^\]]+)\]\([^)]+\)/g,"$1")).find(x=>x.length<80&&
+         /^\s*[A-Z][a-zA-ZÀ-ÿ’'-]+\s+(?:[A-Z][a-zA-ZÀ-ÿ’'-]+|[A-Z]\.?)\s*$/.test(x)):"";
+     const name=namedPerson(line)||namedPerson(preceding);
+     if(name)people.push({evidence:(/job poster/i.test(line)?"Job poster: "+name:line).slice(0,300)});
    }
  }
  const visa=sponsor.find(x=>x.status==="yes")||sponsor.find(x=>x.status==="no")||sponsor[0]||null;

@@ -375,14 +375,32 @@ async function authorisedJob(req){
  if(!job||job.source!=="fresh"||job.row!==row)throw Object.assign(Error("Job row not found."),{httpCode:404});
  return {...job,candidate};
 }
+// Read only this vacancy's existing JD evidence on demand, so a golden eye
+// works before CV generation without scanning every full JD or altering Sheet1.
+async function readSavedJDEvidence(job){
+ const empty={contact:"",visa:"",salary:""};
+ if(!job||job.source!=="fresh"||!Number.isInteger(job.row))return empty;
+ try{
+  const access=await(await auth.getClient()).getAccessToken();
+  const token=typeof access==="string"?access:access.token;
+  if(!token)return empty;
+  const range="'Sheet1'!BB"+job.row+":BD"+job.row;
+  const url="https://sheets.googleapis.com/v4/spreadsheets/"+encodeURIComponent(IDS.fresh)+
+    "/values/"+encodeURIComponent(range);
+  const response=await fetch(url,{headers:{Authorization:"Bearer "+token}});
+  if(!response.ok)return empty;
+  const values=(await response.json()).values?.[0]||[];
+  return {contact:String(values[0]||""),visa:String(values[1]||""),salary:String(values[2]||"")};
+ }catch{return empty}
+}
 // Preview is free; a separate explicit click triggers one paid request.
 // A long-lived key MUST be stored in a Cloud Run Secret Manager binding, never in the browser.
 app.post("/api/clues/preview",async(req,res)=>{
  try{
   const job=await authorisedJob(req);
-  if(!job.cvLink)throw Object.assign(Error("This insight is available after the CV is generated."),{httpCode:409});
+  const savedEvidence=await readSavedJDEvidence(job);
   res.json({data:{job:{row:job.row,company:job.company,role:job.role,candidate:job.candidate},
-    ...jdClues(job.jd),saved:false}});
+    ...jdClues(job.jd),savedEvidence,saved:false}});
  }catch(e){res.status(e.httpCode||500).json({error:String(e.message||"JD clues unavailable").slice(0,260)})}
 });
 app.post("/api/clues/save",async(req,res)=>{

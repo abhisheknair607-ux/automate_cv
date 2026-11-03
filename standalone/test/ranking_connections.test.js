@@ -34,6 +34,24 @@ test("JD eye requires explicit positive visa, salary or named contact",()=>{
  const vague=jdClues("Candidates need the right to work. Salary negotiable.");
  assert.equal(vague.highlight,false);
 });
+test("job poster is identified without mistaking a generic HR group for a person",()=>{
+ const poster=jdClues("Meet the hiring team\nLouise O'Leary\n2nd\nRecruitment firm founder\nJob poster");
+ assert.match(poster.contact?.evidence||"",/Job poster: Louise O'Leary/);
+ assert.equal(poster.highlight,true);
+ const direct=jdClues("Hiring manager: Jane Smith\nContact Human Resources for support.");
+ assert.match(direct.contact?.evidence||"",/Jane Smith/);
+ assert.equal(jdClues("Contact Human Resources for enquiries.").contact,null);
+});
+test("golden eye supports saved evidence on shortlisted jobs before CV generation",()=>{
+ const release=read("garamaal-release-webapp/Index.html");
+ const server=read("standalone/server.js");
+ const dialog=read("standalone/dashboard_connections.js");
+ assert.match(release,/!discovery&&job\.jdClue/);
+ assert.doesNotMatch(release,/cvReady&&job\.jdClue/);
+ assert.match(server,/savedEvidence=await readSavedJDEvidence\(job\)/);
+ assert.match(dialog,/Named hiring \/ recruitment contact/);
+ assert.doesNotMatch(dialog,/if\(!job\|\|!job\.cvLink\)return/);
+});
 test("three contact ranges, verified URLs only, brief humble messages",()=>{
  assert.deepEqual(Object.keys(connection.tiers),["1-5","5-10","10-15"]);
  assert.equal(connection.safeProfile("https://www.linkedin.com/in/real-person"),"https://www.linkedin.com/in/real-person");
