@@ -23,7 +23,7 @@ git -C "$ROOT" diff --cached --quiet
 git -C "$ROOT" merge-base --is-ancestor b1fe5fa01da67c3ad197769a6608ed9a204c47b2 HEAD
 [[ -f "$ROOT/Dockerfile.garamaal-ui" && -f "$ROOT/garamaal-release-webapp/Index.html" ]] ||
   { echo "Correct Garamaal UI release files missing" >&2; exit 2; }
-grep -Fq 'Live import authorisation off' "$ROOT/garamaal-release-webapp/Index.html" ||
+grep -Fq 'id="alerts-title">Duplicate Review' "$ROOT/garamaal-release-webapp/Index.html" ||
   { echo "Latest Import Alerts UI not present" >&2; exit 2; }
 SHA="$(git -C "$ROOT" rev-parse --short HEAD)"
 TMP="$(mktemp -d)"
