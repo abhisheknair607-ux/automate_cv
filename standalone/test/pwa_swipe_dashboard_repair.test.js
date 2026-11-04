@@ -6,12 +6,12 @@ const read=filepath=>fs.readFileSync(path.join(root,filepath),"utf8");
 const htmlPath=fs.existsSync(path.join(root,"garamaal-release-webapp/Index.html"))
  ?"garamaal-release-webapp/Index.html":"webapp/Index.html";
 
-test("dashboard ranks and alert importer are visually equal without changing handlers",()=>{
+test("dashboard ranks and duplicate review are visually equal with safe handlers",()=>{
  const html=read(htmlPath);
  assert.match(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Ranking prompt/);
- assert.match(html,/class="btn btn-primary" type="button" data-action="import-alerts"/);
+ assert.match(html,/class="btn btn-primary" type="button" data-action="duplicate-review"/);
  assert.doesNotMatch(html,/data-action="copy-ranking"[^>]*>\$\{icon\('prompt'\)\} Copy ranking prompt/);
- assert.ok(html.includes('e.target.closest(\'[data-action="import-alerts"]\')'));
+ assert.ok(html.includes('e.target.closest(\'[data-action="duplicate-review"]\')'));
 });
 
 test("Chrome PWA manifest retains stable identity and has concrete working start route",()=>{
