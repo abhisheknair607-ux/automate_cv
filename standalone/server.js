@@ -18,6 +18,8 @@ const contactsStore=require("./contacts_store");
 const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
+const autoImport=require("./auto_import");
+const {getFirestore}=require("firebase-admin/firestore");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
 
 const BASE = path.resolve(__dirname,"..");
@@ -469,7 +471,34 @@ app.post("/api/duplicates/mark",async(req,res)=>{
   if(lock)dupInFlight.delete(lock);
  }
 });
-// Manual Python workflows on GitHub, never paid OpenAI. Read-only is the
+// App-open importer. Disabled by default; does not use GitHub Actions or a timer.
+const automaticImporter=autoImport.makeCoordinator({
+ db:getFirestore(),
+ enabled:!READ_ONLY&&process.env.AUTO_ALERT_IMPORT_ENABLED==="true",
+ runJob:({runId})=>autoImport.runCloudJob({
+  project:PROJECT,region:process.env.AUTO_ALERT_IMPORT_REGION||"europe-west1",
+  job:process.env.AUTO_ALERT_IMPORT_JOB||"",runId
+ })
+});
+app.post("/api/alerts/auto/check",async(req,res)=>{
+ try{
+  await authenticate(req);
+  const state=await automaticImporter.check();
+  res.json({data:state});
+ }catch(e){
+  console.error("[auto-import-check]",String(e.message||"error").slice(0,150));
+  res.status(e.httpCode||503).json({error:"Automatic import unavailable: "+String(e.message||"error").slice(0,120)});
+ }
+});
+app.post("/api/alerts/auto/status",async(req,res)=>{
+ try{
+  await authenticate(req);
+  res.json({data:await automaticImporter.status()});
+ }catch(e){
+  res.status(e.httpCode||503).json({error:"Automatic import status unavailable"});
+ }
+});
+// Legacy manual GitHub workflows retained for rollback only. Read-only is the
 // default; write operations are doubly protected by a server-side gate and
 // by GARAMAAL_ALERT_IMPORT_APPROVED in the Actions repository variables.
 const alertRequests=new Map();
