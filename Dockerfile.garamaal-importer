@@ -1,0 +1,7 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 PYTHONPATH=/app
+WORKDIR /app
+RUN pip install --no-cache-dir google-cloud-firestore google-api-python-client google-auth google-auth-httplib2
+COPY src ./src
+USER 65532
+CMD ["python","-m","src.automate_cv.auto_import_job"]
