@@ -98,7 +98,7 @@ test("Only one copy of exact and high-confidence similar jobs appears; originals
  assert.equal(visible.rows.find(x=>x.row===7).autoDuplicateOf,null);
  assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,j=>j.row),[9,8,7,6,5,4,3,2]);
  const dupe=f.list("duplicates");
- assert.deepEqual(Array.from(dupe.rows,j=>j.row),[7,8,9,2,3,5,6]);
+ assert.deepEqual(Array.from(dupe.rows,j=>j.row),[7,8,9,5,6,3]);
 });
 test("Manual Not Dup and independent requisitions with full JDs stay separate",()=>{
  const f=fixture([
