@@ -23,8 +23,8 @@ git -C "$ROOT" diff --cached --quiet
 git -C "$ROOT" merge-base --is-ancestor b1fe5fa01da67c3ad197769a6608ed9a204c47b2 HEAD
 [[ -f "$ROOT/Dockerfile.garamaal-ui" && -f "$ROOT/garamaal-release-webapp/Index.html" ]] ||
   { echo "Correct Garamaal UI release files missing" >&2; exit 2; }
-grep -Fq 'Live import authorisation off' "$ROOT/garamaal-release-webapp/Index.html" ||
-  { echo "Latest Import Alerts UI not present" >&2; exit 2; }
+grep -Fq 'id="alerts-title">Duplicate Review' "$ROOT/garamaal-release-webapp/Index.html" ||
+  { echo "Latest Duplicate Review UI not present" >&2; exit 2; }
 SHA="$(git -C "$ROOT" rev-parse --short HEAD)"
 TMP="$(mktemp -d)"
 PROMOTION_ATTEMPTED=0
@@ -114,7 +114,7 @@ URL="${TAG_DATA[1]:-}"
 curl -fsSL --max-time 30 "$URL/health" | python3 -c \
   'import json,sys; x=json.load(sys.stdin); assert x.get("ok") is True and x.get("readOnly") is False'
 curl -fsSL --max-time 30 "$URL/prototype" -o "$TMP/canary.html"
-grep -Fq 'Live import authorisation off' "$TMP/canary.html"
+grep -Fq 'id="alerts-title">Duplicate Review' "$TMP/canary.html"
 grep -Fq 'Ranking prompt' "$TMP/canary.html"
 # Stage 4 0%-traffic canary: verify approved V9 sphere/curve, image cards,
 # stock registry and UI theme are SERVED before promoting any live traffic.
@@ -176,7 +176,7 @@ active=[v for v in srv.get("status",{}).get("traffic",[]) if int(v.get("percent"
 assert len(active)==1 and active[0].get("revisionName")==sys.argv[2] and int(active[0]["percent"])==100
 PY
 curl -fsSL --max-time 45 "https://garamaal.web.app/prototype?release=$SHA" -o "$TMP/live.html"
-grep -Fq 'Live import authorisation off' "$TMP/live.html"
+grep -Fq 'id="alerts-title">Duplicate Review' "$TMP/live.html"
 grep -Fq 'src="/prototype/career-trail"' "$TMP/live.html"
 curl -fsSL --max-time 45 "https://garamaal.web.app/prototype/career-trail?release=$SHA" -o "$TMP/live-career.html"
 grep -Fq 'id="global-ball"' "$TMP/live-career.html"

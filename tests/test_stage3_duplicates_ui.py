@@ -9,9 +9,9 @@ FILTERS = (ROOT / "standalone" / "mobile_jobs_filters_stats.js").read_text()
 def test_dashboard_ribbon_and_import_popup():
     assert "<strong>Master Controls</strong>" in INDEX
     start = INDEX.index('data-action="copy-ranking"')
-    assert start < INDEX.index('data-action="import-alerts"', start) < INDEX.index('data-action="repair-ranks"', start)
-    assert 'data-alert-run="dedupe" disabled' in INDEX
-    assert 'data-alert-run="apply" disabled' in INDEX
+    assert start < INDEX.index('data-action="duplicate-review"', start) < INDEX.index('data-action="repair-ranks"', start)
+    assert 'data-alert-run="dedupe"' not in INDEX
+    assert 'data-alert-run="apply"' not in INDEX
     assert "Read-only Python audit verifies" not in INDEX
     assert "The dashboard will trigger Python" not in INDEX
 
@@ -47,7 +47,7 @@ def test_duplicate_presets_and_grouping_are_discovery_only():
 
 
 def test_no_destructive_sheet_ops_or_paid_model_calls_added_to_popup():
-    popup = INDEX.split('/* Import Alerts control lives in the Jobs dashboard', 1)[1]
+    popup = INDEX.split('/* Import and master sync run on Cloud Run', 1)[1]
     assert "fetch(" not in popup
     assert "google.script.run" not in popup
     assert "workflow_dispatch" not in popup

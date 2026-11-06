@@ -33,8 +33,8 @@ def test_import_requires_user_confirmed_workflow_approval():
     assert 'inputs.approval ==' in workflow
     assert '"$APPROVAL" != "IMPORT_VALIDATED_JOBS"' in workflow
     assert "confirmed:req.body?.confirm===true" in server
-    assert "if(kind==='apply'&&!window.confirm(" in page
-    assert "confirm:kind==='apply'" in page
+    assert 'alerts/auto/check' in page
+    assert 'data-alert-run="apply"' not in page
 
 def test_discov_dup_remains_single_column_write_and_manual_only():
     backend = (ROOT / "standalone/server.js").read_text(encoding="utf-8")

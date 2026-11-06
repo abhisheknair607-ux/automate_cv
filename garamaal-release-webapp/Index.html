@@ -591,7 +591,7 @@ function navRender(){applyCandidateTheme();const n=()=>navigation.map(x=>`<butto
 function title(head,sub,button){return `<div class="heading"><div><h1>${h(head)}</h1></div>${button||''}</div>`}
 function isAppInstalled(){return window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true}
 function kpi(label,value,sublabel,i){return `<div class="kpi"><i>${icon(i)}</i><label>${label}</label><strong>${value}</strong><small>${sublabel}</small></div>`}
-function dash(){return title('Overview','',`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`)+`<section class="panel" style="margin-bottom:12px"><div class="row" style="align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>Master Controls</strong><div class="meta">Job ranking · email alert imports · duplicate review · no paid AI API for imports or deduplication</div></div><div class="row"><button class="btn btn-primary" data-action="copy-ranking">${icon('prompt')} Ranking prompt</button><button class="btn btn-primary" type="button" data-action="import-alerts" aria-haspopup="dialog" aria-controls="importAlertsMount" title="Preview the manual GitHub job-alert importer">${icon('refresh')} Import Alerts</button><button class="btn" data-action="repair-ranks" title="Optional one-time confirmation: restore AM and AO formulas without changing scores">${icon('refresh')} Fix rank formulas</button></div></div></section>`+`<div class="kpis">${kpi('Discovered',state.stats?state.stats.discovered:'—','Vacancies in Taaza','discover')}${kpi('Applications',state.stats?state.stats.applications:'—','Jobs in Freshmaal','brief')}${kpi('Shortlisted',state.stats?state.stats.selected:'—',state.candidate+' selected','target')}${kpi('CV requested',state.stats?state.stats.cvRequested:'—','Existing CV checkboxes','shield')}</div>${!DEMO&&!isAppInstalled()?`<section class="panel garamaal-install-card"><div><strong>Install Garamaal</strong><span>Open from your phone home screen — no browser menu needed when installation is supported.</span></div><button class="btn btn-primary" type="button" data-action="install-app">Install app</button></section>`:'' }<div class="grid2"><section class="panel"><div class="subhead">Next move</div><div class="quick"><button class="btn" data-action="quick" data-value="missing">${icon('file')} Seems Kacha</button><button class="btn" data-action="quick" data-value="ready">${icon('arrow')} Seems Fresh</button><button class="btn" data-action="quick" data-value="cv">${icon('files')} Make CV</button><button class="btn" data-action="quick" data-value="selected">${icon('target')} Shortlisted</button><button class="btn" data-action="view-not-interested" data-source="discovery">${icon('trash')} Not Interested · Taaza</button><button class="btn" data-action="view-not-interested" data-source="fresh">${icon('trash')} Not Interested · CV</button></div><div style="margin-top:10px"><button class="btn btn-xs" data-action="migrate-preferences">Set up Sheets preference dropdowns</button></div></section><section class="panel flow-strip"><div class="flow-title">From vacancy to CV</div><div class="flow-trail"><span>Seems Kacha</span><span>Seems Taaza</span><span>Seems Fresh</span><span>Garam CV Ready</span></div></section></div>`}
+function dash(){return title('Overview','',`<button class="btn btn-primary" data-action="nav" data-value="add">${icon('plus')} Add job</button>`)+`<section class="panel" style="margin-bottom:12px"><div class="row" style="align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><strong>Master Controls</strong><div class="meta">Job ranking · email alert imports · duplicate review · no paid AI API for imports or deduplication</div></div><div class="row"><button class="btn btn-primary" data-action="copy-ranking">${icon('prompt')} Ranking prompt</button><button class="btn btn-primary" type="button" data-action="duplicate-review" aria-haspopup="dialog" aria-controls="importAlertsMount" title="Inspect possible duplicate vacancies">${icon('refresh')} Duplicate Review</button><button class="btn" data-action="repair-ranks" title="Optional one-time confirmation: restore AM and AO formulas without changing scores">${icon('refresh')} Fix rank formulas</button></div></div></section>`+`<div class="kpis">${kpi('Discovered',state.stats?state.stats.discovered:'—','Vacancies in Taaza','discover')}${kpi('Applications',state.stats?state.stats.applications:'—','Jobs in Freshmaal','brief')}${kpi('Shortlisted',state.stats?state.stats.selected:'—',state.candidate+' selected','target')}${kpi('CV requested',state.stats?state.stats.cvRequested:'—','Existing CV checkboxes','shield')}</div>${!DEMO&&!isAppInstalled()?`<section class="panel garamaal-install-card"><div><strong>Install Garamaal</strong><span>Open from your phone home screen — no browser menu needed when installation is supported.</span></div><button class="btn btn-primary" type="button" data-action="install-app">Install app</button></section>`:'' }<div class="grid2"><section class="panel"><div class="subhead">Next move</div><div class="quick"><button class="btn" data-action="quick" data-value="missing">${icon('file')} Seems Kacha</button><button class="btn" data-action="quick" data-value="ready">${icon('arrow')} Seems Fresh</button><button class="btn" data-action="quick" data-value="cv">${icon('files')} Make CV</button><button class="btn" data-action="quick" data-value="selected">${icon('target')} Shortlisted</button><button class="btn" data-action="view-not-interested" data-source="discovery">${icon('trash')} Not Interested · Taaza</button><button class="btn" data-action="view-not-interested" data-source="fresh">${icon('trash')} Not Interested · CV</button></div><div style="margin-top:10px"><button class="btn btn-xs" data-action="migrate-preferences">Set up Sheets preference dropdowns</button></div></section><section class="panel flow-strip"><div class="flow-title">From vacancy to CV</div><div class="flow-trail"><span>Seems Kacha</span><span>Seems Taaza</span><span>Seems Fresh</span><span>Garam CV Ready</span></div></section></div>`}
 function filterOptions(){return state.section==='discovery'?[['all','All jobs'],['missing','Seems Kacha'],['ready','Seems Taaza'],['favorites','Favorites ★'],['not-interested','Not Interested']]:[['all','All jobs'],['unapplied','Unapplied · CV ready'],['selected','My shortlist'],['cv','CV requests'],['applied','Applied'],['unscored','Unscored'],['favorites','Favorites ★'],['not-interested','Not Interested']]}
 function discoveryTabs(){
  if(state.section!=='discovery')return '';
@@ -601,7 +601,7 @@ function discoveryTabs(){
    all.map(x=>'<button class="chip '+(state.tabId===x.id?'active':'')+'" data-action="category" data-value="'+h(x.id)+'" aria-pressed="'+(state.tabId===x.id)+'" title="'+h(x.name)+'">'+h(x.name)+'</button>').join('')+
    '</div>';
 }
-function filters(){return (state.section==='discovery'?'<div class="row" style="justify-content:flex-end;margin-bottom:8px"><button class="btn btn-xs" type="button" data-action="review-alert-emails" title="Review alert emails where a job could not be fully parsed">Review alert emails</button></div>':'')+`<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button>${jdRecoveryButtonHTML()}</div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[...(state.section==='discovery'?[['smart','Smart Sort']]:[]),['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span><span id="jdRecoveryStatusMount">${jdRecoveryStatusHTML()}</span></div>${discoveryTabs()}</div>`}
+function filters(){return `<div class="panel toolbar"><div class="toolbar-main"><div class="searchbox">${icon('discover')}<input id="search" type="search" aria-label="Search jobs" placeholder="Search jobs..." value="${h(state.query)}" autocomplete="off"/></div><button class="btn" title="Refresh from Google Sheets" data-action="refresh">${icon('refresh')}</button>${jdRecoveryButtonHTML()}</div><div class="toolbar-bottom"><div class="filter-scroll" role="group" aria-label="Filter and sort jobs">${filterOptions().map(([key,label])=>`<button class="chip ${state.filter===key?'active':''}" data-action="filter" data-value="${key}" aria-pressed="${state.filter===key}">${label}</button>`).join('')}<span class="filter-separator" aria-hidden="true"></span>${[...(state.section==='discovery'?[['smart','Smart Sort']]:[]),['newest','Newest'],['company','Company A–Z'],...(state.section==='fresh'?[['score','Highest score']]:[])].map(([key,label])=>`<button class="chip ${state.sort===key?'active':''}" data-action="sort-jobs" data-value="${key}" aria-pressed="${state.sort===key}">${label}</button>`).join('')}</div><span class="meta" id="jobCount">${state.data?state.data.rows.length+' of '+state.data.total+' shown':'Loading jobs...'}</span><span id="jdRecoveryStatusMount">${jdRecoveryStatusHTML()}</span></div>${discoveryTabs()}</div>`}
 function identity(job){return encodeURIComponent(JSON.stringify(expected(job)))}
 
 function activityFor(job){
@@ -952,6 +952,13 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySele
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
 init().then(()=>{if(!DEMO)void refreshJDRecoveryStatus()});
+// The importer writes to the Taaza master, not directly into this page's state.
+// Refresh Discovery and its dashboard counters once the server confirms success.
+window.addEventListener('garamaal:jobs-imported',()=>{
+ if(DEMO)return;
+ void fetchStats();
+ if(state.section==='discovery')void fetchList();
+});
 if(!DEMO){
   if('serviceWorker' in navigator && location.protocol==='https:'){
     navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
@@ -1041,20 +1048,40 @@ if(!DEMO){
 }
 </script>
 <script>
-/* Import Alerts control lives in the Jobs dashboard beside Copy ranking prompt.
-   Uses authenticated GitHub workflow dispatch; preview and read-only scans
-   never write Sheets. Actual imports remain gated by parser approval. */
+/* Import and master sync run on Cloud Run when the authenticated app is opened.
+   This popup is exclusively for duplicate proposals; it cannot trigger imports. */
 (function(){
  "use strict";
  const mount=document.getElementById("importAlertsMount");
- const actions="https://github.com/abhisheknair607-ux/automate_cv/actions";
- const workflow="https://github.com/abhisheknair607-ux/automate_cv/blob/main/.github/workflows/linkedin-alerts-to-taaza.yml";
- const dedupeAudit="https://github.com/abhisheknair607-ux/automate_cv/actions/runs/40286629848";
- let opener=null;
- function isoLocal(date){return String(date.getFullYear())+'-'+String(date.getMonth()+1).padStart(2,'0')+'-'+String(date.getDate()).padStart(2,'0')}
- function ago(n){const d=new Date();d.setDate(d.getDate()-n);return isoLocal(d)}
+ const actionHost=()=>window.__cvStandalone?.requestSpecial;
+ let opener=null,requestAt=0,completionTimer=null,completionChecks=0;
+ // Completion monitoring is temporary and only follows an active server-side
+ // import. It never dispatches imports or bypasses the four-hour server lock.
+ function watchCompletion(previousSuccessAt){
+  if(completionTimer)return;
+  completionChecks=0;
+  async function checkCompletion(){
+   completionTimer=null;
+   if(document.hidden)return;
+   try{
+    const state=await actionHost()("alerts/auto/status",{});
+    if(!state?.enabled)return;
+    if(state.status==="succeeded"&&state.lastSuccessAt&&
+       state.lastSuccessAt!==previousSuccessAt){
+      window.dispatchEvent(new Event("garamaal:jobs-imported"));
+      return;
+    }
+    if(!["dispatching","running"].includes(state.status))return;
+   }catch(e){
+    console.warn("[auto-import-status] "+(e.message||"Status unavailable"));
+   }
+   // The Cloud Run Job is limited to 15 minutes. Stop after 30 checks.
+   if(++completionChecks<30)completionTimer=setTimeout(checkCompletion,30000);
+  }
+  completionTimer=setTimeout(checkCompletion,30000);
+ }
  function close(){
-  if(!mount||!mount.firstChild)return;
+  if(!mount?.firstChild)return;
   mount.replaceChildren();
   if(opener?.isConnected)opener.focus();
   opener=null;
@@ -1065,154 +1092,82 @@ if(!DEMO){
   mount.innerHTML=
    '<div class="alerts-shade" data-alert-dismiss="backdrop">'+
    '<section class="alerts-pop" role="dialog" aria-modal="true" aria-labelledby="alerts-title">'+
-   '<div class="alerts-head"><div><strong id="alerts-title">Import Alerts</strong>'+
-   '<small>GitHub Actions</small></div>'+
-   '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Import Alerts">×</button></div>'+
-   '<div class="alerts-body">'+
-   '<div class="alerts-manual"><div class="alerts-calendar-row">'+
-   '<label for="alerts-start-date">From<input id="alerts-start-date" type="date" value="'+ago(6)+'" aria-label="First alert email date" /></label>'+
-   '<label for="alerts-end-date">To<input id="alerts-end-date" type="date" value="'+ago(0)+'" aria-label="Last alert email date, inclusive" /></label></div>'+
-   '<div class="alerts-run-buttons">'+
-   '<button class="btn btn-primary" type="button" data-alert-run="preview" disabled>Preview Import</button>'+
-   '<button class="btn" type="button" data-alert-run="apply" disabled>Run Import</button>'+
-   '<button class="btn btn-primary" type="button" data-alert-run="dedupe" disabled>Check Duplicates</button>'+
-   '</div><p class="alerts-note" id="alerts-live-status" role="status" aria-live="polite">Checking…</p>'+
-   '<details class="alerts-diagnostics"><summary>History &amp; details</summary>'+
-   '<p class="alerts-note" id="alerts-coverage" aria-live="polite">Loading import history…</p>'+
-   '<button class="btn" type="button" data-alert-review>Review flagged emails</button><div id="alerts-review-list"></div>'+
-   '<div class="alerts-links">'+
-   '<a class="btn" href="'+actions+'" target="_blank" rel="noopener noreferrer">Actions ↗</a>'+
-   '<a class="btn" href="'+workflow+'" target="_blank" rel="noopener noreferrer">Workflow ↗</a>'+
-   '<a class="btn" href="'+dedupeAudit+'" target="_blank" rel="noopener noreferrer">Audit ↗</a>'+
-   '</div></details></div>'+
+   '<div class="alerts-head"><div><strong id="alerts-title">Duplicate Review</strong>'+
+   '<small>Unresolved possible matches · No jobs deleted</small></div>'+
+   '<button class="btn" type="button" data-alert-dismiss="close" aria-label="Close Duplicate Review">×</button></div>'+
+   '<div class="alerts-body"><p id="alerts-live-status" class="alerts-note" role="status">Checking duplicates…</p>'+
+   '<div id="alerts-review-list"></div></div>'+
    '<div class="alerts-foot"><button class="btn" type="button" data-alert-dismiss="close">Close</button></div>'+
-   '</div></section></div>';
+   '</section></div>';
   mount.querySelector('[data-alert-dismiss="close"]').focus();
-  loadStatus();
+  loadReview();
  }
- const actionHost=()=>window.__cvStandalone?.requestSpecial;
- async function loadStatus(){
-  const feedback=mount?.querySelector('#alerts-live-status');
-  if(!feedback)return;
-  if(!actionHost()){
-   feedback.textContent='Sign in to use actions.';
-   return;
+ function entry(job){
+  const article=document.createElement("article");
+  article.className="alerts-review-item";
+  const title=document.createElement("strong");
+  title.textContent=(job.company||"Company to verify")+" — "+(job.title||"Role to verify");
+  const reason=document.createElement("p");
+  reason.textContent=(job.recommendation==="Dup"?"Exact match":"Possible match")+
+    " · "+(job.reason||"Review both listings");
+  const pair=document.createElement("small");
+  pair.textContent="Master row "+job.row+" · Compared with "+(job.matchedWith||"another vacancy");
+  article.append(title,reason,pair);
+  if(Number.isSafeInteger(job.row)&&job.row>=2){
+   const a=document.createElement("a");
+   a.textContent="Inspect in master Sheet";
+   a.href="https://docs.google.com/spreadsheets/d/1jt3WXqpnzVOYcKCpABIp-7UMUPr48kVhMkLfzGEHHZY/edit#gid=1297151427&range=A"+job.row+":Q"+job.row;
+   a.target="_blank";a.rel="noopener noreferrer";
+   a.className="alerts-review-email";
+   article.append(a);
   }
-  try{
-   const data=await actionHost()('alerts/status',{});
-   if(!mount?.contains(feedback))return;
-   for(const [kind,enabled] of [['preview',data.previewEnabled],['dedupe',data.dedupeEnabled],['apply',data.applyEnabled]]){
-    const control=mount.querySelector('[data-alert-run="'+kind+'"]');
-    if(control)control.disabled=!enabled;
-   }
-   const coverage=mount.querySelector('#alerts-coverage');
-   if(coverage){
-    const h=data.history;
-    coverage.textContent=h
-     ?(h.lastBatch?'Latest logged batch: '+h.lastBatch.added+' added · '+
-       h.lastBatch.duplicates+' duplicates · '+h.lastBatch.needsReview+' alerts need review. ':'')+
-      'Pending email reviews: '+h.pendingReview+
-      (h.lastRunAt?' · Log updated: '+h.lastRunAt.slice(0,16).replace('T',' ')+' UTC':'')
-     :'Import-history summary unavailable; open Taaza Email Import Log.';
-   }
-   // Preview and Run Import share a workflow; Check Duplicates is separate.
-   // Only replace the existing button label on a failed run: no extra controls.
-   const run=data.runs?.import||data.runs?.preview;
-   const failed=run?.status==='completed'&&
-    ['failure','timed_out','cancelled'].includes(run.conclusion);
-   const running=run&&['queued','in_progress','waiting','requested','pending'].includes(run.status);
-   const importButton=mount.querySelector('[data-alert-run="apply"]');
-   if(importButton)importButton.textContent=failed&&data.applyEnabled?'Retry Import':'Run Import';
-   const readiness=data.applyEnabled?'Import authorised':
-    data.previewEnabled?'Preview ready · Live import authorisation off':
-    'GitHub workflow dispatch is not configured';
-   feedback.textContent=run
-    ?'Latest alert run: '+(failed?'Failed':running?'Running':run.conclusion||run.status||'Unknown')+
-     (failed&&data.applyEnabled?' · Retry available':'')+' · '+readiness
-    :'No recent alert run · '+readiness;
-  }catch(e){
-   if(mount?.contains(feedback))feedback.textContent='GitHub controls unavailable: '+(e.message||'Check connection.');
-  }
+  return article;
  }
- async function showReviews(){
-  const root=mount?.querySelector('#alerts-review-list');
-  if(!root)return;
-  root.replaceChildren();
-  root.textContent='Loading unresolved emails…';
+ async function loadReview(){
+  const status=mount?.querySelector("#alerts-live-status");
+  const list=mount?.querySelector("#alerts-review-list");
+  if(!status||!list)return;
+  if(!actionHost()){status.textContent="Sign in to view duplicate matches.";return;}
   try{
-   const data=await actionHost()('alerts/status',{});
-   if(!mount?.contains(root))return;
-   root.replaceChildren();
-   const history=data.history||{},items=history.reviews||[];
-   if(!items.length){
-    root.textContent=history.pendingReview===0?'No unresolved emails.':'Review data unavailable.';
+   const data=await actionHost()("alerts/auto/status",{});
+   if(!mount?.contains(status))return;
+   list.replaceChildren();
+   if(!data?.enabled){
+    status.textContent="Automatic importer is not active on this deployment.";
     return;
    }
-   const head=document.createElement('p');
-   head.className='alerts-note';
-   head.textContent='Unresolved email alerts: '+history.pendingReview+
-    '. Verified job links are also available under Discovery → Needs review.';
-   root.append(head);
-   for(const item of items){
-    const article=document.createElement('div');article.className='alerts-review-item';
-    const subject=document.createElement('strong');
-    subject.textContent=item.subject||'Untitled alert';
-    const reason=document.createElement('p');
-    reason.textContent=(item.result||'Review')+' · '+(item.details||'Needs inspection');
-    const details=document.createElement('small');
-    details.textContent=(item.receivedAt||'').slice(0,16).replace('T',' ')+' · '+(item.owner||'Shared');
-    article.append(subject,reason,details);
-    const id=/^[a-f0-9]{10,24}$/i.test(item.threadId||'')?item.threadId:item.id;
-    if(/^[a-f0-9]{10,24}$/i.test(id||'')){
-     const link=document.createElement('a');
-     link.href='https://mail.google.com/mail/u/0/#all/'+id;
-     link.target='_blank';link.rel='noopener noreferrer';
-     link.textContent='Open original email ↗';link.className='alerts-review-email';
-     article.append(link);
-    }
-    root.append(article);
-   }
-  }catch(e){if(mount?.contains(root))root.textContent='Cannot load pending email reviews: '+(e.message||'Check connection.')}
- }
- async function trigger(kind){
-  const feedback=mount?.querySelector('#alerts-live-status');
-  if(!feedback||!actionHost())return;
-  const button=mount.querySelector('[data-alert-run="'+kind+'"]');
-  if(!button||button.disabled)return;
-  const startDate=mount.querySelector('#alerts-start-date')?.value;
-  const endDate=mount.querySelector('#alerts-end-date')?.value;
-  if(kind!=='dedupe'){
-   const span=(Date.parse(endDate+'T00:00:00Z')-Date.parse(startDate+'T00:00:00Z'))/86400000;
-   if(!startDate||!endDate||!Number.isFinite(span)||span<0||span>89){
-    feedback.textContent='Select a valid start and end date (up to 90 days inclusive).';return;
-   }
-  }
-  if(kind==='apply'&&!window.confirm('Import or retry verified vacancies from '+startDate+' through '+endDate+' (inclusive)? Already imported job links will be skipped. Existing jobs will not be deleted.'))return;
-  button.disabled=true;
-  feedback.textContent='Submitting '+(kind==='dedupe'?'duplicate scan':'alert '+kind)+' to GitHub…';
-  try{
-   const result=await actionHost()('alerts/run',{kind,startDate,endDate,confirm:kind==='apply'});
-   if(mount?.contains(feedback))feedback.textContent=result.accepted
-     ?'Requested · Check Actions for result'
-     :'Dispatch not confirmed';
+   const items=Array.isArray(data.duplicates)?data.duplicates:[];
+   const count=Number(data.duplicateCount||0);
+   status.textContent=count
+    ?count+" unresolved duplicate proposal"+(count===1?"":"s")+
+      (count>items.length?" · Showing first "+items.length:"")
+    :"No unresolved duplicate proposals.";
+   for(const job of items)list.append(entry(job));
   }catch(e){
-   if(mount?.contains(feedback))feedback.textContent=e.message||'GitHub request failed.';
-  }finally{
-   if(mount?.contains(button))button.disabled=false;
+   if(mount?.contains(status))status.textContent="Could not load duplicate review. "+(e.message||"");
+  }
+ }
+ async function checkOnOpen(){
+  if(document.hidden||!actionHost())return;
+  const now=Date.now();
+  if(now-requestAt<60000)return;
+  requestAt=now;
+  try{
+   const result=await actionHost()("alerts/auto/check",{});
+   if(result?.enabled&&["started","running"].includes(result.reason))
+     watchCompletion(result.lastSuccessAt||null);
+  }catch(e){
+   // Do not interrupt Discovery on an importer failure; the next eligible
+   // opening retries safely. Errors remain inspectable in Cloud Run logs.
+   console.warn("[auto-import] "+(e.message||"Automatic import unavailable"));
   }
  }
  document.addEventListener("click",function(e){
-  const reviewer=e.target.closest('[data-action="review-alert-emails"]');
-  if(reviewer){e.preventDefault();open(reviewer);showReviews();return;}
-  const reviewToggle=e.target.closest('[data-alert-review]');
-  if(reviewToggle){e.preventDefault();showReviews();return;}
-  const button=e.target.closest('[data-action="import-alerts"]');
+  const button=e.target.closest('[data-action="duplicate-review"]');
   if(button){e.preventDefault();open(button);return;}
   if(!mount?.firstChild)return;
-  const run=e.target.closest('[data-alert-run]');
-  if(run){e.preventDefault();trigger(run.dataset.alertRun);return;}
-  if(e.target.matches('[data-alert-dismiss="backdrop"]') ||
-      e.target.closest('[data-alert-dismiss="close"]')){e.preventDefault();close();}
+  if(e.target.matches('[data-alert-dismiss="backdrop"]')||
+     e.target.closest('[data-alert-dismiss="close"]')){e.preventDefault();close();}
  });
  document.addEventListener("keydown",function(e){
   if(!mount?.firstChild)return;
@@ -1225,6 +1180,9 @@ if(!DEMO){
   if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
   else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
  },true);
+ window.addEventListener("pageshow",checkOnOpen);
+ document.addEventListener("visibilitychange",()=>{if(!document.hidden)checkOnOpen()});
+ checkOnOpen();
 })();
 </script>
 

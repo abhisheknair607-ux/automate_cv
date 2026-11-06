@@ -1,16 +1,9 @@
 name: taaza-regional-master-sync
 
-# Sync automatically whether or not anyone opens the dashboard.
-# Runs independently from OpenAI CV generation and its enable/disable switch.
+# Emergency manual-only fallback after the app-open Cloud Run importer cutover.
+# No GitHub schedule or push-triggered import/sync.
 on:
-  schedule:
-    - cron: '13,33,53 * * * *'
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/taaza-master-sync.yml'
-      - 'src/automate_cv/taaza_sync.py'
 
 permissions:
   contents: read

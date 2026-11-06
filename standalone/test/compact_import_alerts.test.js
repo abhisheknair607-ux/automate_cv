@@ -6,60 +6,32 @@ const path=require("node:path");
 const vm=require("node:vm");
 const html=fs.readFileSync(path.resolve(__dirname,"../../garamaal-release-webapp/Index.html"),"utf8");
 
-test("Import Alerts popup is compact with no informational cards or workflow banner",()=>{
-  const popup=html.slice(html.indexOf("/* Import Alerts control lives"),html.indexOf("  async function trigger(kind)"));
-  for(const phrase of [
-    "The dashboard will trigger Python", "No OpenAI API or paid AI ranking",
-    "Read alerts and review extracted jobs", "Only verified Ireland/UK jobs",
-    "Read-only Python audit verifies", "This popup does not claim a run",
-    "Not active yet: parser approval"
-  ])assert.equal(popup.includes(phrase),false,phrase);
-  assert.doesNotMatch(popup,/alerts-flow|alerts-steps|alerts-step|alerts-text/);
-  assert.match(popup,/aria-modal="true"/);
-  assert.match(popup,/aria-labelledby="alerts-title"/);
+test("dashboard popup only shows duplicate matches, not GitHub importer controls",()=>{
+ const page=html.slice(html.indexOf("/* Import and master sync"));
+ assert.ok(page.includes('id="alerts-title">Duplicate Review'));
+ assert.ok(page.includes('data-action="duplicate-review"'));
+ for(const old of ['data-alert-run="preview"','data-alert-run="apply"','data-alert-run="dedupe"',
+   "Preview Import","Run Import","GitHub controls unavailable","Review flagged emails"])
+  assert.equal(page.includes(old),false,old);
+ assert.match(page,/role="dialog" aria-modal="true"/);
+ assert.match(page,/Inspect in master Sheet/);
+ assert.match(page,/textContent=/);
 });
-test("All three original operations, manual safety gates and direct links remain",()=>{
-  for(const kind of ["preview","dedupe","apply"])
-    assert.ok(html.includes('data-alert-run="'+kind+'" disabled'),kind);
-  for(const label of ["Preview Import","Check Duplicates","Run Import","First alert email date","Actions ↗","Workflow ↗","Audit ↗","Close"])
-    assert.ok(html.includes(label),label);
-  assert.match(html,/data\.previewEnabled/);
-  assert.match(html,/data\.dedupeEnabled/);
-  assert.match(html,/data\.applyEnabled/);
-  assert.match(html,/if\(!button\|\|button\.disabled\)return/);
-  assert.match(html,/requestSpecial/);
-  assert.match(html,/rel="noopener noreferrer"/);
+test("app open triggers only server-side cooldown, never GitHub",()=>{
+ const page=html.slice(html.indexOf("/* Import and master sync"));
+ assert.match(page,/alerts\/auto\/check/);
+ assert.match(page,/alerts\/auto\/status/);
+ assert.match(page,/pageshow/);
+ assert.match(page,/visibilitychange/);
+ assert.match(page,/watchCompletion\(result\.lastSuccessAt/);
+ assert.match(page,/garamaal:jobs-imported/);
+ assert.match(html,/addEventListener\('garamaal:jobs-imported'/);
+ assert.match(html,/if\(state\.section==='discovery'\)void fetchList\(\)/);
+ assert.doesNotMatch(page,/setInterval\(/);
+ assert.doesNotMatch(page,/alerts\/run/);
 });
-test("HTML scripts remain JavaScript syntax-valid and no stale date is shown",()=>{
-  const inline=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
-    .map(match=>match[1]).filter(Boolean);
-  for(const [i,js] of inline.entries())new vm.Script(js,{filename:"inline-"+i+".js"});
-  assert.doesNotMatch(html,/value="2026-10-25"/);
-  assert.match(html,/getFullYear\(\)/);
-});
-
-test("Sequential UI shows Preview, Run Import, Check Duplicates and setup-required state",()=>{
-  const page=html.slice(html.indexOf('/* Import Alerts control lives'));
-  const preview=page.indexOf('data-alert-run="preview" disabled');
-  const apply=page.indexOf('data-alert-run="apply" disabled');
-  const dedupe=page.indexOf('data-alert-run="dedupe" disabled');
-  assert.ok(preview>=0&&apply>preview&&dedupe>apply,"three controls must match user workflow order");
-  assert.match(page,/Live import authorisation off/);
-  assert.doesNotMatch(page,/Import setup required/);
-  assert.doesNotMatch(page,/Import locked/);
-  assert.match(page,/data\.previewEnabled/);
-  assert.match(page,/data\.dedupeEnabled/);
-  assert.match(page,/data\.applyEnabled/);
-});
-
-test("Import Alerts retains three operations and hides diagnostics under collapsed details",()=>{
- const popup=html.slice(html.indexOf("/* Import Alerts control lives"),
-  html.indexOf("  async function trigger(kind)"));
- assert.match(popup,/<details class="alerts-diagnostics"><summary>History &amp; details<\/summary>/);
- assert.match(popup,/data-alert-review/);
- assert.match(popup,/const run=data\.runs\?\.import\|\|data\.runs\?\.preview/);
- assert.match(popup,/failed&&data\.applyEnabled\?'Retry Import':'Run Import'/);
- assert.doesNotMatch(popup,/data-alert-run="retry"/);
- const controls=[...popup.matchAll(/data-alert-run="(preview|apply|dedupe)" disabled/g)];
- assert.equal(controls.length,3);
+test("page scripts are syntax-valid",()=>{
+ const scripts=[...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)]
+  .map(m=>m[1]).filter(Boolean);
+ for(const [i,js] of scripts.entries())new vm.Script(js,{filename:"inline-"+i+".js"});
 });
