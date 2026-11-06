@@ -481,13 +481,26 @@ const onOpenCoordinator=onOpenImport.makeCoordinator({
  enabled:!READ_ONLY&&process.env.APP_ALLOW_PRODUCTION_WRITES==="true"&&
    process.env.AUTO_ALERT_IMPORT_ENABLED==="true"
 });
+// Keep the precise failure server-side while giving the signed-in client a
+// safe diagnostic code. Never log credentials, headers or request bodies.
+function autoImportFailure(res,operation,error){
+ const status=Number.isInteger(error?.httpCode)&&error.httpCode>=400&&error.httpCode<600
+  ?error.httpCode:503;
+ const code=String(error?.code??error?.httpCode??"unknown")
+  .replace(/[^a-zA-Z0-9_-]/g,"").slice(0,48)||"unknown";
+ const phase=String(error?.importPhase||"unknown").replace(/[^a-zA-Z0-9_:-]/g,"").slice(0,48);
+ console.error("[auto-import] "+operation+" failed",{
+  code,phase,message:String(error?.message||"Unknown error").slice(0,500)
+ });
+ res.status(status).json({error:"Automatic import "+operation+" failed ("+phase+"/"+code+")"});
+}
 app.post("/api/alerts/auto/check",async(req,res)=>{
  try {await authenticate(req);res.json({data:await onOpenCoordinator.check()});}
- catch(e){res.status(e.httpCode||503).json({error:"Automatic job import is unavailable"});}
+ catch(e){autoImportFailure(res,"check",e);}
 });
 app.post("/api/alerts/auto/status",async(req,res)=>{
  try {await authenticate(req);res.json({data:await onOpenCoordinator.status()});}
- catch(e){res.status(e.httpCode||503).json({error:"Automatic import status is unavailable"});}
+ catch(e){autoImportFailure(res,"status",e);}
 });
 // Manual Python workflows on GitHub, never paid OpenAI. Read-only is the
 // default; write operations are doubly protected by a server-side gate and
