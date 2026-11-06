@@ -28,7 +28,7 @@
   timer=setTimeout(poll,30000);
  }
  async function checkOpen(){
-  if(document.hidden||checking||!request("alerts/auto/check"))return;
+  if(document.hidden||checking||!window.__cvStandalone?.requestSpecial)return;
   if(Date.now()-lastCheck<60000)return;
   lastCheck=Date.now();checking=true;
   try{
