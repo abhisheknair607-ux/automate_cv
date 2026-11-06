@@ -94,9 +94,9 @@ function gmCandidateRows_(source,candidate){
 }
 function gmUnresolvedLinkedIn_(job){
  // Distinguish placeholders from real LinkedIn roles with an incomplete JD.
- return /^Review LinkedIn vacancy #\\d{7,15}$/i.test(String(job.role||"").trim())&&
+ return /^Review LinkedIn vacancy #\d{7,15}$/i.test(String(job.role||"").trim())&&
   /^Employer to verify$/i.test(String(job.company||"").trim())&&
-  /linkedin\\.com\\/(?:comm\\/)?jobs\\/view\\/\\d{7,15}/i.test(String(job.url||""));
+  /linkedin\.com\/(?:comm\/)?jobs\/view\/\d{7,15}/i.test(String(job.url||""));
 }
 function gmMarkDuplicateGroups_(jobs){
  // Read-only projection: no sheet edits, no CV/status changes.
