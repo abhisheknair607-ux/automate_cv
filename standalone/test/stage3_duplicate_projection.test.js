@@ -5,7 +5,7 @@ const assert=require("node:assert/strict");
 const vm=require("node:vm");
 const {SOURCE}=require("../prototype_queries");
 
-function fixture(){
+function fixture(additions=[]){
  const master=[
   {row:2,company:"EY",role:"Tax Analyst",location:"Dublin",url:"https://jobs.example.com/a",
    jdReady:true,categories:"Common",preferences:{Abhishek:"",Pooja:""}},
@@ -16,7 +16,8 @@ function fixture(){
   {row:5,company:"EY",role:"Finance Manager",location:"Cork",url:"https://jobs.example.com/d",
    jdReady:true,categories:"Common",source:"Email Alerts · Needs Review",preferences:{Abhishek:"",Pooja:""}},
  ];
- const rows=["Possible","Dup","Not Dup",""];
+ master.push(...additions);
+ const rows=["Possible","Dup","Not Dup","",...additions.map(()=>"")];
  const ctx=vm.createContext({
   authorise_:()=>true,
   person_:name=>{if(!["Abhishek","Pooja"].includes(name))throw Error("candidate");return {status:11}},
@@ -26,7 +27,7 @@ function fixture(){
   SETTINGS:{maxFreshRow:25},
   dashboardReadCache_:(_key,fn)=>fn(),
   sheet_:()=>({
-   getMaxRows:()=>20,getLastRow:()=>5,
+   getMaxRows:()=>100,getLastRow:()=>master.length+1,
    getRange:(r,c,n,w)=>({
     getValue:()=>r===1&&c===17?"Duplicate Status":"",
     getValues:()=>r===2&&c===17?rows.map(v=>[v]):Array.from({length:n||1},()=>[""]),
@@ -64,4 +65,45 @@ test("needs-review filter shows unresolved imported jobs without exposing Dup ro
  const f=fixture();
  assert.deepEqual(Array.from(f.list("needs-review").rows,j=>j.row),[5]);
  assert.deepEqual(Array.from(f.list("duplicates").rows,j=>j.row),[3]);
+});
+
+test("Unresolved LinkedIn cards are hidden by default but visible through their filter",()=>{
+ const f=fixture([{
+  row:6,company:"Employer to verify",role:"Review LinkedIn vacancy #4486045523",
+  location:"",url:"https://www.linkedin.com/jobs/view/4486045523/",
+  jdReady:false,source:"Email Alerts · Needs Review",preferences:{Abhishek:"",Pooja:""}
+ }]);
+ assert.deepEqual(Array.from(f.list("unresolved-linkedin").rows,j=>j.row),[6]);
+ assert.deepEqual(Array.from(f.list("needs-review").rows,j=>j.row),[6,5]);
+ assert.deepEqual(Array.from(f.list().rows,j=>j.row),[5,4,2]);
+ assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,j=>j.row),[5,4,3,2]);
+ assert.equal(f.list("unresolved-linkedin").rows[0].unresolvedLinkedIn,true);
+});
+test("Only one copy of exact and high-confidence similar jobs appears; originals survive",()=>{
+ const add=[
+  {row:6,company:"EY",role:"Finance Manager",location:"Cork",
+   url:"https://jobs.example.com/d",jdReady:false,preferences:{Abhishek:"",Pooja:""}},
+  {row:7,company:"Davy",role:"Wealth Adviser",location:"Dublin, Ireland",
+   url:"https://www.linkedin.com/jobs/view/4485000010/",jdReady:false,preferences:{Abhishek:"",Pooja:""}},
+  {row:8,company:"Davy",role:"Wealth Adviser",location:"Dublin, Ireland",
+   url:"https://www.linkedin.com/jobs/view/4485000020/",jdReady:false,preferences:{Abhishek:"",Pooja:""}},
+  {row:9,company:"Davy",role:"Wealth Adviser",location:"Dublin, Ireland",
+   url:"https://www.linkedin.com/jobs/view/4485000030/",jdReady:false,preferences:{Abhishek:"Not Interested",Pooja:""}}
+ ];
+ const f=fixture(add);
+ const visible=f.list();
+ assert.deepEqual(Array.from(visible.rows,j=>j.row),[7,5,4,2]);
+ assert.equal(visible.rows.find(x=>x.row===5).duplicateMatches,1);
+ assert.equal(visible.rows.find(x=>x.row===7).duplicateMatches,2);
+ assert.equal(visible.rows.find(x=>x.row===7).autoDuplicateOf,null);
+ assert.deepEqual(Array.from(f.list("all-including-duplicates").rows,j=>j.row),[9,8,7,6,5,4,3,2]);
+ const dupe=f.list("duplicates");
+ assert.deepEqual(Array.from(dupe.rows,j=>j.row),[7,8,9,5,6,3]);
+});
+test("Manual Not Dup and independent requisitions with full JDs stay separate",()=>{
+ const f=fixture([
+  {row:6,company:"EY",role:"Tax Analyst",location:"Dublin",
+   url:"https://jobs.example.com/another",jdReady:true,preferences:{Abhishek:"",Pooja:""}},
+ ]);
+ assert.equal(f.list().rows.filter(j=>j.role==="Tax Analyst").length,2);
 });
