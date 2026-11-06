@@ -3,7 +3,7 @@
 # read OAuth values, or start an import in this shell.
 set -Eeuo pipefail
 MODE="${1:---plan}"
-[[ "$MODE" == "--plan" || "$MODE" == "--apply" ]] || { echo "Usage: $0 [--plan|--apply]" >&2; exit 2; }
+[[ "$MODE" == "--plan" || "$MODE" == "--prepare" || "$MODE" == "--apply" ]] || { echo "Usage: $0 [--plan|--prepare|--apply]" >&2; exit 2; }
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 P="abhishek-cv-automation"
 R="europe-west1"
@@ -36,10 +36,15 @@ if (("${#missing[@]}" > 0)); then
 fi
 if [[ "$MODE" == "--plan" ]]; then
  echo "Preflight OK: required secret names exist. No resources changed."
- echo "Next: merge the tested feature branch, deploy the website canary, then run this script --apply."
+ echo "Next: run this script --prepare from the tested feature branch BEFORE merging. It provisions only the disabled Cloud Run Job."
  exit 0
 fi
-[[ "$(git -C "$ROOT" branch --show-current)" == "main" ]] || { echo "Deploy only from tested main, not this feature branch" >&2; exit 3; }
+BRANCH="$(git -C "$ROOT" branch --show-current)"
+if [[ "$MODE" == "--prepare" ]]; then
+ [[ "$BRANCH" == "feature/app-open-import-four-hour" ]] || { echo "Prepare only from the reviewed importer feature branch" >&2; exit 3; }
+else
+ [[ "$BRANCH" == "main" ]] || { echo "Apply only from the reviewed main branch" >&2; exit 3; }
+fi
 [[ -z "$(git -C "$ROOT" status --porcelain)" ]] || { echo "Working tree is not clean" >&2; exit 3; }
 [[ -f "$ROOT/Dockerfile.garamaal-importer" ]] || exit 3
 node --check "$ROOT/standalone/auto_import.js"
@@ -79,8 +84,9 @@ gcloud run jobs deploy "$JOB" --project "$P" --region "$R" \
  --set-secrets="$SECRET_FLAGS" --quiet
 gcloud run jobs add-iam-policy-binding "$JOB" --project "$P" --region "$R" \
  --member="serviceAccount:$SITE_SA" --role="roles/run.jobsExecutorWithOverrides" --quiet >/dev/null
-# This is the ONLY step that activates the feature. The website revision must
-# already be deployed from main and verified before invoking --apply.
+# This script does NOT activate imports, even with --prepare or --apply.
+# Prepare the disabled Cloud Run Job first; activate only after website canary
+# and production credential/permission verification.
 echo "Cloud Run Job and IAM ready."
 echo "Enable on-open checks only after production webapp release verification:"
 echo "gcloud run services update $SERVICE --project=$P --region=$R --update-env-vars=AUTO_ALERT_IMPORT_ENABLED=true,AUTO_ALERT_IMPORT_JOB=$JOB,AUTO_ALERT_IMPORT_REGION=$R"
