@@ -6,6 +6,7 @@ const sharp = require("sharp");
 const {GoogleAuth} = require("google-auth-library");
 const {initializeApp, getApps} = require("firebase-admin/app");
 const {getAuth} = require("firebase-admin/auth");
+const {getFirestore} = require("firebase-admin/firestore");
 const {invoke,invokeSwipe,METHODS,SWIPE_METHODS} = require("./runtime");
 const {getCvQueue} = require("./queue");
 const {Readable} = require("node:stream");
@@ -18,6 +19,7 @@ const contactsStore=require("./contacts_store");
 const {repairRankFormulas}=require("./rank_formulas");
 const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
+const onOpenImport=require("./on_open_import");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
 
 const BASE = path.resolve(__dirname,"..");
@@ -72,6 +74,8 @@ app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendF
 app.get("/bridge.js",(req,res)=>{
   res.type("text/javascript").sendFile(path.join(__dirname,"bridge.js"));
 });
+app.get("/on-open-import-browser.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"on_open_import_browser.js")));
 const PWA_ASSETS=Object.freeze({
   "/manifest.webmanifest":["manifest.webmanifest","application/manifest+json"],
   "/app-icon-192.png":["app-icon-192.png","image/png"],
@@ -468,6 +472,22 @@ app.post("/api/duplicates/mark",async(req,res)=>{
  }finally{
   if(lock)dupInFlight.delete(lock);
  }
+});
+// App-open importer reuses the existing GitHub Gmail parser and Sheets sync.
+// It does not require Cloud Run Job secrets, GitHub scheduling or a new worker.
+const onOpenCoordinator=onOpenImport.makeCoordinator({
+ db:getFirestore(),
+ token:process.env.GITHUB_WORKFLOW_TOKEN||"",
+ enabled:!READ_ONLY&&process.env.APP_ALLOW_PRODUCTION_WRITES==="true"&&
+   process.env.AUTO_ALERT_IMPORT_ENABLED==="true"
+});
+app.post("/api/alerts/auto/check",async(req,res)=>{
+ try {await authenticate(req);res.json({data:await onOpenCoordinator.check()});}
+ catch(e){res.status(e.httpCode||503).json({error:"Automatic job import is unavailable"});}
+});
+app.post("/api/alerts/auto/status",async(req,res)=>{
+ try {await authenticate(req);res.json({data:await onOpenCoordinator.status()});}
+ catch(e){res.status(e.httpCode||503).json({error:"Automatic import status is unavailable"});}
 });
 // Manual Python workflows on GitHub, never paid OpenAI. Read-only is the
 // default; write operations are doubly protected by a server-side gate and

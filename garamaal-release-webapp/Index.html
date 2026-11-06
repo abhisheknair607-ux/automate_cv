@@ -952,6 +952,11 @@ window.addEventListener('keydown',e=>{if(e.key==='Escape'){if(document.querySele
 window.addEventListener('resize',()=>{const size=innerWidth<721?10:25;if(state.pageSize!==size){state.pageSize=size;state.page=1;if(['discovery','fresh'].includes(state.section))fetchList()}});
 async function init(){render();try{const b=await run('getBootstrap');state.bootstrap=b;if(!DEMO)toast('Connected to both Google Sheets as '+b.email);await fetchStats()}catch(e){state.initError=e.message;nav('discovery')}}
 init().then(()=>{if(!DEMO)void refreshJDRecoveryStatus()});
+window.addEventListener('garamaal:jobs-imported',()=>{
+ if(DEMO)return;
+ void fetchStats();
+ if(state.section==='discovery')void fetchList();
+});
 if(!DEMO){
   if('serviceWorker' in navigator && location.protocol==='https:'){
     navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>{});
@@ -1228,5 +1233,6 @@ if(!DEMO){
 })();
 </script>
 
+<script src="/on-open-import-browser.js"></script>
 </body>
 </html>
