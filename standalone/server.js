@@ -487,8 +487,8 @@ function autoImportFailure(res,operation,error){
  const status=Number.isInteger(error?.httpCode)&&error.httpCode>=400&&error.httpCode<600
   ?error.httpCode:503;
  const code=String(error?.code??error?.httpCode??"unknown")
-  .replace(/[^a-zA-Z0-9_\\-]/g,"").slice(0,48)||"unknown";
- const phase=String(error?.importPhase||"unknown").replace(/[^a-zA-Z0-9_\\-:]/g,"").slice(0,48);
+  .replace(/[^a-zA-Z0-9_-]/g,"").slice(0,48)||"unknown";
+ const phase=String(error?.importPhase||"unknown").replace(/[^a-zA-Z0-9_:-]/g,"").slice(0,48);
  console.error("[auto-import] "+operation+" failed",{
   code,phase,message:String(error?.message||"Unknown error").slice(0,500)
  });
