@@ -12,6 +12,10 @@ const PREFIX="Garamaal auto import [";
 const RUN_LIST="actions/workflows/"+WORKFLOW+"/runs?event=workflow_dispatch&branch=main&per_page=100";
 const asMillis=v=>Number.isFinite(Date.parse(String(v||"")))?Date.parse(String(v)):0;
 const at=ms=>new Date(ms).toISOString();
+async function traced(phase,action){
+ try{return await action();}
+ catch(error){error.importPhase=error.importPhase||phase;throw error;}
+}
 function dateInDublin(now){
  const parts=new Intl.DateTimeFormat("en-GB",{
   timeZone:"Europe/Dublin",year:"numeric",month:"2-digit",day:"2-digit"
@@ -38,12 +42,12 @@ function publicState(state,now=Date.now()){
 function makeCoordinator({db,token,enabled,github=alertWorkflows.github,clock=()=>Date.now()}){
  const ref=db.doc(DOC);
  async function modifyIfRun(id,patch){
-  return db.runTransaction(async tx=>{
+  return traced("firestore:finalize",()=>db.runTransaction(async tx=>{
    const snap=await tx.get(ref),data=snap.exists?(snap.data()||{}):{};
    if(data.runId!==id)return false;
    tx.set(ref,patch,{merge:true});
    return true;
-  });
+  }));
  }
  async function fail(id,now){
   return modifyIfRun(id,{status:"failed",runId:null,leaseUntil:null,
@@ -51,7 +55,7 @@ function makeCoordinator({db,token,enabled,github=alertWorkflows.github,clock=()
  }
  async function status(){
   if(!enabled||!token)return {enabled:false,status:"disabled"};
-  const snap=await ref.get(),data=snap.exists?(snap.data()||{}):{};
+  const snap=await traced("firestore:status-read",()=>ref.get()),data=snap.exists?(snap.data()||{}):{};
   const now=clock();
   if(data.runId&&["running","dispatching"].includes(data.status)){
    const id=data.runId;
@@ -79,14 +83,14 @@ function makeCoordinator({db,token,enabled,github=alertWorkflows.github,clock=()
     await fail(id,now);
    }
   }
-  const latest=await ref.get();
+  const latest=await traced("firestore:status-final-read",()=>ref.get());
   return publicState(latest.exists?(latest.data()||{}):{},clock());
  }
  async function check(){
   if(!enabled||!token)return {enabled:false,status:"disabled"};
   await status(); // Finalize any completed run before checking its 4-hour cooldown.
   const now=clock(),id=randomUUID();
-  const claim=await db.runTransaction(async tx=>{
+  const claim=await traced("firestore:claim",()=>db.runTransaction(async tx=>{
    const snap=await tx.get(ref),data=snap.exists?(snap.data()||{}):{};
    if(data.runId&&asMillis(data.leaseUntil)>now&&
       ["running","dispatching"].includes(data.status))
@@ -97,17 +101,23 @@ function makeCoordinator({db,token,enabled,github=alertWorkflows.github,clock=()
    tx.set(ref,{status:"dispatching",runId:id,startedAt:at(now),
     leaseUntil:at(now+LEASE),retryAt:null,lastError:null},{merge:true});
    return {ok:true,lastSuccessAt:data.lastSuccessAt||null};
-  });
+  }));
   if(!claim.ok)return {...await status(),reason:claim.reason};
   const inputs={...inputRange(claim.lastSuccessAt,now),
    auto_run_id:id,apply:"true",approval:"IMPORT_VALIDATED_JOBS"};
   try{
-   await github(token,"actions/workflows/"+WORKFLOW+"/dispatches",
-    {method:"POST",body:{ref:"main",inputs}});
+   await traced("github:dispatch",()=>github(token,"actions/workflows/"+WORKFLOW+"/dispatches",
+    {method:"POST",body:{ref:"main",inputs}}));
    await modifyIfRun(id,{status:"running"});
    return {...await status(),reason:"started"};
   }catch(err){
-   await fail(id,clock());
+   try{await fail(id,clock());}
+   catch(recordError){
+    console.error("[auto-import] failure-recording failed",{
+     code:String(recordError?.code||"unknown"),
+     message:String(recordError?.message||"").slice(0,300)
+    });
+   }
    throw err;
   }
  }
