@@ -23,6 +23,10 @@ test("app open triggers only server-side cooldown, never GitHub",()=>{
  assert.match(page,/alerts\/auto\/status/);
  assert.match(page,/pageshow/);
  assert.match(page,/visibilitychange/);
+ assert.match(page,/watchCompletion\(result\.lastSuccessAt/);
+ assert.match(page,/garamaal:jobs-imported/);
+ assert.match(html,/addEventListener\('garamaal:jobs-imported'/);
+ assert.match(html,/if\(state\.section==='discovery'\)void fetchList\(\)/);
  assert.doesNotMatch(page,/setInterval\(/);
  assert.doesNotMatch(page,/alerts\/run/);
 });
