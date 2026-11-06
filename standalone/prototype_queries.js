@@ -191,6 +191,7 @@ function gmListJobsFaceted(options){
  if(source==="taaza"){
   const dup=gmDuplicateStatuses_();
   rows=gmMarkDuplicateGroups_(rows.map(j=>({...j,
+    unresolvedLinkedIn:gmUnresolvedLinkedIn_(j),
     duplicateStatus:dup.ready?(dup.values[j.row-2]||""):"",
     duplicateSchemaReady:dup.ready})));
  }
