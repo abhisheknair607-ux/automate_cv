@@ -92,6 +92,57 @@ function gmCandidateRows_(source,candidate){
    department:gmFacetFunction_(x.role)};
  }).filter(x=>!x.transferred||x.automaticJD).map(x=>{delete x.preferences;return x;});
 }
+function gmUnresolvedLinkedIn_(job){
+ // Distinguish placeholders from real LinkedIn roles with an incomplete JD.
+ return /^Review LinkedIn vacancy #\\d{7,15}$/i.test(String(job.role||"").trim())&&
+  /^Employer to verify$/i.test(String(job.company||"").trim())&&
+  /linkedin\\.com\\/(?:comm\\/)?jobs\\/view\\/\\d{7,15}/i.test(String(job.url||""));
+}
+function gmMarkDuplicateGroups_(jobs){
+ // Read-only projection: no sheet edits, no CV/status changes.
+ // Only exact URLs or high-confidence unscored same-employer/role/location
+ // candidates are consolidated. A manually marked "Not Dup" is protected.
+ const rows=jobs.map(job=>({...job,duplicateMatches:0,autoDuplicateOf:null}));
+ const parent=rows.map((_,i)=>i);
+ const find=i=>{while(parent[i]!==i){parent[i]=parent[parent[i]];i=parent[i]}return i};
+ const join=(a,b)=>{a=find(a);b=find(b);if(a!==b)parent[b]=a};
+ const byUrl=new Map(),bySimilar=new Map();
+ const norm=v=>String(v||"").toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
+ rows.forEach((job,i)=>{
+  if(job.duplicateStatus==="Not Dup"||gmUnresolvedLinkedIn_(job))return;
+  const url=String(canonical_(job.url)||"");
+  if(url){
+   if(byUrl.has(url))join(i,byUrl.get(url));
+   else byUrl.set(url,i);
+  }
+  const company=norm(job.company),role=norm(job.role),location=norm(job.location);
+  // Different vacancy IDs may be legitimate; consolidate by title/location
+  // only when both descriptions are missing. Substantive JDs are kept distinct.
+  if(company&&role&&location&&!job.jdReady){
+   const key=company+"|"+role+"|"+location;
+   if(bySimilar.has(key))join(i,bySimilar.get(key));
+   else bySimilar.set(key,i);
+  }
+ });
+ const groups=new Map();
+ rows.forEach((job,i)=>{
+  const root=find(i);
+  if(!groups.has(root))groups.set(root,[]);
+  groups.get(root).push(job);
+ });
+ for(const group of groups.values()){
+  if(group.length<2)continue;
+  const best=group.slice().sort((a,b)=>
+   Number(a.duplicateStatus==="Dup")-Number(b.duplicateStatus==="Dup")||
+   Number(!!b.jdReady)-Number(!!a.jdReady)||
+   Number(!!b.favorite)-Number(!!a.favorite)||
+   Number(!!b.transferred)-Number(!!a.transferred)||
+   a.row-b.row)[0];
+  best.duplicateMatches=group.length-1;
+  for(const job of group)if(job!==best)job.autoDuplicateOf=best.row;
+ }
+ return rows;
+}
 function gmPipelineStats(candidate){
  authorise_();candidate=String(candidate||"");person_(candidate);
  const taaza=taazaRows_(), fresh=freshRows_(), cells=gmProgressCells_(),
@@ -100,7 +151,9 @@ function gmPipelineStats(candidate){
  const prepared=own.filter(x=>!!String(x.cvLink||"").trim());
  const applied=own.filter(x=>["Applied","Applied + Connected"].includes(x.progress));
  return {
-  candidate,discoveryJobs:taaza.length,makeCvJobs:fresh.length,
+  candidate,discoveryJobs:gmMarkDuplicateGroups_(gmCandidateRows_("taaza",candidate))
+   .filter(j=>!gmUnresolvedLinkedIn_(j)&&!j.autoDuplicateOf&&!j.notInterested).length,
+  makeCvJobs:fresh.length,
   cvPrepared:prepared.length,applied:applied.length,
   appliedConnected:own.filter(x=>x.progress==="Applied + Connected").length,
   waitingToApply:prepared.filter(x=>x.progress==="Unapplied").length,
@@ -137,8 +190,9 @@ function gmListJobsFaceted(options){
  let rows=gmCandidateRows_(source,candidate);
  if(source==="taaza"){
   const dup=gmDuplicateStatuses_();
-  rows=rows.map(j=>({...j,duplicateStatus:dup.ready?(dup.values[j.row-2]||""):"",
-    duplicateSchemaReady:dup.ready}));
+  rows=gmMarkDuplicateGroups_(rows.map(j=>({...j,
+    duplicateStatus:dup.ready?(dup.values[j.row-2]||""):"",
+    duplicateSchemaReady:dup.ready})));
  }
  if(source==="taaza"&&tabId!=="all"){
   const allTabs=taazaCategoryTabs_();
@@ -153,10 +207,17 @@ function gmListJobsFaceted(options){
  // Existing listings are not deleted: confirmed duplicates are hidden by default,
  // and only displayed when the user deliberately chooses a duplicates filter.
  if(source==="taaza"){
-  if(status==="duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
-  else if(status==="confirmed-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Dup");
+  // Placeholder cards remain discoverable only via explicit recovery filters.
+  // No Master/Email Alerts row is deleted or edited.
+  if(status==="unresolved-linkedin")
+   rows=rows.filter(gmUnresolvedLinkedIn_);
+  else if(status!=="needs-review")
+   rows=rows.filter(j=>!gmUnresolvedLinkedIn_(j));
+  if(status==="duplicates"||status==="confirmed-duplicates")
+   rows=rows.filter(j=>j.duplicateStatus==="Dup"||!!j.autoDuplicateOf||j.duplicateMatches>0);
   else if(status==="possible-duplicates")rows=rows.filter(j=>j.duplicateStatus==="Possible");
-  else if(status!=="all-including-duplicates")rows=rows.filter(j=>j.duplicateStatus!=="Dup");
+  else if(status!=="all-including-duplicates")
+   rows=rows.filter(j=>j.duplicateStatus!=="Dup"&&!j.autoDuplicateOf);
  }
  const duplicateView=source==="taaza"&&["duplicates","possible-duplicates","confirmed-duplicates"].includes(status);
  if(status==="not-interested")rows=rows.filter(x=>x.notInterested);
