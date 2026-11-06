@@ -1,9 +1,14 @@
 name: job-alerts-to-taaza
+run-name: ${{ inputs.auto_run_id != '' && format('Garamaal auto import [{0}]', inputs.auto_run_id) || 'Manual job alert import' }}
 
 # Manual-only until Gmail authorization and real-mail preview are verified.
 on:
   workflow_dispatch:
     inputs:
+      auto_run_id:
+        description: Server-generated identifier for authorised on-open import (blank for manual runs)
+        type: string
+        default: ""
       apply:
         description: Write approved validated jobs to Taaza (do NOT enable until approval)
         type: boolean
