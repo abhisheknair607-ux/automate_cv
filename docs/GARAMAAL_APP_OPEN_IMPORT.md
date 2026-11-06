@@ -23,6 +23,17 @@ Required resources:
 5. Website service account: Firestore data permissions and `run.jobs.runWithOverrides` permission scoped to that one job (the predefined `roles/run.jobsExecutorWithOverrides` role, if available for the project).
 6. Website Cloud Run env: `AUTO_ALERT_IMPORT_ENABLED=true`, `AUTO_ALERT_IMPORT_JOB=garamaal-alert-importer`, `AUTO_ALERT_IMPORT_REGION=europe-west1`, and the existing production write gates remain unchanged.
 
+## Release sequence (do not skip gates)
+
+1. From the tested `feature/app-open-import-four-hour` branch, run `bash standalone/deploy-app-open-import.sh --plan`. It checks existing Secret Manager names without changing resources. Do not display or paste credential values.
+2. Run `bash standalone/deploy-app-open-import.sh --prepare` from that same clean feature branch. This provisions the dedicated Cloud Run Job, its service identity and scoped permissions **without activating app-open imports or changing website traffic**. No real Gmail import is executed.
+3. Confirm the Cloud Run Job exists and can be invoked only by the authorised website service account; verify Gmail readonly and Sheets OAuth secrets and the expected Taaza spreadsheet access.
+4. Only then merge the tested PR; use the guarded website canary deployment procedure with `AUTO_ALERT_IMPORT_ENABLED=false`. Confirm the original CV and application workflows still work.
+5. Enable `AUTO_ALERT_IMPORT_ENABLED=true` after website verification. Open the signed-in app once, wait for Cloud Run success, and verify Email Alerts, Jobs, and authenticated Discovery readback. A second opening within four hours must not launch another job.
+6. On failure, immediately set `AUTO_ALERT_IMPORT_ENABLED=false`; manual master sync stays available as fallback. Do not re-enable GitHub scheduling merely as a side effect of rollback.
+
+After a successful import, the web page briefly checks the **status of that active run only** and refreshes Discovery plus dashboard counts. This completion check cannot dispatch an import. There is no recurring background Gmail polling or browser-side four-hour timer.
+
 ## Cutover verification
 
 - Disable/remove GitHub schedule `taaza-master-sync.yml` **after** the new system is ready and verifying. Its workflow remains manually runnable for rollback only.
