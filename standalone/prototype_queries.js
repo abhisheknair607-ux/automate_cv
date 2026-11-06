@@ -134,6 +134,7 @@ function gmMarkDuplicateGroups_(jobs){
   if(group.length<2)continue;
   const best=group.slice().sort((a,b)=>
    Number(a.duplicateStatus==="Dup")-Number(b.duplicateStatus==="Dup")||
+   Number(!!a.notInterested)-Number(!!b.notInterested)||
    Number(!!b.jdReady)-Number(!!a.jdReady)||
    Number(!!b.favorite)-Number(!!a.favorite)||
    Number(!!b.transferred)-Number(!!a.transferred)||
@@ -151,8 +152,14 @@ function gmPipelineStats(candidate){
  const prepared=own.filter(x=>!!String(x.cvLink||"").trim());
  const applied=own.filter(x=>["Applied","Applied + Connected"].includes(x.progress));
  return {
-  candidate,discoveryJobs:gmMarkDuplicateGroups_(gmCandidateRows_("taaza",candidate))
-   .filter(j=>!gmUnresolvedLinkedIn_(j)&&!j.autoDuplicateOf&&!j.notInterested).length,
+  candidate,discoveryJobs:(()=>{
+   const status=gmDuplicateStatuses_();
+   const jobs=gmCandidateRows_("taaza",candidate).map(j=>({...j,
+    duplicateStatus:status.ready?(status.values[j.row-2]||""):""}));
+   return gmMarkDuplicateGroups_(jobs)
+    .filter(j=>!gmUnresolvedLinkedIn_(j)&&!j.autoDuplicateOf&&!j.notInterested&&
+      j.duplicateStatus!=="Dup").length;
+  })(),
   makeCvJobs:fresh.length,
   cvPrepared:prepared.length,applied:applied.length,
   appliedConnected:own.filter(x=>x.progress==="Applied + Connected").length,
