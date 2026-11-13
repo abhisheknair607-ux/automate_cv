@@ -631,8 +631,10 @@ function queueOverview(){
   if(DEMO)return '';
   if(!q)return '<div class="cv-queue-overview" id="cv-queue-summary">Checking CV queue…</div>';
   return '<div class="cv-queue-overview" id="cv-queue-summary"><span class="cv-dot"></span>'+
-    '<strong>'+q.running+' running</strong><span>'+q.queued+' queued</span>'+
-    '<span title="'+h(q.queueNote||'')+'">Manual CV requests · refreshes automatically</span></div>';
+    '<strong>'+(q.stale?'Last known: ':'')+q.running+' running</strong><span>'+q.queued+' queued</span>'+
+    '<span title="'+h(q.queueNote||'')+'">'+
+    (q.stale?'Queue status delayed · retrying automatically':q.readOnly?'Read-only queue status · GitHub credential needs attention':'Manual CV requests · refreshes automatically')+
+    '</span></div>';
 }
 function refreshQueueWidgets(){
   const overview=document.getElementById('cv-queue-summary');
@@ -663,10 +665,15 @@ async function pollCvQueue(){
     }
     refreshQueueWidgets();
   }catch(e){
-    // A temporary GitHub API failure must not erase a previously confirmed state.
-    if(!state.cvQueue){
+    // Keep a previously confirmed status but clearly mark it as stale.
+    // This is a monitoring error, not a proof that no CV jobs are running.
+    if(state.cvQueue){
+      state.cvQueue={...state.cvQueue,stale:true,
+        queueNote:'Last confirmed queue status only; GitHub status check failed.'};
+      refreshQueueWidgets();
+    }else{
       const el=document.getElementById('cv-queue-summary');
-      if(el)el.textContent='CV queue temporarily unavailable · try refresh';
+      if(el)el.textContent='CV queue status unavailable · retrying automatically';
     }
   }
 }
