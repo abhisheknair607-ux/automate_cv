@@ -300,6 +300,7 @@ app.post("/api/getCvQueue",async (req,res)=>{
     res.json({data:result});
   } catch(error) {
     const status=error.httpCode||503;
+    console.warn("[cv-queue] status="+status+" reason="+String(error.message||"Queue unavailable").slice(0,180));
     res.status(status).json({error:String(error.message||"Queue status unavailable").slice(0,300)});
   }
 });
@@ -620,7 +621,7 @@ app.post("/api/:method",async (req,res)=>{
       const candidate=String(body.candidate||"").toLowerCase();
       const row=Number(body.row);
       if(["abhishek","pooja"].includes(candidate)&&Number.isInteger(row)&&row>=3) {
-        const queue=await getCvQueue(process.env.GITHUB_WORKFLOW_TOKEN||"");
+        const queue=await getCvQueue(process.env.GITHUB_WORKFLOW_TOKEN||"",{fresh:true,requireAuth:true});
         if(queue.byJob[candidate+":"+row])
           throw Object.assign(new Error("This CV is already queued or running on GitHub Actions."),{httpCode:409});
       }
