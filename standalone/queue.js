@@ -95,7 +95,9 @@ async function readQueue(token, options={}) {
 
   const runs=data.workflow_runs;
   // GitHub can mark a run in_progress before its actual job starts.
-  const visible=runs.filter(r=>RUN_NAME.test(r?.display_title||"") && r.status==="in_progress").slice(0,20);
+  // Public GitHub requests have a very small rate limit. The read-only
+  // fallback uses run-level statuses and avoids extra per-job API requests.
+  const visible=authenticated ? runs.filter(r=>RUN_NAME.test(r?.display_title||"") && r.status==="in_progress").slice(0,20) : [];
   await Promise.all(visible.map(async run=>{
     try {
       const detail=await request(
@@ -109,7 +111,7 @@ async function readQueue(token, options={}) {
   const result=classifyRuns(runs);
   if (!authenticated) {
     result.readOnly=true;
-    result.queueNote="Live GitHub status is using a public read-only fallback. CV dispatch still requires a valid GitHub workflow token.";
+    result.queueNote="Read-only public GitHub status (run-level only; may lag). CV dispatch still requires a valid GitHub workflow token.";
   }
   return result;
 }
