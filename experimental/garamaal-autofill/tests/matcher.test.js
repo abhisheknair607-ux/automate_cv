@@ -227,8 +227,8 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
     GaramaalReasoner:require("../extension/reasoner.js")};
   vm.runInNewContext(source,context);
   await handlers.fill();
-  assert.deepEqual(calls.map(x=>x.tabId),[11,22,11]);
-  assert.equal(calls[1].world,"MAIN");
+  assert.deepEqual(calls.map(x=>x.tabId),[11,11,22,11]);
+  assert.equal(calls[2].world,"MAIN");
   assert.match(status.textContent,/1\/2 eligible fields filled/);
 });
 
@@ -273,4 +273,81 @@ test("connected fill stops with a clear message when Garamaal access is denied",
   vm.runInNewContext(source,{document:doc,chrome});
   await handlers.fill();
   assert.match(status.textContent,/Allow Garamaal site access/);
+});
+
+test("required single-choice selects only a real enabled option",()=>{
+  const {singleRequiredChoice}=require("../extension/matcher.js");
+  const options=[{label:"Select",value:"",disabled:false},
+    {label:"EMEA",value:"emea",disabled:false}];
+  const region=f("What Region are you applying to?","select",{required:true,options});
+  assert.equal(singleRequiredChoice(region)?.value,"emea");
+  assert.equal(singleRequiredChoice({...region,required:false}),null);
+  assert.equal(singleRequiredChoice({...region,hasValue:true}),null);
+  assert.equal(singleRequiredChoice({...region,label:"Visa sponsorship"}),null);
+  assert.equal(singleRequiredChoice({...region,options:[...options,
+    {label:"Americas",value:"americas",disabled:false}]}),null);
+  assert.equal(singleRequiredChoice({...region,options:[options[0],
+    {label:"EMEA",value:"emea",disabled:true}]}),null);
+});
+
+test("single-choice fill rescans dependent dropdowns after each selection",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const field=(id,label,value)=>({id,label,type:"select",required:true,hasValue:false,
+    options:[{label:"Select",value:"",disabled:false},
+      {label:value,value,disabled:false}]});
+  const sequence=[field("gm-autofill-0","Region","EMEA"),
+    field("gm-autofill-1","Program","Graduate"),
+    field("gm-autofill-2","Position Preference - Year","2027")];
+  let selected=0,scans=0;
+  const chrome={storage:{local:{get(){}}},scripting:{executeScript:async ({func})=>{
+    if(func.name==="scanForm"){
+      scans++;
+      return [{result:{fields:selected<sequence.length?[sequence[selected]]:[]}}];
+    }
+    if(func.name==="fillForm"){selected++;return [{result:[true]}];}
+    throw Error("Unexpected injection");
+  }}};
+  const stub={addEventListener(){},replaceChildren(){}};
+  const document={querySelector:()=>stub};
+  const context={document,chrome,GaramaalMatcher:require("../extension/matcher.js"),
+    setTimeout:fn=>fn()};
+  vm.runInNewContext(source+"\nglobalThis.__fillChoices=fillSingleRequiredChoices;",context);
+  const filled=await context.__fillChoices(11);
+  assert.deepEqual(Array.from(filled,x=>x.displayValue),["EMEA","Graduate","2027"]);
+  assert.equal(scans,4);
+  assert.equal(selected,3);
+});
+
+test("toolbar action opens a persistent side panel without broad site access",()=>{
+  const manifest=require("../extension/manifest.json");
+  assert.equal(manifest.side_panel.default_path,"popup.html");
+  assert.equal(manifest.action.default_popup,undefined);
+  assert.ok(manifest.permissions.includes("sidePanel"));
+  assert.equal(manifest.optional_host_permissions,undefined);
+  const worker=fs.readFileSync(require.resolve("../extension/background.js"),"utf8");
+  assert.match(worker,/openPanelOnActionClick:true/);
+});
+test("scanner reads a required dropdown question from an adjacent table cell",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const stub={addEventListener(){},replaceChildren(){}};
+  const cell={innerText:"What Region are you applying to? *",
+    getClientRects:()=>[{}],contains:()=>false};
+  const select={tagName:"SELECT",labels:[],name:"",id:"",required:false,
+    disabled:false,readOnly:false,options:[
+      {value:"",textContent:"Select",disabled:false},
+      {value:"EMEA",textContent:"EMEA",disabled:false}],
+    selectedOptions:[{value:"",textContent:"Select"}],
+    getClientRects:()=>[{}],setAttribute(){},getAttribute:()=>"",
+    closest:key=>key==="tr"?row:null,parentElement:null};
+  const row={querySelectorAll:key=>key==="th,td"?[cell]:[select]};
+  const doc={querySelector:key=>key.startsWith("#")?stub:null,
+    getElementById:()=>null,
+    querySelectorAll:key=>key==="input,textarea,select"?[select]:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  const [field]=context.__scanForm().fields;
+  assert.equal(field.label,"What Region are you applying to?");
+  assert.equal(field.required,true);
+  assert.equal(require("../extension/matcher.js").singleRequiredChoice(field)?.value,"EMEA");
 });

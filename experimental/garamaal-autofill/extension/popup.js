@@ -33,7 +33,7 @@ file.addEventListener("change",async()=>{
     status("Sample profile imported");
   }catch(e){status(e.message);}
 });
-// Executed only in the active tab after the user clicks the popup button.
+// Executed only in the active tab after the user clicks the side-panel button.
 function scanForm(){
   const visible=e=>e.getClientRects().length>0&&getComputedStyle(e).visibility!=="hidden";
   const asText=e=>String(e?.innerText||e?.textContent||"").trim().replace(/\s+/g," ");
@@ -44,10 +44,18 @@ function scanForm(){
       const found=[...(node.querySelectorAll?.("label")||[])].filter(label=>
         visible(label)&&!label.contains(e));
       if(found.length!==1)continue;
-      const value=asText(found[0]).replace(/\s*\*\s*$/,"").trim();
+      const value=asText(found[0]);
       if(value&&value.length<=100)return value;
     }
     return "";
+  };
+  const rowLabel=e=>{
+    const row=e.closest("tr");
+    if(!row||row.querySelectorAll("input,textarea,select").length!==1)return "";
+    const cells=[...row.querySelectorAll("th,td")].filter(cell=>
+      !cell.contains(e)&&visible(cell));
+    const value=asText(cells[0]);
+    return value&&value.length<=140?value:"";
   };
   const labels=e=>{
     const t=[];
@@ -57,7 +65,8 @@ function scanForm(){
     t.push(...named);
     const described=(e.getAttribute("aria-describedby")||"").split(/\s+/)
       .map(id=>asText(document.getElementById(id))).filter(Boolean);
-    t.push(nearbyLabel(e),e.getAttribute("aria-label")||"",
+    t.push(nearbyLabel(e).replace(/\s*\*\s*$/,"").trim(),
+      rowLabel(e).replace(/\s*\*\s*$/,"").trim(),e.getAttribute("aria-label")||"",
       ...described,e.getAttribute("title")||"",e.name||"",e.id||"",
       e.getAttribute("data-automation-id")||"",e.getAttribute("data-testid")||"");
     if(!t.some(Boolean))t.push(asText(e.closest("fieldset")?.querySelector("legend")));
@@ -96,6 +105,9 @@ function scanForm(){
     }
     e.setAttribute("data-garamaal-autofill-id",id);
     fields.push({id,type,label:labels(e),context:context(e),
+      required:!!e.required||e.getAttribute("aria-required")==="true"||
+        /\*/.test(nearbyLabel(e))||/\*/.test(rowLabel(e))||
+        [...(e.labels||[])].some(x=>/\*/.test(asText(x))),
       autocomplete:e.getAttribute("autocomplete")||"",hasValue:type==="select"?
       !placeholder(e.selectedOptions?.[0]):!!String(e.value||"").trim(),
       options:type==="select"?[...e.options].map(o=>({label:asText(o),value:o.value,disabled:o.disabled})):[]});
@@ -112,6 +124,21 @@ function scanForm(){
     fileInputs:document.querySelectorAll("input[type=file]").length
   };
   return {fields,job:{companyName,title,location,description},unsupported};
+}
+async function fillSingleRequiredChoices(tabId){
+  const filled=[];
+  for(let pass=0;pass<12;pass++){
+    const [scan]=await chrome.scripting.executeScript({target:{tabId},func:scanForm});
+    const candidate=(scan.result?.fields||[]).map(GaramaalMatcher.singleRequiredChoice)
+      .find(Boolean);
+    if(!candidate)break;
+    const [written]=await chrome.scripting.executeScript({target:{tabId},func:fillForm,
+      args:[[{id:candidate.id,value:candidate.value,fieldType:candidate.fieldType}]]});
+    if(!written.result?.[0])break;
+    filled.push(candidate);
+    await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  return filled;
 }
 // This function only sets supported controls. It never clicks, submits or navigates.
 function fillForm(items){
@@ -184,7 +211,7 @@ inspectBtn.addEventListener("click",async()=>{
     status(fields.length+" native fields found; "+(unsupported.customDropdowns||0)+
       " custom dropdowns, "+(unsupported.checkboxes||0)+" checkboxes, "+
       (unsupported.fileInputs||0)+" file uploads. Nothing changed.");
-  }catch(e){status("Inspection failed: "+e.message);}
+  }catch(e){status("Inspection failed: "+e.message+". If this is a new site, click the Garamaal toolbar icon here and try again.");}
   finally{inspectBtn.disabled=false;}
 });
 async function askGaramaal(payload){
@@ -226,6 +253,10 @@ fillBtn.addEventListener("click",async()=>{
     }
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
     if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
+    let applied;
+    try{applied=await fillSingleRequiredChoices(tab.id);}
+    catch(_){throw Error("Cannot access this application tab. Click the Garamaal toolbar icon on this site, then try again");}
+    showResults(applied,applied.map(()=>true));
     const [scan]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],job={}}=scan.result||{};
     let pending=[],note="";
@@ -272,13 +303,13 @@ fillBtn.addEventListener("click",async()=>{
     }
     const fillable=new Set(fields.filter(f=>GaramaalMatcher.eligible(f)).map(f=>f.id));
     for(const item of pending)fillable.add(item.id);
-    if(!pending.length){status("0/"+fillable.size+" eligible fields filled; review remaining fields manually."+note);return;}
+    if(!pending.length){status(applied.length+"/"+(applied.length+fillable.size)+" eligible fields filled; review remaining fields manually."+note);return;}
     const [current]=await chrome.tabs.query({active:true,currentWindow:true});
     if(current?.id!==tab.id)throw Error("Active tab changed; try again");
     const [r]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:fillForm,
       args:[pending.map(({id,value,fieldType})=>({id,value,fieldType}))]});
     const results=r.result||[];showResults(pending,results);
-    status(results.filter(Boolean).length+"/"+fillable.size+
+    status((applied.length+results.filter(Boolean).length)+"/"+(applied.length+fillable.size)+
       " eligible fields filled. Review this page, then manually advance."+note);
   }catch(e){status("Autofill failed: "+e.message);}
   finally{fillBtn.disabled=false;}

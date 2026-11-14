@@ -2,7 +2,7 @@
 (function(root){
   const clean=v=>String(v??"").trim();
   const normal=v=>clean(v).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|\bage\b|gender|\brace\b|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|declaration|terms|reference|referee|emergency|ssn|tax id|social security|conflict of interest|relatives?|family members?/;
+  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|\bage\b|gender|\brace\b|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|declaration|terms|\breferences?\b|\breferees?\b|emergency|ssn|tax id|social security|conflict of interest|relatives?|family members?/;
   const textTypes=new Set(["text","email","tel","url","search","textarea"]);
   const valueTypes=new Set([...textTypes,"number","date"]);
   const choiceTypes=new Set(["select","radio"]);
@@ -41,6 +41,15 @@
     const wanted=candidates.map(normal).filter(Boolean);
     return (options||[]).find(o=>!o.disabled&&clean(o.value)&&
       wanted.some(x=>normal(o.label)===x||normal(o.value)===x))||null;
+  }
+  function singleRequiredChoice(field){
+    if(!field?.required||field.type!=="select"||!eligible(field))return null;
+    const choices=(field.options||[]).filter(o=>!o.disabled&&clean(o.value)&&
+      !/^(select|choose|please select|please choose|pick one|none selected)$/i.test(clean(o.label)));
+    if(choices.length!==1)return null;
+    const option=choices[0];
+    return {id:field.id,label:field.label,key:"singleChoice",value:option.value,
+      displayValue:option.label,fieldType:field.type};
   }
   function isoBirthDate(p){
     const s=clean(p?.basics?.dateOfBirth);
@@ -109,7 +118,7 @@
     return {id:field.id,label:field.label,key,value,
       displayValue:value,fieldType:field.type};
   }
-  const api={profile,suggest,eligible,optionFor,isoBirthDate,birthPart,normal};
+  const api={profile,suggest,eligible,optionFor,singleRequiredChoice,isoBirthDate,birthPart,normal};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
   root.GaramaalMatcher=api;
 })(globalThis);
