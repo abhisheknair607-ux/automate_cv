@@ -212,11 +212,13 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
     options:[{label:"Ireland",value:"IE"}],hasValue:false};
   const salary={id:"gm-autofill-1",label:"Salary expectation",type:"text",hasValue:false};
   const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"}),set:async()=>{}}},
+    permissions:{request:async()=>true},
     tabs:{query:async q=>q.active?[{id:11,url:"https://jobs.example/apply"}]:
       [{id:22,url:"https://garamaal.web.app/prototype"}]},
     scripting:{executeScript:async args=>{
       calls.push({tabId:args.target.tabId,name:args.func.name,world:args.world});
-      if(args.func.name==="scanForm")return [{result:{fields:[field,salary],job:{}}}];
+      if(args.func.name==="scanForm")return [{result:{fields:[field,
+        {id:"gm-autofill-2",label:"LinkedIn",type:"text",hasValue:false},salary],job:{}}}];
       if(args.world==="MAIN")return [{result:{answers:[
         {fieldId:field.id,answer:"IE",evidenceIds:["e0"]}]}}];
       return [{result:[true]}];
@@ -227,5 +229,48 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
   await handlers.fill();
   assert.deepEqual(calls.map(x=>x.tabId),[11,22,11]);
   assert.equal(calls[1].world,"MAIN");
-  assert.match(status.textContent,/1\/1 filled/);
+  assert.match(status.textContent,/1\/2 eligible fields filled/);
+});
+
+test("scanner prefers nearby labels over sample placeholders on a real-style form",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const stub={addEventListener(){},replaceChildren(){}};
+  const make=(type,title,hint)=>{
+    const label={innerText:title,getClientRects:()=>[{}],contains:()=>false};
+    const input={tagName:"INPUT",type,labels:[],name:"",id:"",value:"",
+      disabled:false,readOnly:false,getClientRects:()=>[{}],closest:()=>null,
+      setAttribute(){},getAttribute:key=>key==="placeholder"?hint:""};
+    input.parentElement={parentElement:null,querySelectorAll:key=>
+      key==="label"?[label]:[input]};
+    return input;
+  };
+  const inputs=[make("text","First Name *","John"),make("text","Last Name *","Doe"),
+    make("email","Email *","john.doe@example.com"),
+    make("tel","Phone *","+1 (123) 456-7890")];
+  const doc={querySelector:s=>s.startsWith("#")?stub:null,
+    getElementById:()=>null,
+    querySelectorAll:s=>s==="input,textarea,select"?inputs:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  const fields=context.__scanForm().fields;
+  assert.deepEqual(Array.from(fields,x=>x.label.split(" | ")[0]),
+    ["First Name","Last Name","Email","Phone"]);
+  assert.deepEqual(Array.from(fields,x=>suggest(x,profile)?.value),
+    ["Alex","Example","alex@example.com",profile.basics.phone]);
+});
+test("connected fill stops with a clear message when Garamaal access is denied",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const handlers={},status={textContent:""},control=id=>({value:id==="source"?"garamaal":"",
+    disabled:false,addEventListener:(_event,fn)=>{handlers[id]=fn}});
+  const nodes={"#file":control("file"),"#source":control("source"),
+    "#fill":control("fill"),"#inspect":control("inspect"),
+    "#status":status,"#review":{replaceChildren(){}}};
+  const doc={querySelector:id=>nodes[id]};
+  const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"})}},
+    permissions:{request:async()=>false},
+    tabs:{query:async()=>{throw Error("Tab should not be scanned")}}};
+  vm.runInNewContext(source,{document:doc,chrome});
+  await handlers.fill();
+  assert.match(status.textContent,/Allow Garamaal site access/);
 });

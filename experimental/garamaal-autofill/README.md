@@ -20,6 +20,8 @@ Garamaal fills the current job application page only. It never clicks Next, Cont
 
 The fictional profile is stored in Chrome local extension storage. Do not import real personal data into this development profile.
 
+When updating the unpacked extension, click **Reload** at `chrome://extensions`. Connected mode may ask Chrome for access to `garamaal.web.app`; allow it, and keep a signed-in Garamaal tab open. If access is still blocked, check the extension Details > Site access setting. Fictional mode inserts sample facts, so clear them before using a real application form.
+
 ## Connected source release gate
 
 The server route in `standalone/server.js` is disabled unless `AUTOFILL_ENABLED=true`. It verifies the existing Firebase ID token, maps the authenticated email to exactly one candidate using `AUTOFILL_CANDIDATE_EMAILS`, reads that candidate's Summary Doc and Master Evidence Bank through the Cloud Run service account, and validates answer evidence and exact option values. The extension does not store an AI key or Firebase token.
