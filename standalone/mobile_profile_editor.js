@@ -21,7 +21,7 @@
   ["preferences","09","Career preferences","Roles, departments and locations"]
  ];
  function initial(){return {
-  basics:{fullName:"",headline:"",city:"",country:"",summary:""},
+  basics:{fullName:"",email:"",phone:"",headline:"",city:"",country:"",summary:""},
   work:[{employer:"",title:"",period:"",achievements:""}],
   education:[{institution:"",qualification:"",period:""}],
   projects:[{name:"",role:"",period:"",summary:"",outcomes:"",tools:"",evidence:""}],
@@ -97,6 +97,9 @@
  }
  function fieldsFor(d,key){
   if(key==="identity")return field("basics.fullName","Full name",d.basics.fullName)+
+    '<div class="gmv3-pf-dual">'+field("basics.email","Application email",d.basics.email,{placeholder:"name@example.com"})+
+    field("basics.phone","Contact phone",d.basics.phone,{placeholder:"Include country code"})+'</div>'+
+    '<p class="gmv3-pf-contact-note">Connected autofill uses these saved contact details for application forms. This draft stays in this browser until you use autofill.</p>'+
     field("basics.headline","Professional headline",d.basics.headline,{placeholder:"e.g. Finance professional"})+
     '<div class="gmv3-pf-dual">'+field("basics.city","City",d.basics.city)+field("basics.country","Country",d.basics.country)+'</div>'+
     field("basics.summary","Professional summary",d.basics.summary,{multi:true});

@@ -277,7 +277,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/tactile-feedback.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
-     '<script src="/prototype/profile-editor.js?v=m26-neon-held-12"></script>'+
+     '<script src="/prototype/profile-editor.js?v=m26-neon-held-13"></script>'+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
   res.type("html").send(html);
 });
