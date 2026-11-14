@@ -1,19 +1,27 @@
 {
     "manifest_version":  3,
     "name":  "Garamaal Autofill (MVP)",
-    "version":  "0.3.0",
+    "version":  "0.5.0",
     "description":  "Current-page job application autofill; never navigates or submits",
     "permissions":  [
                         "activeTab",
                         "scripting",
-                        "storage"
+                        "storage",
+                        "sidePanel"
                     ],
     "action":  {
-                   "default_title":  "Garamaal Autofill",
-                   "default_popup":  "popup.html"
+                   "default_title":  "Garamaal Autofill"
                },
     "host_permissions":  [
                              "http://127.0.0.1:8766/*",
-                             "https://garamaal.web.app/*"
-                         ]
+                             "https://garamaal.web.app/*",
+                             "https://blackrock.tal.net/*",
+                             "https://app.spott.io/*"
+                         ],
+    "side_panel":  {
+                       "default_path":  "popup.html"
+                   },
+    "background":  {
+                       "service_worker":  "background.js"
+                   }
 }

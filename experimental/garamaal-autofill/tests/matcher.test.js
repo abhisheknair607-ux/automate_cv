@@ -181,7 +181,7 @@ test("connected answers still require evidence and exact enabled controls",()=>{
 });
 test("Garamaal tab uses its saved profile and same-origin Firebase session",async()=>{
   const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
-  const calls=[],stored=JSON.stringify({basics:{fullName:"Alex Example"}});
+  const calls=[],stored=JSON.stringify({basics:{fullName:"Alex Example",address:"Local only"},equalEmployment:{disability:"Private"},preferences:{visa:"Private"}});
   const context={globalThis:null,
     firebase:{auth:()=>({currentUser:{getIdToken:async()=> "fictional-token"}})},
     localStorage:{getItem:key=>key==="gmv3-career-profile-local-v1:Abhishek"?stored:null},
@@ -194,7 +194,11 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
   assert.deepEqual((await context.__ask({fields:[]})).answers,[]);
   assert.deepEqual(calls.map(x=>x.url),["/api/autofill/candidate","/api/autofill/answer"]);
   assert.equal(calls[1].opts.headers.Authorization,"Bearer fictional-token");
-  assert.equal(JSON.parse(calls[1].opts.body).profile.basics.fullName,"Alex Example");
+  const sent=JSON.parse(calls[1].opts.body).profile;
+  assert.equal(sent.basics.fullName,"Alex Example");
+  assert.equal(sent.basics.address,undefined);
+  assert.equal(sent.equalEmployment,undefined);
+  assert.equal(sent.preferences.visa,undefined);
   assert.equal(context.__ask.toString().includes("chrome.storage"),false);
 });test("connected mode requests the signed-in app tab and fills only the active job tab",async()=>{
   const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
@@ -212,11 +216,13 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
     options:[{label:"Ireland",value:"IE"}],hasValue:false};
   const salary={id:"gm-autofill-1",label:"Salary expectation",type:"text",hasValue:false};
   const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"}),set:async()=>{}}},
+    permissions:{request:async()=>true},
     tabs:{query:async q=>q.active?[{id:11,url:"https://jobs.example/apply"}]:
       [{id:22,url:"https://garamaal.web.app/prototype"}]},
     scripting:{executeScript:async args=>{
       calls.push({tabId:args.target.tabId,name:args.func.name,world:args.world});
-      if(args.func.name==="scanForm")return [{result:{fields:[field,salary],job:{}}}];
+      if(args.func.name==="scanForm")return [{result:{fields:[field,
+        {id:"gm-autofill-2",label:"LinkedIn",type:"text",hasValue:false},salary],job:{}}}];
       if(args.world==="MAIN")return [{result:{answers:[
         {fieldId:field.id,answer:"IE",evidenceIds:["e0"]}]}}];
       return [{result:[true]}];
@@ -225,7 +231,220 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
     GaramaalReasoner:require("../extension/reasoner.js")};
   vm.runInNewContext(source,context);
   await handlers.fill();
-  assert.deepEqual(calls.map(x=>x.tabId),[11,22,11]);
-  assert.equal(calls[1].world,"MAIN");
-  assert.match(status.textContent,/1\/1 filled/);
+  assert.deepEqual(calls.map(x=>x.tabId),[11,11,22,11]);
+  assert.equal(calls[2].world,"MAIN");
+  assert.match(status.textContent,/1\/2 eligible fields filled/);
+});
+
+test("scanner prefers nearby labels over sample placeholders on a real-style form",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const stub={addEventListener(){},replaceChildren(){}};
+  const make=(type,title,hint)=>{
+    const label={innerText:title,getClientRects:()=>[{}],contains:()=>false};
+    const input={tagName:"INPUT",type,labels:[],name:"",id:"",value:"",
+      disabled:false,readOnly:false,getClientRects:()=>[{}],closest:()=>null,
+      setAttribute(){},getAttribute:key=>key==="placeholder"?hint:""};
+    input.parentElement={parentElement:null,querySelectorAll:key=>
+      key==="label"?[label]:[input]};
+    return input;
+  };
+  const inputs=[make("text","First Name *","John"),make("text","Last Name *","Doe"),
+    make("email","Email *","john.doe@example.com"),
+    make("tel","Phone *","+1 (123) 456-7890")];
+  const doc={querySelector:s=>s.startsWith("#")?stub:null,
+    getElementById:()=>null,
+    querySelectorAll:s=>s==="input,textarea,select"?inputs:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  const fields=context.__scanForm().fields;
+  assert.deepEqual(Array.from(fields,x=>x.label.split(" | ")[0]),
+    ["First Name","Last Name","Email","Phone"]);
+  assert.deepEqual(Array.from(fields,x=>suggest(x,profile)?.value),
+    ["Alex","Example","alex@example.com",profile.basics.phone]);
+});
+test("connected fill stops with a clear message when Garamaal access is denied",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const handlers={},status={textContent:""},control=id=>({value:id==="source"?"garamaal":"",
+    disabled:false,addEventListener:(_event,fn)=>{handlers[id]=fn}});
+  const nodes={"#file":control("file"),"#source":control("source"),
+    "#fill":control("fill"),"#inspect":control("inspect"),
+    "#status":status,"#review":{replaceChildren(){}}};
+  const doc={querySelector:id=>nodes[id]};
+  const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"})}},
+    permissions:{request:async()=>false},
+    tabs:{query:async()=>{throw Error("Tab should not be scanned")}}};
+  vm.runInNewContext(source,{document:doc,chrome});
+  await handlers.fill();
+  assert.match(status.textContent,/Allow Garamaal site access/);
+});
+
+test("required single-choice selects only a real enabled option",()=>{
+  const {singleRequiredChoice}=require("../extension/matcher.js");
+  const options=[{label:"Select",value:"",disabled:false},
+    {label:"EMEA",value:"emea",disabled:false}];
+  const region=f("What Region are you applying to?","select",{required:true,options});
+  assert.equal(singleRequiredChoice(region)?.value,"emea");
+  assert.equal(singleRequiredChoice({...region,required:false}),null);
+  assert.equal(singleRequiredChoice({...region,hasValue:true}),null);
+  assert.equal(singleRequiredChoice({...region,label:"Visa sponsorship"}),null);
+  assert.equal(singleRequiredChoice({...region,options:[...options,
+    {label:"Americas",value:"americas",disabled:false}]}),null);
+  assert.equal(singleRequiredChoice({...region,options:[options[0],
+    {label:"EMEA",value:"emea",disabled:true}]}),null);
+});
+
+test("single-choice fill rescans dependent dropdowns after each selection",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const field=(id,label,value)=>({id,label,type:"select",required:true,hasValue:false,
+    options:[{label:"Select",value:"",disabled:false},
+      {label:value,value,disabled:false}]});
+  const sequence=[field("gm-autofill-0","Region","EMEA"),
+    field("gm-autofill-1","Program","Graduate"),
+    field("gm-autofill-2","Position Preference - Year","2027")];
+  let selected=0,scans=0;
+  const chrome={storage:{local:{get(){}}},scripting:{executeScript:async ({func})=>{
+    if(func.name==="scanForm"){
+      scans++;
+      return [{result:{fields:selected<sequence.length?[sequence[selected]]:[]}}];
+    }
+    if(func.name==="fillForm"){selected++;return [{result:[true]}];}
+    throw Error("Unexpected injection");
+  }}};
+  const stub={addEventListener(){},replaceChildren(){}};
+  const document={querySelector:()=>stub};
+  const context={document,chrome,GaramaalMatcher:require("../extension/matcher.js"),
+    setTimeout:fn=>fn()};
+  vm.runInNewContext(source+"\nglobalThis.__fillChoices=fillSingleRequiredChoices;",context);
+  const filled=await context.__fillChoices(11);
+  assert.deepEqual(Array.from(filled,x=>x.displayValue),["EMEA","Graduate","2027"]);
+  assert.equal(scans,4);
+  assert.equal(selected,3);
+});
+
+test("toolbar action opens a persistent side panel without broad site access",()=>{
+  const manifest=require("../extension/manifest.json");
+  assert.equal(manifest.side_panel.default_path,"popup.html");
+  assert.equal(manifest.action.default_popup,undefined);
+  assert.ok(manifest.permissions.includes("sidePanel"));
+  assert.equal(manifest.optional_host_permissions,undefined);
+  assert.ok(manifest.host_permissions.includes("https://blackrock.tal.net/*"));
+  assert.ok(manifest.host_permissions.includes("https://app.spott.io/*"));
+  const worker=fs.readFileSync(require.resolve("../extension/background.js"),"utf8");
+  assert.match(worker,/openPanelOnActionClick:true/);
+});
+test("scanner reads a required dropdown question from an adjacent table cell",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const stub={addEventListener(){},replaceChildren(){}};
+  const cell={innerText:"What Region are you applying to? *",
+    getClientRects:()=>[{}],contains:()=>false};
+  const select={tagName:"SELECT",labels:[],name:"",id:"",required:false,
+    disabled:false,readOnly:false,options:[
+      {value:"",textContent:"Select",disabled:false},
+      {value:"EMEA",textContent:"EMEA",disabled:false}],
+    selectedOptions:[{value:"",textContent:"Select"}],
+    getClientRects:()=>[{}],setAttribute(){},getAttribute:()=>"",
+    closest:key=>key==="tr"?row:null,parentElement:null};
+  const row={querySelectorAll:key=>key==="th,td"?[cell]:[select]};
+  const doc={querySelector:key=>key.startsWith("#")?stub:null,
+    getElementById:()=>null,
+    querySelectorAll:key=>key==="input,textarea,select"?[select]:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  const [field]=context.__scanForm().fields;
+  assert.equal(field.label,"What Region are you applying to?");
+  assert.equal(field.required,true);
+  assert.equal(require("../extension/matcher.js").singleRequiredChoice(field)?.value,"EMEA");
+});
+test("side panel explains when a job tab URL is withheld",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const handlers={},status={textContent:""};
+  const control=id=>({value:id==="source"?"garamaal":"",
+    disabled:false,addEventListener:(_event,fn)=>{handlers[id]=fn}});
+  const nodes={"#file":control("file"),"#source":control("source"),
+    "#fill":control("fill"),"#inspect":control("inspect"),
+    "#status":status,"#review":{replaceChildren(){}}};
+  const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"})}},
+    tabs:{query:async()=>[{id:11}]}};
+  vm.runInNewContext(source,{document:{querySelector:id=>nodes[id]},chrome});
+  await handlers.inspect();
+  assert.match(status.textContent,/No access to this job page/);
+});
+test("Next clicks one clear control and never a Submit control",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const fn=source.match(/function clickNext\(\)\{[\s\S]*?\n\}/)[0];
+  const make=(text,tagName="BUTTON")=>({tagName,innerText:text,
+    getClientRects:()=>[{}],getAttribute:()=>null,disabled:false,
+    clicks:0,click(){this.clicks++}});
+  const next=make("Save and Continue"),submit=make("Submit Application");
+  const buttons=[next,submit];
+  const context={document:{querySelectorAll:()=>buttons},
+    getComputedStyle:()=>({visibility:"visible",display:"block"}),
+    location:{href:"https://jobs.example/apply",origin:"https://jobs.example"},URL};
+  vm.runInNewContext(fn+"\nglobalThis.__next=clickNext;",context);
+  assert.equal(context.__next().clicked,true);
+  assert.equal(next.clicks,1);
+  assert.equal(submit.clicks,0);
+  buttons.push(make("Next"));
+  assert.equal(context.__next().clicked,false,"ambiguous navigation stays manual");
+  assert.equal(next.clicks,1);
+  buttons.splice(0,buttons.length,submit);
+  assert.equal(context.__next().clicked,false,"Submit alone stays manual");
+  assert.equal(submit.clicks,0);
+});
+
+test("review lists the filled question and answer with an on-page locator",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const nodes={},created=[];
+  const make=()=>({children:[],textContent:"",className:"",
+    append(...children){this.children.push(...children)},
+    addEventListener(_type,fn){this.onClick=fn}});
+  const review=make();
+  const doc={querySelector:key=>key==="#review"?review:make(),
+    createElement:()=>{const node=make();created.push(node);return node}};
+  const calls=[];
+  const chrome={storage:{local:{get(){}}},tabs:{query:async()=>[{id:42}]},
+    scripting:{executeScript:async args=>{calls.push(args);return [{result:true}]}}};
+  const context={document:doc,chrome};
+  vm.runInNewContext(source+"\nglobalThis.__show=showResults;",context);
+  context.__show([{id:"gm-autofill-2",label:"What Program are you applying to?",
+    displayValue:"Graduate Rotation",context:"Position Preference"}],[true],42);
+  assert.equal(review.children.length,1);
+  const [body,button]=review.children[0].children;
+  assert.equal(body.children[0].textContent,"What Program are you applying to?");
+  assert.equal(body.children[1].textContent,"Graduate Rotation");
+  assert.match(body.children[2].textContent,/Position Preference/);
+  await button.onClick();
+  assert.equal(calls[0].target.tabId,42);
+  assert.equal(calls[0].func.name,"locateField");
+});
+test("field locator IDs remain stable when a dependent field appears",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const inputs=[];
+  const make=name=>{
+    const attrs={};
+    return {tagName:"INPUT",type:"text",name,id:"",value:"",
+      labels:[],disabled:false,readOnly:false,parentElement:null,
+      getClientRects:()=>[{}],closest:()=>null,
+      getAttribute:key=>attrs[key]||"",
+      setAttribute:(key,value)=>{attrs[key]=value}};
+  };
+  const region=make("region"),program=make("program"),year=make("year");
+  inputs.push(region,year);
+  const stub={addEventListener(){},replaceChildren(){}};
+  const doc={querySelector:key=>key.startsWith("#")?stub:null,getElementById:()=>null,
+    querySelectorAll:key=>key==="[data-garamaal-autofill-id]"?
+      inputs.filter(x=>x.getAttribute("data-garamaal-autofill-id")):
+      key==="input,textarea,select"?inputs:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  context.__scanForm();
+  const first=[region,year].map(x=>x.getAttribute("data-garamaal-autofill-id"));
+  inputs.splice(1,0,program);
+  context.__scanForm();
+  assert.deepEqual([region,year].map(x=>x.getAttribute("data-garamaal-autofill-id")),first);
+  assert.notEqual(program.getAttribute("data-garamaal-autofill-id"),first[0]);
+  assert.notEqual(program.getAttribute("data-garamaal-autofill-id"),first[1]);
 });

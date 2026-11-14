@@ -4,15 +4,26 @@ const statusEl=document.querySelector("#status");
 const review=document.querySelector("#review");
 const fillBtn=document.querySelector("#fill");
 const inspectBtn=document.querySelector("#inspect");
+const nextBtn=document.querySelector("#next");
 const sourceSelect=document.querySelector("#source");
+const demoImport=document.querySelector("#demoImport");
+const connectedHint=document.querySelector("#connectedHint");
+const updateSource=()=>{
+  if(demoImport)demoImport.hidden=sourceSelect.value!=="demo";
+  if(connectedHint)connectedHint.hidden=sourceSelect.value!=="garamaal";
+};
 let profile=null;
 const status=s=>{statusEl.textContent=s;};
 chrome.storage.local.get(["demoProfile","source"],r=>{
   sourceSelect.value=r.source==="garamaal"?"garamaal":"demo";
+  updateSource();
   if(r.demoProfile){profile=r.demoProfile;
     document.querySelector("#profileLabel").textContent=profile.basics?.fullName||"Profile loaded";}
 });
-sourceSelect.addEventListener("change",()=>chrome.storage.local.set({source:sourceSelect.value}));
+sourceSelect.addEventListener("change",()=>{
+  updateSource();
+  chrome.storage.local.set({source:sourceSelect.value});
+});
 file.addEventListener("change",async()=>{
   try{
     if(!file.files?.[0]||file.files[0].size>200000)throw Error("Profile JSON missing or too large");
@@ -23,10 +34,30 @@ file.addEventListener("change",async()=>{
     status("Sample profile imported");
   }catch(e){status(e.message);}
 });
-// Executed only in the active tab after the user clicks the popup button.
+// Executed only in the active tab after the user clicks the side-panel button.
 function scanForm(){
   const visible=e=>e.getClientRects().length>0&&getComputedStyle(e).visibility!=="hidden";
   const asText=e=>String(e?.innerText||e?.textContent||"").trim().replace(/\s+/g," ");
+  const nearbyLabel=e=>{
+    for(let node=e.parentElement,depth=0;node&&depth<4;node=node.parentElement,depth++){
+      const controls=node.querySelectorAll?.("input,textarea,select")||[];
+      if(controls.length>3)continue;
+      const found=[...(node.querySelectorAll?.("label")||[])].filter(label=>
+        visible(label)&&!label.contains(e));
+      if(found.length!==1)continue;
+      const value=asText(found[0]);
+      if(value&&value.length<=100)return value;
+    }
+    return "";
+  };
+  const rowLabel=e=>{
+    const row=e.closest("tr");
+    if(!row||row.querySelectorAll("input,textarea,select").length!==1)return "";
+    const cells=[...row.querySelectorAll("th,td")].filter(cell=>
+      !cell.contains(e)&&visible(cell));
+    const value=asText(cells[0]);
+    return value&&value.length<=140?value:"";
+  };
   const labels=e=>{
     const t=[];
     if(e.labels)t.push(...[...e.labels].map(asText));
@@ -35,10 +66,16 @@ function scanForm(){
     t.push(...named);
     const described=(e.getAttribute("aria-describedby")||"").split(/\s+/)
       .map(id=>asText(document.getElementById(id))).filter(Boolean);
-    t.push(e.getAttribute("aria-label")||"",e.getAttribute("placeholder")||"",
+    t.push(nearbyLabel(e).replace(/\s*\*\s*$/,"").trim(),
+      rowLabel(e).replace(/\s*\*\s*$/,"").trim(),e.getAttribute("aria-label")||"",
       ...described,e.getAttribute("title")||"",e.name||"",e.id||"",
       e.getAttribute("data-automation-id")||"",e.getAttribute("data-testid")||"");
     if(!t.some(Boolean))t.push(asText(e.closest("fieldset")?.querySelector("legend")));
+    if(!t.some(Boolean)){
+      const hint=e.getAttribute("placeholder")||"";
+      if(!/@|https?:|www\.|^\+?\d[\d\s()+.-]{5,}$/i.test(hint))t.push(hint);
+    }
+    if(!t.some(Boolean))t.push(e.getAttribute("autocomplete")||"");
     return [...new Set(t.filter(Boolean))].join(" | ").slice(0,500);
   };
   const context=e=>asText(e.closest("fieldset,section,[role=group]")?.querySelector("legend,h2,h3,h4,[role=heading]")).slice(0,240);
@@ -48,13 +85,16 @@ function scanForm(){
   const placeholder=o=>!o||!String(o.value||"").trim()||
     /^(select|choose|please select|please choose|pick one|none selected)\b/i.test(asText(o));
   const fields=[],seenRadio=new Set();
-  let i=0;
+  let i=1+Math.max(-1,...[...document.querySelectorAll("[data-garamaal-autofill-id]")]
+    .map(x=>Number((x.getAttribute("data-garamaal-autofill-id")||"").match(/^gm-autofill-(\d+)$/)?.[1]))
+    .filter(Number.isInteger));
   for(const e of document.querySelectorAll("input,textarea,select")){
     if(fields.length>=160)break;
     if(!visible(e)||e.disabled||e.readOnly)continue;
     const type=e.tagName==="TEXTAREA"?"textarea":e.tagName==="SELECT"?"select":e.type||"text";
     if(["hidden","password","file","checkbox","submit","button","reset"].includes(type))continue;
-    const id="gm-autofill-"+i++;
+    const previous=e.getAttribute("data-garamaal-autofill-id")||"";
+    const id=/^gm-autofill-\d+$/.test(previous)?previous:"gm-autofill-"+i++;
     if(type==="radio"){
       const fs=e.closest("fieldset"),name=e.name;
       const group=[...document.querySelectorAll('input[type="radio"]')].filter(x=>
@@ -69,6 +109,9 @@ function scanForm(){
     }
     e.setAttribute("data-garamaal-autofill-id",id);
     fields.push({id,type,label:labels(e),context:context(e),
+      required:!!e.required||e.getAttribute("aria-required")==="true"||
+        /\*/.test(nearbyLabel(e))||/\*/.test(rowLabel(e))||
+        [...(e.labels||[])].some(x=>/\*/.test(asText(x))),
       autocomplete:e.getAttribute("autocomplete")||"",hasValue:type==="select"?
       !placeholder(e.selectedOptions?.[0]):!!String(e.value||"").trim(),
       options:type==="select"?[...e.options].map(o=>({label:asText(o),value:o.value,disabled:o.disabled})):[]});
@@ -85,6 +128,21 @@ function scanForm(){
     fileInputs:document.querySelectorAll("input[type=file]").length
   };
   return {fields,job:{companyName,title,location,description},unsupported};
+}
+async function fillSingleRequiredChoices(tabId){
+  const filled=[];
+  for(let pass=0;pass<12;pass++){
+    const [scan]=await chrome.scripting.executeScript({target:{tabId},func:scanForm});
+    const candidate=(scan.result?.fields||[]).map(GaramaalMatcher.singleRequiredChoice)
+      .find(Boolean);
+    if(!candidate)break;
+    const [written]=await chrome.scripting.executeScript({target:{tabId},func:fillForm,
+      args:[[{id:candidate.id,value:candidate.value,fieldType:candidate.fieldType}]]});
+    if(!written.result?.[0])break;
+    filled.push(candidate);
+    await new Promise(resolve=>setTimeout(resolve,200));
+  }
+  return filled;
 }
 // This function only sets supported controls. It never clicks, submits or navigates.
 function fillForm(items){
@@ -130,20 +188,90 @@ function fillForm(items){
   }
   return results;
 }
-function showResults(pending,results){
+function locateField(id){
+  if(!/^gm-autofill-\d+$/.test(id))return false;
+  const field=[...document.querySelectorAll("[data-garamaal-autofill-id]")]
+    .find(e=>e.getAttribute("data-garamaal-autofill-id")===id);
+  if(!field)return false;
+  field.scrollIntoView({block:"center",behavior:"smooth"});
+  const prior=field.style.outline,offset=field.style.outlineOffset;
+  field.style.outline="3px solid #176750";
+  field.style.outlineOffset="3px";
+  setTimeout(()=>{field.style.outline=prior;field.style.outlineOffset=offset;},2500);
+  return true;
+}
+function showResults(pending,results,tabId){
   pending.forEach((p,i)=>{
     if(!results[i])return;
     const row=document.createElement("div");row.className="row";
-    const title=document.createElement("strong");title.textContent=p.label.split(" | ")[0];
-    const value=document.createElement("small");value.textContent=p.displayValue;
-    const detail=document.createElement("div");detail.append(title,value);row.append(detail);review.append(row);
+    const body=document.createElement("div");
+    const title=document.createElement("strong");
+    title.textContent=(p.label||"").split(" | ")[0]||"Application question";
+    const value=document.createElement("div");value.className="answer";
+    value.textContent=String(p.displayValue||p.value||"");
+    const where=document.createElement("div");where.className="where";
+    where.textContent=p.context?"Section: "+p.context:"On the current application page";
+    body.append(title,value,where);
+    const find=document.createElement("button");find.type="button";
+    find.textContent="Show";
+    find.addEventListener?.("click",async()=>{
+      try{
+        const [current]=await chrome.tabs.query({active:true,currentWindow:true});
+        if(current?.id!==tabId)throw Error("Return to the application tab first");
+        const [located]=await chrome.scripting.executeScript({target:{tabId},func:locateField,
+          args:[p.id]});
+        if(!located.result)throw Error("This field is no longer on the page");
+      }catch(e){status(e.message);}
+    });
+    row.append(body,find);review.append(row);
   });
 }
+function clickNext(){
+  const safe=/^(next|next page|next step|continue|save and continue|save & continue)$/i;
+  const visible=e=>e.getClientRects().length>0&&
+    getComputedStyle(e).visibility!=="hidden"&&getComputedStyle(e).display!=="none";
+  const label=e=>String(e.getAttribute("aria-label")||
+    (e.tagName==="INPUT"?e.value:e.innerText||e.textContent)||"")
+    .trim().replace(/\s+/g," ");
+  const candidates=[...document.querySelectorAll(
+    "button,input[type=button],input[type=submit],a,[role=button]")].filter(e=>{
+    if(!visible(e)||e.disabled||e.getAttribute("aria-disabled")==="true")return false;
+    if(!safe.test(label(e)))return false;
+    if(e.tagName==="A"){
+      try{if(new URL(e.href,location.href).origin!==location.origin)return false;}
+      catch(_){return false;}
+    }
+    return true;
+  });
+  if(candidates.length!==1)return {clicked:false,count:candidates.length};
+  const target=candidates[0],name=label(target);
+  target.click();
+  return {clicked:true,label:name};
+}
+nextBtn?.addEventListener("click",async()=>{
+  nextBtn.disabled=true;
+  try{
+    const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))
+      throw Error("Open an accessible application page first");
+    const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:clickNext});
+    if(!result.result?.clicked){
+      status(result.result?.count>1?
+        "More than one Next or Continue control found. Advance on the page manually.":
+        "No clear Next or Continue control found. Advance on the page manually.");
+      return;
+    }
+    review.replaceChildren();
+    status("Pressed "+result.result.label+". Check the page for validation errors, then use Fill current page again.");
+  }catch(e){status("Next unavailable: "+e.message);}
+  finally{nextBtn.disabled=false;}
+});
 inspectBtn.addEventListener("click",async()=>{
   inspectBtn.disabled=true;review.replaceChildren();
   try{
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
+    if(!tab?.id)throw Error("No active application tab found");
+    if(!/^https?:\/\//.test(tab.url||""))throw Error("No access to this job page. Click the Garamaal toolbar icon on this tab or allow Site access in extension Details");
     const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],unsupported={}}=result.result||{};
     for(const field of fields.slice(0,35)){
@@ -157,7 +285,7 @@ inspectBtn.addEventListener("click",async()=>{
     status(fields.length+" native fields found; "+(unsupported.customDropdowns||0)+
       " custom dropdowns, "+(unsupported.checkboxes||0)+" checkboxes, "+
       (unsupported.fileInputs||0)+" file uploads. Nothing changed.");
-  }catch(e){status("Inspection failed: "+e.message);}
+  }catch(e){status("Inspection failed: "+e.message+". If this is a new site, click the Garamaal toolbar icon here and try again.");}
   finally{inspectBtn.disabled=false;}
 });
 async function askGaramaal(payload){
@@ -176,7 +304,21 @@ async function askGaramaal(payload){
     let profile=null;
     try{
       const raw=localStorage.getItem("gmv3-career-profile-local-v1:"+name);
-      if(raw&&raw.length<=90000)profile=JSON.parse(raw);
+      if(raw&&raw.length<=90000){
+        const saved=JSON.parse(raw);
+        if(saved&&typeof saved==="object"&&!Array.isArray(saved)){
+          const {equalEmployment,...autofillProfile}=saved;
+          profile=autofillProfile;
+          if(profile.basics&&typeof profile.basics==="object"){
+            profile.basics={...profile.basics};
+            delete profile.basics.address;
+          }
+          if(profile.preferences&&typeof profile.preferences==="object"){
+            profile.preferences={...profile.preferences};
+            delete profile.preferences.visa;
+          }
+        }
+      }
     }catch(_){}
     const response=await fetch("/api/autofill/answer",{
       method:"POST",cache:"no-store",headers,
@@ -191,8 +333,19 @@ fillBtn.addEventListener("click",async()=>{
   if(source==="demo"&&!profile){status("Import the fictional sample profile first");return;}
   fillBtn.disabled=true;review.replaceChildren();
   try{
+    if(source==="garamaal"){
+      let granted;
+      try{granted=await chrome.permissions.request({origins:["https://garamaal.web.app/*"]});}
+      catch(_){throw Error("Reload this extension at chrome://extensions, then allow access to garamaal.web.app");}
+      if(!granted)throw Error("Allow Garamaal site access in Chrome to use your signed-in profile");
+    }
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
+    if(!tab?.id)throw Error("No active application tab found");
+    if(!/^https?:\/\//.test(tab.url||""))throw Error("No access to this job page. Click the Garamaal toolbar icon on this tab or allow Site access in extension Details");
+    let applied;
+    try{applied=await fillSingleRequiredChoices(tab.id);}
+    catch(_){throw Error("Cannot access this application tab. Click the Garamaal toolbar icon on this site, then try again");}
+    showResults(applied,applied.map(()=>true),tab.id);
     const [scan]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],job={}}=scan.result||{};
     let pending=[],note="";
@@ -203,8 +356,10 @@ fillBtn.addEventListener("click",async()=>{
       if(eligible.length){
         const payload={job,fields:eligible.map(({id,type,label,context,options})=>(
           {id,type,label,context,options}))};
-        const [reply]=await chrome.scripting.executeScript({target:{tabId:appTab.id},
-          world:"MAIN",func:askGaramaal,args:[payload]});
+        let reply;
+        try{[reply]=await chrome.scripting.executeScript({target:{tabId:appTab.id},
+          world:"MAIN",func:askGaramaal,args:[payload]});}
+        catch(_){throw Error("Cannot access the Garamaal tab. Reload this extension at chrome://extensions and allow garamaal.web.app site access");}
         if(reply.result?.error)throw Error(reply.result.error);
         pending=(reply.result?.answers||[]).map(a=>{
           const field=eligible.find(f=>f.id===a.fieldId);
@@ -235,14 +390,18 @@ fillBtn.addEventListener("click",async()=>{
       }
       pending=[...direct,...ai];
     }
-    if(!pending.length){status(fields.length+" fields scanned; nothing filled."+note);return;}
+    const fieldById=new Map(fields.map(f=>[f.id,f]));
+    pending=pending.map(p=>({...p,context:fieldById.get(p.id)?.context||""}));
+    const fillable=new Set(fields.filter(f=>GaramaalMatcher.eligible(f)).map(f=>f.id));
+    for(const item of pending)fillable.add(item.id);
+    if(!pending.length){status(applied.length+"/"+(applied.length+fillable.size)+" eligible fields filled; review the answers and remaining fields."+note);return;}
     const [current]=await chrome.tabs.query({active:true,currentWindow:true});
     if(current?.id!==tab.id)throw Error("Active tab changed; try again");
     const [r]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:fillForm,
       args:[pending.map(({id,value,fieldType})=>({id,value,fieldType}))]});
-    const results=r.result||[];showResults(pending,results);
-    status(results.filter(Boolean).length+"/"+pending.length+
-      " filled. Review this page, then manually advance."+note);
+    const results=r.result||[];showResults(pending,results,tab.id);
+    status((applied.length+results.filter(Boolean).length)+"/"+(applied.length+fillable.size)+
+      " eligible fields filled. Review the answers, then use Next page."+note);
   }catch(e){status("Autofill failed: "+e.message);}
   finally{fillBtn.disabled=false;}
 });
