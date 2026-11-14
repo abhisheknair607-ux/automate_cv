@@ -21,6 +21,7 @@ const duplicateStatus=require("./duplicate_status");
 const alertWorkflows=require("./alert_workflows");
 const onOpenImport=require("./on_open_import");
 const jdRecoveryWorkflows=require("./jd_recovery_workflows");
+const autofill=require("./autofill");
 
 const BASE = path.resolve(__dirname,"..");
 const PORT = Number(process.env.PORT||8080);
@@ -603,6 +604,31 @@ app.post("/api/swipe/:method",async (req,res)=>{
     res.json({data});
   }catch(error){
     res.status(error.httpCode||500).json({error:String(error.message||"Swipe action failed").slice(0,350)});
+  }
+});
+app.post("/api/autofill/candidate",async(req,res)=>{
+  if(process.env.AUTOFILL_ENABLED!=="true")
+    return res.status(404).json({error:"Autofill is not enabled"});
+  try{
+    const email=await authenticate(req);
+    const candidate=autofill.candidateForEmail(email,process.env.AUTOFILL_CANDIDATE_EMAILS);
+    res.json({candidate});
+  }catch(error){
+    res.status(error.httpCode||503).json({error:String(error.message||"Autofill unavailable").slice(0,180)});
+  }
+});
+app.post("/api/autofill/answer",async(req,res)=>{
+  if(process.env.AUTOFILL_ENABLED!=="true")
+    return res.status(404).json({error:"Autofill is not enabled"});
+  try{
+    const email=await authenticate(req);
+    const client=await auth.getClient();
+    const data=await autofill.answerApplication({email,body:req.body,client});
+    res.json(data);
+  }catch(error){
+    const status=error.httpCode||503;
+    console.error("[autofill] status="+status,String(error.message||"Error").slice(0,180));
+    res.status(status).json({error:String(error.message||"Autofill unavailable").slice(0,180)});
   }
 });
 app.post("/api/:method",async (req,res)=>{

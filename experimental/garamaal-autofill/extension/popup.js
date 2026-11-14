@@ -4,12 +4,15 @@ const statusEl=document.querySelector("#status");
 const review=document.querySelector("#review");
 const fillBtn=document.querySelector("#fill");
 const inspectBtn=document.querySelector("#inspect");
+const sourceSelect=document.querySelector("#source");
 let profile=null;
 const status=s=>{statusEl.textContent=s;};
-chrome.storage.local.get(["demoProfile"],r=>{
+chrome.storage.local.get(["demoProfile","source"],r=>{
+  sourceSelect.value=r.source==="garamaal"?"garamaal":"demo";
   if(r.demoProfile){profile=r.demoProfile;
     document.querySelector("#profileLabel").textContent=profile.basics?.fullName||"Profile loaded";}
 });
+sourceSelect.addEventListener("change",()=>chrome.storage.local.set({source:sourceSelect.value}));
 file.addEventListener("change",async()=>{
   try{
     if(!file.files?.[0]||file.files[0].size>200000)throw Error("Profile JSON missing or too large");
@@ -157,42 +160,89 @@ inspectBtn.addEventListener("click",async()=>{
   }catch(e){status("Inspection failed: "+e.message);}
   finally{inspectBtn.disabled=false;}
 });
+async function askGaramaal(payload){
+  try{
+    const user=globalThis.firebase?.auth?.()?.currentUser;
+    if(!user)return {error:"Sign in to Garamaal in this tab first"};
+    const token=await user.getIdToken();
+    const headers={"Content-Type":"application/json","Authorization":"Bearer "+token};
+    const candidateResponse=await fetch("/api/autofill/candidate",{
+      method:"POST",cache:"no-store",headers,body:"{}"});
+    const candidateData=await candidateResponse.json();
+    if(!candidateResponse.ok)return {error:candidateData.error||"Garamaal autofill is unavailable"};
+    const name=candidateData.candidate==="pooja"?"Pooja":
+      candidateData.candidate==="abhishek"?"Abhishek":"";
+    if(!name)return {error:"No candidate profile is assigned to this account"};
+    let profile=null;
+    try{
+      const raw=localStorage.getItem("gmv3-career-profile-local-v1:"+name);
+      if(raw&&raw.length<=90000)profile=JSON.parse(raw);
+    }catch(_){}
+    const response=await fetch("/api/autofill/answer",{
+      method:"POST",cache:"no-store",headers,
+      body:JSON.stringify({...payload,profile})});
+    const data=await response.json();
+    if(!response.ok)return {error:data.error||"Garamaal autofill is unavailable"};
+    return data;
+  }catch(e){return {error:e.message||"Garamaal autofill failed"};}
+}
 fillBtn.addEventListener("click",async()=>{
-  if(!profile){status("Import the fictional sample profile first");return;}
+  const source=sourceSelect.value;
+  if(source==="demo"&&!profile){status("Import the fictional sample profile first");return;}
   fillBtn.disabled=true;review.replaceChildren();
   try{
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
     if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
     const [scan]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],job={}}=scan.result||{};
-    const direct=fields.map(f=>GaramaalMatcher.suggest(f,profile)).filter(Boolean);
-    const directIds=new Set(direct.map(x=>x.id));
-    const unknown=fields.filter(f=>!directIds.has(f.id)&&GaramaalMatcher.eligible(f))
-      .map(f=>({...f,facts:GaramaalReasoner.facts(profile,f)}))
-      .filter(f=>f.facts.length).slice(0,20);
-    let ai=[],aiNote="";
-    if(unknown.length){
-      try{
-        const response=await fetch("http://127.0.0.1:8766/answer",{
-          method:"POST",headers:{"Content-Type":"application/json"},
-          body:JSON.stringify({job,fields:unknown.map(({id,type,label,context,options,facts})=>({id,type,label,context,options,facts}))})});
-        if(!response.ok)throw Error("AI service unavailable");
-        const data=await response.json();
-        ai=(data.answers||[]).map(a=>{
-          const field=unknown.find(f=>f.id===a.fieldId);
-          return field&&GaramaalReasoner.validate(field,a,field.facts);
+    let pending=[],note="";
+    if(source==="garamaal"){
+      const [appTab]=await chrome.tabs.query({url:"https://garamaal.web.app/*"});
+      if(!appTab?.id)throw Error("Open and sign in to garamaal.web.app in another tab");
+      const eligible=fields.filter(f=>GaramaalMatcher.eligible(f)).slice(0,20);
+      if(eligible.length){
+        const payload={job,fields:eligible.map(({id,type,label,context,options})=>(
+          {id,type,label,context,options}))};
+        const [reply]=await chrome.scripting.executeScript({target:{tabId:appTab.id},
+          world:"MAIN",func:askGaramaal,args:[payload]});
+        if(reply.result?.error)throw Error(reply.result.error);
+        pending=(reply.result?.answers||[]).map(a=>{
+          const field=eligible.find(f=>f.id===a.fieldId);
+          return field&&GaramaalReasoner.validateRemote(field,a);
         }).filter(Boolean);
-      }catch(_){aiNote=" AI unavailable; manual questions left blank.";}
+      }
+      note=" Career Profile, then Summary Doc, then Master Evidence Bank as needed.";
+    }else{
+      const direct=fields.map(f=>GaramaalMatcher.suggest(f,profile)).filter(Boolean);
+      const directIds=new Set(direct.map(x=>x.id));
+      const unknown=fields.filter(f=>!directIds.has(f.id)&&GaramaalMatcher.eligible(f))
+        .map(f=>({...f,facts:GaramaalReasoner.facts(profile,f)}))
+        .filter(f=>f.facts.length).slice(0,20);
+      let ai=[];
+      if(unknown.length){
+        try{
+          const response=await fetch("http://127.0.0.1:8766/answer",{
+            method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({job,fields:unknown.map(({id,type,label,context,options,facts})=>(
+              {id,type,label,context,options,facts}))})});
+          if(!response.ok)throw Error("AI service unavailable");
+          const data=await response.json();
+          ai=(data.answers||[]).map(a=>{
+            const field=unknown.find(f=>f.id===a.fieldId);
+            return field&&GaramaalReasoner.validate(field,a,field.facts);
+          }).filter(Boolean);
+        }catch(_){note=" Local AI unavailable; manual questions left blank.";}
+      }
+      pending=[...direct,...ai];
     }
-    const pending=[...direct,...ai];
-    if(!pending.length){status(fields.length+" fields scanned; nothing filled."+aiNote);return;}
+    if(!pending.length){status(fields.length+" fields scanned; nothing filled."+note);return;}
     const [current]=await chrome.tabs.query({active:true,currentWindow:true});
     if(current?.id!==tab.id)throw Error("Active tab changed; try again");
     const [r]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:fillForm,
       args:[pending.map(({id,value,fieldType})=>({id,value,fieldType}))]});
     const results=r.result||[];showResults(pending,results);
     status(results.filter(Boolean).length+"/"+pending.length+
-      " filled. Review this page, then manually advance."+aiNote);
+      " filled. Review this page, then manually advance."+note);
   }catch(e){status("Autofill failed: "+e.message);}
   finally{fillBtn.disabled=false;}
 });

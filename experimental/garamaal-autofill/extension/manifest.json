@@ -1,7 +1,7 @@
 {
     "manifest_version":  3,
     "name":  "Garamaal Autofill (MVP)",
-    "version":  "0.2.0",
+    "version":  "0.3.0",
     "description":  "Current-page job application autofill; never navigates or submits",
     "permissions":  [
                         "activeTab",
@@ -13,6 +13,7 @@
                    "default_popup":  "popup.html"
                },
     "host_permissions":  [
-                             "http://127.0.0.1:8766/*"
+                             "http://127.0.0.1:8766/*",
+                             "https://garamaal.web.app/*"
                          ]
 }

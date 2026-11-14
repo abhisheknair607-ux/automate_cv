@@ -154,7 +154,7 @@ test("Inspect page reads field metadata without invoking the writer",async()=>{
   const review={replaceChildren(){},append(){}};
   const doc={querySelector:id=>({
     "#file":control("file"),"#status":status,"#review":review,
-    "#fill":fill,"#inspect":inspect
+    "#fill":fill,"#inspect":inspect,"#source":control("source")
   })[id],createElement:()=>({append(){},textContent:"",className:""})};
   const context={document:doc,GaramaalMatcher:{eligible:()=>true},
     chrome:{storage:{local:{get(){}}},tabs:{query:async()=>[{id:1,url:"http://127.0.0.1:8765/"}]},
@@ -166,4 +166,66 @@ test("Inspect page reads field metadata without invoking the writer",async()=>{
   assert.deepEqual(calls,["scanForm"]);
   assert.match(status.textContent,/Nothing changed/);
   assert.match(status.textContent,/1 custom dropdowns/);
+});
+
+test("connected answers still require evidence and exact enabled controls",()=>{
+  const {validateRemote}=require("../extension/reasoner.js");
+  const field=f("Country of residence","select",{options:[
+    {label:"Ireland",value:"IE"},{label:"United Kingdom",value:"GB",disabled:true}]});
+  assert.equal(validateRemote(field,{fieldId:"x",answer:"IE",evidenceIds:["e0"]}).value,"IE");
+  assert.equal(validateRemote(field,{fieldId:"x",answer:"GB",evidenceIds:["e0"]}),null);
+  assert.equal(validateRemote(field,{fieldId:"x",answer:"Ireland",evidenceIds:["e0"]}),null);
+  assert.equal(validateRemote(field,{fieldId:"x",answer:"IE",evidenceIds:[]}),null);
+  assert.equal(validateRemote(f("Salary expectation","text"),
+    {fieldId:"x",answer:"100000",evidenceIds:["e0"]}),null);
+});
+test("Garamaal tab uses its saved profile and same-origin Firebase session",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const calls=[],stored=JSON.stringify({basics:{fullName:"Alex Example"}});
+  const context={globalThis:null,
+    firebase:{auth:()=>({currentUser:{getIdToken:async()=> "fictional-token"}})},
+    localStorage:{getItem:key=>key==="gmv3-career-profile-local-v1:Abhishek"?stored:null},
+    fetch:async(url,opts)=>{calls.push({url,opts});
+      return {ok:true,json:async()=>url.endsWith("/candidate")?
+        {candidate:"abhishek"}:{answers:[]}}}};
+  context.globalThis=context;
+  vm.runInNewContext(source.match(/async function askGaramaal\(payload\)\{[\s\S]*?\n\}/)[0]+
+    "\nglobalThis.__ask=askGaramaal;",context);
+  assert.deepEqual((await context.__ask({fields:[]})).answers,[]);
+  assert.deepEqual(calls.map(x=>x.url),["/api/autofill/candidate","/api/autofill/answer"]);
+  assert.equal(calls[1].opts.headers.Authorization,"Bearer fictional-token");
+  assert.equal(JSON.parse(calls[1].opts.body).profile.basics.fullName,"Alex Example");
+  assert.equal(context.__ask.toString().includes("chrome.storage"),false);
+});test("connected mode requests the signed-in app tab and fills only the active job tab",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const handlers={},calls=[],status={textContent:""};
+  const control=id=>({value:id==="source"?"garamaal":"",disabled:false,
+    addEventListener:(_event,fn)=>{handlers[id]=fn}});
+  const controls={file:control("file"),source:control("source"),
+    fill:control("fill"),inspect:control("inspect")};
+  const review={replaceChildren(){},append(){}};
+  const doc={querySelector:id=>({
+    "#file":controls.file,"#source":controls.source,"#fill":controls.fill,
+    "#inspect":controls.inspect,"#status":status,"#review":review
+  })[id],createElement:()=>({textContent:"",className:"",append(){}})};
+  const field={id:"gm-autofill-0",label:"Country of residence",type:"select",
+    options:[{label:"Ireland",value:"IE"}],hasValue:false};
+  const salary={id:"gm-autofill-1",label:"Salary expectation",type:"text",hasValue:false};
+  const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"}),set:async()=>{}}},
+    tabs:{query:async q=>q.active?[{id:11,url:"https://jobs.example/apply"}]:
+      [{id:22,url:"https://garamaal.web.app/prototype"}]},
+    scripting:{executeScript:async args=>{
+      calls.push({tabId:args.target.tabId,name:args.func.name,world:args.world});
+      if(args.func.name==="scanForm")return [{result:{fields:[field,salary],job:{}}}];
+      if(args.world==="MAIN")return [{result:{answers:[
+        {fieldId:field.id,answer:"IE",evidenceIds:["e0"]}]}}];
+      return [{result:[true]}];
+    }}};
+  const context={document:doc,chrome,GaramaalMatcher:require("../extension/matcher.js"),
+    GaramaalReasoner:require("../extension/reasoner.js")};
+  vm.runInNewContext(source,context);
+  await handlers.fill();
+  assert.deepEqual(calls.map(x=>x.tabId),[11,22,11]);
+  assert.equal(calls[1].world,"MAIN");
+  assert.match(status.textContent,/1\/1 filled/);
 });

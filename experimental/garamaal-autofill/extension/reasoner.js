@@ -39,7 +39,21 @@
     return {id:field.id,label:field.label,value:answer,
       displayValue:answer,fieldType:field.type,key:"ai"};
   }
-  const api={facts,validate};
+  function validateRemote(field,result){
+    if(!Matcher.eligible(field)||!result||result.fieldId!==field.id)return null;
+    const answer=String(result.answer||"").trim();
+    if(!answer||answer.length>500||!Array.isArray(result.evidenceIds)||!result.evidenceIds.length)return null;
+    if(field.type==="select"||field.type==="radio"){
+      const option=(field.options||[]).find(o=>o.value===answer&&!o.disabled&&o.value);
+      if(!option)return null;
+      return {id:field.id,label:field.label,value:option.value,
+        displayValue:option.label,fieldType:field.type,key:"garamaal"};
+    }
+    if(!["text","email","tel","url","search","textarea","number","date"].includes(field.type))return null;
+    return {id:field.id,label:field.label,value:answer,
+      displayValue:answer,fieldType:field.type,key:"garamaal"};
+  }
+  const api={facts,validate,validateRemote};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
   root.GaramaalReasoner=api;
 })(globalThis);

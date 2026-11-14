@@ -2,7 +2,7 @@
 (function(root){
   const clean=v=>String(v??"").trim();
   const normal=v=>clean(v).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|age|gender|race|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|declaration|terms|reference|referee|emergency|ssn|tax id|social security|conflict of interest|relatives?|family members?/;
+  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|\bage\b|gender|\brace\b|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|declaration|terms|reference|referee|emergency|ssn|tax id|social security|conflict of interest|relatives?|family members?/;
   const textTypes=new Set(["text","email","tel","url","search","textarea"]);
   const valueTypes=new Set([...textTypes,"number","date"]);
   const choiceTypes=new Set(["select","radio"]);
