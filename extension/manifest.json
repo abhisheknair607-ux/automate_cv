@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "Garamaal Autofill (Prototype)",
+  "version": "0.1.0",
+  "description": "User-initiated job detection and candidate autofill. No automatic submission.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
+  "action": {
+    "default_title": "Garamaal Autofill",
+    "default_popup": "popup.html"
+  }
+}

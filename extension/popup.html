@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Garamaal Autofill</title>
+  <style>
+    :root{font:13px system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#202d3c}
+    body{width:340px;max-height:580px;overflow-y:auto;margin:0;background:#f5f7fa}
+    header{padding:16px 17px 11px;background:#fff;border-bottom:1px solid #e5eaf0}
+    h1{font-size:16px;margin:0 0 4px;font-weight:750}
+    h2{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:#607080;margin:0 0 9px}
+    p{margin:5px 0;line-height:1.5}
+    main{padding:13px 15px 17px;display:grid;gap:12px}
+    section{border:1px solid #e5e9ef;background:white;border-radius:11px;padding:12px}
+    label{display:block;font-size:12px;margin:9px 0 4px;font-weight:600}
+    select,input{box-sizing:border-box;width:100%;padding:9px;border:1px solid #cfd8e3;border-radius:7px;background:white;font:inherit}
+    button{border:0;background:#284ab7;color:white;border-radius:8px;padding:10px 12px;font:inherit;font-weight:700;cursor:pointer}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    button.secondary{background:#ecf1f9;color:#27446b}
+    button.tertiary{background:white;color:#a12038;border:1px solid #edc2c9}
+    .buttons{display:flex;gap:7px;margin-top:10px}
+    .buttons button{flex:1}
+    .subtle{color:#5b697a;font-size:11px}
+    .status{border-radius:8px;background:#eaf0fa;color:#153b74;padding:9px 10px;white-space:pre-wrap}
+    .status.error{background:#fff0ef;color:#a72323}
+    .job{line-height:1.5;overflow-wrap:anywhere}
+    .job strong{font-size:13px}
+    .desc{font-size:11px;color:#53677d;max-height:90px;overflow:hidden}
+    #results{display:none}
+    footer{color:#687585;font-size:11px;line-height:1.4;padding:0 2px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Garamaal Autofill <span class="subtle">POC 0.1</span></h1>
+    <p class="subtle">Only works when you click. Never submits applications.</p>
+  </header>
+  <main>
+    <section>
+      <h2>1 · Candidate profile</h2>
+      <label for="candidate">Candidate</label>
+      <select id="candidate">
+        <option value="Abhishek">Abhishek</option>
+        <option value="Pooja">Pooja</option>
+      </select>
+      <p id="profile-state" class="subtle">No profile synced.</p>
+      <button id="sync" class="secondary" type="button">Sync from open Garamaal tab</button>
+      <p class="subtle">Open garamaal.web.app, save the editable Profile draft, then click Sync. This reads only that candidate's local draft.</p>
+      <label for="email">Email (optional; not in existing draft)</label>
+      <input id="email" autocomplete="off" type="email" placeholder="Enter only if needed">
+      <label for="phone">Phone (optional)</label>
+      <input id="phone" autocomplete="off" type="tel" placeholder="Enter only if needed">
+      <button id="save-contact" class="secondary" type="button" style="margin-top:9px">Save contact for this session</button>
+    </section>
+    <section>
+      <h2>2 · Application page</h2>
+      <p class="subtle">On a job posting or application, scan the active page. Fill leaves existing answers untouched and skips sensitive questions.</p>
+      <div class="buttons">
+        <button id="scan" class="secondary" type="button">Detect job</button>
+        <button id="fill" type="button">Fill blank fields</button>
+      </div>
+      <div id="results" aria-live="polite" style="margin-top:11px">
+        <div id="job" class="job"></div>
+        <p id="field-count" class="subtle"></p>
+      </div>
+    </section>
+    <div id="status" class="status" role="status" aria-live="polite">Ready. Start by syncing a saved candidate profile.</div>
+    <section>
+      <h2>Privacy</h2>
+      <p class="subtle">Profile and contact details stay in Chrome extension session storage; they are not sent to Garamaal servers or AI. Reopen the extension on each application step to continue. Review everything before you submit.</p>
+      <button id="clear" class="tertiary" type="button">Clear session information</button>
+    </section>
+    <footer>Prototype limitations: no CV file upload, AI-generated answers, application submission or server-side tracking yet.</footer>
+  </main>
+  <script src="popup.js"></script>
+</body>
+</html>
