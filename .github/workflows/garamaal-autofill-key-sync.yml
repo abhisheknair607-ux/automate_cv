@@ -1,0 +1,37 @@
+name: Garamaal autofill AI key sync
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  id-token: write
+concurrency:
+  group: garamaal-autofill-key-sync
+  cancel-in-progress: false
+jobs:
+  transfer:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Authenticate to Google Cloud without a service-account key
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+      - name: Install Google Cloud SDK
+        uses: google-github-actions/setup-gcloud@v3
+      - name: Validate the existing GitHub key and add one Secret Manager version
+        shell: bash
+        env:
+          AUTOFILL_SOURCE_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$AUTOFILL_SOURCE_KEY"
+          status="$(curl --silent --show-error --max-time 20 --output /dev/null --write-out '%{http_code}' \
+            --header "Authorization: Bearer $AUTOFILL_SOURCE_KEY" \
+            https://api.openai.com/v1/models/gpt-5.4-mini)"
+          test "$status" = 200 || { echo "OpenAI key or model validation failed (HTTP $status)" >&2; exit 1; }
+          printf '%s' "$AUTOFILL_SOURCE_KEY" | gcloud secrets versions add garamaal-autofill-openai-key \
+            --data-file=- --project=abhishek-cv-automation --quiet >/dev/null
+          echo 'Autofill AI key transferred to Secret Manager.'
