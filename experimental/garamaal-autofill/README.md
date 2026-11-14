@@ -20,7 +20,7 @@ Garamaal fills the current job application page only. It never clicks Next, Cont
 
 The fictional profile is stored in Chrome local extension storage. Do not import real personal data into this development profile.
 
-When updating the unpacked extension, click **Reload** at `chrome://extensions`. The toolbar icon now opens a persistent Chrome side panel. For a newly opened job site, click that icon on the site to give the extension temporary access there. A required native dropdown with exactly one enabled real choice is filled automatically; dependent dropdowns are rescanned after each choice. Connected mode may ask Chrome for access to `garamaal.web.app`; allow it, and keep a signed-in Garamaal tab open. If access is still blocked, check the extension Details > Site access setting. Fictional mode inserts sample facts, so clear them before using a real application form.
+When updating the unpacked extension, click **Reload** at `chrome://extensions`. The toolbar icon now opens a persistent Chrome side panel. The BlackRock and Spot.io sample sites have scoped access. For other newly opened job sites, click the Garamaal toolbar icon on that tab to give temporary access. A required native dropdown with exactly one enabled real choice is filled automatically; dependent dropdowns are rescanned after each choice. Connected mode may ask Chrome for access to `garamaal.web.app`; allow it, and keep a signed-in Garamaal tab open. If access is still blocked, check the extension Details > Site access setting. Fictional mode inserts sample facts, so clear them before using a real application form.
 
 ## Connected source release gate
 

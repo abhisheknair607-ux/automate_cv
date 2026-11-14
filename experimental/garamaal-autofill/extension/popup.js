@@ -197,7 +197,8 @@ inspectBtn.addEventListener("click",async()=>{
   inspectBtn.disabled=true;review.replaceChildren();
   try{
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
+    if(!tab?.id)throw Error("No active application tab found");
+    if(!/^https?:\/\//.test(tab.url||""))throw Error("No access to this job page. Click the Garamaal toolbar icon on this tab or allow Site access in extension Details");
     const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],unsupported={}}=result.result||{};
     for(const field of fields.slice(0,35)){
@@ -252,7 +253,8 @@ fillBtn.addEventListener("click",async()=>{
       if(!granted)throw Error("Allow Garamaal site access in Chrome to use your signed-in profile");
     }
     const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
-    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))throw Error("Open an application webpage");
+    if(!tab?.id)throw Error("No active application tab found");
+    if(!/^https?:\/\//.test(tab.url||""))throw Error("No access to this job page. Click the Garamaal toolbar icon on this tab or allow Site access in extension Details");
     let applied;
     try{applied=await fillSingleRequiredChoices(tab.id);}
     catch(_){throw Error("Cannot access this application tab. Click the Garamaal toolbar icon on this site, then try again");}

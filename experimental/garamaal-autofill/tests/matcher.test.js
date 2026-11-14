@@ -324,6 +324,8 @@ test("toolbar action opens a persistent side panel without broad site access",()
   assert.equal(manifest.action.default_popup,undefined);
   assert.ok(manifest.permissions.includes("sidePanel"));
   assert.equal(manifest.optional_host_permissions,undefined);
+  assert.ok(manifest.host_permissions.includes("https://blackrock.tal.net/*"));
+  assert.ok(manifest.host_permissions.includes("https://app.spott.io/*"));
   const worker=fs.readFileSync(require.resolve("../extension/background.js"),"utf8");
   assert.match(worker,/openPanelOnActionClick:true/);
 });
@@ -350,4 +352,18 @@ test("scanner reads a required dropdown question from an adjacent table cell",()
   assert.equal(field.label,"What Region are you applying to?");
   assert.equal(field.required,true);
   assert.equal(require("../extension/matcher.js").singleRequiredChoice(field)?.value,"EMEA");
+});
+test("side panel explains when a job tab URL is withheld",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const handlers={},status={textContent:""};
+  const control=id=>({value:id==="source"?"garamaal":"",
+    disabled:false,addEventListener:(_event,fn)=>{handlers[id]=fn}});
+  const nodes={"#file":control("file"),"#source":control("source"),
+    "#fill":control("fill"),"#inspect":control("inspect"),
+    "#status":status,"#review":{replaceChildren(){}}};
+  const chrome={storage:{local:{get:(_keys,cb)=>cb({source:"garamaal"})}},
+    tabs:{query:async()=>[{id:11}]}};
+  vm.runInNewContext(source,{document:{querySelector:id=>nodes[id]},chrome});
+  await handlers.inspect();
+  assert.match(status.textContent,/No access to this job page/);
 });
