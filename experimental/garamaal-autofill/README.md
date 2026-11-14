@@ -21,6 +21,8 @@ Garamaal fills the current job application page only. The side panel lists each 
 
 The fictional profile is stored in Chrome local extension storage. Do not import real personal data into this development profile.
 
+Garamaal Career Profile now includes the Jobright-style Personal, Education, Work Experience, Skills and Equal Employment sections while retaining the existing career sections. The editor starts those fields empty and preserves older local drafts. Equal Employment answers, the address and visa preference remain browser-local and are excluded from connected autofill requests; email, phone and LinkedIn can be used as candidate evidence when the user selects connected autofill.
+
 When updating the unpacked extension, click **Reload** at `chrome://extensions`. The toolbar icon now opens a persistent Chrome side panel. The BlackRock and Spot.io sample sites have scoped access. For other newly opened job sites, click the Garamaal toolbar icon on that tab to give temporary access. A required native dropdown with exactly one enabled real choice is filled automatically; dependent dropdowns are rescanned after each choice. Connected mode may ask Chrome for access to `garamaal.web.app`; allow it, and keep a signed-in Garamaal tab open. If access is still blocked, check the extension Details > Site access setting. Fictional mode inserts sample facts, so clear them before using a real application form.
 
 ## Connected source release gate

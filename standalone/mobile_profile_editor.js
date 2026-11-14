@@ -10,23 +10,25 @@
  const who=()=>typeof state!=="undefined"&&state.candidate==="Pooja"?"Pooja":"Abhishek";
  const storeKey=name=>"gmv3-career-profile-local-v1:"+name;
  const sections=[
-  ["identity","01","Personal details","Name, headline, location, summary"],
-  ["work","02","Work experience","Employers, responsibilities and outcomes"],
-  ["education","03","Education","Degrees and institutions"],
-  ["certifications","04","Certifications","ACCA, QFA and further qualifications"],
-  ["achievements","05","Achievements","Outcomes, awards and evidence"],
-  ["projects","06","Projects","Career projects, ownership, results and proof"],
-  ["skills","07","Skills & interests","Tools, expertise and interests"],
-  ["story","08","Personal story","An optional narrative for applications"],
-  ["preferences","09","Career preferences","Roles, departments and locations"]
+  ["identity","01","Personal details","Name, contact, location and summary"],
+  ["education","02","Education","Qualifications, dates and grades"],
+  ["work","03","Work experience","Employers, responsibilities and outcomes"],
+  ["skills","04","Skills & interests","Tools, expertise and interests"],
+  ["equalEmployment","05","Equal Employment","Optional personal and work-authorisation answers"],
+  ["certifications","06","Certifications","ACCA, QFA and further qualifications"],
+  ["achievements","07","Achievements","Outcomes, awards and evidence"],
+  ["projects","08","Projects","Career projects, ownership, results and proof"],
+  ["story","09","Personal story","An optional narrative for applications"],
+  ["preferences","10","Career preferences","Roles, departments and locations"]
  ];
  function initial(){return {
-  basics:{fullName:"",email:"",phone:"",headline:"",city:"",country:"",summary:""},
+  basics:{fullName:"",email:"",phone:"",address:"",linkedin:"",headline:"",city:"",country:"",summary:""},
   work:[{employer:"",title:"",period:"",achievements:""}],
-  education:[{institution:"",qualification:"",period:""}],
+  education:[{institution:"",qualification:"",period:"",grade:""}],
   projects:[{name:"",role:"",period:"",summary:"",outcomes:"",tools:"",evidence:""}],
   certifications:"",achievements:"",skills:"",story:"",
-  preferences:{roles:"",departments:"",locations:"",workType:"",visa:""}
+  preferences:{roles:"",departments:"",locations:"",workType:"",visa:""},
+  equalEmployment:{countries:"",irelandCitizen:"",irelandWorkAuthorised:"",irelandSponsorship:"",irelandAuthorizationBasis:"",irelandVisaType:"",disability:"",lgbtq:"",gender:"",veteran:"",race:"",hispanicLatino:"",sexualOrientation:"",pronouns:""}
  }}
  function getProfile(name){
   let raw=null;
@@ -34,7 +36,7 @@
   const base=initial();
   if(!raw||typeof raw!=="object"||Array.isArray(raw))return base;
   for(const k of ["certifications","achievements","skills","story"])if(typeof raw[k]==="string")base[k]=raw[k].slice(0,20000);
-  for(const k of ["basics","preferences"]){if(raw[k]&&typeof raw[k]==="object"){
+  for(const k of ["basics","preferences","equalEmployment"]){if(raw[k]&&typeof raw[k]==="object"){
    for(const field of Object.keys(base[k]))if(typeof raw[k][field]==="string")base[k][field]=raw[k][field].slice(0,4000)
   }}
   for(const k of ["work","education","projects"])if(Array.isArray(raw[k]))base[k]=raw[k].slice(0,12).map(obj=>{
@@ -47,7 +49,7 @@
  function filled(d,key){
   if(key==="identity")return Object.values(d.basics).some(v=>v.trim());
   if(key==="work"||key==="education"||key==="projects")return d[key].some(row=>Object.values(row).some(v=>v.trim()));
-  if(key==="preferences")return Object.values(d.preferences).some(v=>v.trim());
+  if(key==="preferences"||key==="equalEmployment")return Object.values(d[key]).some(v=>v.trim());
   return !!String(d[key]).trim();
  }
  function complete(d){return sections.filter(([id])=>filled(d,id)).length}
@@ -91,7 +93,8 @@
     field("projects."+i+".evidence","Evidence link or source reference",item.evidence):
     field("education."+i+".institution","Institution",item.institution)+
     field("education."+i+".qualification","Qualification",item.qualification)+
-    field("education."+i+".period","Dates",item.period))+
+    field("education."+i+".period","Dates",item.period)+
+    field("education."+i+".grade","Grade / result",item.grade))+
    '</div>').join("")+
    '<button type="button" class="gmv3-pf-add" data-gmp-add="'+key+'">＋ Add '+(work?"experience":project?"project":"education")+'</button>';
  }
@@ -99,7 +102,9 @@
   if(key==="identity")return field("basics.fullName","Full name",d.basics.fullName)+
     '<div class="gmv3-pf-dual">'+field("basics.email","Application email",d.basics.email,{placeholder:"name@example.com"})+
     field("basics.phone","Contact phone",d.basics.phone,{placeholder:"Include country code"})+'</div>'+
-    '<p class="gmv3-pf-contact-note">Connected autofill uses these saved contact details for application forms. This draft stays in this browser until you use autofill.</p>'+
+    field("basics.address","Address",d.basics.address)+
+    field("basics.linkedin","LinkedIn URL",d.basics.linkedin,{placeholder:"https://www.linkedin.com/in/..."})+
+    '<p class="gmv3-pf-contact-note">Connected autofill can use saved email, phone and LinkedIn. Address and Equal Employment answers stay in this browser. The draft is sent only when you use connected autofill, without those local-only fields.</p>'+
     field("basics.headline","Professional headline",d.basics.headline,{placeholder:"e.g. Finance professional"})+
     '<div class="gmv3-pf-dual">'+field("basics.city","City",d.basics.city)+field("basics.country","Country",d.basics.country)+'</div>'+
     field("basics.summary","Professional summary",d.basics.summary,{multi:true});
@@ -108,6 +113,20 @@
   if(key==="achievements")return field("achievements","Achievements and evidence",d.achievements,{multi:true,rows:4,placeholder:"Outcomes, metrics, awards, project links"});
   if(key==="skills")return field("skills","Skills, software and interests",d.skills,{multi:true,rows:4,placeholder:"Separate skills with commas or lines"});
   if(key==="story")return field("story","My professional story",d.story,{multi:true,rows:5,placeholder:"Optional context for future CVs and letters"});
+  if(key==="equalEmployment")return field("equalEmployment.countries","Countries where you want to work",d.equalEmployment.countries)+
+   field("equalEmployment.irelandCitizen","Are you a citizen of Ireland?",d.equalEmployment.irelandCitizen)+
+   field("equalEmployment.irelandWorkAuthorised","Legally authorised to work in Ireland?",d.equalEmployment.irelandWorkAuthorised)+
+   field("equalEmployment.irelandSponsorship","Need employer sponsorship in Ireland?",d.equalEmployment.irelandSponsorship)+
+   field("equalEmployment.irelandAuthorizationBasis","Ireland authorisation basis",d.equalEmployment.irelandAuthorizationBasis)+
+   field("equalEmployment.irelandVisaType","Ireland work permit or visa type",d.equalEmployment.irelandVisaType)+
+   field("equalEmployment.disability","Disability",d.equalEmployment.disability)+
+   field("equalEmployment.lgbtq","LGBTQ+ identity",d.equalEmployment.lgbtq)+
+   field("equalEmployment.gender","Gender",d.equalEmployment.gender)+
+   field("equalEmployment.veteran","Veteran status",d.equalEmployment.veteran)+
+   field("equalEmployment.race","Race",d.equalEmployment.race)+
+   field("equalEmployment.hispanicLatino","Hispanic or Latino",d.equalEmployment.hispanicLatino)+
+   field("equalEmployment.sexualOrientation","Sexual orientation",d.equalEmployment.sexualOrientation)+
+   field("equalEmployment.pronouns","Pronouns",d.equalEmployment.pronouns);
   if(key==="preferences")return field("preferences.roles","Preferred job titles",d.preferences.roles)+
    field("preferences.departments","Departments",d.preferences.departments)+
    field("preferences.locations","Preferred locations",d.preferences.locations)+

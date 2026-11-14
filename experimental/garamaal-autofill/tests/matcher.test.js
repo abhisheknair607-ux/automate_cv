@@ -181,7 +181,7 @@ test("connected answers still require evidence and exact enabled controls",()=>{
 });
 test("Garamaal tab uses its saved profile and same-origin Firebase session",async()=>{
   const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
-  const calls=[],stored=JSON.stringify({basics:{fullName:"Alex Example"}});
+  const calls=[],stored=JSON.stringify({basics:{fullName:"Alex Example",address:"Local only"},equalEmployment:{disability:"Private"},preferences:{visa:"Private"}});
   const context={globalThis:null,
     firebase:{auth:()=>({currentUser:{getIdToken:async()=> "fictional-token"}})},
     localStorage:{getItem:key=>key==="gmv3-career-profile-local-v1:Abhishek"?stored:null},
@@ -194,7 +194,11 @@ test("Garamaal tab uses its saved profile and same-origin Firebase session",asyn
   assert.deepEqual((await context.__ask({fields:[]})).answers,[]);
   assert.deepEqual(calls.map(x=>x.url),["/api/autofill/candidate","/api/autofill/answer"]);
   assert.equal(calls[1].opts.headers.Authorization,"Bearer fictional-token");
-  assert.equal(JSON.parse(calls[1].opts.body).profile.basics.fullName,"Alex Example");
+  const sent=JSON.parse(calls[1].opts.body).profile;
+  assert.equal(sent.basics.fullName,"Alex Example");
+  assert.equal(sent.basics.address,undefined);
+  assert.equal(sent.equalEmployment,undefined);
+  assert.equal(sent.preferences.visa,undefined);
   assert.equal(context.__ask.toString().includes("chrome.storage"),false);
 });test("connected mode requests the signed-in app tab and fills only the active job tab",async()=>{
   const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");

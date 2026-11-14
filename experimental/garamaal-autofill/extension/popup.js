@@ -304,7 +304,21 @@ async function askGaramaal(payload){
     let profile=null;
     try{
       const raw=localStorage.getItem("gmv3-career-profile-local-v1:"+name);
-      if(raw&&raw.length<=90000)profile=JSON.parse(raw);
+      if(raw&&raw.length<=90000){
+        const saved=JSON.parse(raw);
+        if(saved&&typeof saved==="object"&&!Array.isArray(saved)){
+          const {equalEmployment,...autofillProfile}=saved;
+          profile=autofillProfile;
+          if(profile.basics&&typeof profile.basics==="object"){
+            profile.basics={...profile.basics};
+            delete profile.basics.address;
+          }
+          if(profile.preferences&&typeof profile.preferences==="object"){
+            profile.preferences={...profile.preferences};
+            delete profile.preferences.visa;
+          }
+        }
+      }
     }catch(_){}
     const response=await fetch("/api/autofill/answer",{
       method:"POST",cache:"no-store",headers,
