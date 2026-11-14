@@ -4,6 +4,7 @@ const statusEl=document.querySelector("#status");
 const review=document.querySelector("#review");
 const fillBtn=document.querySelector("#fill");
 const inspectBtn=document.querySelector("#inspect");
+const nextBtn=document.querySelector("#next");
 const sourceSelect=document.querySelector("#source");
 const demoImport=document.querySelector("#demoImport");
 const connectedHint=document.querySelector("#connectedHint");
@@ -84,13 +85,16 @@ function scanForm(){
   const placeholder=o=>!o||!String(o.value||"").trim()||
     /^(select|choose|please select|please choose|pick one|none selected)\b/i.test(asText(o));
   const fields=[],seenRadio=new Set();
-  let i=0;
+  let i=1+Math.max(-1,...[...document.querySelectorAll("[data-garamaal-autofill-id]")]
+    .map(x=>Number((x.getAttribute("data-garamaal-autofill-id")||"").match(/^gm-autofill-(\d+)$/)?.[1]))
+    .filter(Number.isInteger));
   for(const e of document.querySelectorAll("input,textarea,select")){
     if(fields.length>=160)break;
     if(!visible(e)||e.disabled||e.readOnly)continue;
     const type=e.tagName==="TEXTAREA"?"textarea":e.tagName==="SELECT"?"select":e.type||"text";
     if(["hidden","password","file","checkbox","submit","button","reset"].includes(type))continue;
-    const id="gm-autofill-"+i++;
+    const previous=e.getAttribute("data-garamaal-autofill-id")||"";
+    const id=/^gm-autofill-\d+$/.test(previous)?previous:"gm-autofill-"+i++;
     if(type==="radio"){
       const fs=e.closest("fieldset"),name=e.name;
       const group=[...document.querySelectorAll('input[type="radio"]')].filter(x=>
@@ -184,15 +188,84 @@ function fillForm(items){
   }
   return results;
 }
-function showResults(pending,results){
+function locateField(id){
+  if(!/^gm-autofill-\d+$/.test(id))return false;
+  const field=[...document.querySelectorAll("[data-garamaal-autofill-id]")]
+    .find(e=>e.getAttribute("data-garamaal-autofill-id")===id);
+  if(!field)return false;
+  field.scrollIntoView({block:"center",behavior:"smooth"});
+  const prior=field.style.outline,offset=field.style.outlineOffset;
+  field.style.outline="3px solid #176750";
+  field.style.outlineOffset="3px";
+  setTimeout(()=>{field.style.outline=prior;field.style.outlineOffset=offset;},2500);
+  return true;
+}
+function showResults(pending,results,tabId){
   pending.forEach((p,i)=>{
     if(!results[i])return;
     const row=document.createElement("div");row.className="row";
-    const title=document.createElement("strong");title.textContent=p.label.split(" | ")[0];
-    const value=document.createElement("small");value.textContent=p.displayValue;
-    const detail=document.createElement("div");detail.append(title,value);row.append(detail);review.append(row);
+    const body=document.createElement("div");
+    const title=document.createElement("strong");
+    title.textContent=(p.label||"").split(" | ")[0]||"Application question";
+    const value=document.createElement("div");value.className="answer";
+    value.textContent=String(p.displayValue||p.value||"");
+    const where=document.createElement("div");where.className="where";
+    where.textContent=p.context?"Section: "+p.context:"On the current application page";
+    body.append(title,value,where);
+    const find=document.createElement("button");find.type="button";
+    find.textContent="Show";
+    find.addEventListener?.("click",async()=>{
+      try{
+        const [current]=await chrome.tabs.query({active:true,currentWindow:true});
+        if(current?.id!==tabId)throw Error("Return to the application tab first");
+        const [located]=await chrome.scripting.executeScript({target:{tabId},func:locateField,
+          args:[p.id]});
+        if(!located.result)throw Error("This field is no longer on the page");
+      }catch(e){status(e.message);}
+    });
+    row.append(body,find);review.append(row);
   });
 }
+function clickNext(){
+  const safe=/^(next|next page|next step|continue|save and continue|save & continue)$/i;
+  const visible=e=>e.getClientRects().length>0&&
+    getComputedStyle(e).visibility!=="hidden"&&getComputedStyle(e).display!=="none";
+  const label=e=>String(e.getAttribute("aria-label")||
+    (e.tagName==="INPUT"?e.value:e.innerText||e.textContent)||"")
+    .trim().replace(/\s+/g," ");
+  const candidates=[...document.querySelectorAll(
+    "button,input[type=button],input[type=submit],a,[role=button]")].filter(e=>{
+    if(!visible(e)||e.disabled||e.getAttribute("aria-disabled")==="true")return false;
+    if(!safe.test(label(e)))return false;
+    if(e.tagName==="A"){
+      try{if(new URL(e.href,location.href).origin!==location.origin)return false;}
+      catch(_){return false;}
+    }
+    return true;
+  });
+  if(candidates.length!==1)return {clicked:false,count:candidates.length};
+  const target=candidates[0],name=label(target);
+  target.click();
+  return {clicked:true,label:name};
+}
+nextBtn?.addEventListener("click",async()=>{
+  nextBtn.disabled=true;
+  try{
+    const [tab]=await chrome.tabs.query({active:true,currentWindow:true});
+    if(!tab?.id||!/^https?:\/\//.test(tab.url||""))
+      throw Error("Open an accessible application page first");
+    const [result]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:clickNext});
+    if(!result.result?.clicked){
+      status(result.result?.count>1?
+        "More than one Next or Continue control found. Advance on the page manually.":
+        "No clear Next or Continue control found. Advance on the page manually.");
+      return;
+    }
+    review.replaceChildren();
+    status("Pressed "+result.result.label+". Check the page for validation errors, then use Fill current page again.");
+  }catch(e){status("Next unavailable: "+e.message);}
+  finally{nextBtn.disabled=false;}
+});
 inspectBtn.addEventListener("click",async()=>{
   inspectBtn.disabled=true;review.replaceChildren();
   try{
@@ -258,7 +331,7 @@ fillBtn.addEventListener("click",async()=>{
     let applied;
     try{applied=await fillSingleRequiredChoices(tab.id);}
     catch(_){throw Error("Cannot access this application tab. Click the Garamaal toolbar icon on this site, then try again");}
-    showResults(applied,applied.map(()=>true));
+    showResults(applied,applied.map(()=>true),tab.id);
     const [scan]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:scanForm});
     const {fields=[],job={}}=scan.result||{};
     let pending=[],note="";
@@ -303,16 +376,18 @@ fillBtn.addEventListener("click",async()=>{
       }
       pending=[...direct,...ai];
     }
+    const fieldById=new Map(fields.map(f=>[f.id,f]));
+    pending=pending.map(p=>({...p,context:fieldById.get(p.id)?.context||""}));
     const fillable=new Set(fields.filter(f=>GaramaalMatcher.eligible(f)).map(f=>f.id));
     for(const item of pending)fillable.add(item.id);
-    if(!pending.length){status(applied.length+"/"+(applied.length+fillable.size)+" eligible fields filled; review remaining fields manually."+note);return;}
+    if(!pending.length){status(applied.length+"/"+(applied.length+fillable.size)+" eligible fields filled; review the answers and remaining fields."+note);return;}
     const [current]=await chrome.tabs.query({active:true,currentWindow:true});
     if(current?.id!==tab.id)throw Error("Active tab changed; try again");
     const [r]=await chrome.scripting.executeScript({target:{tabId:tab.id},func:fillForm,
       args:[pending.map(({id,value,fieldType})=>({id,value,fieldType}))]});
-    const results=r.result||[];showResults(pending,results);
+    const results=r.result||[];showResults(pending,results,tab.id);
     status((applied.length+results.filter(Boolean).length)+"/"+(applied.length+fillable.size)+
-      " eligible fields filled. Review this page, then manually advance."+note);
+      " eligible fields filled. Review the answers, then use Next page."+note);
   }catch(e){status("Autofill failed: "+e.message);}
   finally{fillBtn.disabled=false;}
 });

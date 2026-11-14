@@ -48,7 +48,7 @@
       !/^(select|choose|please select|please choose|pick one|none selected)$/i.test(clean(o.label)));
     if(choices.length!==1)return null;
     const option=choices[0];
-    return {id:field.id,label:field.label,key:"singleChoice",value:option.value,
+    return {id:field.id,label:field.label,context:field.context||"",key:"singleChoice",value:option.value,
       displayValue:option.label,fieldType:field.type};
   }
   function isoBirthDate(p){

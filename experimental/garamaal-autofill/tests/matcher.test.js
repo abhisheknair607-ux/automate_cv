@@ -367,3 +367,80 @@ test("side panel explains when a job tab URL is withheld",async()=>{
   await handlers.inspect();
   assert.match(status.textContent,/No access to this job page/);
 });
+test("Next clicks one clear control and never a Submit control",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const fn=source.match(/function clickNext\(\)\{[\s\S]*?\n\}/)[0];
+  const make=(text,tagName="BUTTON")=>({tagName,innerText:text,
+    getClientRects:()=>[{}],getAttribute:()=>null,disabled:false,
+    clicks:0,click(){this.clicks++}});
+  const next=make("Save and Continue"),submit=make("Submit Application");
+  const buttons=[next,submit];
+  const context={document:{querySelectorAll:()=>buttons},
+    getComputedStyle:()=>({visibility:"visible",display:"block"}),
+    location:{href:"https://jobs.example/apply",origin:"https://jobs.example"},URL};
+  vm.runInNewContext(fn+"\nglobalThis.__next=clickNext;",context);
+  assert.equal(context.__next().clicked,true);
+  assert.equal(next.clicks,1);
+  assert.equal(submit.clicks,0);
+  buttons.push(make("Next"));
+  assert.equal(context.__next().clicked,false,"ambiguous navigation stays manual");
+  assert.equal(next.clicks,1);
+  buttons.splice(0,buttons.length,submit);
+  assert.equal(context.__next().clicked,false,"Submit alone stays manual");
+  assert.equal(submit.clicks,0);
+});
+
+test("review lists the filled question and answer with an on-page locator",async()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const nodes={},created=[];
+  const make=()=>({children:[],textContent:"",className:"",
+    append(...children){this.children.push(...children)},
+    addEventListener(_type,fn){this.onClick=fn}});
+  const review=make();
+  const doc={querySelector:key=>key==="#review"?review:make(),
+    createElement:()=>{const node=make();created.push(node);return node}};
+  const calls=[];
+  const chrome={storage:{local:{get(){}}},tabs:{query:async()=>[{id:42}]},
+    scripting:{executeScript:async args=>{calls.push(args);return [{result:true}]}}};
+  const context={document:doc,chrome};
+  vm.runInNewContext(source+"\nglobalThis.__show=showResults;",context);
+  context.__show([{id:"gm-autofill-2",label:"What Program are you applying to?",
+    displayValue:"Graduate Rotation",context:"Position Preference"}],[true],42);
+  assert.equal(review.children.length,1);
+  const [body,button]=review.children[0].children;
+  assert.equal(body.children[0].textContent,"What Program are you applying to?");
+  assert.equal(body.children[1].textContent,"Graduate Rotation");
+  assert.match(body.children[2].textContent,/Position Preference/);
+  await button.onClick();
+  assert.equal(calls[0].target.tabId,42);
+  assert.equal(calls[0].func.name,"locateField");
+});
+test("field locator IDs remain stable when a dependent field appears",()=>{
+  const source=fs.readFileSync(require.resolve("../extension/popup.js"),"utf8");
+  const inputs=[];
+  const make=name=>{
+    const attrs={};
+    return {tagName:"INPUT",type:"text",name,id:"",value:"",
+      labels:[],disabled:false,readOnly:false,parentElement:null,
+      getClientRects:()=>[{}],closest:()=>null,
+      getAttribute:key=>attrs[key]||"",
+      setAttribute:(key,value)=>{attrs[key]=value}};
+  };
+  const region=make("region"),program=make("program"),year=make("year");
+  inputs.push(region,year);
+  const stub={addEventListener(){},replaceChildren(){}};
+  const doc={querySelector:key=>key.startsWith("#")?stub:null,getElementById:()=>null,
+    querySelectorAll:key=>key==="[data-garamaal-autofill-id]"?
+      inputs.filter(x=>x.getAttribute("data-garamaal-autofill-id")):
+      key==="input,textarea,select"?inputs:[]};
+  const context={document:doc,chrome:{storage:{local:{get(){}}}},
+    getComputedStyle:()=>({visibility:"visible"})};
+  vm.runInNewContext(source+"\nglobalThis.__scanForm=scanForm;",context);
+  context.__scanForm();
+  const first=[region,year].map(x=>x.getAttribute("data-garamaal-autofill-id"));
+  inputs.splice(1,0,program);
+  context.__scanForm();
+  assert.deepEqual([region,year].map(x=>x.getAttribute("data-garamaal-autofill-id")),first);
+  assert.notEqual(program.getAttribute("data-garamaal-autofill-id"),first[0]);
+  assert.notEqual(program.getAttribute("data-garamaal-autofill-id"),first[1]);
+});
