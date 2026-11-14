@@ -1,15 +1,18 @@
 {
-  "manifest_version": 3,
-  "name": "Garamaal Autofill (MVP)",
-  "version": "0.1.0",
-  "description": "Local profile autofill prototype; never submits applications",
-  "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
-  ],
-  "action": {
-    "default_title": "Garamaal Autofill",
-    "default_popup": "popup.html"
-  }
+    "manifest_version":  3,
+    "name":  "Garamaal Autofill (MVP)",
+    "version":  "0.2.0",
+    "description":  "Current-page job application autofill; never navigates or submits",
+    "permissions":  [
+                        "activeTab",
+                        "scripting",
+                        "storage"
+                    ],
+    "action":  {
+                   "default_title":  "Garamaal Autofill",
+                   "default_popup":  "popup.html"
+               },
+    "host_permissions":  [
+                             "http://127.0.0.1:8766/*"
+                         ]
 }

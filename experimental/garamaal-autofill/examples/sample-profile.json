@@ -1,17 +1,37 @@
 {
-  "schemaVersion": "garamaal-profile-v1",
-  "basics": {
-    "fullName": "Alex Example",
-    "firstName": "Alex",
-    "lastName": "Example",
-    "email": "alex@example.com",
-    "phone": "+353 87 000 0000",
-    "city": "Dublin",
-    "country": "Ireland",
-    "linkedin": "https://www.linkedin.com/in/alex-example/"
-  },
-  "work": [],
-  "education": [],
-  "skills": [],
-  "certifications": []
+    "schemaVersion":  "garamaal-profile-v1",
+    "basics":  {
+                   "fullName":  "Alex Example",
+                   "firstName":  "Alex",
+                   "lastName":  "Example",
+                   "email":  "alex@example.com",
+                   "phone":  "+353 87 000 0000",
+                   "city":  "Dublin",
+                   "country":  "Ireland",
+                   "linkedin":  "https://www.linkedin.com/in/alex-example/",
+                   "dateOfBirth":  "1994-04-12"
+               },
+    "work":  [
+                 {
+                     "achievements":  [
+                                          "Built quarterly financial forecasts for three business units"
+                                      ],
+                     "title":  "Financial Analyst",
+                     "employer":  "Fictional Finance Ltd"
+                 }
+             ],
+    "education":  [
+                      {
+                          "field":  "Finance",
+                          "degree":  "BSc",
+                          "institution":  "Example University"
+                      }
+                  ],
+    "skills":  [
+                   "Financial modelling",
+                   "Budget analysis"
+               ],
+    "certifications":  [
+
+                       ]
 }

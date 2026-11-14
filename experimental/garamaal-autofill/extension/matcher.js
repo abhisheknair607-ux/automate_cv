@@ -2,9 +2,12 @@
 (function(root){
   const clean=v=>String(v??"").trim();
   const normal=v=>clean(v).toLowerCase().replace(/[^a-z0-9]+/g," ").trim();
-
+  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|age|gender|race|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|declaration|terms|reference|referee|emergency|ssn|tax id|social security|conflict of interest|relatives?|family members?/;
+  const textTypes=new Set(["text","email","tel","url","search","textarea"]);
+  const valueTypes=new Set([...textTypes,"number","date"]);
+  const choiceTypes=new Set(["select","radio"]);
   function profile(p){
-    const b=p?.basics||{}, name=clean(b.fullName);
+    const b=p?.basics||{},name=clean(b.fullName);
     return {
       firstName:clean(b.firstName)||name.split(/\s+/)[0]||"",
       lastName:clean(b.lastName)||name.split(/\s+/).slice(1).join(" "),
@@ -16,7 +19,6 @@
       title:clean(p?.work?.[0]?.title)
     };
   }
-
   const rules=[
     ["email",/(?:^| )e ?mail(?: address)?(?:$| )/],
     ["phone",/(?:^| )(?:phone|mobile|telephone)(?: number)?(?:$| )/],
@@ -30,55 +32,84 @@
     ["employer",/(?:^| )(?:current|most recent) (?:company|employer)(?:$| )/],
     ["title",/(?:^| )(?:current|most recent) (?:job title|position title)(?:$| )/]
   ];
-  const protectedField=/password|passcode|verification|captcha|security|national id|passport|birth|age|gender|race|ethnic|disab|veteran|medical|health|criminal|salary|compensation|sponsorship|visa|work authori|signature|consent|reference|referee|emergency|ssn|tax id|social security/;
-
-  // Relatives-at-employer question is a deliberately narrow default-answer rule.
-  // It MUST NOT apply to other unknown eligibility, compliance or legal questions.
-  function isEmployerFamilyQuestion(label){
+  function eligible(field){
+    if(!field||field.hasValue||field.disabled||field.readOnly)return false;
+    if(![...valueTypes,...choiceTypes].includes(field.type))return false;
+    return !!normal(field.label)&&!protectedField.test(normal(field.label));
+  }
+  function optionFor(options,candidates){
+    const wanted=candidates.map(normal).filter(Boolean);
+    return (options||[]).find(o=>!o.disabled&&clean(o.value)&&
+      wanted.some(x=>normal(o.label)===x||normal(o.value)===x))||null;
+  }
+  function isoBirthDate(p){
+    const s=clean(p?.basics?.dateOfBirth);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return null;
+    const [year,month,day]=s.split("-").map(Number);
+    const d=new Date(Date.UTC(year,month-1,day));
+    return d.getUTCFullYear()===year&&d.getUTCMonth()===month-1&&
+      d.getUTCDate()===day?{iso:s,year,month,day}:null;
+  }
+  function birthPart(label){
     const s=normal(label);
-    return /\b(relatives?|family members?|family relationships?|familial|related to|spouse|siblings?|parents?|blood relations?)\b/.test(s) &&
-      /\b(employ(?:ed|ment|ee|er)?|working?|works|work|company|organisation|organization|firm|business|directors?|board|executives?|officers?|here)\b/.test(s);
-  }
-  function relativesAnswer(p, context){
-    const company=normal(context?.companyName);
-    const byCompany=p?.declarations?.relativesByCompany;
-    // Only an exact employer-specific positive assertion can produce Yes.
-    if(company&&byCompany&&typeof byCompany==="object"&&!Array.isArray(byCompany)){
-      for(const [employer,answer] of Object.entries(byCompany)){
-        if(normal(employer)===company&&(answer===true||normal(answer)==="yes"))return "Yes";
-      }
+    if(/(?:^| )(?:date of birth|birth date|dob|birth (?:day|month|year)|(?:day|month|year) of birth)(?:$| )/.test(s)){
+      const m=s.match(/(?:birth|dob) (day|month|year)\b/)||
+        s.match(/\b(day|month|year) (?:of )?birth\b/);
+      return m?m[1]:"date";
     }
-    return "No";
+    return null;
   }
-  function choiceForAnswer(options, answer){
-    const wanted=answer.toLowerCase();
-    return (options||[]).find(o=>{
-      const label=normal(o.label),value=normal(o.value);
-      return label===wanted||label.startsWith(wanted+" ")||value===wanted;
-    })||null;
-  }
-  function suggest(field,p,context={}){
-    if(!field||field.hasValue||field.disabled||field.readOnly)return null;
-    const label=normal(field.label);
-    if(!label)return null;
-    if(field.type==="select"||field.type==="radio"){
-      if(!isEmployerFamilyQuestion(label))return null;
-      const answer=relativesAnswer(p,context),choice=choiceForAnswer(field.options,answer);
-      if(!choice)return null;
-      return {id:field.id,label:field.label,key:"relativesAtEmployer",
-        value:choice.value,displayValue:choice.label||answer,fieldType:field.type};
+  function birthSuggestion(field,p){
+    const part=birthPart(field.label),date=isoBirthDate(p);
+    if(!part||!date||field.hasValue||field.disabled||field.readOnly)return null;
+    let value,displayValue;
+    if(part==="date"){
+      if(field.type!=="date")return null;
+      value=date.iso;displayValue=date.iso;
+    }else{
+      const n=date[part],padded=String(n).padStart(2,"0");
+      const monthNames=["January","February","March","April","May","June",
+        "July","August","September","October","November","December"];
+      const candidates=part==="month"?
+        [String(n),padded,monthNames[n-1],monthNames[n-1].slice(0,3)]:
+        [String(n),padded];
+      if(choiceTypes.has(field.type)){
+        const option=optionFor(field.options,candidates);
+        if(!option)return null;
+        value=option.value;displayValue=option.label;
+      }else if(field.type==="number"||field.type==="text"){
+        value=String(n);displayValue=value;
+      }else return null;
     }
-    if(!["text","email","tel","url","search","textarea"].includes(field.type))return null;
-    if(protectedField.test(label))return null;
-    const hit=rules.find(([,re])=>re.test(label));
-    if(!hit)return null;
-    const value=profile(p)[hit[0]];if(!value)return null;
-    if(field.type==="email"&&hit[0]!=="email")return null;
-    if(field.type==="tel"&&hit[0]!=="phone")return null;
-    return {id:field.id,label:field.label,key:hit[0],value,
+    return {id:field.id,label:field.label,key:"dateOfBirth",value,displayValue,
+      fieldType:field.type};
+  }
+  function suggest(field,p){
+    if(!field)return null;
+    const birth=birthSuggestion(field,p);
+    if(birth)return birth;
+    if(!eligible(field))return null;
+    const hit=rules.find(([,re])=>re.test(normal(field.label)));
+    const auto={"given-name":"firstName","family-name":"lastName",name:"fullName",
+      email:"email",tel:"phone","address-level2":"city","country-name":"country"}[field.autocomplete];
+    if(hit&&auto&&hit[0]!==auto)return null;
+    const key=hit?.[0]||auto;
+    if(!key)return null;
+    const value=profile(p)[key];if(!value)return null;
+    if(choiceTypes.has(field.type)){
+      const option=optionFor(field.options,[value]);
+      if(!option)return null;
+      return {id:field.id,label:field.label,key,value:option.value,
+        displayValue:option.label,fieldType:field.type};
+    }
+    if(!textTypes.has(field.type))return null;
+    if(field.type==="email"&&key!=="email")return null;
+    if(field.type==="tel"&&key!=="phone")return null;
+    if(field.type==="url"&&key!=="linkedin")return null;
+    return {id:field.id,label:field.label,key,value,
       displayValue:value,fieldType:field.type};
   }
-  const api={profile,suggest,isEmployerFamilyQuestion,relativesAnswer};
+  const api={profile,suggest,eligible,optionFor,isoBirthDate,birthPart,normal};
   if(typeof module!=="undefined"&&module.exports)module.exports=api;
   root.GaramaalMatcher=api;
 })(globalThis);
