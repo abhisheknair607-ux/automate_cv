@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Garamaal control test</title>
+<style>
+  body{font:16px system-ui;max-width:820px;margin:28px auto;padding:0 18px;line-height:1.5}
+  label,fieldset{display:block;margin:14px 0}
+  label input,label select{margin-left:8px}
+  fieldset label{display:inline-block;margin:6px 16px 6px 0}
+  .note{color:#425a52}.manual{background:#fff6e8;padding:12px;border-radius:8px}
+  #events{font:13px ui-monospace,monospace;white-space:pre-wrap;background:#edf4f0;padding:12px}
+  button{padding:7px 12px}
+</style>
+</head>
+<body>
+<h1>Garamaal control test</h1>
+<p class="note">Fictional candidate only. Reload this page before each run. The extension must not press Continue or submit.</p>
+<form id="application">
+  <label>First Name <input name="first_name" autocomplete="given-name"></label>
+  <label>Email Address <input type="email" name="email"></label>
+  <label>Country of residence
+    <select name="country">
+      <option value="">Choose a country</option>
+      <option value="GB">United Kingdom</option>
+      <option value="IE">Ireland</option>
+    </select>
+  </label>
+  <fieldset><legend>Country of residence</legend>
+    <label><input type="radio" name="residence_radio" value="GB"> United Kingdom</label>
+    <label><input type="radio" name="residence_radio" value="IE"> Ireland</label>
+  </fieldset>
+  <label>University
+    <select name="university"><option value="">Select university</option>
+      <option value="example-u">Example University</option>
+      <option value="other-u">Other University</option>
+    </select>
+  </label>
+  <label>Date of birth <input type="date" name="dob"></label>
+  <fieldset><legend>Split date of birth controls</legend>
+    <label>Birth day <select name="birth_day"><option value="">Day</option><option value="11">11</option><option value="12">12</option></select></label>
+    <label>Birth month <select name="birth_month"><option value="">Month</option><option value="03">March</option><option value="04">April</option></select></label>
+    <label>Birth year <select name="birth_year"><option value="">Year</option><option value="1993">1993</option><option value="1994">1994</option></select></label>
+  </fieldset>
+  <label>Birth year (numeric) <input type="number" name="birth_year_number" min="1900" max="2100"></label>
+  <label>Country of residence (already answered)
+    <select name="country_existing"><option value="">Select country</option>
+      <option value="GB" selected>United Kingdom</option><option value="IE">Ireland</option>
+    </select>
+  </label>
+  <label>University (matching choice disabled)
+    <select name="university_disabled"><option value="">Select university</option>
+      <option value="example-u" disabled>Example University</option><option value="other-u">Other University</option>
+    </select>
+  </label>
+  <div class="manual">
+    <p><label>Date of birth (unknown text format) <input type="text" name="dob_text"></label></p>
+    <p><label><input type="checkbox" name="terms"> I accept the terms and declarations</label></p>
+    <p>Custom menu (currently manual): <button type="button" role="combobox" aria-controls="custom-list" aria-expanded="false" id="custom-menu">Choose country</button></p>
+    <div role="listbox" id="custom-list" hidden><div role="option" data-value="IE">Ireland</div><div role="option" data-value="GB">United Kingdom</div></div>
+  </div>
+  <button type="button" id="continue">Continue (must not be clicked)</button>
+  <button type="submit" id="submit">Submit (must not be clicked)</button>
+</form>
+<h2>Interaction log</h2>
+<div id="events" aria-live="polite">No changes yet.</div>
+<script>
+(() => {
+  const events=[],log=document.querySelector("#events");
+  const record=text=>{events.push(text);log.textContent=events.join("\n");};
+  document.querySelector("#application").addEventListener("input",e=>record("input: "+e.target.name));
+  document.querySelector("#application").addEventListener("change",e=>record("change: "+e.target.name));
+  document.querySelector("#continue").addEventListener("click",()=>record("ERROR: Continue clicked"));
+  document.querySelector("#application").addEventListener("submit",e=>{e.preventDefault();record("ERROR: Submit triggered");});
+  document.querySelector("#custom-menu").addEventListener("click",e=>{
+    const list=document.querySelector("#custom-list");list.hidden=!list.hidden;
+    e.currentTarget.setAttribute("aria-expanded",String(!list.hidden));
+  });
+  document.querySelector("#custom-list").addEventListener("click",e=>{
+    if(e.target.getAttribute("role")!=="option")return;
+    document.querySelector("#custom-menu").textContent=e.target.textContent;
+    document.querySelector("#custom-list").hidden=true;
+    record("custom option: "+e.target.textContent);
+  });
+})();
+</script>
+</body>
+</html>
