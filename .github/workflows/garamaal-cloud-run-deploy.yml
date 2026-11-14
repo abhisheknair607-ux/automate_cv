@@ -2,6 +2,8 @@ name: Garamaal guarded Cloud Run deployment
 run-name: Deploy Garamaal ${{ github.sha }}
 on:
   workflow_dispatch:
+  pull_request:
+    types: [closed]
 permissions:
   contents: read
   id-token: write
@@ -10,7 +12,14 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
-    if: github.ref == 'refs/heads/main'
+    # One-time guarded production rollout when the reviewed queue repair is merged.
+    # All other closed PRs remain inert; manual workflow_dispatch is preserved.
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event_name == 'pull_request' &&
+        github.event.pull_request.merged == true &&
+        github.event.pull_request.number == 111))
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 45
