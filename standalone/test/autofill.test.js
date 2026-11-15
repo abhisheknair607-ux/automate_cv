@@ -28,6 +28,14 @@ test("protected questions and action types never reach the model",()=>{
   assert.throws(()=>safeFields([{...experience,type:"submit"}]),/Invalid autofill fields/);
   assert.equal(safeFields([{...experience,label:"Management experience"}]).length,1);
 });
+test("employer Health name remains eligible while personal health questions stay protected",()=>{
+  const fields=safeFields([
+    {...experience,label:"Have you been employed by Mission Pet Health?"},
+    {...name,id:"gm-autofill-3",label:"Describe your health condition"},
+    {...name,id:"gm-autofill-4",label:"Provide medical history"}
+  ]);
+  assert.deepEqual(fields.map(x=>x.label),["Have you been employed by Mission Pet Health?"]);
+});
 test("answers require cited evidence and an enabled exact option",()=>{
   const evidence=[{id:"e0",text:"Built financial forecasts for three business units."}];
   assert.equal(validateAnswers([experience],evidence,{answers:[
@@ -38,6 +46,16 @@ test("answers require cited evidence and an enabled exact option",()=>{
   }
   assert.equal(validateAnswers([experience],evidence,{answers:[
     {fieldId:experience.id,answer:"Y",evidenceIds:["missing"]}]}).length,0);
+});
+test("AI cannot choose an uncited qualification, language, or generic Other",()=>{
+  const choice={id:"gm-autofill-7",type:"select",label:"Degree type",options:[
+    {label:"Select",value:""},{label:"Veterinary Technician",value:"vet"},
+    {label:"Other",value:"other"}]};
+  const evidence=[{id:"e0",text:"Pooja completed an MBA in finance."}];
+  assert.equal(validateAnswers([choice],evidence,{answers:[
+    {fieldId:choice.id,answer:"vet",evidenceIds:["e0"]}]}).length,0);
+  assert.equal(validateAnswers([choice],evidence,{answers:[
+    {fieldId:choice.id,answer:"other",evidenceIds:["e0"]}]}).length,0);
 });
 test("filled Career Profile answers the whole page without document reads",async()=>{
   let reads=0,calls=0;
@@ -52,6 +70,7 @@ test("filled Career Profile answers the whole page without document reads",async
         e.text.includes("Alex Example"):e.text.includes("forecasts")).id]}))}}
   });
   assert.equal(reads,0);assert.equal(calls,1);
+  assert.equal(result.modelCalls,1);
   assert.equal(result.answers.length,2);
   assert.equal(result.source,"profile");
 });
@@ -76,6 +95,7 @@ test("page batches pending fields through Summary then Master",async()=>{
   assert.deepEqual(batches,[[name.id,email.id,experience.id],
     [email.id,experience.id],[experience.id]]);
   assert.deepEqual(reads,["summary-abhishek","master-abhishek"]);
+  assert.equal(result.modelCalls,3);
   assert.equal(result.answers.length,3);
 });
 test("Summary completes page without reading Master",async()=>{
@@ -110,4 +130,61 @@ test("AI request budget limits repeated page runs per authenticated account",()=
   for(let i=0;i<30;i++)consumeQuota("quota@example.com",1000);
   assert.throws(()=>consumeQuota("quota@example.com",1000),/request limit/);
   assert.doesNotThrow(()=>consumeQuota("quota@example.com",601000));
+});
+
+test("checkbox answer requires matching evidence and never accepts consent",()=>{
+  const excel={id:"gm-autofill-2",type:"checkbox",label:"Excel",options:[{label:"Checked",value:"true"}]};
+  const evidence=[{id:"e0",text:"Excel dashboards"}];
+  assert.deepEqual(validateAnswers([excel],evidence,{answers:[{fieldId:excel.id,answer:"true",evidenceIds:["e0"]}]}).map(x=>x.answer),["true"]);
+  assert.equal(validateAnswers([excel],[{id:"e0",text:"General finance"}],{answers:[{fieldId:excel.id,answer:"true",evidenceIds:["e0"]}]}).length,0);
+  assert.equal(safeFields([{...excel,label:"I agree to the terms"}]).length,0);
+});
+
+test("accessible custom selection requires an exact enabled option",()=>{
+  const field={id:"gm-autofill-7",type:"customSelect",label:"Country",
+    options:[{label:"Select",value:""},{label:"Ireland",value:"Ireland",disabled:false},
+      {label:"France",value:"France",disabled:true}]};
+  assert.equal(safeFields([field]).length,1);
+  const evidence=[{id:"e0",text:"Country: Ireland"}];
+  assert.equal(validateAnswers([field],evidence,{answers:[{fieldId:field.id,answer:"Ireland",evidenceIds:["e0"]}]}).length,1);
+  assert.equal(validateAnswers([field],evidence,{answers:[{fieldId:field.id,answer:"France",evidenceIds:["e0"]}]}).length,0);
+});
+
+test("repeated work entries keep distinct evidence numbers",()=>{
+  const items=profileEvidence({work:[
+    {employer:"TaxLink",title:"Tax Client Manager"},
+    {employer:"EY India",title:"Business Analyst"}]});
+  assert.ok(items.some(x=>x.text.startsWith("work 1:")&&x.text.includes("TaxLink")));
+  assert.ok(items.some(x=>x.text.startsWith("work 2:")&&x.text.includes("EY India")));
+});
+
+test("numbered profile fields bypass AI and document reads",async()=>{
+  const result=await answerApplication({email:"alex@example.com",env,client:{},
+    body:{fields:[
+      {id:"gm-autofill-0",type:"text",label:"Employer",context:"Professional Experience (1)"},
+      {id:"gm-autofill-1",type:"text",label:"Title",context:"Professional Experience (2)"},
+      {id:"gm-autofill-2",type:"select",label:"Start Date (Month / Day / Year)",
+        context:"Professional Experience (2)",datePart:"month",
+        options:[{label:"Select",value:""},{label:"June",value:"Jun"}]}
+    ],profile:{work:[
+      {employer:"TaxLink",title:"Tax Client Manager",startDate:"2026-06"},
+      {employer:"EY India",title:"Business Analyst",startDate:"2022-06"}
+    ]}},
+    readEvidence:async()=>{throw Error("unexpected Drive read")},
+    model:async()=>{throw Error("unexpected AI call")}
+  });
+  assert.deepEqual(result.answers.map(x=>x.answer),["TaxLink","Business Analyst","Jun"]);
+  assert.equal(result.source,"profile");
+});
+
+test("unmatched repeated fields stay blank instead of mixing document records",async()=>{
+  const result=await answerApplication({email:"alex@example.com",env,client:{},
+    body:{fields:[{id:"gm-autofill-8",type:"text",label:"Organisation registered name",
+      context:"Experience (2)"}],profile:{work:[
+      {employer:"Fictional Finance"},{employer:"Example Accounting"}]}},
+    readEvidence:async()=>{throw Error("unexpected Drive read")},
+    model:async()=>{throw Error("unexpected AI call")}
+  });
+  assert.deepEqual(result.answers,[]);
+  assert.equal(result.source,"profile");
 });
