@@ -1,0 +1,38 @@
+{
+  "manifest_version": 3,
+  "name": "Garamaal Job Assistant (Beta)",
+  "version": "0.11.6",
+  "description": "Capture vacancies, generate tailored CVs, and fill application forms with manual review.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage",
+    "sidePanel",
+    "tabs"
+  ],
+  "action": {
+    "default_title": "Garamaal Job Assistant",
+    "default_icon": {
+      "16": "icon-16.png",
+      "32": "icon-32.png"
+    }
+  },
+  "host_permissions": [
+    "https://garamaal.web.app/*"
+  ],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "icons": {
+    "16": "icon-16.png",
+    "32": "icon-32.png",
+    "48": "icon-48.png",
+    "128": "icon-128.png"
+  },
+  "optional_host_permissions": [
+    "https://*/*"
+  ]
+}
