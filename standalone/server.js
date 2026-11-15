@@ -618,6 +618,21 @@ app.post("/api/autofill/candidate",async(req,res)=>{
     res.status(error.httpCode||503).json({error:String(error.message||"Autofill unavailable").slice(0,180)});
   }
 });
+app.post("/api/autofill/structured-profile",async(req,res)=>{
+  if(process.env.AUTOFILL_ENABLED!=="true")
+    return res.status(404).json({error:"Autofill is not enabled"});
+  try{
+    const email=await authenticate(req);
+    const client=await auth.getClient();
+    const data=await autofill.structuredProfileForEmail({email,client});
+    res.json(data);
+  }catch(error){
+    const status=error.httpCode||503;
+    console.error("[autofill-profile] status="+status,
+      String(error.message||"Error").slice(0,180));
+    res.status(status).json({error:String(error.message||"Autofill profile unavailable").slice(0,180)});
+  }
+});
 app.post("/api/autofill/answer",async(req,res)=>{
   if(process.env.AUTOFILL_ENABLED!=="true")
     return res.status(404).json({error:"Autofill is not enabled"});
