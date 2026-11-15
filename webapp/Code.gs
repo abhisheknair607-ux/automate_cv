@@ -476,19 +476,31 @@ function setNotInterested(payload) {
 }
 
 function openSlot_(sh,firstRow,maxRow) {
-  const limit=Math.min(sh.getMaxRows(), maxRow||sh.getMaxRows());
-  if(limit<firstRow)throw new Error('Spreadsheet has no free job rows.');
-  const n=limit-firstRow+1;
-  // Ignore pre-filled Rank formulas in AM/AO, but never reuse a partially populated vacancy.
-  const main=sh.getRange(firstRow,1,n,4).getValues();
+  // Fail closed on orphaned status, CV links, ranks or user preferences.
+  // Only template FALSE checkbox defaults in Freshmaal may be ignored.
   const isFresh=sh.getName()===SETTINGS.freshTab;
-  const state=isFresh?sh.getRange(firstRow,13,n,20).getValues():null;
-  for(let i=0;i<n;i++) {
-    const hasVacancy=main[i].some(x=>String(x==null?'':x).trim()!=='');
-    const hasWorkflow=isFresh&&state[i].some(x=>String(x==null?'':x).trim()!=='');
-    if(!hasVacancy&&!hasWorkflow)return i+firstRow;
+  const width=isFresh?58:17;
+  const limit=Math.min(sh.getMaxRows(),maxRow||sh.getMaxRows());
+  if(limit>=firstRow){
+    const values=sh.getRange(firstRow,1,limit-firstRow+1,width).getValues();
+    const harmlessDefaults=new Set([5,6,7,8,9,10,42,43,48,49]);
+    for(let i=0;i<values.length;i++){
+      const safe=values[i].every((v,j)=>{
+        if(v===null||v===undefined||v==="")return true;
+        return isFresh && v===false && harmlessDefaults.has(j+1);
+      });
+      if(safe)return firstRow+i;
+    }
   }
-  throw new Error('No safe free job rows remain inside the existing grid. No data was written.');
+  // Never recycle a partially populated row; append instead.
+  // Freshmaal's historical worker is bounded to row 1000.
+  const last=sh.getMaxRows();
+  if(maxRow&&last>=maxRow)
+    throw new Error("No safe empty job rows remain. All existing data was preserved.");
+  if(typeof sh.insertRowsAfter!=="function")
+    throw new Error("No safe job row exists and this Sheets adapter cannot append.");
+  sh.insertRowsAfter(last,1);
+  return sh.getMaxRows();
 }
 function addDiscovery(payload) {
   authorise_(); payload=payload||{};
@@ -497,15 +509,19 @@ function addDiscovery(payload) {
   if(!company||!role)throw new Error('Company and designation are required.');
   return lockRun_(()=>{
     const sh=sheet_('taaza'),key=canonical_(link);
-    const existing=taazaRows_().find(x=>canonical_(x.url)===key);
+    const count=Math.max(0,sh.getLastRow()-1);
+    const links=count?sh.getRange(2,3,count,1).getValues():[];
+    const matchAt=links.findIndex(x=>canonical_(x[0])===key);
+    const existing=matchAt>=0?{row:matchAt+2}:null;
     if(existing)return {created:false,row:existing.row,message:'Already in Taaza. Existing entry preserved.'};
     const row=openSlot_(sh,2);
     const values=[company,role,link,jd,location,'',clean_(payload.deadline||'',60),'',
       new Date(),clean_(payload.salary||'',500),false,'','Webapp'];
     sh.getRange(row,1,1,13).setValues([values]);
     // Reset candidate decisions when reusing a previously cleared discovery row.
-    sh.getRange(row,14,1,2).setValues([[false,false]]);
+    sh.getRange(row,14,1,2).setValues([["",""]]);
     SpreadsheetApp.flush();
+    invalidateDashboardReads_();
     return {created:true,row,message:'Added to Taaza Videshi Maal.'};
   });
 }
@@ -530,10 +546,12 @@ function saveDiscovery(payload) {
   });
 }
 function findFresh_(url,company,role) {
-  const canon=canonical_(url),rows=freshRows_();
-  let match=canon?rows.find(x=>canonical_(x.url)===canon):undefined;
-  if(!match&&!canon)match=rows.find(x=>x.company.toLowerCase()===company.toLowerCase()&&x.role.toLowerCase()===role.toLowerCase());
-  return match;
+  const canon=canonical_(url),sh=sheet_("fresh");
+  const count=Math.max(0,Math.min(sh.getMaxRows(),SETTINGS.maxFreshRow)-2);
+  if(!count)return null;
+  const links=sh.getRange(3,3,count,1).getValues();
+  const index=links.findIndex(a=>canon&&canonical_(a[0])===canon);
+  return index>=0?{row:index+3}:null;
 }
 function transferJob(payload) {
   authorise_();payload=payload||{};
@@ -553,7 +571,8 @@ function transferJob(payload) {
     fresh.getRange(newRow,1,1,4).setValues([[company,role,url,jd]]);
     fresh.getRange(newRow,33).setValue(location);
     // Carry Taaza's candidate-specific exclusions to the newly created Freshmaal row.
-    const exclusions=taaza.getRange(row,14,1,2).getValues()[0].map(truthy_);
+    const exclusions=taaza.getRange(row,14,1,2).getValues()[0]
+      .map(v=>["Not Interested","Favorite"].includes(String(v||"").trim())?String(v).trim():"");
     fresh.getRange(newRow,46,1,2).setValues([exclusions]); // Also clears reused-row flags.
     SpreadsheetApp.flush();
     const verify=fresh.getRange(newRow,1,1,4).getValues()[0];
@@ -561,6 +580,7 @@ function transferJob(payload) {
       throw new Error('Freshmaal write verification failed. Check row '+newRow+' before retrying.');
     taaza.getRange(row,12).setValue('Sent to Freshmaal — row '+newRow);
     SpreadsheetApp.flush();
+    invalidateDashboardReads_();
     return {created:true,freshRow:newRow,message:'Transferred and verified in Freshmaal.'};
   });
 }
