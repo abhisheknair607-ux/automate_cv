@@ -1,5 +1,5 @@
 name: Package Garamaal extension beta
-run-name: Package Garamaal Chrome extension beta v0.11.7
+run-name: Package Garamaal Chrome extension beta v0.11.8
 on:
   push:
     branches:
@@ -31,7 +31,7 @@ jobs:
           root=pathlib.Path('chrome-extension')
           manifest=json.loads((root/'manifest.json').read_text())
           assert manifest['manifest_version']==3
-          assert manifest['version']=='0.11.7'
+          assert manifest['version']=='0.11.8'
           assert manifest['side_panel']['default_path']=='popup.html'
           required={'manifest.json','popup.html','popup.js','job_panel.js','background.js',
                     'cv_handoff.js','icon-16.png','icon-32.png','icon-48.png','icon-128.png'}
@@ -47,7 +47,7 @@ jobs:
       - name: Upload installable unpacked beta
         uses: actions/upload-artifact@v4
         with:
-          name: Garamaal-Job-Assistant-Beta-v0.11.7
+          name: Garamaal-Job-Assistant-Beta-v0.11.8
           path: chrome-extension/
           if-no-files-found: error
           retention-days: 30
