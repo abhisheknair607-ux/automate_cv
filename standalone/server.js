@@ -69,7 +69,14 @@ app.get("/config",(req,res)=>res.json({
   projectId:PROJECT,
   appId:process.env.FIREBASE_WEB_APP_ID||"",
   readOnly:READ_ONLY,
+  // Store listing link stays unavailable until Google review and a deliberate launch flag.
+  chromeExtensionUrl:/^[a-p]{32}$/.test(String(process.env.CHROME_WEB_STORE_EXTENSION_ID||""))?
+    "https://chromewebstore.google.com/detail/"+process.env.CHROME_WEB_STORE_EXTENSION_ID:"",
+  chromeExtensionPublic:process.env.GARAMAAL_EXTENSION_PUBLIC_ENABLED==="true"
+    &&/^[a-p]{32}$/.test(String(process.env.CHROME_WEB_STORE_EXTENSION_ID||"")),
 }));
+app.get("/extension-install.js",(_req,res)=>
+  res.type("text/javascript").sendFile(path.join(__dirname,"extension_install.js")));
 app.get("/dashboard-ranking.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_ranking.js")));
 app.get("/dashboard-connections.js",(req,res)=>res.type("text/javascript").sendFile(path.join(__dirname,"dashboard_connections.js")));
 app.get("/bridge.js",(req,res)=>{
@@ -121,6 +128,7 @@ app.get("/",(req,res)=>{
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
+  html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
 // Read-only UI fallback path for instant user-visible rollback, with normal
@@ -130,6 +138,7 @@ app.get("/legacy",(req,res)=>{
   html=html.replace("<script>\n'use strict';",
     "<script src=\"/bridge.js\"></script>\n<script>\n'use strict';");
   html=html.replace("</body>",'<script src="/dashboard-ranking.js"></script><script src="/dashboard-connections.js"></script></body>');
+  html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
 
@@ -279,6 +288,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-13"></script>'+
     '<script src="/prototype/career-bridge.js?v=9"></script></body>');
+  html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
 
