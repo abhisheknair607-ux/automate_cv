@@ -56,6 +56,25 @@ class Range {
   }
   getDisplayValues() {return this.getValues().map(r=>r.map(x=>String(x==null?"":x)));}
   getValue() {return this.getValues()[0][0];}
+  getFormulas() {
+    // The release row allocator must distinguish blank formula results from
+    // genuinely empty cells. Read the authoritative formulas, not cached values.
+    const {sheet}=this;
+    const range=quote(sheet.name)+"!"+colLetters(this.col)+this.row+
+      ":"+colLetters(this.col+this.width-1)+(this.row+this.count-1);
+    const data=api(sheet.runtime.token,encodeURIComponent(sheet.book.id)+"/values/"+encodeURIComponent(range),{
+      query:{valueRenderOption:"FORMULA"}
+    });
+    if(data.values!==undefined&&!Array.isArray(data.values))
+      throw new Error("Google Sheets returned invalid formula data");
+    // Values API omits trailing blank rows/cells and includes ordinary values.
+    // Apps Script getFormulas() returns a full rectangle containing only formulas.
+    return Array.from({length:this.count},(_,i)=>Array.from({length:this.width},(_,j)=>{
+      const value=(data.values||[])[i]?.[j];
+      return typeof value==="string"&&value.startsWith("=")?value:"";
+    }));
+  }
+  getFormula() {return this.getFormulas()[0][0];}
   setValues(rows) {
     if (!Array.isArray(rows)||rows.length!==this.count||
         rows.some(r=>!Array.isArray(r)||r.length!==this.width))
