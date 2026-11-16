@@ -4,7 +4,7 @@
   const paneIds={add:"jobPanel",cv:"cvPanel",fill:"autofillPanel"};
   const jobFields=["company","role","url","location","deadline","salary","jd"];
   let capturedUrl="",freshRow=null,taazaRow=null,savedJob=null;
-  let cvOptionsSaved=false,cvReady=false,cvPoll=null,cvChecks=0;
+  let cvReady=false,cvPoll=null,cvChecks=0;
   let cvBinding=null,cvPayload=null,cvPublishedLink="",approvedSite=null,cvStatus="not-requested";
   let lastRunId=null,cvSourceSha="";
   const cvVariants=new Map();
@@ -57,7 +57,7 @@
       $("job-candidate").value=saved.candidate;
       $("job-company").value=saved.company;$("job-role").value=saved.role;
       $("job-url").value=saved.url;
-      note("cv-status","Restored job #"+freshRow+". Check CV readiness or save CV options.");
+      note("cv-status","Restored job #"+freshRow+". Review CV options or check readiness.");
       uploadMessage("Job restored. Verify the CV before attaching it to any page.");
       globalThis.gmActiveJobContext={company:saved.company,role:saved.role,
         location:saved.location||"",jd:saved.jd||"",tabId:saved.tabId||null,
@@ -157,7 +157,7 @@
       if(!job)throw Error("Could not read the current job page.");
       stopCvPoll();capturedUrl=job.pageUrl;freshRow=null;taazaRow=null;savedJob=null;
       appliedConfirmed=false;
-      cvOptionsSaved=false;clearPrepared();
+      clearPrepared();
       if(chrome.storage?.session?.remove)await chrome.storage.session.remove("gmCvJobSession");uploadMessage("A completed CV will become available here.");
       for(const key of jobFields)$( "job-"+key).value=job[key]||"";
       note("job-status","Captured from "+job.source+". Review every field before saving."+
@@ -221,7 +221,7 @@
       freshRow=storedFreshRow;
       savedJob={...job,company:fresh.company,role:fresh.role,url:fresh.url,
         location:fresh.location||job.location,jd:job.jd};
-      if(!sameJob){cvOptionsSaved=false;clearPrepared();}
+      if(!sameJob){clearPrepared();}
       appliedConfirmed=false;
       globalThis.gmActiveJobContext={company:savedJob.company,role:savedJob.role,
         location:savedJob.location,jd:savedJob.jd,tabId:tab.id,
@@ -256,27 +256,51 @@
     $("cv-make").checked=fresh.cv===true;
     $("cv-letter").checked=fresh.cl===true;
     $("cv-web").checked=fresh.web===true;
-    cvOptionsSaved=true;
     note("cv-status",fresh.cvLink?
       "A CV already exists in Garamaal for this job. Check CV readiness to use it.":
       "CV settings loaded from Garamaal Make CV. Review before starting a paid run.");
     return fresh;
   }
-  $("cv-save").addEventListener("click",async()=>{
-    const button=$("cv-save");button.disabled=true;
+  // Single Generate action persists options and verifies the authoritative row.
+  async function saveCvOptionsForRun(candidate,row,expected,options){
+    for(const [field,value] of Object.entries(options))
+      await appCall("updateFreshControl",{row,candidate,field,value,expected});
+    const verified=await appCall("getJob",{source:"fresh",candidate,row});
+    if(!Contract.equal(Contract.identity({candidate,row,job:verified}),jobKey())||
+       verified.tier!==options.tier||verified.cv!==options.cv||
+       verified.cl!==options.cl||verified.web!==options.web)
+      throw Error("CV settings were not fully verified in Garamaal. No paid run was requested.");
+    return verified;
+  }
+  function showCvQueue(queue,error){
+    const summary=$("cv-queue-summary"),current=$("cv-queue-job"),notice=$("cv-queue-note");
+    if(!summary||!current||!notice)return;
+    if(!queue){
+      summary.textContent="Queue unavailable";
+      current.textContent="No verified queue position";
+      notice.textContent=error?.message||"Could not read the Garamaal CV queue.";
+      return;
+    }
+    const count=n=>Number.isInteger(Number(n))&&Number(n)>=0?Number(n):"?";
+    summary.textContent=count(queue.running)+" running · "+count(queue.queued)+" queued";
+    const key=jobKey(),active=key&&queue.byJob?.[key.candidate.toLowerCase()+":"+key.row];
+    current.textContent=active?
+      ("This job: "+(active.state==="running"?"Running":"Queued")+
+       (active.queueNumber?" · position #"+active.queueNumber:"")+
+       (active.runId?" · run #"+active.runId:"")):
+      (key?"This job: not in the visible active queue":"Save a job to see its queue position");
+    notice.textContent=queue.readOnly?
+      "Read-only queue: GitHub credential needs attention. CV dispatch may be unavailable. "+(queue.queueNote||""):
+      queue.stale?"Queue status is stale. Retry before requesting a paid run.":
+      (queue.queueNote||"Queue status from Garamaal.");
+  }
+  async function refreshCvQueue(){
     try{
-      if(!freshRow||!savedJob)throw Error("Capture and save a job with a complete JD first.");
-      const candidate=currentCandidate();
-      const expected={company:savedJob.company,role:savedJob.role,url:savedJob.url};
-      const fields=[["tier",$("cv-tier").value],["cv",$("cv-make").checked],
-        ["cl",$("cv-letter").checked],["web",$("cv-web").checked]];
-      for(const [field,value] of fields)
-        await appCall("updateFreshControl",{row:freshRow,candidate,field,value,expected});
-      cvOptionsSaved=true;
-      note("cv-status","Saved options for "+candidate+". You can start the CV generation while filling the application.");
-    }catch(error){log("Save CV options",error);note("cv-status",error.message||String(error))}
-    finally{button.disabled=false}
-  });
+      const result=await appCall("getCvQueue",null);
+      showCvQueue(result);
+      return result;
+    }catch(error){showCvQueue(null,error);throw error;}
+  }
   async function checkCvReady({quiet=false}={}){
     const key=jobKey();if(!key)throw Error("Capture and save the job with a full description first.");
     const candidate=currentCandidate();
@@ -371,7 +395,7 @@
   });
   for(const id of ["cv-tier","cv-make","cv-letter","cv-web"]){
     $(id).addEventListener("change",()=>{cvOptionsSaved=false;
-      note("cv-status","Options changed. Save them before starting a CV run.");});
+      note("cv-status","CV options changed. Generate CV will save and verify these choices before requesting a paid run.");});
   }
   $("cv-refresh").addEventListener("click",async()=>{
     const button=$("cv-refresh");button.disabled=true;
