@@ -56,7 +56,8 @@ test("Sheets getFormulas returns only formulas in a full-sized aligned matrix",(
 test("Sheets getFormula returns the first cell formula or empty string",()=>{
   const {sheet}=fixture({values:[["=A3+B3"]]});
   assert.equal(sheet.getRange(3,1).getFormula(),"=A3+B3");
-  assert.equal(sheet.getRange(3,2).getFormula(),"");
+  const {sheet:blankSheet}=fixture({values:[["ordinary value"]]});
+  assert.equal(blankSheet.getRange(3,2).getFormula(),"");
 });
 
 test("Sheets formula lookup fails closed for malformed API data",()=>{
