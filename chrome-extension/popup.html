@@ -26,15 +26,15 @@
 <label>Location<input id="job-location"></label><label>Deadline<input id="job-deadline"></label>
 <label>Salary / sponsorship<input id="job-salary"></label><label>Full job description<textarea id="job-jd"></textarea></label></div>
 <button id="job-save" type="button" class="gm-action">Save to Discovery + Make CV</button><p id="job-status" role="status" class="note"></p></section>
-<section id="cvPanel" class="gm-pane" hidden><h2>Make CV</h2><p class="note">Choose your CV options for the saved job.</p><div class="gm-form">
+<section id="cvPanel" class="gm-pane" hidden><h2>Make CV</h2><p class="note">Uses the same Garamaal website workflow and Freshmaal job record. Review the settings, then explicitly start your paid CV run.</p><div class="gm-form">
 <label>CV model tier<select id="cv-tier"><option>Economy</option><option selected>Balanced</option><option>Premium</option></select></label>
 <label class="gm-check"><input id="cv-make" type="checkbox" checked> Make CV</label>
 <label class="gm-check"><input id="cv-letter" type="checkbox"> Make cover letter</label>
 <label class="gm-check"><input id="cv-web" type="checkbox"> Web research</label></div>
 <button id="cv-save" type="button" class="gm-action">Save CV options</button>
 <div class="gm-cv-box gm-cv-actions"><strong>Generate while applying</strong>
-<p class="note">Start a paid CV run after saving options. Keep completing the application; check here for your finished CV.</p>
-<button id="cv-run" type="button">Start CV generation</button><button id="cv-continue-fill" type="button" class="gm-primary-outline">Continue to Autofill on this job</button>
+<p class="note">Generate your CV through garamaal.web.app. The extension checks the same queue and saved output; this page never submits an application.</p>
+<button id="cv-run" type="button">Generate CV in Garamaal</button><button id="cv-continue-fill" type="button" class="gm-primary-outline">Continue to Autofill on this job</button>
 <button id="cv-refresh" type="button">Check CV readiness</button>
 <p id="cv-document-info" class="note">No verified document yet.</p>
 <label class="gm-form" for="cv-format">CV format<select id="cv-format"><option value="docx">Word (.docx)</option><option value="pdf" disabled>PDF (server conversion required)</option></select></label>
@@ -42,7 +42,7 @@
 <button id="cv-preview" type="button" disabled>Preview verified CV</button>
 <button id="cv-download" type="button" disabled>Download CV for manual upload</button>
 <button id="cv-attach" type="button" disabled>Attach prepared CV to current page</button>
-<p id="cv-upload-status" class="note" role="status">A completed CV will become available here.</p></div>
+<p id="cv-upload-status" class="note" role="status">A completed Garamaal CV will become available here and in Make CV on the website.</p></div>
 <button id="open-garamaal" type="button" class="gm-action">Open in Garamaal</button><p id="cv-status" role="status" class="note">Save a job with its description to choose CV options.</p></section></main>
 <script src="job_capture.js"></script>
 <script src="progress.js"></script><script src="repeat.js"></script><script src="mapping.js"></script><script src="matcher.js"></script><script src="open_text.js"></script><script src="application_answers.js"></script><script src="consent.js"></script><script src="proposition.js"></script><script src="answer_memory.js"></script><script src="evidence_guard.js"></script><script src="reasoner.js"></script><script src="ai_context.js"></script><script src="frame_support.js"></script><script src="popup.js"></script><script src="cv_handoff.js"></script><script src="file_upload.js"></script><script src="job_panel.js"></script></body></html>
