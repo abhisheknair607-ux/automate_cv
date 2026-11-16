@@ -41,6 +41,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/garamaal-ui-test
           cp -R standalone /tmp/garamaal-ui-test/standalone
+          cp -R chrome-extension /tmp/garamaal-ui-test/chrome-extension
           cp -R garamaal-release-webapp /tmp/garamaal-ui-test/webapp
           cp package.json /tmp/garamaal-ui-test/package.json
           cp Dockerfile.garamaal-ui /tmp/garamaal-ui-test/Dockerfile.standalone
@@ -51,6 +52,7 @@ jobs:
           node --check standalone/swipe_progress.js
           node --test \
             standalone/test/parity.test.js \
+            standalone/test/extension_website_cv.test.js \
             standalone/test/stage3_candidate_progress.test.js \
             standalone/test/stage3_ribbon_drawer.test.js \
             standalone/test/stage13_live_bulk.test.js \

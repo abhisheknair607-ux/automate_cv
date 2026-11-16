@@ -64,6 +64,10 @@
         candidate:saved.candidate,saved:true,savedAt:Date.now()};
       if(chrome.storage?.session?.set)await chrome.storage.session.set({gmActiveJobContext:globalThis.gmActiveJobContext});
       show("cv");
+      try{await syncWebsiteCvOptions()}catch(error){
+        log("Restore Garamaal CV settings",error);
+        note("cv-status","Job restored. Open and sign in to Garamaal, then save or check CV options.");
+      }
     }catch(error){log("Restore saved job",error);}
   }
   showDocInfo();
@@ -121,7 +125,9 @@
     if(!granted)throw Error("Allow Garamaal access to this job site in Chrome, then capture again.");
   }
   async function appCall(method,payload){
-    const granted=await chrome.permissions.request({origins:["https://garamaal.web.app/*"]});
+    const origin="https://garamaal.web.app/*";
+    const granted=await chrome.permissions.contains({origins:[origin]})||
+      await chrome.permissions.request({origins:[origin]});
     if(!granted)throw Error("Allow Garamaal site access in Chrome.");
     const [app]=await chrome.tabs.query({url:"https://garamaal.web.app/*"});
     if(!app?.id)throw Error("Open garamaal.web.app and sign in first.");
@@ -226,7 +232,8 @@
       note("job-status",result.created?
         "Saved and verified in Discovery #"+taazaRow+" and Make CV #"+freshRow+".":
         "Existing job reused. Verified Discovery #"+taazaRow+" and Make CV #"+freshRow+"; no duplicate created.");
-      note("cv-status","Ready to make a CV for "+currentCandidate()+". Choose your CV options.");
+      if(transfer.created===false)await syncWebsiteCvOptions(fresh);
+      else note("cv-status","Ready to make a CV for "+currentCandidate()+". Choose your CV options.");
       show("cv");
     }catch(error){
       log("Save job to both sheets",error);
@@ -236,6 +243,25 @@
       if(discoverySaved&&!freshRow)renderFlow("add");
     }finally{button.disabled=false;}
   });
+  // CV settings are read from the SAME candidate-specific Freshmaal row as the website.
+  // Verify job identity before trusting saved options across sidebar sessions.
+  async function syncWebsiteCvOptions(existing){
+    const candidate=currentCandidate(),row=freshRow,key=jobKey();
+    if(!key)throw Error("Save and verify a Make CV job first.");
+    const fresh=existing||await appCall("getJob",{source:"fresh",candidate,row});
+    const liveKey=Contract.identity({candidate,row,job:fresh});
+    if(!Contract.equal(key,liveKey)||!Contract.equal(key,jobKey()))
+      throw Error("The selected job changed. Capture it again before using its CV settings.");
+    if(["Economy","Balanced","Premium"].includes(fresh.tier))$("cv-tier").value=fresh.tier;
+    $("cv-make").checked=fresh.cv===true;
+    $("cv-letter").checked=fresh.cl===true;
+    $("cv-web").checked=fresh.web===true;
+    cvOptionsSaved=true;
+    note("cv-status",fresh.cvLink?
+      "A CV already exists in Garamaal for this job. Check CV readiness to use it.":
+      "CV settings loaded from Garamaal Make CV. Review before starting a paid run.");
+    return fresh;
+  }
   $("cv-save").addEventListener("click",async()=>{
     const button=$("cv-save");button.disabled=true;
     try{
@@ -309,13 +335,14 @@
         throw Error("Tick Make CV and save the CV options first.");
       // Reuse an already published CV instead of triggering another paid run.
       const existing=await appCall("getJob",{source:"fresh",candidate:currentCandidate(),row:freshRow});
-      if(existing?.cvLink){await checkCvReady();show("fill");return;}
+      if(existing?.cvLink){await checkCvReady();show("cv");return;}
       // Queue check prevents a duplicate paid generation request when the same job is already active.
       const queue=await appCall("getCvQueue",null).catch(()=>null);
       const active=queue?.byJob?.[currentCandidate().toLowerCase()+":"+freshRow];
       if(active?.state==="running"||active?.state==="queued"){
         cvStatus=active.state;lastRunId=active.runId||null;
-        uploadMessage("CV already "+cvStatus+". No duplicate generation requested.");show("fill");return;
+        uploadMessage("CV already "+cvStatus+" in Garamaal. No duplicate generation requested.");
+        show("cv");beginCvPoll();return;
       }
       if(!queue)throw Error("CV queue status unavailable. Retry before starting a paid run.");
       if(!confirm("Start a paid AI CV generation for "+currentCandidate()+" — "+savedJob.role+" at "+savedJob.company+"?"))return;
@@ -323,9 +350,11 @@
         expected:{company:savedJob.company,role:savedJob.role,url:savedJob.url},confirm:true});
       clearPrepared();cvStatus="queued";
       uploadMessage("CV generation requested. Keep filling this application; check readiness here.");
-      note("cv-status",result.message||"CV generation queued.");
+      note("cv-status",result.message||"Garamaal CV generation queued.");
       beginCvPoll();
-      show("fill");
+      // Keep the Make CV panel visible while monitoring the website workflow.
+      // Users can explicitly select Continue to Autofill at any time.
+      show("cv");
     }catch(error){log("Start CV generation",error);note("cv-status",error.message||String(error))}
     finally{button.disabled=false;}
   });
