@@ -24,9 +24,13 @@ test("Capture Job allocator never reuses occupied values or blank-valued formula
   });
   const data=grid(7),formulas=grid(7);
   data[2][13]="Favorite"; // An orphaned candidate preference is not a free row
-  formulas[3][38]='=IF(A4="", "", 1)'; // A formula returning blank must still be protected
-  for(const col of [5,6,7,8,9,10,42,43,48,49])data[4][col-1]=false;
-  assert.equal(fn(fixture("Sheet1",data,formulas),3,1000),5);
+  // The exact AM formula is a preserved ranking template, not applicant data.
+  formulas[3][38]='=IF(AL4="","",COUNTIF(AL$3:AL,">"&AL4)+COUNTIF(AL$3:AL4,AL4))';
+  formulas[4][1]='=IF(A5="","",1)'; // Unknown formula must block row reuse
+  for(const col of [5,6,7,8,9,10,42,43,48,49])data[5][col-1]=false;
+  assert.equal(fn(fixture("Sheet1",data,formulas),3,1000),4);
+  data[3][38]=1; // Populated rank output is still an occupied row
+  assert.equal(fn(fixture("Sheet1",data,formulas),3,1000),6);
   const limited=grid(4),limitedFormulas=grid(4);
   limited.forEach(row=>row[0]="occupied");
   assert.throws(()=>fn(fixture("Sheet1",limited,limitedFormulas),3,4),/No safe empty job rows/);
