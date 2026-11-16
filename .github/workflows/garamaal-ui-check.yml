@@ -41,6 +41,7 @@ jobs:
           set -euo pipefail
           mkdir -p /tmp/garamaal-ui-test
           cp -R standalone /tmp/garamaal-ui-test/standalone
+          cp -R chrome-extension /tmp/garamaal-ui-test/chrome-extension
           cp -R garamaal-release-webapp /tmp/garamaal-ui-test/webapp
           cp package.json /tmp/garamaal-ui-test/package.json
           cp Dockerfile.garamaal-ui /tmp/garamaal-ui-test/Dockerfile.standalone
