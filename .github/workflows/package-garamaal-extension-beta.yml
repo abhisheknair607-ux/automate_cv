@@ -1,0 +1,54 @@
+name: Package Garamaal extension beta
+run-name: Package Garamaal Chrome extension beta v0.11.7
+on:
+  push:
+    branches:
+      - feat/garamaal-extension-public-readiness-20261115
+    paths:
+      - "chrome-extension/**"
+      - ".github/workflows/package-garamaal-extension-beta.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Validate extension and package inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in chrome-extension/*.js; do node --check "$file"; done
+          python3 - <<'PY'
+          import json, pathlib, re
+          root=pathlib.Path('chrome-extension')
+          manifest=json.loads((root/'manifest.json').read_text())
+          assert manifest['manifest_version']==3
+          assert manifest['version']=='0.11.7'
+          assert manifest['side_panel']['default_path']=='popup.html'
+          required={'manifest.json','popup.html','popup.js','job_panel.js','background.js',
+                    'cv_handoff.js','icon-16.png','icon-32.png','icon-48.png','icon-128.png'}
+          for name in required: assert (root/name).is_file(), f'Missing {name}'
+          html=(root/'popup.html').read_text()
+          for script in re.findall(r'<script\s+[^>]*src="([^"]+)"',html):
+              assert not script.startswith('https:'), f'Unexpected remote executable: {script}'
+              assert (root/script).is_file(), f'Missing script {script}'
+          for icon in manifest['icons'].values():
+              assert (root/icon).is_file(), f'Missing icon {icon}'
+          print('Garamaal beta extension validated:',manifest['version'])
+          PY
+      - name: Upload installable unpacked beta
+        uses: actions/upload-artifact@v4
+        with:
+          name: Garamaal-Job-Assistant-Beta-v0.11.7
+          path: chrome-extension/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 6
