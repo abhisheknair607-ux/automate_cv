@@ -108,6 +108,7 @@
     document.querySelectorAll("[data-panel]").forEach(button=>{
       button.setAttribute("aria-selected",String(button.dataset.panel===which));
     });
+    if(which==="cv")void refreshCvQueue().catch(error=>log("Read sidebar CV queue",error));
   }
   document.querySelectorAll("[data-panel]").forEach(button=>button.addEventListener("click",()=>show(button.dataset.panel)));
   function currentJob(){return Object.fromEntries(jobFields.map(key=>[key,$("job-"+key).value.trim()]))}
@@ -310,7 +311,7 @@
       clearPrepared();throw Error("Job or candidate mismatch. Reopen and verify the saved vacancy before accessing its CV.");
     }
     let queue=null;
-    try{queue=await appCall("getCvQueue",null)}catch(error){log("Read CV queue",error)}
+    try{queue=await refreshCvQueue()}catch(error){log("Read CV queue",error)}
     const active=queue?.byJob?.[candidate.toLowerCase()+":"+freshRow];
     lastRunId=active?.runId||lastRunId;
     if(!result.cvLink){
@@ -354,36 +355,51 @@
   $("cv-run").addEventListener("click",async()=>{
     const button=$("cv-run");button.disabled=true;
     try{
-      if(!freshRow||!savedJob)throw Error("Save this job to Make CV first.");
-      if(!cvOptionsSaved||!$("cv-make").checked)
-        throw Error("Tick Make CV and save the CV options first.");
-      // Reuse an already published CV instead of triggering another paid run.
-      const existing=await appCall("getJob",{source:"fresh",candidate:currentCandidate(),row:freshRow});
-      if(existing?.cvLink){await checkCvReady();show("cv");return;}
-      // Queue check prevents a duplicate paid generation request when the same job is already active.
-      const queue=await appCall("getCvQueue",null).catch(()=>null);
-      const active=queue?.byJob?.[currentCandidate().toLowerCase()+":"+freshRow];
+      const candidate=currentCandidate(),row=freshRow,key=jobKey();
+      if(!key||!savedJob)throw Error("Capture and save this job to Garamaal Make CV first.");
+      if(!$("cv-make").checked)throw Error("Tick Make CV before starting generation.");
+      const existing=await appCall("getJob",{source:"fresh",candidate,row});
+      if(!Contract.equal(key,Contract.identity({candidate,row,job:existing})))
+        throw Error("The Make CV job changed. Reopen and verify it before generating a CV.");
+      if(existing.cvLink){await checkCvReady();show("cv");return;}
+      const queue=await refreshCvQueue();
+      const active=queue?.byJob?.[candidate.toLowerCase()+":"+row];
       if(active?.state==="running"||active?.state==="queued"){
         cvStatus=active.state;lastRunId=active.runId||null;
-        uploadMessage("CV already "+cvStatus+" in Garamaal. No duplicate generation requested.");
+        uploadMessage("CV already "+cvStatus+" in Garamaal. No duplicate paid run requested.");
+        note("cv-status","CV already "+cvStatus+(active.queueNumber?" · queue position #"+active.queueNumber:"")+".");
         show("cv");beginCvPoll();return;
       }
-      if(!queue)throw Error("CV queue status unavailable. Retry before starting a paid run.");
-      if(!confirm("Start a paid AI CV generation for "+currentCandidate()+" — "+savedJob.role+" at "+savedJob.company+"?"))return;
-      const result=await appCall("runCvApiNow",{candidate:currentCandidate(),row:freshRow,
-        expected:{company:savedJob.company,role:savedJob.role,url:savedJob.url},confirm:true});
+      if(queue.readOnly)
+        throw Error("CV generation is blocked: Garamaal's queue is read-only. The Cloud Run GitHub workflow credential (GITHUB_WORKFLOW_TOKEN) is missing or unusable. Restore it and retry.");
+      if(queue.stale)throw Error("CV queue status is stale. Refresh before requesting a paid run.");
+      const options={tier:$("cv-tier").value,cv:true,
+        cl:$("cv-letter").checked,web:$("cv-web").checked};
+      if(!["Economy","Balanced","Premium"].includes(options.tier))
+        throw Error("Select a valid CV model tier.");
+      if(!confirm("Save options and start ONE paid AI CV run for "+candidate+" — "+
+        key.role+" at "+key.company+"? CV: "+options.tier+", cover letter: "+
+        (options.cl?"yes":"no")+", web research: "+(options.web?"yes":"no")+"."))return;
+      note("cv-status","Saving CV options to Garamaal; no paid run has started yet...");
+      const expected={company:key.company,role:key.role,url:key.url};
+      await saveCvOptionsForRun(candidate,row,expected,options);
+      note("cv-status","Options verified. Requesting paid CV generation from Garamaal...");
+      const result=await appCall("runCvApiNow",{candidate,row,expected,confirm:true});
+      if(result?.queued!==true||Number(result.row)!==row||result.candidate!==candidate)
+        throw Error("Garamaal did not confirm this CV request. Check GitHub Actions before retrying; a paid run may have been accepted.");
       clearPrepared();cvStatus="queued";
-      uploadMessage("CV generation requested. Keep filling this application; check readiness here.");
-      note("cv-status",result.message||"Garamaal CV generation queued.");
-      beginCvPoll();
-      // Keep the Make CV panel visible while monitoring the website workflow.
-      // Users can explicitly select Continue to Autofill at any time.
-      show("cv");
-    }catch(error){log("Start CV generation",error);note("cv-status",error.message||String(error))}
-    finally{button.disabled=false;}
+      uploadMessage("GitHub accepted the CV generation request. Monitor the queue and finished CV here.");
+      note("cv-status",result.message||"Garamaal confirmed this paid CV request.");
+      beginCvPoll();show("cv");
+      void refreshCvQueue().catch(error=>log("Refresh CV queue after dispatch",error));
+    }catch(error){
+      log("Start CV generation",error);
+      const message=String(error?.message||error);
+      note("cv-status",message);uploadMessage(message);show("cv");
+    }finally{button.disabled=false;}
   });
   $("job-candidate").addEventListener("change",()=>{
-    stopCvPoll();cvOptionsSaved=false;clearPrepared();
+    stopCvPoll();clearPrepared();
     globalThis.gmActiveJobContext=null;
     if(chrome.storage?.session?.remove){
       void chrome.storage.session.remove("gmActiveJobContext");
@@ -394,12 +410,13 @@
     void persistJob();
   });
   for(const id of ["cv-tier","cv-make","cv-letter","cv-web"]){
-    $(id).addEventListener("change",()=>{cvOptionsSaved=false;
+    $(id).addEventListener("change",()=>{
       note("cv-status","CV options changed. Generate CV will save and verify these choices before requesting a paid run.");});
   }
   $("cv-refresh").addEventListener("click",async()=>{
     const button=$("cv-refresh");button.disabled=true;
-    try{await checkCvReady()}catch(error){log("Check CV readiness",error);
+    try{if(jobKey())await checkCvReady();else await refreshCvQueue();}
+    catch(error){log("Check CV readiness",error);
       note("cv-status",error.message||String(error))}
     finally{button.disabled=false;}
   });
@@ -660,6 +677,9 @@
     }catch(error){log("Mark applied after user submission",error);feedback.textContent=error.message||String(error);}
     finally{button.disabled=appliedConfirmed||!freshRow;}
   });
+  // Monitor only while Make CV is visible; this never dispatches a paid run.
+  setInterval(()=>{if(!$("cvPanel").hidden)
+    void refreshCvQueue().catch(error=>log("Poll CV queue",error));},30000);
   $("open-garamaal").addEventListener("click",()=>chrome.tabs.create({url:"https://garamaal.web.app/prototype"}));
   show("add");
   void restoreJob();
