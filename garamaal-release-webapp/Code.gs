@@ -681,8 +681,18 @@ function openSlot_(sh,firstRow,maxRow) {
     const harmlessDefaults=new Set([5,6,7,8,9,10,42,43,48,49]);
     for(let i=0;i<values.length;i++){
       const safe=values[i].every((v,j)=>{
-        // A formula may display an empty string but must never be overwritten.
-        if(String(formulas[i]?.[j]||"").trim())return false;
+        // AM/AO hold prefilled rank formulas on otherwise unused rows.
+        // Transfer never writes those columns; any other formula stays protected.
+        const formula=String(formulas[i]?.[j]||"").replace(/\s+/g,"").toUpperCase();
+        if(formula){
+          const source=isFresh&&(j===38?"AL":j===40?"AN":"");
+          const rowNum=firstRow+i;
+          const expected=source?
+            ('=IF('+source+rowNum+'="","",COUNTIF('+source+'$3:'+source+
+              ',">"&'+source+rowNum+')+COUNTIF('+source+'$3:'+source+
+              rowNum+','+source+rowNum+'))'):"";
+          if(!expected||formula!==expected.toUpperCase())return false;
+        }
         if(v===null||v===undefined||v==="")return true;
         return isFresh && v===false && harmlessDefaults.has(j+1);
       });
