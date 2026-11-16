@@ -83,7 +83,7 @@ test("extension generates through the same authenticated Garamaal website API",a
   assert.equal(run.confirm,true,"paid run must be explicitly confirmed");
   assert.equal(run.expected.url,url);
   assert.equal(h.el("cvPanel").hidden,false,"remain in Make CV to monitor generated CV");
-  assert.match(h.el("cv-status").textContent,/queued/i);
+  assert.match(h.el("cv-status").textContent,/accepted/i);
 });
 
 test("extension reuses a queued website CV run instead of paying twice",async()=>{
