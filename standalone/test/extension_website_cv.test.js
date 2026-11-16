@@ -7,6 +7,7 @@ const vm=require("node:vm");
 
 const ROOT=path.join(__dirname,"../..");
 const source=fs.readFileSync(path.join(ROOT,"chrome-extension/job_panel.js"),"utf8");
+const html=fs.readFileSync(path.join(ROOT,"chrome-extension/popup.html"),"utf8");
 const contract=require(path.join(ROOT,"chrome-extension/cv_handoff.js"));
 const url="https://careers.example.com/jobs/controller-101";
 const job={company:"Example Company",role:"Plant Controller",url,
