@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Garamaal Job Assistant (Beta)",
-  "version": "0.11.7",
+  "version": "0.11.8",
   "description": "Capture jobs, request website-backed tailored CVs, and fill application forms with manual review.",
   "permissions": [
     "activeTab",
