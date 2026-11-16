@@ -7,12 +7,13 @@ const vm=require("node:vm");
 
 const ROOT=path.join(__dirname,"../..");
 const source=fs.readFileSync(path.join(ROOT,"chrome-extension/job_panel.js"),"utf8");
+const html=fs.readFileSync(path.join(ROOT,"chrome-extension/popup.html"),"utf8");
 const contract=require(path.join(ROOT,"chrome-extension/cv_handoff.js"));
 const url="https://careers.example.com/jobs/controller-101";
 const job={company:"Example Company",role:"Plant Controller",url,
   jd:"Role responsibilities and qualifications including finance reporting. ".repeat(4),location:"Sligo, Ireland",deadline:"",salary:""};
 
-function harness({queue={},initialFresh={},savedSession=null}={}){
+function harness({queue={},queueReadOnly=false,initialFresh={},savedSession=null,failUpdate="",failDispatch=false,acceptRun=true}={}){
   const nodes=new Map(),calls=[],session={gmCvJobSession:savedSession},timers=[];
   const el=id=>{
     if(!nodes.has(id))nodes.set(id,{id,value:"",checked:false,hidden:false,disabled:false,
@@ -32,9 +33,9 @@ function harness({queue={},initialFresh={},savedSession=null}={}){
       case "getJob":
         return arg.source==="taaza"?{source:"taaza",row:10,...job}:{...fresh};
       case "transferJob":return {created:true,freshRow:20};
-      case "updateFreshControl":fresh[arg.field]=arg.value;return {saved:true};
-      case "getCvQueue":return {byJob:queue};
-      case "runCvApiNow":return {message:"CV generation queued in Garamaal"};
+      case "updateFreshControl":if(failUpdate===arg.field)throw Error("Simulated option save failure");fresh[arg.field]=arg.value;return {saved:true};
+      case "getCvQueue":return {byJob:queue,running:Object.values(queue).filter(x=>x.state==="running").length,queued:Object.values(queue).filter(x=>x.state==="queued").length,readOnly:queueReadOnly,queueNote:queueReadOnly?"GitHub credential needs attention":"Visible GitHub CV queue"};
+      case "runCvApiNow":if(failDispatch)throw Error("Manual CV dispatch is disabled");return acceptRun?{queued:true,candidate:arg.candidate,row:arg.row,message:"GitHub accepted the CV request"}:{queued:false,candidate:arg.candidate,row:arg.row};
       default:throw Error("Unexpected website API call: "+method);
     }
   }
@@ -73,10 +74,9 @@ test("extension generates through the same authenticated Garamaal website API",a
   for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
   await h.click("job-save");
   assert.equal(h.el("cvPanel").hidden,false,"saved job opens Make CV");
-  await h.click("cv-save");
+  await h.click("cv-run");
   assert.deepEqual(h.calls.filter(x=>x.method==="updateFreshControl").map(x=>x.arg.field),
     ["tier","cv","cl","web"]);
-  await h.click("cv-run");
   assert.equal(h.calls.filter(x=>x.method==="runCvApiNow").length,1);
   const run=h.calls.find(x=>x.method==="runCvApiNow").arg;
   assert.equal(run.candidate,"Abhishek");
@@ -84,14 +84,13 @@ test("extension generates through the same authenticated Garamaal website API",a
   assert.equal(run.confirm,true,"paid run must be explicitly confirmed");
   assert.equal(run.expected.url,url);
   assert.equal(h.el("cvPanel").hidden,false,"remain in Make CV to monitor generated CV");
-  assert.match(h.el("cv-status").textContent,/queued/i);
+  assert.match(h.el("cv-status").textContent,/accepted/i);
 });
 
 test("extension reuses a queued website CV run instead of paying twice",async()=>{
   const h=harness({queue:{"abhishek:20":{state:"queued",runId:1234}}});
   for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
   await h.click("job-save");
-  await h.click("cv-save");
   await h.click("cv-run");
   assert.equal(h.calls.filter(x=>x.method==="runCvApiNow").length,0);
   assert.equal(h.el("cvPanel").hidden,false);
@@ -110,4 +109,63 @@ test("extension restores CV controls from the website's verified Freshmaal row",
   assert.equal(h.el("cvPanel").hidden,false);
   assert.equal(h.calls.filter(x=>x.method==="updateFreshControl").length,0,
     "restoring CV options must be read-only");
+});
+
+
+test("sidebar shows real queue totals and this-job queue position",async()=>{
+  const h=harness({queue:{"abhishek:20":{state:"queued",queueNumber:2,runId:9876},
+    "pooja:22":{state:"running",runId:123}}});
+  for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
+  await h.click("job-save");
+  await new Promise(resolve=>setImmediate(resolve));
+  assert.equal(h.el("cv-queue-summary").textContent,"1 running · 1 queued");
+  assert.match(h.el("cv-queue-job").textContent,/position #2/);
+  assert.match(h.el("cv-queue-job").textContent,/run #9876/);
+});
+
+test("read-only GitHub queue prevents a paid request and explains the credential issue",async()=>{
+  const h=harness({queueReadOnly:true});
+  for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
+  await h.click("job-save");
+  await h.click("cv-run");
+  assert.equal(h.calls.filter(x=>x.method==="updateFreshControl").length,0);
+  assert.equal(h.calls.filter(x=>x.method==="runCvApiNow").length,0);
+  assert.match(h.el("cv-status").textContent,/read-only/i);
+  assert.match(h.el("cv-queue-summary").textContent,/0 running/i);
+  assert.match(h.el("cv-queue-note").textContent,/credential/i);
+});
+
+test("failed option save cannot dispatch a paid CV run",async()=>{
+  const h=harness({failUpdate:"cl"});
+  for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
+  await h.click("job-save");
+  await h.click("cv-run");
+  assert.equal(h.calls.filter(x=>x.method==="runCvApiNow").length,0);
+  assert.match(h.el("cv-status").textContent,/Simulated option save failure/);
+});
+
+test("failed backend dispatch does not announce queued",async()=>{
+  const h=harness({failDispatch:true});
+  for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
+  await h.click("job-save");
+  await h.click("cv-run");
+  assert.equal(h.calls.filter(x=>x.method==="runCvApiNow").length,1);
+  assert.match(h.el("cv-status").textContent,/disabled/);
+  assert.doesNotMatch(h.el("cv-status").textContent,/accepted/);
+});
+
+test("unverified dispatch response never reports a confirmed paid request",async()=>{
+  const h=harness({acceptRun:false});
+  for(const [key,value] of Object.entries(job))h.el("job-"+key).value=value;
+  await h.click("job-save");
+  await h.click("cv-run");
+  assert.match(h.el("cv-status").textContent,/did not confirm/i);
+});
+
+test("Make CV shows one Generate action with queue numbers",()=>{
+  assert.doesNotMatch(html,/id="cv-save"/);
+  assert.match(html,/id="cv-run"/);
+  assert.match(html,/id="cv-queue-summary"/);
+  assert.match(html,/id="cv-queue-job"/);
+  assert.match(html,/id="cv-queue-note"/);
 });
