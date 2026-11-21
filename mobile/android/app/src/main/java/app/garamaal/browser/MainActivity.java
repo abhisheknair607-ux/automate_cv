@@ -81,10 +81,10 @@ public final class MainActivity extends Activity {
         if (state != null) {
             browser.restoreState(state);
         } else if (!openSharedLink(getIntent())) {
-            browser.loadDataWithBaseURL("https://garamaal.web.app/",
+            browser.loadDataWithBaseURL(null,
                 "<html><meta name='viewport' content='width=device-width, initial-scale=1'><body style='font:16px system-ui;padding:24px;color:#132a49'>"
-                + "<h2>Garamaal Job Browser</h2><p>Paste an external employer or ATS vacancy URL above, or share one into Garamaal Browser from another app.</p>"
-                + "<p>Tap <b>Capture this job</b> when the job description has loaded. LinkedIn page extraction is disabled.</p></body></html>",
+                + "<h2>Garamaal Job Browser</h2><p>Paste or share an external employer vacancy to browse and capture its details.</p>"
+                + "<p>For LinkedIn or Google sign-in, tap <b>Open in Chrome</b> (↗). After opening an external employer Apply link, Share the link back to Garamaal Browser.</p></body></html>",
                 "text/html", "utf-8", null);
         }
     }
@@ -164,7 +164,8 @@ public final class MainActivity extends Activity {
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(5), dp(4), dp(5), dp(4));
         Button back = button("‹");
-        toolbar.addView(back, new LinearLayout.LayoutParams(dp(48), dp(48)));
+        styleButton(back, false);
+        toolbar.addView(back, new LinearLayout.LayoutParams(dp(44), dp(46)));
         back.setOnClickListener(v -> { if (browser.canGoBack()) browser.goBack(); });
         address = new EditText(this);
         address.setSingleLine(true);
@@ -174,8 +175,20 @@ public final class MainActivity extends Activity {
             android.text.InputType.TYPE_TEXT_VARIATION_URI);
         toolbar.addView(address, new LinearLayout.LayoutParams(0, dp(49), 1));
         Button go = button("Go");
-        toolbar.addView(go, new LinearLayout.LayoutParams(dp(57), dp(48)));
+        styleButton(go, true);
+        toolbar.addView(go, new LinearLayout.LayoutParams(dp(50), dp(46)));
         go.setOnClickListener(v -> navigate(address.getText().toString()));
+        Button external = button("↗");
+        external.setContentDescription("Open in Chrome for LinkedIn or Google sign-in");
+        styleButton(external, false);
+        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(45), dp(46));
+        externalParams.leftMargin = dp(5);
+        toolbar.addView(external, externalParams);
+        external.setOnClickListener(v -> {
+            String typed = address.getText().toString().trim();
+            String current = browser.getUrl();
+            openTrustedBrowser(typed.startsWith("https://") ? typed : current);
+        });
         root.addView(toolbar);
 
         browser = new WebView(this);
@@ -192,15 +205,19 @@ public final class MainActivity extends Activity {
         browser.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
-                String scheme = uri.getScheme();
-                if ("https".equalsIgnoreCase(scheme)) return false;
-                if (request.isForMainFrame()) {
-                    Toast.makeText(MainActivity.this, "Only secure HTTPS webpages are supported.", Toast.LENGTH_LONG).show();
+                if (!request.isForMainFrame()) return false;
+                if (isTrustedBrowserOnly(uri)) {
+                    openTrustedBrowser(uri.toString());
+                    return true;
                 }
+                if ("https".equalsIgnoreCase(uri.getScheme())) return false;
+                Toast.makeText(MainActivity.this,
+                    "Only secure HTTPS employer websites are supported here.",
+                    Toast.LENGTH_LONG).show();
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                address.setText(url.startsWith("data:") ? "" : url);
+                address.setText(url.startsWith("data:") || url.startsWith("about:") ? "" : url);
                 captureStatus.setText("Garamaal Assistant · Capture when the job description is visible");
             }
         });
@@ -336,6 +353,36 @@ public final class MainActivity extends Activity {
         root.addView(nav);
     }
 
+    /** Google OAuth and LinkedIn sign-in must use a trusted browser, not WebView. */
+    private boolean isTrustedBrowserOnly(Uri uri) {
+        String host = uri.getHost() == null ? "" :
+            uri.getHost().toLowerCase(java.util.Locale.ROOT);
+        return host.equals("linkedin.com") || host.endsWith(".linkedin.com") ||
+            host.equals("accounts.google.com") || host.equals("oauth2.googleapis.com");
+    }
+
+    private void openTrustedBrowser(String url) {
+        try {
+            Uri uri = Uri.parse(url == null ? "" : url);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null)
+                throw new IllegalArgumentException();
+            Intent browserIntent = new Intent(Intent.ACTION_VIEW, uri);
+            browserIntent.addCategory(Intent.CATEGORY_BROWSABLE);
+            // Browser-based login preserves provider security policies; no
+            // user-agent spoofing, cookie injection or WebView OAuth attempts.
+            browserIntent.setPackage("com.android.chrome");
+            try {
+                startActivity(browserIntent);
+            } catch (android.content.ActivityNotFoundException noChrome) {
+                browserIntent.setPackage(null);
+                startActivity(browserIntent);
+            }
+            captureStatus.setText("Secure sign-in opened in Chrome. Share an employer Apply link back to Garamaal Browser.");
+        } catch (Exception ignored) {
+            Toast.makeText(this, "No supported browser available.", Toast.LENGTH_LONG).show();
+        }
+    }
+
     private EditText edit(String hint) {
         EditText field = new EditText(this);
         field.setHint(hint);
@@ -350,6 +397,10 @@ public final class MainActivity extends Activity {
             Uri uri = Uri.parse(input);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null) {
                 throw new IllegalArgumentException();
+            }
+            if (isTrustedBrowserOnly(uri)) {
+                openTrustedBrowser(uri.toString());
+                return;
             }
             captured = null;
             capturedFromPage = false;
