@@ -7,6 +7,20 @@
   "use strict";
   const MAX_DESCRIPTION = 49000;
   const clean = value => String(value ?? "").replace(/\s+/g, " ").trim();
+  const cleanJD = value => String(value ?? "")
+    .replace(/\u00a0/g, " ").replace(/\r\n?/g, "\n")
+    .replace(/[ \t]+/g, " ").replace(/\n[ \t]+/g, "\n")
+    .replace(/\n{3,}/g, "\n\n").trim();
+  function richText(node) {
+    if (!node) return "";
+    const copy = node.cloneNode(true);
+    copy.querySelectorAll("script,style,input,textarea,select,button,form").forEach(n => n.remove());
+    copy.querySelectorAll("br,li,p,h1,h2,h3,h4,section,div").forEach(n => {
+      if (n.tagName === "BR") n.replaceWith(document.createTextNode("\n"));
+      else n.append(document.createTextNode("\n"));
+    });
+    return cleanJD(copy.textContent || "");
+  }
   const host = location.hostname.toLowerCase().replace(/^www\./, "");
   if (host === "linkedin.com" || host.endsWith(".linkedin.com")) {
     return JSON.stringify({ error: "LinkedIn extraction is disabled. Open the external employer application page." });
@@ -53,6 +67,10 @@
     text(".location"));
   const selectors = [
     '[data-testid="job-description"]',
+    '[data-testid="job-posting-description"]',
+    '[data-automation-id="jobPostingDescription"]',
+    '[data-qa="job-description"]',
+    '[data-qa="job-description-text"]',
     '[data-qa="job-description"]',
     '[data-automation-id="jobPostingDescription"]',
     "#job-description",
@@ -67,13 +85,12 @@
   if (job.description) {
     const holder = document.createElement("div");
     holder.innerHTML = String(job.description).slice(0, MAX_DESCRIPTION * 2);
-    holder.querySelectorAll("script,style,input,textarea,select,button").forEach(el => el.remove());
-    description = clean(holder.textContent);
+    description = richText(holder);
     extractionMethod = "jsonld";
   }
   if (!description) {
     for (const selector of selectors) {
-      const candidate = text(selector);
+      const candidate = richText(document.querySelector(selector));
       if (candidate.length > description.length) description = candidate;
     }
   }
@@ -82,7 +99,7 @@
     title: title.slice(0, 250),
     company: company.slice(0, 250),
     location: locationText.slice(0, 300),
-    description: description.slice(0, MAX_DESCRIPTION),
+    description: cleanJD(description).slice(0, MAX_DESCRIPTION),
     method: extractionMethod,
     missingDescription: description.length < 80
   });
