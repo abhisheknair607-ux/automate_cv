@@ -25,7 +25,7 @@ test("LinkedIn and Google OAuth are sent to a trusted browser rather than WebVie
   assert.match(java,/host\.endsWith\("\.linkedin\.com"\)/);
   assert.match(java,/host\.equals\("accounts\.google\.com"\)/);
   assert.match(java,/openTrustedBrowser\(uri\.toString\(\)\)/);
-  assert.match(java,/intent\.addCategory\(Intent\.CATEGORY_BROWSABLE\)/); // existing Garamaal route
+  assert.match(java,/browserIntent\.addCategory\(Intent\.CATEGORY_BROWSABLE\)/);
   assert.match(java,/browserIntent\.setPackage\("com\.android\.chrome"\)/);
   assert.doesNotMatch(java,/setUserAgentString|CookieManager|getCookie\(/);
 });
