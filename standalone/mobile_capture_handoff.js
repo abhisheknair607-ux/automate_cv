@@ -61,11 +61,12 @@
   message.setAttribute("aria-live","polite");
   const wantsCv=job.mode==="cv";
   message.textContent=wantsCv
-    ?"Make CV requested. Import the complete JD, review the job, then tap Save & Prepare CV. Paid generation requires a separate confirmation."
-    :"Review this job, import its description if available, then tap Save Job. The external application remains open in the Android browser.";
+    ?"Make CV requested. Import or paste the full JD, review the fields, then tap Save & Prepare CV. Paid generation always requires separate confirmation."
+    :"Review the job fields and description, then tap Save Job. The employer application stays open in the Android browser.";
   const actions=document.createElement("div");
   actions.style.cssText="display:flex;flex-wrap:wrap;gap:8px;align-items:center";
-  const paste=makeButton("Import captured JD");
+  const paste=makeButton(job.jdAvailable===false?"Paste JD manually":"Import captured JD");
+  if(job.jdAvailable===false)paste.title="The mobile capture did not include a complete JD; paste one into the form manually.";
   const save=makeButton("Save Job");
   const prepare=makeButton("Save & Prepare CV");
   const start=makeButton("Generate CV (paid)");
@@ -117,6 +118,11 @@
 
   paste.addEventListener("click",async()=>{
     if(busy)return;
+    if(job.jdAvailable===false){
+      document.getElementById("add-jd")?.focus();
+      status("No complete JD was captured. Paste or enter one manually before preparing a CV.");
+      return;
+    }
     const target=document.getElementById("add-jd");
     if(!target)return;
     try{
