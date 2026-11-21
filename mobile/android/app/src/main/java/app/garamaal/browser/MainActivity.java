@@ -187,9 +187,12 @@ public final class MainActivity extends Activity {
         descriptionPreview = text("", 12);
         descriptionPreview.setMaxLines(3);
         review.addView(descriptionPreview);
-        Button send = button("Review in Garamaal");
-        review.addView(send);
-        send.setOnClickListener(v -> handOffCapture());
+        Button saveJob = button("Save Job to Garamaal");
+        review.addView(saveJob);
+        saveJob.setOnClickListener(v -> handOffCapture(false));
+        Button makeCv = button("Save & Make CV");
+        review.addView(makeCv);
+        makeCv.setOnClickListener(v -> handOffCapture(true));
         review.setVisibility(View.GONE);
         assistant.addView(review);
         root.addView(assistant);
@@ -274,7 +277,7 @@ public final class MainActivity extends Activity {
         });
     }
 
-    private void handOffCapture() {
+    private void handOffCapture(boolean prepareCv) {
         if (captured == null) return;
         String role = title.getText().toString().trim();
         String employer = company.getText().toString().trim();
@@ -294,6 +297,7 @@ public final class MainActivity extends Activity {
             payload.put("role", role);
             payload.put("location", location.getText().toString().trim());
             payload.put("url", url);
+            payload.put("mode", prepareCv ? "cv" : "save");
             // JD stays on-device/clipboard: URLs should never contain full descriptions.
             String fragment = "#gm-capture=" + Uri.encode(payload.toString());
             openGaramaal(fragment);
