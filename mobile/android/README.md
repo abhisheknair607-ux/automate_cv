@@ -33,6 +33,17 @@ The debug APK is **not** a production-signed application or Play Store release. 
 - Google login to Garamaal itself stays in the existing authenticated PWA/browser. The Android embedded browser cannot reuse Chrome's sign-in cookies.
 - The introductory browser screen no longer falsely displays garamaal.web.app in the URL bar.
 
+## Installed Garamaal PWA → native browser (v0.3.0)
+
+- Keep the existing Garamaal **Install app** option as the website PWA install. Installation from the browser alone cannot silently install an Android APK.
+- After installing Garamaal to the Android home screen, the launcher's **Install app** button becomes **Open Browser**. It uses an explicit Chrome Android intent to open the separate Garamaal Browser APK.
+- Tapping a job title or external employer vacancy button in the installed Android PWA opens the external HTTPS job in Garamaal Browser. The existing job capture and review controls remain available.
+- LinkedIn login, Google OAuth, CV/CL Drive links, desktop web and iOS are deliberately left on their existing routes. Non-installed Android web pages continue opening employer job links normally.
+- The native APK registers `garamaal-browser://open?url=<encoded HTTPS job URL>` with a validation gate. It does **not** accept arbitrary schemes, retrieve browser cookies, save jobs without explicit user review or submit application forms.
+- If Garamaal Browser is not installed, tapping a job falls back to opening the employer vacancy normally. The **Open Browser** home action falls back to an installation-help page instead.
+- **Upgrade to Android Browser v0.3.0 or later**: older v0.2.1 installs do not register the deep link. The live PWA needs the `/prototype/android-browser-launcher.js` change to be deployed before it can open the APK.
+- A publicly hosted, stable **release-signed** Android APK/installer has not been configured. The existing GitHub Actions artifact is a short-lived debug build, not a production download/install endpoint.
+
 ## Scope and limitations
 
 - Android MVP only; no iOS build.
