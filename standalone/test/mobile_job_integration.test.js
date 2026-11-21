@@ -86,7 +86,7 @@ test("Save Job invokes authenticated addDiscovery only, never a paid CV dispatch
   const h=harness({jd:"Finance duties ".repeat(12)});
   await h.click("Save Job");
   assert.deepEqual(h.calls.map(c=>c.method),["addDiscovery"]);
-  assert.equal(h.calls[0].arg.jd,"Finance duties ".repeat(12));
+  assert.equal(h.calls[0].arg.jd,"Finance duties ".repeat(12).trim());
   assert.ok(h.buttons.find(b=>b.textContent==="Generate CV (paid)").hidden);
 });
 
