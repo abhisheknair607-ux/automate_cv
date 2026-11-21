@@ -290,7 +290,8 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-13"></script>'+
-    '<script src="/prototype/career-bridge.js?v=9"></script>'<script src="/prototype/mobile-capture-handoff.js?v=android-mvp-1"></script></body>'');
+    '<script src="/prototype/career-bridge.js?v=9"></script>'+
+    '<script src="/prototype/mobile-capture-handoff.js?v=android-mvp-1"></script></body>');
   html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
