@@ -151,6 +151,27 @@ app.get("/prototype/mobile-shell.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
 app.get("/prototype/mobile-shell.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_home_shell.js")));
+app.get("/prototype/android-browser-launcher.js",(_req,res)=>
+  res.set("Cache-Control","no-store").type("text/javascript")
+    .sendFile(path.join(__dirname,"android_browser_launcher.js")));
+app.get("/prototype/android-browser-help",(_req,res)=>{
+  res.set("Cache-Control","no-store").type("html").send(
+    '<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Garamaal Android Browser installation</title>'+
+    '<body style="font-family:system-ui,sans-serif;max-width:540px;margin:24px auto;padding:18px;color:#18324d;line-height:1.6">'+
+    '<h1>Garamaal Browser is not installed</h1>'+
+    '<p>The Garamaal home-screen app and the separate Android Browser are different applications. '+
+    'The browser must be installed before <b>Open Browser</b> can launch it.</p>'+
+    '<p>The Android Browser is currently a <b>test build</b>, not a production-signed release. '+
+    'You can obtain the latest debug APK from the GitHub build artifacts. '+
+    'GitHub login may be required. Only install APKs you trust.</p>'+
+    '<p><a href="https://github.com/abhisheknair607-ux/automate_cv/actions/workflows/garamaal-android-browser-build.yml">'+
+    'Android APK builds on GitHub</a></p>'+
+    '<p><a href="/prototype">Return to Garamaal</a></p></body></html>');
+});
+app.get("/prototype/mobile-capture-handoff.js",(_req,res)=>
+  res.set("Cache-Control","no-store").type("text/javascript")
+    .sendFile(path.join(__dirname,"mobile_capture_handoff.js")));
 app.get("/prototype/hub.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_hubs.css")));
 app.get("/prototype/hub-jobs.js",(_req,res)=>
@@ -287,7 +308,9 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-13"></script>'+
-    '<script src="/prototype/career-bridge.js?v=9"></script></body>');
+    '<script src="/prototype/career-bridge.js?v=9"></script>'+
+    '<script src="/prototype/mobile-capture-handoff.js?v=android-mvp-1"></script>'+
+    '<script src="/prototype/android-browser-launcher.js?v=android-pwa-bridge-1"></script></body>');
   html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
