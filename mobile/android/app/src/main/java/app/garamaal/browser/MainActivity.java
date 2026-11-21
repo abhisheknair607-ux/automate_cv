@@ -285,7 +285,7 @@ public final class MainActivity extends Activity {
         }
         try {
             String jd = captured.optString("description");
-            if (!jd.isBlank()) {
+            if (!jd.trim().isEmpty()) {
                 ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
                 clipboard.setPrimaryClip(ClipData.newPlainText("Garamaal vacancy description", jd));
             }
