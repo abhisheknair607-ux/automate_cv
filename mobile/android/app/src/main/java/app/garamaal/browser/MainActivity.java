@@ -178,10 +178,11 @@ public final class MainActivity extends Activity {
         styleButton(go, true);
         toolbar.addView(go, new LinearLayout.LayoutParams(dp(50), dp(46)));
         go.setOnClickListener(v -> navigate(address.getText().toString()));
-        Button external = button("↗");
+        Button external = button("Chrome ↗");
         external.setContentDescription("Open in Chrome for LinkedIn or Google sign-in");
+        external.setTextSize(11);
         styleButton(external, false);
-        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(45), dp(46));
+        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(78), dp(46));
         externalParams.leftMargin = dp(5);
         toolbar.addView(external, externalParams);
         external.setOnClickListener(v -> {
