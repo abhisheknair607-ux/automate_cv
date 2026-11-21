@@ -34,7 +34,9 @@ test("launcher install action stays visible above overlay and opens real Chrome 
  assert.match(landing,/id="gmv3-install-launcher"[^>]*data-gmv3="install"/);
  assert.match(shell,/if\(action==="install"\)/);
  assert.match(shell,/window\.__cvInstall\(\)/);
- assert.match(shell,/button\.hidden=!!installed/);
+ assert.match(shell,/button\.hidden=installed&&!openBrowser/);
+ assert.match(shell,/button\.textContent=openBrowser\?"Open Browser":"Install app"/);
+ assert.match(shell,/window\.GaramaalAndroidBrowser\?\.openHome/);
  assert.match(css,/\.gmv3-head-actions/);
  assert.match(html,/box\.style\.zIndex='3000'/);
  assert.match(html,/beforeinstallprompt/);
