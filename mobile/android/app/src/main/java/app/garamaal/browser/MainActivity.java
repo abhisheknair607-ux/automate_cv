@@ -5,6 +5,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -20,6 +21,7 @@ import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -44,11 +46,14 @@ public final class MainActivity extends Activity {
     private EditText company;
     private EditText location;
     private TextView captureStatus;
-    private TextView descriptionPreview;
+    private EditText applicationUrl;
+    private EditText jobDescription;
+    private ScrollView reviewScroll;
     private LinearLayout review;
     private ValueCallback<Uri[]> pendingUpload;
     private JSONObject captured;
     private String script;
+    private boolean capturedFromPage = false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -96,6 +101,35 @@ public final class MainActivity extends Activity {
 
     private int dp(int value) {
         return Math.round(value * getResources().getDisplayMetrics().density);
+    }
+
+    private void styleButton(Button view, boolean primary) {
+        GradientDrawable surface = new GradientDrawable();
+        surface.setColor(primary ? BLUE : Color.WHITE);
+        surface.setCornerRadius(dp(12));
+        if (!primary) surface.setStroke(dp(1), Color.rgb(196, 210, 229));
+        view.setBackground(surface);
+        view.setTextColor(primary ? Color.WHITE : NAVY);
+        view.setTextSize(13);
+        view.setAllCaps(false);
+        view.setPadding(dp(12), dp(8), dp(12), dp(8));
+    }
+
+    private TextView label(String name) {
+        TextView view = text(name.toUpperCase(java.util.Locale.ROOT), 10);
+        view.setTextColor(Color.rgb(97, 112, 132));
+        view.setPadding(dp(8), dp(6), dp(8), 0);
+        return view;
+    }
+
+    private void addEditField(LinearLayout parent, String caption, EditText field) {
+        parent.addView(label(caption));
+        parent.addView(field, new LinearLayout.LayoutParams(-1, -2));
+    }
+
+    private void setReviewVisible(boolean visible) {
+        reviewScroll.setVisibility(visible ? View.VISIBLE : View.GONE);
+        if (visible) captureStatus.setText("Review extracted fields • Edit anything before saving");
     }
 
     private void buildLayout() {
@@ -167,34 +201,89 @@ public final class MainActivity extends Activity {
 
         LinearLayout assistant = new LinearLayout(this);
         assistant.setOrientation(LinearLayout.VERTICAL);
-        assistant.setPadding(dp(10), dp(7), dp(10), dp(7));
-        assistant.setBackgroundColor(Color.rgb(242, 246, 252));
-        assistant.addView(text("Garamaal Assistant", 16));
-        captureStatus = text("Open a vacancy to begin", 12);
+        assistant.setPadding(dp(12), dp(7), dp(12), dp(7));
+        assistant.setBackgroundColor(Color.rgb(246, 248, 252));
+
+        LinearLayout assistantTop = new LinearLayout(this);
+        assistantTop.setGravity(Gravity.CENTER_VERTICAL);
+        TextView assistantTitle = text("Garamaal Assistant", 16);
+        assistantTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        assistantTop.addView(assistantTitle, new LinearLayout.LayoutParams(0, -2, 1));
+        Button toggle = button("Close review");
+        styleButton(toggle, false);
+        toggle.setTextSize(11);
+        toggle.setVisibility(View.GONE);
+        assistantTop.addView(toggle, new LinearLayout.LayoutParams(dp(116), dp(39)));
+        assistant.addView(assistantTop);
+        captureStatus = text("Open an employer vacancy, then capture the job", 12);
+        captureStatus.setTextColor(Color.rgb(97, 112, 132));
         assistant.addView(captureStatus);
+
         Button capture = button("Capture this job");
-        assistant.addView(capture);
+        styleButton(capture, true);
+        assistant.addView(capture, new LinearLayout.LayoutParams(-1, dp(48)));
         capture.setOnClickListener(v -> captureJob());
 
         review = new LinearLayout(this);
         review.setOrientation(LinearLayout.VERTICAL);
-        title = edit("Job title");
-        company = edit("Company");
-        location = edit("Location");
-        review.addView(title);
-        review.addView(company);
-        review.addView(location);
-        descriptionPreview = text("", 12);
-        descriptionPreview.setMaxLines(3);
-        review.addView(descriptionPreview);
+        review.setPadding(dp(8), dp(8), dp(8), dp(10));
+        review.addView(text("Captured job details — all fields editable", 14));
+
+        title = edit("Enter exact job title");
+        company = edit("Enter employer name");
+        location = edit("Enter job location");
+        applicationUrl = edit("https://employer.example/jobs/...");
+        applicationUrl.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+            android.text.InputType.TYPE_TEXT_VARIATION_URI);
+        addEditField(review, "Job title", title);
+        addEditField(review, "Company", company);
+        addEditField(review, "Location", location);
+        addEditField(review, "Application URL", applicationUrl);
+
+        jobDescription = edit("Paste or correct the full job description here");
+        jobDescription.setSingleLine(false);
+        jobDescription.setMinLines(5);
+        jobDescription.setMaxLines(9);
+        jobDescription.setGravity(Gravity.TOP | Gravity.START);
+        jobDescription.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
+            android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE |
+            android.text.InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        addEditField(review, "Full job description", jobDescription);
+
+        TextView explanation = text("Your edits are used when saving the job. Missing details can be entered manually. CV generation is never automatic.", 11);
+        explanation.setTextColor(Color.rgb(90, 109, 134));
+        review.addView(explanation);
+
         Button saveJob = button("Save Job to Garamaal");
-        review.addView(saveJob);
+        styleButton(saveJob, true);
+        LinearLayout.LayoutParams saveParams = new LinearLayout.LayoutParams(-1, dp(46));
+        saveParams.topMargin = dp(8);
+        review.addView(saveJob, saveParams);
         saveJob.setOnClickListener(v -> handOffCapture(false));
+
         Button makeCv = button("Save & Make CV");
-        review.addView(makeCv);
+        styleButton(makeCv, false);
+        LinearLayout.LayoutParams makeParams = new LinearLayout.LayoutParams(-1, dp(46));
+        makeParams.topMargin = dp(6);
+        review.addView(makeCv, makeParams);
         makeCv.setOnClickListener(v -> handOffCapture(true));
-        review.setVisibility(View.GONE);
-        assistant.addView(review);
+
+        reviewScroll = new ScrollView(this);
+        reviewScroll.setFillViewport(false);
+        reviewScroll.setVerticalScrollBarEnabled(true);
+        reviewScroll.addView(review);
+        reviewScroll.setVisibility(View.GONE);
+        assistant.addView(reviewScroll, new LinearLayout.LayoutParams(-1, dp(360)));
+        toggle.setOnClickListener(v -> {
+            boolean show = reviewScroll.getVisibility() != View.VISIBLE;
+            setReviewVisible(show);
+            toggle.setText(show ? "Close review" : "Edit capture");
+        });
+        capture.setOnClickListener(v -> {
+            captureJob();
+            toggle.setVisibility(View.VISIBLE);
+            toggle.setText("Close review");
+        });
         root.addView(assistant);
 
         LinearLayout nav = new LinearLayout(this);
@@ -230,7 +319,8 @@ public final class MainActivity extends Activity {
                 throw new IllegalArgumentException();
             }
             captured = null;
-            review.setVisibility(View.GONE);
+            capturedFromPage = false;
+            reviewScroll.setVisibility(View.GONE);
             browser.loadUrl(uri.toString());
         } catch (Exception error) {
             Toast.makeText(this, "Enter a full HTTPS employer vacancy URL.", Toast.LENGTH_LONG).show();
@@ -262,17 +352,16 @@ public final class MainActivity extends Activity {
                 title.setText(data.optString("title"));
                 company.setText(data.optString("company"));
                 location.setText(data.optString("location"));
-                String jd = data.optString("description");
-                descriptionPreview.setText(jd.isEmpty()
-                    ? "Description not detected. Paste the JD into Garamaal after opening."
-                    : "Captured JD: " + jd.substring(0, Math.min(230, jd.length())) + "…");
+                applicationUrl.setText(data.optString("url"));
+                jobDescription.setText(data.optString("description"));
+                capturedFromPage = true;
                 captureStatus.setText(data.optBoolean("missingDescription")
                     ? "Partial capture — review missing job description"
                     : "Captured — review all fields before saving");
-                review.setVisibility(View.VISIBLE);
+                setReviewVisible(true);
             } catch (Exception error) {
                 captureStatus.setText("Capture failed: " + error.getMessage());
-                review.setVisibility(View.GONE);
+                reviewScroll.setVisibility(View.GONE);
             }
         });
     }
@@ -281,23 +370,28 @@ public final class MainActivity extends Activity {
         if (captured == null) return;
         String role = title.getText().toString().trim();
         String employer = company.getText().toString().trim();
-        String url = captured.optString("url");
-        if (role.isEmpty() || employer.isEmpty() || !url.startsWith("https://")) {
+        String url = applicationUrl.getText().toString().trim();
+        Uri checked = Uri.parse(url);
+        String hostname = checked.getHost() == null ? "" : checked.getHost().toLowerCase(java.util.Locale.ROOT);
+        if (role.isEmpty() || employer.isEmpty() ||
+            !"https".equalsIgnoreCase(checked.getScheme()) ||
+            hostname.isEmpty() || "linkedin.com".equals(hostname) || hostname.endsWith(".linkedin.com")) {
             Toast.makeText(this, "Check job title, company and URL before continuing.", Toast.LENGTH_LONG).show();
             return;
         }
         try {
-            String jd = captured.optString("description");
-            if (!jd.trim().isEmpty()) {
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                clipboard.setPrimaryClip(ClipData.newPlainText("Garamaal vacancy description", jd));
-            }
+            String jd = jobDescription.getText().toString().trim();
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+            // Clear any stale prior description when no JD was captured or entered.
+            clipboard.setPrimaryClip(ClipData.newPlainText("Garamaal vacancy description", jd));
             JSONObject payload = new JSONObject();
             payload.put("company", employer);
             payload.put("role", role);
             payload.put("location", location.getText().toString().trim());
             payload.put("url", url);
             payload.put("mode", prepareCv ? "cv" : "save");
+            payload.put("jdAvailable", jd.length() >= 80);
+            payload.put("edited", capturedFromPage);
             // JD stays on-device/clipboard: URLs should never contain full descriptions.
             String fragment = "#gm-capture=" + Uri.encode(payload.toString());
             openGaramaal(fragment);
@@ -343,7 +437,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override public void onBackPressed() {
-        if (review.getVisibility() == View.VISIBLE) review.setVisibility(View.GONE);
+        if (reviewScroll.getVisibility() == View.VISIBLE) reviewScroll.setVisibility(View.GONE);
         else if (browser.canGoBack()) browser.goBack();
         else super.onBackPressed();
     }
