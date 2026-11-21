@@ -151,6 +151,9 @@ app.get("/prototype/mobile-shell.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_home_shell.css")));
 app.get("/prototype/mobile-shell.js",(_req,res)=>
   res.type("text/javascript").sendFile(path.join(__dirname,"mobile_home_shell.js")));
+app.get("/prototype/mobile-capture-handoff.js",(_req,res)=>
+  res.set("Cache-Control","no-store").type("text/javascript")
+    .sendFile(path.join(__dirname,"mobile_capture_handoff.js")));
 app.get("/prototype/hub.css",(_req,res)=>
   res.type("text/css").sendFile(path.join(__dirname,"mobile_hubs.css")));
 app.get("/prototype/hub-jobs.js",(_req,res)=>
@@ -287,7 +290,7 @@ app.get("/prototype",(req,res)=>{
      '<script src="/prototype/ui-polish.js?v=m26-icons-16"></script>'+
      '<script src="/prototype/account-drawer.js?v=m26-neon-held-12"></script>'+
      '<script src="/prototype/profile-editor.js?v=m26-neon-held-13"></script>'+
-    '<script src="/prototype/career-bridge.js?v=9"></script></body>');
+    '<script src="/prototype/career-bridge.js?v=9"></script>'<script src="/prototype/mobile-capture-handoff.js?v=android-mvp-1"></script></body>'');
   html=html.replace("</body>",'<script src="/extension-install.js"></script></body>');
   res.type("html").send(html);
 });
