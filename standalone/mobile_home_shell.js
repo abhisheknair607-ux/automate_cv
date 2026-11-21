@@ -20,12 +20,22 @@
     catch(_){return "Abhishek";}
   }
   function syncAvatar(){initial.textContent="E";}
+  function isInstalledPwa(){
+    return !!(window.matchMedia?.("(display-mode: standalone)")?.matches||
+      window.navigator.standalone===true);
+  }
+  const android=()=>/Android/i.test(navigator.userAgent||"");
   function syncInstall(){
     const button=document.getElementById("gmv3-install-launcher");
     if(!button)return;
-    const installed=window.matchMedia?.("(display-mode: standalone)")?.matches||
-      window.navigator.standalone===true;
-    button.hidden=!!installed;
+    const installed=isInstalledPwa();
+    const openBrowser=installed&&android();
+    // Before PWA install keep the current Install action. In the installed
+    // Android PWA replace it with a native Garamaal Browser launch action.
+    button.hidden=installed&&!openBrowser;
+    button.textContent=openBrowser?"Open Browser":"Install app";
+    button.title=openBrowser?"Open the native Garamaal job browser":"Install Garamaal on your home screen";
+    button.setAttribute("aria-label",button.title);
   }
   function showHome(){
     syncAvatar();syncInstall();
@@ -98,6 +108,11 @@
     if(action==="jobs"){enterJobs();return;}
     if(action==="more"){window.GaramaalDrawer?.open();return;}
     if(action==="install"){
+      if(isInstalledPwa()&&android()){
+        if(!window.GaramaalAndroidBrowser?.openHome?.())
+          window.alert("Open Browser requires the Garamaal Android app. Install the Android test APK first.");
+        return;
+      }
       if(typeof window.__cvInstall==="function")window.__cvInstall();
       else window.alert("In Chrome, open the menu (⋮) and select Install app or Add to Home screen.");
       return;
