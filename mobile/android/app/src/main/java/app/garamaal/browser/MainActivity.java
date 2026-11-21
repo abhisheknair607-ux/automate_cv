@@ -5,10 +5,13 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.Insets;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.view.Gravity;
+import android.view.WindowInsets;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.SafeBrowsingResponse;
@@ -57,8 +60,11 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        getWindow().setStatusBarColor(NAVY);
-        getWindow().setNavigationBarColor(NAVY);
+        getWindow().setStatusBarColor(Color.WHITE);
+        getWindow().setNavigationBarColor(Color.WHITE);
+        getWindow().getDecorView().setSystemUiVisibility(
+            View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR | View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        if (Build.VERSION.SDK_INT >= 29) getWindow().setNavigationBarContrastEnforced(false);
         try (InputStream stream = getAssets().open("job_capture.js")) {
             byte[] bytes = new byte[stream.available()];
             int count = 0;
@@ -132,11 +138,26 @@ public final class MainActivity extends Activity {
         if (visible) captureStatus.setText("Review extracted fields • Edit anything before saving");
     }
 
+    /** Android 15 requires explicit padding for status/navigation bars and IME. */
+    private void applySafeAreaInsets(LinearLayout root) {
+        if (Build.VERSION.SDK_INT < 35) return;
+        root.setOnApplyWindowInsetsListener((view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout());
+            Insets ime = windowInsets.getInsets(WindowInsets.Type.ime());
+            view.setPadding(bars.left, bars.top, bars.right,
+                Math.max(bars.bottom, ime.bottom));
+            return windowInsets;
+        });
+        root.requestApplyInsets();
+    }
+
     private void buildLayout() {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(Color.WHITE);
         setContentView(root);
+        applySafeAreaInsets(root);
 
         LinearLayout toolbar = new LinearLayout(this);
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
@@ -286,12 +307,24 @@ public final class MainActivity extends Activity {
         });
         root.addView(assistant);
 
+        View separator = new View(this);
+        separator.setBackgroundColor(Color.rgb(223, 231, 241));
+        root.addView(separator, new LinearLayout.LayoutParams(-1, dp(1)));
         LinearLayout nav = new LinearLayout(this);
         nav.setGravity(Gravity.CENTER);
-        for (String item : new String[]{"Dashboard", "Discovery", "Browser", "Make CV"}) {
-            Button tab = button(item);
-            tab.setTextSize(10);
-            nav.addView(tab, new LinearLayout.LayoutParams(0, dp(49), 1));
+        nav.setPadding(dp(6), dp(4), dp(6), dp(5));
+        nav.setBackgroundColor(Color.WHITE);
+        String[] destinations = {"Dashboard", "Discovery", "Browser", "Make CV"};
+        String[] symbols = {"⌂", "▦", "◎", "▤"};
+        for (int i = 0; i < destinations.length; i++) {
+            final String item = destinations[i];
+            TextView tab = text(symbols[i] + "\n" + item, 11);
+            tab.setGravity(Gravity.CENTER);
+            tab.setTypeface(null, item.equals("Browser") ?
+                android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
+            tab.setTextColor(item.equals("Browser") ? BLUE : NAVY);
+            tab.setPadding(dp(2), dp(3), dp(2), dp(3));
+            nav.addView(tab, new LinearLayout.LayoutParams(0, dp(53), 1));
             tab.setOnClickListener(v -> {
                 if (!"Browser".equals(item)) {
                     String destination = "Dashboard".equals(item) ? "dashboard" :
