@@ -24,6 +24,15 @@ gradle :app:assembleDebug
 
 The debug APK is **not** a production-signed application or Play Store release. GitHub Actions builds may use a different temporary debug certificate, so upgrading over an earlier debug APK may require uninstalling the old test build first (which clears that app's local WebView data). It should not be presented as the main Install app experience. Before publishing an Android installer, validate it on physical phones and configure release signing, app ownership, distribution/updates and user-facing disclosures.
 
+## Android 15 UI and secure sign-in (v0.2.1)
+
+- Reserves the Android status bar, display cutout, three-button navigation bar and on-screen keyboard insets so Garamaal controls are not covered by system UI.
+- Replaces oversized grey native bottom buttons with a compact four-tab navigation row above system controls.
+- The toolbar exposes **Chrome ↗**. LinkedIn and Google OAuth destinations open in Chrome (or a trusted browser fallback) because Google authentication blocks embedded Android WebViews.
+- No browser cookies or OAuth tokens are copied into the native WebView. LinkedIn is used in Chrome; on the employer's external Apply page choose Android **Share → Garamaal Browser** to capture the ATS page.
+- Google login to Garamaal itself stays in the existing authenticated PWA/browser. The Android embedded browser cannot reuse Chrome's sign-in cookies.
+- The introductory browser screen no longer falsely displays garamaal.web.app in the URL bar.
+
 ## Scope and limitations
 
 - Android MVP only; no iOS build.
