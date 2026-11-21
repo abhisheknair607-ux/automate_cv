@@ -37,5 +37,5 @@ test("Mobile app keeps employer DOM capture, share support and improved address 
   assert.match(java,/Button external = button\("Chrome ↗"\)/);
   assert.match(java,/loadDataWithBaseURL\(null,/);
   assert.match(manifest,/android\.intent\.action\.SEND/);
-  assert.match(gradle,/versionName = "0\.2\.1"/);
+  assert.match(gradle,/versionName = "0\.3\.0"/);
 });
