@@ -6,10 +6,11 @@ The existing Garamaal **Install app** button installs a PWA using `/manifest.web
 
 1. Open Garamaal Browser on Android or **Share → Garamaal Browser** from a job link.
 2. Navigate to a secure external employer/ATS vacancy.
-3. Tap **Capture this job** after the page renders; the JS extractor reads `JobPosting` JSON-LD or specific job-description DOM nodes. It does not scrape LinkedIn and does not read form input values, cookies or authentication tokens.
-4. Review/edit the detected title, company and location.
-5. Tap **Review in Garamaal**. The native app copies the JD, when found, to the local clipboard and opens `https://garamaal.web.app/prototype#gm-capture=…` with only small metadata (not the entire JD).
-6. The installed Garamaal PWA/site pre-populates its existing **Add Job** form, offers a **Paste captured JD** button and retains its existing authenticated `addDiscovery` API. **The user reviews and submits the job manually.** The existing Make CV flow remains unchanged.
+3. Tap **Capture this job** after the employer page renders. The extractor reads structured `JobPosting` data or permitted job-description DOM nodes, not LinkedIn pages or application-form answers.
+4. Expand the Garamaal Assistant review sheet. **Every field is editable:** employer, title, location, employer application URL and the complete multi-line JD (up to 49,000 characters).
+5. Choose **Save Job to Garamaal** or **Save & Make CV**. The native app copies the *edited* full JD to the local clipboard and opens `https://garamaal.web.app/prototype#gm-capture=…` with small metadata, never with the full JD or login tokens.
+6. On the authenticated PWA screen select **Import captured JD**, review the fields and explicitly press **Save Job** or **Save & Prepare CV**. These reuse Garamaal's existing `addDiscovery`, `getJob`, `saveDiscovery`, `transferJob` and `updateFreshControl` operations, including existing-URL deduplication and automatic Freshmaal transfer for complete JDs.
+7. **Generate CV (paid)** remains separate, with a per-job, per-candidate confirmation. It calls the existing guarded `runCvApiNow` backend and never auto-submits an application or automatically starts paid CV work.
 
 The Android app's Dashboard, Discovery and Make CV buttons open the corresponding Garamaal PWA views. Browser state remains inside the Android app while the user switches to Garamaal.
 
@@ -21,7 +22,7 @@ GitHub Actions runs `.github/workflows/garamaal-android-browser-build.yml`. It c
 gradle :app:assembleDebug
 ```
 
-The debug APK is **not** a production-signed application or Play Store release. It should not be presented as the main Install app experience. Before publishing an Android installer, validate it on physical phones and configure release signing, app ownership, distribution/updates and user-facing disclosures.
+The debug APK is **not** a production-signed application or Play Store release. GitHub Actions builds may use a different temporary debug certificate, so upgrading over an earlier debug APK may require uninstalling the old test build first (which clears that app's local WebView data). It should not be presented as the main Install app experience. Before publishing an Android installer, validate it on physical phones and configure release signing, app ownership, distribution/updates and user-facing disclosures.
 
 ## Scope and limitations
 
