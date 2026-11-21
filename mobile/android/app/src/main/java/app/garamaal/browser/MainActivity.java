@@ -78,15 +78,8 @@ public final class MainActivity extends Activity {
             script = null;
         }
         buildLayout();
-        if (state != null) {
-            browser.restoreState(state);
-        } else if (!openSharedLink(getIntent())) {
-            browser.loadDataWithBaseURL(null,
-                "<html><meta name='viewport' content='width=device-width, initial-scale=1'><body style='font:16px system-ui;padding:24px;color:#132a49'>"
-                + "<h2>Garamaal Job Browser</h2><p>Paste or share an external employer vacancy to browse and capture its details.</p>"
-                + "<p>For LinkedIn or Google sign-in, tap <b>Open in Chrome</b> (↗). After opening an external employer Apply link, Share the link back to Garamaal Browser.</p></body></html>",
-                "text/html", "utf-8", null);
-        }
+        if (state != null) browser.restoreState(state);
+        if (!openIncomingLink(getIntent()) && state == null) showBrowserHome();
     }
 
     private TextView text(String label, int size) {
@@ -491,6 +484,45 @@ public final class MainActivity extends Activity {
             .addCategory(Intent.CATEGORY_BROWSABLE));
     }
 
+    private void showBrowserHome() {
+        browser.loadDataWithBaseURL(null,
+            "<html><meta name='viewport' content='width=device-width, initial-scale=1'>" +
+            "<body style='font:16px system-ui;padding:24px;color:#132a49'>" +
+            "<h2>Garamaal Job Browser</h2><p>Open or share an external employer vacancy to capture it.</p>" +
+            "<p>For LinkedIn or Google sign-in, open in Chrome and share the external employer Apply link back to Garamaal Browser.</p>" +
+            "</body></html>", "text/html", "utf-8", null);
+    }
+
+    /** The installed PWA explicitly launches garamaal-browser://open?url=...
+     * Never accept arbitrary schemes or auto-save jobs from external intents.
+     */
+    private boolean openIncomingLink(Intent intent) {
+        if (intent == null) return false;
+        if (Intent.ACTION_VIEW.equals(intent.getAction())) {
+            Uri uri = intent.getData();
+            if (uri == null || !"garamaal-browser".equalsIgnoreCase(uri.getScheme()) ||
+                !"open".equalsIgnoreCase(uri.getHost())) return false;
+            String target = uri.getQueryParameter("url");
+            if (target == null || target.trim().isEmpty()) {
+                if (browser.getUrl() == null) showBrowserHome();
+                return true;
+            }
+            if (target.length() > 2500) {
+                Toast.makeText(this, "This job URL is too long to open.", Toast.LENGTH_LONG).show();
+                return true;
+            }
+            Uri vacancy = Uri.parse(target);
+            if (!"https".equalsIgnoreCase(vacancy.getScheme()) || vacancy.getHost() == null ||
+                vacancy.getHost().trim().isEmpty()) {
+                Toast.makeText(this, "Only HTTPS employer vacancies are supported.", Toast.LENGTH_LONG).show();
+                return true;
+            }
+            navigate(target);
+            return true;
+        }
+        return openSharedLink(intent);
+    }
+
     private boolean openSharedLink(Intent intent) {
         if (intent == null || !Intent.ACTION_SEND.equals(intent.getAction())) return false;
         CharSequence shared = intent.getCharSequenceExtra(Intent.EXTRA_TEXT);
@@ -504,7 +536,7 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
-        openSharedLink(intent);
+        openIncomingLink(intent);
     }
 
     @Override protected void onSaveInstanceState(Bundle state) {
