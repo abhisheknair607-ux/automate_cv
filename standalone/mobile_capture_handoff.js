@@ -59,7 +59,10 @@
   const message=document.createElement("p");
   message.setAttribute("role","status");
   message.setAttribute("aria-live","polite");
-  message.textContent="Review this job. Import its description before preparing a tailored CV. The original application page remains open in the Android browser.";
+  const wantsCv=job.mode==="cv";
+  message.textContent=wantsCv
+    ?"Make CV requested. Import the complete JD, review the job, then tap Save & Prepare CV. Paid generation requires a separate confirmation."
+    :"Review this job, import its description if available, then tap Save Job. The external application remains open in the Android browser.";
   const actions=document.createElement("div");
   actions.style.cssText="display:flex;flex-wrap:wrap;gap:8px;align-items:center";
   const paste=makeButton("Import captured JD");
