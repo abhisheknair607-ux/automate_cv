@@ -18,7 +18,8 @@ test("Default browser uses Chrome Custom Tabs, with an explicit bottom Capture J
   assert.match(secure,/setSecondaryToolbarViews\(bar, new int\[\]\{R\.id\.secure_capture_action\}, pendingCapture\)/);
   assert.match(secure,/addMenuItem\("Capture job in Garamaal", pendingCapture\)/);
   assert.match(secure,/getActivity\(\s*activity, 419, callback, PendingIntent\.FLAG_UPDATE_CURRENT \| PendingIntent\.FLAG_MUTABLE\)/);
-  assert.match(secure,/FLAG_ACTIVITY_SINGLE_TOP/);
+  assert.match(secure,/FLAG_ACTIVITY_NEW_TASK/);
+  assert.match(secure,/FLAG_ACTIVITY_MULTIPLE_TASK/);
   assert.match(bottom,/android:id="@\+id\/secure_capture_action"/);
   assert.match(bottom,/Capture Job/);
   assert.match(gradle,/androidx\.browser:browser:1\.10\.0/);
