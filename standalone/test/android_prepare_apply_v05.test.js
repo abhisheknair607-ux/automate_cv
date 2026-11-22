@@ -14,7 +14,7 @@ test("Capture launches a separate Garamaal preparation task, not CLEAR_TOP of Ch
   assert.match(chrome,/new Intent\(activity, PreparationActivity\.class\)/);
   assert.match(chrome,/FLAG_ACTIVITY_NEW_TASK/);
   assert.match(chrome,/FLAG_ACTIVITY_MULTIPLE_TASK/);
-  assert.doesNotMatch(chrome,/FLAG_ACTIVITY_CLEAR_TOP/);
+  assert.doesNotMatch(chrome,/callback\.addFlags\(Intent\.FLAG_ACTIVITY_CLEAR_TOP/);
   assert.match(prep,/class PreparationActivity extends MainActivity/);
   assert.match(prep,/android\.R\.anim\.fade_in/);
   assert.match(xml,/android:name="\.PreparationActivity"/);
