@@ -600,7 +600,15 @@ public final class MainActivity extends Activity {
         if (shared == null) return false;
         Matcher matcher = Pattern.compile("https://[^\\s<>]+").matcher(shared);
         if (!matcher.find()) return false;
-        openSecureBrowser(matcher.group().replaceAll("[.,)]+$", ""));
+        String sharedUrl = matcher.group().replaceAll("[.,)]+$", "");
+        // Share -> Garamaal is user-initiated and works even if Brave hides
+        // the Custom Tabs toolbar and menu action. Never read browser cookies.
+        if (JobCaptureEngine.eligible(sharedUrl)) {
+            captureFromSecureTab(Uri.parse(sharedUrl));
+        } else {
+            openSecureBrowser(sharedUrl);
+            captureStatus.setText("LinkedIn/Google pages are not extracted. Share the external employer Apply page instead.");
+        }
         return true;
     }
 
