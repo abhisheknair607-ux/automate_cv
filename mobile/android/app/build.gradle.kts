@@ -3,7 +3,7 @@ plugins {
 }
 android {
     namespace = "app.garamaal.browser"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.garamaal.browser"
