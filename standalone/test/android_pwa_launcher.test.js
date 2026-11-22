@@ -61,18 +61,21 @@ test("Installed PWA home Open Browser works and missing app goes to help",()=>{
   assert.match(landing,/GaramaalAndroidBrowser\?\.openHome/);
 });
 
-test("Only employer job links are intercepted; never LinkedIn or Drive documents",()=>{
+test("Employer and LinkedIn job URLs open native Secure Browser; login and Drive URLs are left alone",()=>{
   const h=harness();
-  assert.equal(h.bridge.openJob("https://www.linkedin.com/jobs/view/123"),false);
+  assert.equal(h.bridge.openJob("https://www.linkedin.com/jobs/view/123"),true);
+  assert.match(h.redirects[0],/linkedin\.com%2Fjobs%2Fview%2F123/);
+  assert.equal(h.bridge.openJob("https://www.linkedin.com/feed/"),false);
+  assert.equal(h.bridge.openJob("https://www.linkedin.com/login/"),false);
   assert.equal(h.bridge.openJob("https://drive.google.com/file/d/some-doc"),false);
   assert.equal(h.bridge.openJob("javascript:alert(1)"),false);
   assert.equal(h.bridge.openJob("http://jobs.example.com/job/5"),false);
   assert.equal(h.bridge.openJob("https://garamaal.web.app/prototype"),false);
-  assert.deepEqual(h.redirects,[]);
+  assert.equal(h.redirects.length,1);
   const evt=h.click({tagName:"A",getAttribute(){return "https://jobs.lever.co/sample/678";}});
   assert.equal(evt.prevented,true);
   assert.equal(evt.stopped,true);
-  assert.equal(h.redirects.length,1);
+  assert.equal(h.redirects.length,2);
   const h3=harness({standalone:false});
   const uninstalledClick=h3.click({tagName:"A",getAttribute(){return "https://jobs.lever.co/sample/678";}});
   assert.equal(uninstalledClick.prevented,false);
