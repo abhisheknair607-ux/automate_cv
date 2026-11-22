@@ -1,5 +1,14 @@
 # Garamaal Android Job Browser — native MVP
 
+## Secure Browser capture-controls fix (v0.4.1)
+
+- An Android device with Brave as its default browser can open Garamaal as a Brave Custom Tab. Brave did not display the existing secondary bottom Capture Job toolbar in user testing.
+- **v0.4.1 prefers Chrome Custom Tabs**, without changing the Android system-wide default browser. The top toolbar has a Capture Job icon, the bottom toolbar has Capture Job when supported, and the three-dot menu includes Capture job in Garamaal when the browser supports menu customisation.
+- **Guaranteed user-operated fallback:** from any supported browser, tap **Share → Garamaal Browser** on the external employer job page. The native app now immediately attempts job DOM extraction from that shared HTTPS URL and displays the editable review; it does not merely reopen Secure Browser.
+- If Chrome is absent or a browser declines to render Custom Tabs actions, the user may still use the system Share action. Browser providers can choose which controls to render; no one app can force a custom floating overlay over the browser.
+- Chrome and Brave keep **separate sign-in cookies**. After switching from Brave to Chrome, the user may need to sign into LinkedIn once more in Chrome. Garamaal does not transfer session tokens or bypass OAuth.
+- Test on the previously supplied EY careers page as well as Greenhouse/Lever; confirm the Capture icon, Share fallback, review fields, and return navigation.
+
 ## Secure Browser + background DOM capture prototype (v0.4.0)
 
 - **Secure Browser is the default**. Launching the native app opens a Chrome Custom Tab starting at LinkedIn Jobs. The user can sign in with Google/LinkedIn in Chrome; these cookies are never shared with the Android WebView.
