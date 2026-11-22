@@ -37,5 +37,5 @@ test("Mobile app keeps employer DOM capture, share support and improved address 
   assert.match(java,/Button external = button\("WebView"\)/);
   assert.match(java,/loadDataWithBaseURL\(null,/);
   assert.match(manifest,/android\.intent\.action\.SEND/);
-  assert.match(gradle,/versionName = "0\.4\.0"/);
+  assert.match(gradle,/versionName = "0\.4\.1"/);
 });
