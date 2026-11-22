@@ -25,8 +25,8 @@ test("LinkedIn and Google OAuth are sent to a trusted browser rather than WebVie
   assert.match(java,/host\.endsWith\("\.linkedin\.com"\)/);
   assert.match(java,/host\.equals\("accounts\.google\.com"\)/);
   assert.match(java,/openTrustedBrowser\(uri\.toString\(\)\)/);
-  assert.match(java,/browserIntent\.addCategory\(Intent\.CATEGORY_BROWSABLE\)/);
-  assert.match(java,/browserIntent\.setPackage\("com\.android\.chrome"\)/);
+  assert.match(java,/openSecureBrowser\(uri\.toString\(\)\)/);
+  assert.match(java,/SecureBrowser\.open\(this, target\)/);
   assert.doesNotMatch(java,/setUserAgentString|CookieManager|getCookie\(/);
 });
 
@@ -34,8 +34,8 @@ test("Mobile app keeps employer DOM capture, share support and improved address 
   assert.match(java,/browser\.evaluateJavascript\(script,/);
   assert.match(java,/if \(isTrustedBrowserOnly\(uri\)\) \{/);
   assert.match(java,/Intent\.ACTION_SEND/);
-  assert.match(java,/Button external = button\("Chrome ↗"\)/);
+  assert.match(java,/Button external = button\("WebView"\)/);
   assert.match(java,/loadDataWithBaseURL\(null,/);
   assert.match(manifest,/android\.intent\.action\.SEND/);
-  assert.match(gradle,/versionName = "0\.3\.0"/);
+  assert.match(gradle,/versionName = "0\.4\.1"/);
 });

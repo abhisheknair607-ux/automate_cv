@@ -27,14 +27,14 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> "$GITHUB_ENV"
           MANAGER="$(find "$ANDROID_SDK_ROOT/cmdline-tools" -type f -name sdkmanager -print -quit)"
           test -n "$MANAGER" || { echo "::error::Android SDK manager missing"; exit 1; }
-          "$MANAGER" --sdk_root="$ANDROID_SDK_ROOT" --install "platforms;android-35" "build-tools;35.0.0"
+          "$MANAGER" --sdk_root="$ANDROID_SDK_ROOT" --install "platforms;android-36" "build-tools;36.0.0"
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.11.1"
       - name: Check browser extraction and PWA integration
         run: |
           node --check standalone/server.js
-          node --test standalone/test/mobile_capture_handoff.test.js standalone/test/mobile_job_integration.test.js standalone/test/android_system_bars_oauth.test.js standalone/test/android_pwa_launcher.test.js
+          node --test standalone/test/mobile_capture_handoff.test.js standalone/test/mobile_job_integration.test.js standalone/test/android_system_bars_oauth.test.js standalone/test/android_pwa_launcher.test.js standalone/test/android_secure_capture_v04.test.js standalone/test/android_capture_controls_v041.test.js
       - name: Build Android test APK
         working-directory: mobile/android
         run: gradle --no-daemon :app:assembleDebug

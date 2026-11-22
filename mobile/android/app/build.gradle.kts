@@ -3,17 +3,22 @@ plugins {
 }
 android {
     namespace = "app.garamaal.browser"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.garamaal.browser"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
-        versionName = "0.3.0"
+        versionCode = 6
+        versionName = "0.4.1"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
+
+dependencies {
+    // Chrome Custom Tabs: approved browser session, customizable Capture Job toolbar.
+    implementation("androidx.browser:browser:1.10.0")
 }

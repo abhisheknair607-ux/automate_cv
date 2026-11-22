@@ -1,5 +1,27 @@
 # Garamaal Android Job Browser — native MVP
 
+## Secure Browser capture-controls fix (v0.4.1)
+
+- An Android device with Brave as its default browser can open Garamaal as a Brave Custom Tab. Brave did not display the existing secondary bottom Capture Job toolbar in user testing.
+- **v0.4.1 prefers Chrome Custom Tabs**, without changing the Android system-wide default browser. The top toolbar has a Capture Job icon, the bottom toolbar has Capture Job when supported, and the three-dot menu includes Capture job in Garamaal when the browser supports menu customisation.
+- **Guaranteed user-operated fallback:** from any supported browser, tap **Share → Garamaal Browser** on the external employer job page. The native app now immediately attempts job DOM extraction from that shared HTTPS URL and displays the editable review; it does not merely reopen Secure Browser.
+- If Chrome is absent or a browser declines to render Custom Tabs actions, the user may still use the system Share action. Browser providers can choose which controls to render; no one app can force a custom floating overlay over the browser.
+- Chrome and Brave keep **separate sign-in cookies**. After switching from Brave to Chrome, the user may need to sign into LinkedIn once more in Chrome. Garamaal does not transfer session tokens or bypass OAuth.
+- Test on the previously supplied EY careers page as well as Greenhouse/Lever; confirm the Capture icon, Share fallback, review fields, and return navigation.
+
+## Secure Browser + background DOM capture prototype (v0.4.0)
+
+- **Secure Browser is the default**. Launching the native app opens a Chrome Custom Tab starting at LinkedIn Jobs. The user can sign in with Google/LinkedIn in Chrome; these cookies are never shared with the Android WebView.
+- The Custom Tab shows **Capture Job · Garamaal** on its secondary (bottom) toolbar when supported, with a **Capture job in Garamaal** menu-item fallback. This action uses a user-initiated mutable, explicit `PendingIntent` to return the **current page URL** to Garamaal.
+- The app briefly comes to the foreground, starts an attached but visually occluded WebView to load the *same URL* from scratch, waits for employer JS and executes the existing read-only JSON-LD/DOM extractor. It does not copy browser cookies, bypass login or scrape LinkedIn.
+- If the page is public and supported, job title, employer, location, URL and full JD appear in the existing **scrollable editable review panel** with **Save Job** and **Save & Make CV** actions. The latter still hands off to Garamaal's authenticated PWA workspace; no paid CV generation starts until separately confirmed.
+- If capture is partial, times out, or the site blocks WebView, the review shows editable blank/partial fields for the employer URL, with clear manual-entry guidance. On LinkedIn/Google pages themselves, extraction is blocked and users should first open an external employer Apply page.
+- The Chrome Custom Tab remains a separate browser activity/session. The native review screen cannot literally overlay the Custom Tab; Android brings Garamaal's own review screen forward when Capture is tapped. Return to the Custom Tab using Android's back or app switching when available.
+- **Known prototype limitations:** no confirmed physical phone tests; Custom Tabs bottom toolbar support may vary by browser; login-only ATS pages will not become accessible in the separate WebView. Testing must verify the full callback URL, Android task/back-stack behaviour, hidden WebView rendering and review Save/Make CV handoff. Existing v0.3 PWA deep links now open Secure Browser.
+- The live Garamaal web PWA is unchanged by v0.4. The signed production installer and deployment remain separate release gates.
+
+
+
 The existing Garamaal **Install app** button installs a PWA using `/manifest.webmanifest`. A PWA cannot inspect cross-origin employer pages loaded in a different origin. This directory starts a **separate Android application** using a native Android `WebView`; it does not replace the website or the existing installer.
 
 ## User flow

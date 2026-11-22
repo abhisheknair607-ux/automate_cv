@@ -87,7 +87,8 @@ test("Android app registers and validates deep links; PWA injects integration on
   assert.match(activity,/private boolean openIncomingLink\(Intent intent\)/);
   assert.match(activity,/uri.getQueryParameter\("url"\)/);
   assert.match(activity,/!"https"\.equalsIgnoreCase\(vacancy\.getScheme\(\)\)/);
-  assert.match(activity,/if \(!openIncomingLink\(getIntent\(\)\) && state == null\) showBrowserHome\(\)/);
+  assert.match(activity,/if \(!openIncomingLink\(getIntent\(\)\) && state == null\) \{/);
+  assert.match(activity,/openSecureBrowser\(SecureBrowser\.INITIAL_URL\)/);
   assert.match(activity,/openIncomingLink\(intent\)/);
   assert.match(server,/android-browser-launcher\.js\?v=android-pwa-bridge-1/);
   assert.match(server,/app.get\("\/prototype\/android-browser-help"/);

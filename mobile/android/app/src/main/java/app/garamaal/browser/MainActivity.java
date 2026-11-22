@@ -23,6 +23,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -44,6 +45,10 @@ public final class MainActivity extends Activity {
     private static final int BLUE = Color.rgb(37, 99, 235);
 
     private WebView browser;
+    private FrameLayout browserStack;
+    private JobCaptureEngine backgroundCapture;
+    private Button reviewToggle;
+    private String lastSecureUrl = SecureBrowser.INITIAL_URL;
     private EditText address;
     private EditText title;
     private EditText company;
@@ -79,7 +84,10 @@ public final class MainActivity extends Activity {
         }
         buildLayout();
         if (state != null) browser.restoreState(state);
-        if (!openIncomingLink(getIntent()) && state == null) showBrowserHome();
+        if (!openIncomingLink(getIntent()) && state == null) {
+            showBrowserHome();
+            openSecureBrowser(SecureBrowser.INITIAL_URL);
+        }
     }
 
     private TextView text(String label, int size) {
@@ -167,22 +175,19 @@ public final class MainActivity extends Activity {
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
             android.text.InputType.TYPE_TEXT_VARIATION_URI);
         toolbar.addView(address, new LinearLayout.LayoutParams(0, dp(49), 1));
-        Button go = button("Go");
+        Button go = button("Secure");
         styleButton(go, true);
-        toolbar.addView(go, new LinearLayout.LayoutParams(dp(50), dp(46)));
-        go.setOnClickListener(v -> navigate(address.getText().toString()));
-        Button external = button("Chrome ↗");
-        external.setContentDescription("Open in Chrome for LinkedIn or Google sign-in");
-        external.setTextSize(11);
+        go.setTextSize(11);
+        toolbar.addView(go, new LinearLayout.LayoutParams(dp(69), dp(46)));
+        go.setOnClickListener(v -> openSecureBrowser(address.getText().toString()));
+        Button external = button("WebView");
+        external.setContentDescription("Open typed job in the direct Job Browser for troubleshooting");
+        external.setTextSize(10);
         styleButton(external, false);
-        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(78), dp(46));
+        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(76), dp(46));
         externalParams.leftMargin = dp(5);
         toolbar.addView(external, externalParams);
-        external.setOnClickListener(v -> {
-            String typed = address.getText().toString().trim();
-            String current = browser.getUrl();
-            openTrustedBrowser(typed.startsWith("https://") ? typed : current);
-        });
+        external.setOnClickListener(v -> navigate(address.getText().toString()));
         root.addView(toolbar);
 
         browser = new WebView(this);
@@ -229,7 +234,10 @@ public final class MainActivity extends Activity {
                 }
             }
         });
-        root.addView(browser, new LinearLayout.LayoutParams(-1, 0, 1));
+        browserStack = new FrameLayout(this);
+        browserStack.addView(browser, new FrameLayout.LayoutParams(-1, -1));
+        root.addView(browserStack, new LinearLayout.LayoutParams(-1, 0, 1));
+        backgroundCapture = new JobCaptureEngine(this, browserStack, script);
 
         LinearLayout assistant = new LinearLayout(this);
         assistant.setOrientation(LinearLayout.VERTICAL);
@@ -242,6 +250,7 @@ public final class MainActivity extends Activity {
         assistantTitle.setTypeface(null, android.graphics.Typeface.BOLD);
         assistantTop.addView(assistantTitle, new LinearLayout.LayoutParams(0, -2, 1));
         Button toggle = button("Close review");
+        reviewToggle = toggle;
         styleButton(toggle, false);
         toggle.setTextSize(11);
         toggle.setVisibility(View.GONE);
@@ -337,11 +346,13 @@ public final class MainActivity extends Activity {
             tab.setPadding(dp(2), dp(3), dp(2), dp(3));
             nav.addView(tab, new LinearLayout.LayoutParams(0, dp(53), 1));
             tab.setOnClickListener(v -> {
-                if (!"Browser".equals(item)) {
-                    String destination = "Dashboard".equals(item) ? "dashboard" :
-                        "Discovery".equals(item) ? "discovery" : "fresh";
-                    openGaramaal("#gm-view=" + destination);
+                if ("Browser".equals(item)) {
+                    openSecureBrowser(lastSecureUrl);
+                    return;
                 }
+                String destination = "Dashboard".equals(item) ? "dashboard" :
+                    "Discovery".equals(item) ? "discovery" : "fresh";
+                openGaramaal("#gm-view=" + destination);
             });
         }
         root.addView(nav);
@@ -355,26 +366,80 @@ public final class MainActivity extends Activity {
             host.equals("accounts.google.com") || host.equals("oauth2.googleapis.com");
     }
 
+    /** Default mode: Chrome Custom Tab, including Google/LinkedIn sign-in. */
+    private void openSecureBrowser(String url) {
+        try {
+            String target = url == null || url.trim().isEmpty()
+                ? SecureBrowser.INITIAL_URL : url.trim();
+            Uri uri = Uri.parse(target);
+            if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null)
+                throw new IllegalArgumentException();
+            lastSecureUrl = target;
+            address.setText(target);
+            captureStatus.setText("Secure Browser · Tap Capture Job on an external employer page.");
+            SecureBrowser.open(this, target);
+        } catch (Exception error) {
+            Toast.makeText(this,
+                "Secure Browser unavailable. Check Chrome or use the direct WebView test mode.",
+                Toast.LENGTH_LONG).show();
+        }
+    }
+
     private void openTrustedBrowser(String url) {
         try {
             Uri uri = Uri.parse(url == null ? "" : url);
             if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null)
                 throw new IllegalArgumentException();
-            Intent browserIntent = new Intent(Intent.ACTION_VIEW, uri);
-            browserIntent.addCategory(Intent.CATEGORY_BROWSABLE);
-            // Browser-based login preserves provider security policies; no
-            // user-agent spoofing, cookie injection or WebView OAuth attempts.
-            browserIntent.setPackage("com.android.chrome");
-            try {
-                startActivity(browserIntent);
-            } catch (android.content.ActivityNotFoundException noChrome) {
-                browserIntent.setPackage(null);
-                startActivity(browserIntent);
-            }
-            captureStatus.setText("Secure sign-in opened in Chrome. Share an employer Apply link back to Garamaal Browser.");
+            openSecureBrowser(uri.toString());
+            captureStatus.setText("Chrome Custom Tab handles authentication. Capture is available on external employer pages.");
         } catch (Exception ignored) {
             Toast.makeText(this, "No supported browser available.", Toast.LENGTH_LONG).show();
         }
+    }
+
+    /**
+     * Launched only after the user taps Capture Job in the Chrome Custom Tab.
+     * Chrome supplies its current page URL via the mutable explicit PendingIntent.
+     * This is NOT a transfer of Chrome DOM, sign-in state, cookies or history.
+     */
+    private void captureFromSecureTab(Uri page) {
+        if (page == null || !"https".equalsIgnoreCase(page.getScheme()) ||
+            page.getHost() == null) {
+            captureStatus.setText("No job URL received from Secure Browser. Open an employer vacancy and retry.");
+            return;
+        }
+        String url = page.toString();
+        lastSecureUrl = url;
+        address.setText(url);
+        if (!JobCaptureEngine.eligible(url)) {
+            captureStatus.setText("LinkedIn and Google pages are not captured. In Secure Browser open the employer's external Apply page, then tap Capture Job.");
+            return;
+        }
+        if (backgroundCapture == null) {
+            captureStatus.setText("Capture service is unavailable. Use the direct WebView test mode.");
+            return;
+        }
+        captureStatus.setText("Capturing employer job details in a separate WebView…");
+        reviewScroll.setVisibility(View.GONE);
+        reviewToggle.setVisibility(View.GONE);
+        backgroundCapture.capture(url, (job, note) -> {
+            applyCaptureResult(job, note);
+        });
+    }
+
+    private void applyCaptureResult(JSONObject data, String note) {
+        captured = data;
+        title.setText(data.optString("title"));
+        company.setText(data.optString("company"));
+        location.setText(data.optString("location"));
+        applicationUrl.setText(data.optString("url"));
+        jobDescription.setText(data.optString("description"));
+        capturedFromPage = true;
+        reviewToggle.setVisibility(View.VISIBLE);
+        reviewToggle.setText("Close review");
+        setReviewVisible(true);
+        captureStatus.setText(note);
+        reviewScroll.post(() -> reviewScroll.fullScroll(View.FOCUS_UP));
     }
 
     private EditText edit(String hint) {
@@ -498,6 +563,11 @@ public final class MainActivity extends Activity {
      */
     private boolean openIncomingLink(Intent intent) {
         if (intent == null) return false;
+        if (SecureBrowser.isCaptureIntent(intent)) {
+            if (browser.getUrl() == null) showBrowserHome();
+            captureFromSecureTab(intent.getData());
+            return true;
+        }
         if (Intent.ACTION_VIEW.equals(intent.getAction())) {
             Uri uri = intent.getData();
             if (uri == null || !"garamaal-browser".equalsIgnoreCase(uri.getScheme()) ||
@@ -505,6 +575,7 @@ public final class MainActivity extends Activity {
             String target = uri.getQueryParameter("url");
             if (target == null || target.trim().isEmpty()) {
                 if (browser.getUrl() == null) showBrowserHome();
+                openSecureBrowser(SecureBrowser.INITIAL_URL);
                 return true;
             }
             if (target.length() > 2500) {
@@ -517,7 +588,7 @@ public final class MainActivity extends Activity {
                 Toast.makeText(this, "Only HTTPS employer vacancies are supported.", Toast.LENGTH_LONG).show();
                 return true;
             }
-            navigate(target);
+            openSecureBrowser(target);
             return true;
         }
         return openSharedLink(intent);
@@ -529,7 +600,15 @@ public final class MainActivity extends Activity {
         if (shared == null) return false;
         Matcher matcher = Pattern.compile("https://[^\\s<>]+").matcher(shared);
         if (!matcher.find()) return false;
-        navigate(matcher.group().replaceAll("[.,)]+$", ""));
+        String sharedUrl = matcher.group().replaceAll("[.,)]+$", "");
+        // Share -> Garamaal is user-initiated and works even if Brave hides
+        // the Custom Tabs toolbar and menu action. Never read browser cookies.
+        if (JobCaptureEngine.eligible(sharedUrl)) {
+            captureFromSecureTab(Uri.parse(sharedUrl));
+        } else {
+            openSecureBrowser(sharedUrl);
+            captureStatus.setText("LinkedIn/Google pages are not extracted. Share the external employer Apply page instead.");
+        }
         return true;
     }
 
@@ -561,6 +640,7 @@ public final class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if (pendingUpload != null) pendingUpload.onReceiveValue(null);
+        if (backgroundCapture != null) backgroundCapture.dispose();
         browser.destroy();
         super.onDestroy();
     }
