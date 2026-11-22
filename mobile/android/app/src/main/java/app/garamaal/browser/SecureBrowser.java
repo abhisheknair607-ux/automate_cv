@@ -66,9 +66,10 @@ final class SecureBrowser {
         CustomTabsIntent customTab = new CustomTabsIntent.Builder()
             .setShowTitle(true)
             .setToolbarColor(0xff132a49)
-            // Top toolbar: visible on browsers that hide the bottom toolbar.
+            .setShareState(CustomTabsIntent.SHARE_STATE_ON)
+            // Chrome adapts the icon tint to light/dark toolbar variants.
             .setActionButton(captureIcon(), "Capture Job in Garamaal",
-                pendingCapture, false)
+                pendingCapture, true)
             .setSecondaryToolbarViews(bar, new int[]{R.id.secure_capture_action}, pendingCapture)
             .addMenuItem("Capture job in Garamaal", pendingCapture)
             .build();
