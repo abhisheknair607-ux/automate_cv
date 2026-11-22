@@ -11,7 +11,7 @@
         <activity
             android:name=".PreparationActivity"
             android:exported="false"
-            android:documentLaunchMode="never"
+            android:taskAffinity="app.garamaal.browser.prepare"
             android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".MainActivity"
