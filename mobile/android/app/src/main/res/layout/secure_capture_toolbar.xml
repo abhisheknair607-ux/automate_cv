@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:gravity="center"
+    android:paddingLeft="12dp"
+    android:paddingRight="12dp"
+    android:background="#132A49">
+    <TextView
+        android:id="@+id/secure_capture_action"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:contentDescription="Capture job in Garamaal"
+        android:text="Capture Job  ·  Garamaal"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="#FFFFFF"/>
+</LinearLayout>
