@@ -2,7 +2,12 @@ package app.garamaal.browser;
 
 import android.app.Activity;
 import android.app.PendingIntent;
+import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.Uri;
 import android.widget.RemoteViews;
 
@@ -18,6 +23,24 @@ final class SecureBrowser {
     static final String INITIAL_URL = "https://www.linkedin.com/jobs/";
 
     private SecureBrowser() {}
+
+    /** Toolbar action bitmap: more compatible than a secondary toolbar alone. */
+    private static Bitmap captureIcon() {
+        Bitmap icon = Bitmap.createBitmap(48, 48, Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(icon);
+        Paint pen = new Paint(Paint.ANTI_ALIAS_FLAG);
+        pen.setColor(Color.WHITE);
+        pen.setStrokeWidth(3.8f);
+        pen.setStrokeCap(Paint.Cap.ROUND);
+        pen.setStrokeJoin(Paint.Join.ROUND);
+        pen.setStyle(Paint.Style.STROKE);
+        canvas.drawRoundRect(9, 6, 39, 42, 4, 4, pen);
+        canvas.drawLine(15, 17, 33, 17, pen);
+        canvas.drawLine(15, 25, 25, 25, pen);
+        canvas.drawLine(29, 29, 29, 39, pen);
+        canvas.drawLine(24, 34, 34, 34, pen);
+        return icon;
+    }
 
     static boolean isCaptureIntent(Intent intent) {
         return intent != null && ACTION_CAPTURE.equals(intent.getAction());
@@ -43,9 +66,23 @@ final class SecureBrowser {
         CustomTabsIntent customTab = new CustomTabsIntent.Builder()
             .setShowTitle(true)
             .setToolbarColor(0xff132a49)
+            // Top toolbar: visible on browsers that hide the bottom toolbar.
+            .setActionButton(captureIcon(), "Capture Job in Garamaal",
+                pendingCapture, false)
             .setSecondaryToolbarViews(bar, new int[]{R.id.secure_capture_action}, pendingCapture)
             .addMenuItem("Capture job in Garamaal", pendingCapture)
             .build();
-        customTab.launchUrl(activity, url);
+        // Brave is the user's default Custom Tab provider; its UI did not
+        // display our secondary toolbar. Prefer Chrome for these controls
+        // without changing the phone's default browser setting.
+        customTab.intent.setPackage("com.android.chrome");
+        try {
+            customTab.launchUrl(activity, url);
+        } catch (ActivityNotFoundException chromeMissing) {
+            // Share -> Garamaal Browser is the reliable fallback if this
+            // provider also ignores Custom Tabs buttons.
+            customTab.intent.setPackage(null);
+            customTab.launchUrl(activity, url);
+        }
     }
 }
