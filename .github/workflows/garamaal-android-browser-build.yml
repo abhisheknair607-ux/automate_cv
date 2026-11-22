@@ -34,7 +34,7 @@ jobs:
       - name: Check browser extraction and PWA integration
         run: |
           node --check standalone/server.js
-          node --test standalone/test/mobile_capture_handoff.test.js standalone/test/mobile_job_integration.test.js standalone/test/android_system_bars_oauth.test.js standalone/test/android_pwa_launcher.test.js standalone/test/android_secure_capture_v04.test.js standalone/test/android_capture_controls_v041.test.js
+          node --test standalone/test/mobile_capture_handoff.test.js standalone/test/mobile_job_integration.test.js standalone/test/android_system_bars_oauth.test.js standalone/test/android_pwa_launcher.test.js standalone/test/android_secure_capture_v04.test.js standalone/test/android_capture_controls_v041.test.js standalone/test/android_prepare_apply_v05.test.js
       - name: Build Android test APK
         working-directory: mobile/android
         run: gradle --no-daemon :app:assembleDebug

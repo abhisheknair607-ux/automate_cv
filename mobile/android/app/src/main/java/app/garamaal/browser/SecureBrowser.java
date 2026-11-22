@@ -15,7 +15,7 @@ import androidx.browser.customtabs.CustomTabsIntent;
 
 /**
  * Chrome Custom Tabs keeps Google/LinkedIn authentication in the Chrome session.
- * A user tap on Capture Job returns only the CURRENT URL to MainActivity;
+ * A user tap on Capture Job opens the separate Garamaal PreparationActivity;
  * the Chrome DOM, cookies, OAuth tokens and credentials never cross into WebView.
  */
 final class SecureBrowser {
@@ -52,9 +52,13 @@ final class SecureBrowser {
             throw new IllegalArgumentException("Secure Browser requires an HTTPS address");
         }
 
-        Intent callback = new Intent(activity, MainActivity.class);
+        Intent callback = new Intent(activity, PreparationActivity.class);
         callback.setAction(ACTION_CAPTURE);
-        callback.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        // Open a separate native preparation task above the secure Custom Tab.
+        // Closing that task returns to the browser's still-open task, avoiding
+        // a destructive CLEAR_TOP that previously risked removing Chrome.
+        callback.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK |
+            Intent.FLAG_ACTIVITY_MULTIPLE_TASK);
 
         // MUTABLE is required: Chrome inserts the currently displayed URL
         // as PendingIntent.data when the user taps the Custom Tab toolbar.

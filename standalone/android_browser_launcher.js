@@ -19,10 +19,13 @@
       if(url.protocol!=="https:"||url.href.length>2500)return "";
       const host=url.hostname.toLowerCase();
       if(!host||host==="garamaal.web.app"||host.endsWith(".garamaal.web.app")||
-        host==="linkedin.com"||host.endsWith(".linkedin.com")||
         host==="accounts.google.com"||
         host==="docs.google.com"||host==="drive.google.com"||
         host==="github.com"||host.endsWith(".github.com"))return "";
+      const isLinkedIn=host==="linkedin.com"||host.endsWith(".linkedin.com");
+      // Only job page links from Garamaal may enter the native secure
+      // Chrome Custom Tab. Never intercept LinkedIn login, messages or feed.
+      if(isLinkedIn&&!url.pathname.startsWith("/jobs/"))return "";
       return url.href;
     }catch{return "";}
   }
@@ -49,7 +52,7 @@
   }
   // Existing job cards, Swipe deck and "Open employer vacancy" drawer
   // buttons all use these selectors. Do not intercept CV/CL Drive links,
-  // LinkedIn, non-job links or modified/middle clicks.
+  // non-job LinkedIn pages, non-job links or modified/middle clicks.
   const SELECTOR=[
     "a.joblink",
     "a.gmv3-swipe-title-link",

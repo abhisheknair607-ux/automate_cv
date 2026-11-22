@@ -6,6 +6,13 @@
         android:usesCleartextTraffic="false"
         android:label="Garamaal Browser"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
+        <!-- Separate short-lived preparation task: return to existing Chrome
+             Custom Tab by finishing this Activity, not by reloading its URL. -->
+        <activity
+            android:name=".PreparationActivity"
+            android:exported="false"
+            android:taskAffinity="app.garamaal.browser.prepare"
+            android:windowSoftInputMode="adjustResize" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
