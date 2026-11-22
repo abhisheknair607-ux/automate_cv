@@ -38,7 +38,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** Native browser MVP: read only the user's requested employer vacancy page. */
-public final class MainActivity extends Activity {
+public class MainActivity extends Activity {
     private static final int FILE_CHOOSER = 3001;
     private static final String GARAMAAL = "https://garamaal.web.app/prototype";
     private static final int NAVY = Color.rgb(19, 42, 73);
@@ -62,6 +62,7 @@ public final class MainActivity extends Activity {
     private JSONObject captured;
     private String script;
     private boolean capturedFromPage = false;
+    private boolean prepareAutoCapture = false;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -164,6 +165,7 @@ public final class MainActivity extends Activity {
         toolbar.setOrientation(LinearLayout.HORIZONTAL);
         toolbar.setGravity(Gravity.CENTER_VERTICAL);
         toolbar.setPadding(dp(5), dp(4), dp(5), dp(4));
+        toolbar.setBackgroundColor(NAVY);
         Button back = button("‹");
         styleButton(back, false);
         toolbar.addView(back, new LinearLayout.LayoutParams(dp(44), dp(46)));
@@ -171,23 +173,35 @@ public final class MainActivity extends Activity {
         address = new EditText(this);
         address.setSingleLine(true);
         address.setTextSize(12);
-        address.setHint("Paste external job URL");
+        address.setHint("Secure employer URL");
+        address.setTextColor(NAVY);
+        address.setHintTextColor(Color.rgb(103, 115, 133));
+        address.setPadding(dp(10), dp(5), dp(10), dp(5));
+        GradientDrawable addressBackground = new GradientDrawable();
+        addressBackground.setColor(Color.WHITE);
+        addressBackground.setCornerRadius(dp(9));
+        address.setBackground(addressBackground);
         address.setInputType(android.text.InputType.TYPE_CLASS_TEXT |
             android.text.InputType.TYPE_TEXT_VARIATION_URI);
         toolbar.addView(address, new LinearLayout.LayoutParams(0, dp(49), 1));
-        Button go = button("Secure");
+        Button go = button(this instanceof PreparationActivity ? "Open" : "Secure");
         styleButton(go, true);
         go.setTextSize(11);
-        toolbar.addView(go, new LinearLayout.LayoutParams(dp(69), dp(46)));
-        go.setOnClickListener(v -> openSecureBrowser(address.getText().toString()));
-        Button external = button("WebView");
-        external.setContentDescription("Open typed job in the direct Job Browser for troubleshooting");
-        external.setTextSize(10);
-        styleButton(external, false);
-        LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(76), dp(46));
-        externalParams.leftMargin = dp(5);
-        toolbar.addView(external, externalParams);
-        external.setOnClickListener(v -> navigate(address.getText().toString()));
+        toolbar.addView(go, new LinearLayout.LayoutParams(dp(66), dp(46)));
+        go.setOnClickListener(v -> {
+            if (this instanceof PreparationActivity) navigate(address.getText().toString());
+            else openSecureBrowser(address.getText().toString());
+        });
+        if (!(this instanceof PreparationActivity)) {
+            Button external = button("WebView");
+            external.setContentDescription("Open typed job in the direct Job Browser for troubleshooting");
+            external.setTextSize(10);
+            styleButton(external, false);
+            LinearLayout.LayoutParams externalParams = new LinearLayout.LayoutParams(dp(76), dp(46));
+            externalParams.leftMargin = dp(5);
+            toolbar.addView(external, externalParams);
+            external.setOnClickListener(v -> navigate(address.getText().toString()));
+        }
         root.addView(toolbar);
 
         browser = new WebView(this);
@@ -217,7 +231,13 @@ public final class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 address.setText(url.startsWith("data:") || url.startsWith("about:") ? "" : url);
-                captureStatus.setText("Garamaal Assistant · Capture when the job description is visible");
+                captureStatus.setText("Garamaal Assistant · Capture or review the employer job");
+                if (prepareAutoCapture && JobCaptureEngine.eligible(url)) {
+                    prepareAutoCapture = false;
+                    view.postDelayed(() -> {
+                        if (url.equals(view.getUrl())) captureJob();
+                    }, 1400);
+                }
             }
         });
         browser.setWebChromeClient(new WebChromeClient() {
@@ -242,12 +262,13 @@ public final class MainActivity extends Activity {
         LinearLayout assistant = new LinearLayout(this);
         assistant.setOrientation(LinearLayout.VERTICAL);
         assistant.setPadding(dp(12), dp(7), dp(12), dp(7));
-        assistant.setBackgroundColor(Color.rgb(246, 248, 252));
+        assistant.setBackgroundColor(NAVY);
 
         LinearLayout assistantTop = new LinearLayout(this);
         assistantTop.setGravity(Gravity.CENTER_VERTICAL);
         TextView assistantTitle = text("Garamaal Assistant", 16);
         assistantTitle.setTypeface(null, android.graphics.Typeface.BOLD);
+        assistantTitle.setTextColor(Color.WHITE);
         assistantTop.addView(assistantTitle, new LinearLayout.LayoutParams(0, -2, 1));
         Button toggle = button("Close review");
         reviewToggle = toggle;
@@ -257,17 +278,44 @@ public final class MainActivity extends Activity {
         assistantTop.addView(toggle, new LinearLayout.LayoutParams(dp(116), dp(39)));
         assistant.addView(assistantTop);
         captureStatus = text("Open an employer vacancy, then capture the job", 12);
-        captureStatus.setTextColor(Color.rgb(97, 112, 132));
+        captureStatus.setTextColor(Color.rgb(221, 233, 247));
         assistant.addView(captureStatus);
 
-        Button capture = button("Capture this job");
+        LinearLayout actions = new LinearLayout(this);
+        actions.setGravity(Gravity.CENTER_VERTICAL);
+        Button capture = button("Capture");
         styleButton(capture, true);
-        assistant.addView(capture, new LinearLayout.LayoutParams(-1, dp(48)));
+        actions.addView(capture, new LinearLayout.LayoutParams(0, dp(47), 1));
+        Button quickMakeCv = button("Make CV");
+        styleButton(quickMakeCv, false);
+        LinearLayout.LayoutParams quickParams = new LinearLayout.LayoutParams(0, dp(47), 1);
+        quickParams.leftMargin = dp(5);
+        actions.addView(quickMakeCv, quickParams);
+        quickMakeCv.setOnClickListener(v -> {
+            if (captured == null) {
+                captureStatus.setText("Capture or enter the job details first, then prepare your CV.");
+                return;
+            }
+            setReviewVisible(true);
+            reviewToggle.setVisibility(View.VISIBLE);
+            reviewToggle.setText("Close review");
+            captureStatus.setText("Edit the description, then choose Save & Make CV below.");
+        });
+        if (this instanceof PreparationActivity) {
+            Button apply = button("Apply ↗");
+            styleButton(apply, false);
+            LinearLayout.LayoutParams applyParams = new LinearLayout.LayoutParams(0, dp(47), 1);
+            applyParams.leftMargin = dp(5);
+            actions.addView(apply, applyParams);
+            apply.setOnClickListener(v -> returnToSecureBrowser());
+        }
+        assistant.addView(actions);
         capture.setOnClickListener(v -> captureJob());
 
         review = new LinearLayout(this);
         review.setOrientation(LinearLayout.VERTICAL);
         review.setPadding(dp(8), dp(8), dp(8), dp(10));
+        review.setBackgroundColor(Color.WHITE);
         review.addView(text("Captured job details — all fields editable", 14));
 
         title = edit("Enter exact job title");
@@ -355,7 +403,7 @@ public final class MainActivity extends Activity {
                 openGaramaal("#gm-view=" + destination);
             });
         }
-        root.addView(nav);
+        if (!(this instanceof PreparationActivity)) root.addView(nav);
     }
 
     /** Google OAuth and LinkedIn sign-in must use a trusted browser, not WebView. */
@@ -412,7 +460,24 @@ public final class MainActivity extends Activity {
         lastSecureUrl = url;
         address.setText(url);
         if (!JobCaptureEngine.eligible(url)) {
-            captureStatus.setText("LinkedIn and Google pages are not captured. In Secure Browser open the employer's external Apply page, then tap Capture Job.");
+            // The LinkedIn session stays inside Chrome. Garamaal never copies
+            // its page DOM or sign-in cookies into an Android WebView.
+            if (this instanceof PreparationActivity) {
+                JSONObject draft = new JSONObject();
+                try { draft.put("url", url); } catch (Exception ignored) {}
+                showBrowserHome();
+                applyCaptureResult(draft,
+                    "LinkedIn stays in Secure Browser. Open the external employer Apply page to capture its JD, or use a job already saved in Garamaal.");
+            } else {
+                captureStatus.setText("Open the employer's external Apply page before capture. LinkedIn DOM access is unavailable.");
+            }
+            return;
+        }
+        if (this instanceof PreparationActivity) {
+            // Unlike the previous v0.4 hidden extractor, the real employer
+            // page is displayed inside our visible WebView preparation stage.
+            prepareAutoCapture = true;
+            navigate(url);
             return;
         }
         if (backgroundCapture == null) {
@@ -425,6 +490,18 @@ public final class MainActivity extends Activity {
         backgroundCapture.capture(url, (job, note) -> {
             applyCaptureResult(job, note);
         });
+    }
+
+    /** Finish the preparation-only Android task instead of reloading the job.
+     *  The original Chrome Custom Tab remains in the previous browser task.
+     *  Individual browser installations may have different task behaviour. */
+    private void returnToSecureBrowser() {
+        if (this instanceof PreparationActivity) {
+            finishAndRemoveTask();
+            overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
+        } else {
+            openSecureBrowser(lastSecureUrl);
+        }
     }
 
     private void applyCaptureResult(JSONObject data, String note) {
@@ -503,8 +580,10 @@ public final class MainActivity extends Activity {
                     : "Captured — review all fields before saving");
                 setReviewVisible(true);
             } catch (Exception error) {
-                captureStatus.setText("Capture failed: " + error.getMessage());
-                reviewScroll.setVisibility(View.GONE);
+                JSONObject draft = new JSONObject();
+                try { draft.put("url", browser.getUrl()); } catch (Exception ignored) {}
+                applyCaptureResult(draft,
+                    "Automatic capture was incomplete. Enter or paste the job details manually.");
             }
         });
     }
@@ -635,6 +714,7 @@ public final class MainActivity extends Activity {
     @Override public void onBackPressed() {
         if (reviewScroll.getVisibility() == View.VISIBLE) reviewScroll.setVisibility(View.GONE);
         else if (browser.canGoBack()) browser.goBack();
+        else if (this instanceof PreparationActivity) returnToSecureBrowser();
         else super.onBackPressed();
     }
 
