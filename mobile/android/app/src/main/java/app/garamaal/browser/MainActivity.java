@@ -231,7 +231,8 @@ public class MainActivity extends Activity {
             }
             @Override public void onPageFinished(WebView view, String url) {
                 address.setText(url.startsWith("data:") || url.startsWith("about:") ? "" : url);
-                captureStatus.setText("Garamaal Assistant · Capture or review the employer job");
+                if (url.startsWith("https://"))
+                    captureStatus.setText("Garamaal Assistant · Capture or review the employer job");
                 if (prepareAutoCapture && JobCaptureEngine.eligible(url)) {
                     prepareAutoCapture = false;
                     view.postDelayed(() -> {
@@ -568,17 +569,9 @@ public class MainActivity extends Activity {
                 Object value = new JSONTokener(result).nextValue();
                 JSONObject data = new JSONObject(String.valueOf(value));
                 if (data.has("error")) throw new IllegalStateException(data.getString("error"));
-                captured = data;
-                title.setText(data.optString("title"));
-                company.setText(data.optString("company"));
-                location.setText(data.optString("location"));
-                applicationUrl.setText(data.optString("url"));
-                jobDescription.setText(data.optString("description"));
-                capturedFromPage = true;
-                captureStatus.setText(data.optBoolean("missingDescription")
+                applyCaptureResult(data, data.optBoolean("missingDescription")
                     ? "Partial capture — review missing job description"
                     : "Captured — review all fields before saving");
-                setReviewVisible(true);
             } catch (Exception error) {
                 JSONObject draft = new JSONObject();
                 try { draft.put("url", browser.getUrl()); } catch (Exception ignored) {}
