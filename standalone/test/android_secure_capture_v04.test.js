@@ -22,7 +22,7 @@ test("Default browser uses Chrome Custom Tabs, with an explicit bottom Capture J
   assert.match(bottom,/android:id="@\+id\/secure_capture_action"/);
   assert.match(bottom,/Capture Job/);
   assert.match(gradle,/androidx\.browser:browser:1\.10\.0/);
-  assert.match(gradle,/versionName = "0\.4\.1"/);
+  assert.match(gradle,/versionName = "0\.5\.0"/);
 });
 
 test("Chrome sends only current page URL to native activity, not OAuth tokens",()=>{
