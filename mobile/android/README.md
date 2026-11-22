@@ -1,5 +1,18 @@
 # Garamaal Android Job Browser — native MVP
 
+## Secure → Prepare in WebView → Apply in Secure prototype (v0.5.0)
+
+- Installed Garamaal Android PWA employer **and LinkedIn job links** are routed into the native Garamaal Secure Browser (once the website bridge changes are deployed); ordinary LinkedIn sign-in/feed/messaging links, desktop and iOS remain untouched.
+- Secure Browser (Chrome Custom Tabs) is the first view. The existing Capture Job action launches a **separate private Garamaal PreparationActivity**, rather than clearing the secure Chrome task.
+- PreparationActivity uses the **same navy Garamaal toolbar theme**, a white address field, a real visible employer WebView and a matching navy Garamaal Assistant. It exposes **Capture**, **Make CV**, **Apply**, editable JD review, **Save Job**, **Save & Make CV**, and **Open Saved Jobs & CVs**. Pressing Capture on a public employer site reads its existing DOM. There is no automatic form submission or paid CV generation.
+- **Apply** closes only the preparation task via `finishAndRemoveTask()` and returns to the underlying browser task if Android preserves it. It **does not explicitly reopen or reload the Chrome URL**. Android task switching/Custom Tabs behavior must still be verified on physical devices.
+- **Chrome LinkedIn cookies are not accessible in WebView**; for a LinkedIn page, preparation shows a blank/manual capture draft and a link to existing Garamaal Make CV records rather than pretending to display authenticated LinkedIn. For public external employer pages, the actual employer URL loads in WebView. Matching the navy toolbar does not guarantee pixel-perfect page rendering if the browser/page sessions differ.
+- The existing handoff to the authenticated PWA remains in place for Save Job and CV preparation. The dedicated native browser APK is still a prototype: work performed in the PWA can open another Chrome activity; user-return experience and saved-job integration need device testing.
+- **No advanced Secure Browser autofill** has been added in this version. Android's basic browser/autofill remains unchanged.
+- This is a test APK only. Neither GitHub main nor live Cloud Run is deployed by creating this branch.
+
+
+
 ## Secure Browser capture-controls fix (v0.4.1)
 
 - An Android device with Brave as its default browser can open Garamaal as a Brave Custom Tab. Brave did not display the existing secondary bottom Capture Job toolbar in user testing.
