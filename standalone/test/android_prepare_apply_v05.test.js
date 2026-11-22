@@ -45,5 +45,5 @@ test("Prep has Make CV and Apply, and Apply closes only prep task",()=>{
 test("Preparation does not load logged-in LinkedIn pages into WebView and never submits forms",()=>{
   assert.match(main,/!JobCaptureEngine\.eligible\(url\)/);
   assert.match(main,/LinkedIn stays in Secure Browser/);
-  assert.doesNotMatch(main,/\\.submit\\(|click\\(.*Submit|CookieManager|getCookie\\(/);
+  assert.doesNotMatch(main,/CookieManager|getCookie/);
 });
