@@ -358,6 +358,15 @@ public class MainActivity extends Activity {
         review.addView(makeCv, makeParams);
         makeCv.setOnClickListener(v -> handOffCapture(true));
 
+        // LinkedIn job pages cannot be read from the Chrome login session.
+        // For jobs already present in Garamaal, use their existing saved JD.
+        Button saved = button("Open Saved Jobs & CVs");
+        styleButton(saved, false);
+        LinearLayout.LayoutParams savedParams = new LinearLayout.LayoutParams(-1, dp(46));
+        savedParams.topMargin = dp(6);
+        review.addView(saved, savedParams);
+        saved.setOnClickListener(v -> openGaramaal("#gm-view=fresh"));
+
         reviewScroll = new ScrollView(this);
         reviewScroll.setFillViewport(false);
         reviewScroll.setVerticalScrollBarEnabled(true);
